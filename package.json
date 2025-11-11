@@ -1,0 +1,49 @@
+{
+  "name": "compliance-reminder-saas",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "api": "cd api && ts-node server.ts",
+    "api:dev": "cd api && nodemon server.ts",
+    "dev:all": "concurrently \"npm run dev\" \"npm run api:dev\""
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^5.3.7",
+    "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.19.0",
+    "@prisma/extension-accelerate": "^2.0.2",
+    "@stripe/stripe-js": "^4.8.0",
+    "cloudinary": "^2.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "next": "14.2.13",
+    "node-cron": "^3.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "stripe": "^17.3.1",
+    "twilio": "^5.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.12.14",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2.13",
+    "nodemon": "^3.1.7",
+    "postcss": "^8.4.47",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^4.1.17",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
