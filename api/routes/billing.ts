@@ -4,9 +4,17 @@ import { PrismaClient } from '@prisma/client';
 
 const router = Router();
 const prisma = new PrismaClient();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-10-29.clover',
-});
+
+// Initialize Stripe only if API key is provided
+let stripe: Stripe | null = null;
+if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-10-29.clover',
+  });
+  console.log('✅ Stripe initialized successfully');
+} else {
+  console.log('⚠️  Stripe not configured - billing routes will return mock data');
+}
 
 // Middleware to verify Clerk authentication
 const verifyAuth = async (req: any, res: any, next: any) => {
@@ -37,6 +45,18 @@ router.get('/subscription', verifyAuth, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // If Stripe is not configured, return mock data
+    if (!stripe) {
+      console.log('⚠️  Stripe not configured - returning mock subscription data');
+      return res.json({
+        subscriptionTier: user.subscriptionTier || 'starter',
+        subscriptionStatus: user.subscriptionStatus || 'active',
+        stripeCustomerId: user.stripeCustomerId || 'mock_customer_id',
+        mock: true,
+        message: 'Stripe not configured - this is mock data',
+      });
+    }
+
     res.json({
       subscriptionTier: user.subscriptionTier,
       subscriptionStatus: user.subscriptionStatus,
@@ -58,6 +78,17 @@ router.post('/checkout', verifyAuth, async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If Stripe is not configured, return mock session
+    if (!stripe) {
+      console.log('⚠️  Stripe not configured - returning mock checkout session');
+      return res.json({
+        sessionId: 'mock_session_id',
+        mock: true,
+        message: 'Stripe not configured - this is a mock session',
+        tier: tier,
+      });
     }
 
     const priceMap = {
