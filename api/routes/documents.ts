@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { verifyToken } from '@clerk/nextjs/server';
 import { v2 as cloudinary } from 'cloudinary';
 
 const router = Router();

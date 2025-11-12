@@ -48,7 +48,7 @@ router.get('/', verifyAuth, async (req, res) => {
     });
 
     // Update status for each license based on expiration date
-    const updatedLicenses = licenses.map(license => ({
+    const updatedLicenses = licenses.map((license: any) => ({
       ...license,
       status: calculateLicenseStatus(license.expirationDate, license.gracePeriodDays),
     }));
@@ -87,7 +87,7 @@ router.get('/business/:businessId', verifyAuth, async (req, res) => {
     });
 
     // Update status for each license
-    const updatedLicenses = licenses.map(license => ({
+    const updatedLicenses = licenses.map((license: any) => ({
       ...license,
       status: calculateLicenseStatus(license.expirationDate, license.gracePeriodDays),
     }));
