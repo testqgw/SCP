@@ -1,5 +1,5 @@
-import { SignInButton, SignUpButton, UserButton, SignedIn, SignedOut } from '@clerk/nextjs'
 import Link from 'next/link'
+import { SignInButton, SignUpButton } from '@clerk/nextjs'
 
 export default function Home() {
   return (
@@ -15,27 +15,16 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <button className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition">
-                    Sign In
-                  </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-md text-sm font-medium transition shadow-sm">
-                    Get Started
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Link 
-                  href="/dashboard"
-                  className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition"
-                >
-                  Dashboard
-                </Link>
-                <UserButton afterSignOutUrl="/" />
-              </SignedIn>
+              <SignInButton mode="modal">
+                <button className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition">
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-md text-sm font-medium transition shadow-sm">
+                  Sign Up
+                </button>
+              </SignUpButton>
             </div>
           </div>
         </div>
@@ -45,34 +34,24 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-20">
         <div className="text-center">
           <h1 className="text-5xl font-extrabold text-gray-900 sm:text-6xl md:text-7xl">
-            Never Miss a 
+            Never Miss a
             <span className="text-blue-600"> License Renewal</span>
           </h1>
           <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed">
-            Automated reminders for business licenses, permits, and certifications. 
+            Automated reminders for business licenses, permits, and certifications.
             Avoid costly fines and business shutdowns with timely SMS and email alerts.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <SignedOut>
-              <SignUpButton mode="modal">
-                <button className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
-                  Start Free Trial
-                </button>
-              </SignUpButton>
-              <SignInButton mode="modal">
-                <button className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-blue-600">
-                  Sign In
-                </button>
-              </SignInButton>
-            </SignedOut>
-            <SignedIn>
-              <Link 
-                href="/dashboard"
-                className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl inline-block"
-              >
-                Go to Dashboard →
-              </Link>
-            </SignedIn>
+            <SignUpButton mode="modal">
+              <button className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
+                Get Started
+              </button>
+            </SignUpButton>
+            <SignInButton mode="modal">
+              <button className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-blue-600">
+                Sign In
+              </button>
+            </SignInButton>
           </div>
         </div>
 
@@ -97,7 +76,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Feature 1 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 📅
@@ -110,7 +88,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 2 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 📱
@@ -123,7 +100,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 3 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 📊
@@ -136,7 +112,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 4 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 📄
@@ -149,7 +124,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 5 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 🏢
@@ -162,7 +136,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Feature 6 */}
             <div className="text-center p-6 rounded-lg hover:shadow-lg transition">
               <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 text-4xl mx-auto mb-4">
                 📈
@@ -245,7 +218,6 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
-            {/* Starter Plan */}
             <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-gray-200 hover:border-blue-500 transition">
               <h3 className="text-2xl font-bold text-gray-900">Starter</h3>
               <p className="mt-2 text-gray-600">Perfect for single-location businesses</p>
@@ -271,21 +243,13 @@ export default function Home() {
                   <span>Document Storage</span>
                 </li>
               </ul>
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <button className="mt-8 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                    Start Free Trial
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <SignUpButton mode="modal">
+                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                   Get Started
-                </Link>
-              </SignedIn>
+                </button>
+              </SignUpButton>
             </div>
 
-            {/* Professional Plan */}
             <div className="bg-white rounded-lg shadow-xl p-8 border-4 border-blue-500 relative transform scale-105">
               <div className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1 text-sm font-semibold rounded-bl-lg rounded-tr-lg">
                 POPULAR
@@ -318,21 +282,13 @@ export default function Home() {
                   <span>Priority Support</span>
                 </li>
               </ul>
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <button className="mt-8 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                    Start Free Trial
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <SignUpButton mode="modal">
+                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                   Get Started
-                </Link>
-              </SignedIn>
+                </button>
+              </SignUpButton>
             </div>
 
-            {/* Multi-Location Plan */}
             <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-gray-200 hover:border-blue-500 transition">
               <h3 className="text-2xl font-bold text-gray-900">Multi-Location</h3>
               <p className="mt-2 text-gray-600">For enterprise businesses</p>
@@ -362,18 +318,11 @@ export default function Home() {
                   <span>Dedicated Support</span>
                 </li>
               </ul>
-              <SignedOut>
-                <SignUpButton mode="modal">
-                  <button className="mt-8 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                    Start Free Trial
-                  </button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <SignUpButton mode="modal">
+                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                   Get Started
-                </Link>
-              </SignedIn>
+                </button>
+              </SignUpButton>
             </div>
           </div>
         </div>
@@ -388,21 +337,11 @@ export default function Home() {
           <p className="text-xl text-blue-100 mb-8">
             Join businesses that never miss a license renewal deadline
           </p>
-          <SignedOut>
-            <SignUpButton mode="modal">
-              <button className="px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg">
-                Start Your Free Trial
-              </button>
-            </SignUpButton>
-          </SignedOut>
-          <SignedIn>
-            <Link 
-              href="/dashboard"
-              className="inline-block px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg"
-            >
-              Go to Dashboard →
-            </Link>
-          </SignedIn>
+          <SignUpButton mode="modal">
+            <button className="inline-block px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg">
+              Sign Up Now
+            </button>
+          </SignUpButton>
         </div>
       </div>
 
