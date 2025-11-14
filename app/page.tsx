@@ -15,16 +15,16 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-4">
               <Link
-                href="/dashboard"
+                href="/sign-in"
                 className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition"
               >
                 Dashboard
               </Link>
               <Link
-                href="/dashboard"
+                href="/sign-up"
                 className="bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-md text-sm font-medium transition shadow-sm"
               >
-                Sign Up
+                Get Started
               </Link>
             </div>
           </div>
@@ -44,13 +44,13 @@ export default function Home() {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/dashboard"
+              href="/sign-up"
               className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
             >
               Get Started
             </Link>
             <Link
-              href="/dashboard"
+              href="/sign-in"
               className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-blue-600"
             >
               Sign In
@@ -246,7 +246,7 @@ export default function Home() {
                   <span>Document Storage</span>
                 </li>
               </ul>
-              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <Link href="/sign-in" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                 Get Started
               </Link>
             </div>
@@ -283,7 +283,7 @@ export default function Home() {
                   <span>Priority Support</span>
                 </li>
               </ul>
-              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <Link href="/sign-in" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                 Get Started
               </Link>
             </div>
@@ -317,7 +317,7 @@ export default function Home() {
                   <span>Dedicated Support</span>
                 </li>
               </ul>
-              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+              <Link href="/sign-in" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
                 Get Started
               </Link>
             </div>
@@ -335,7 +335,7 @@ export default function Home() {
             Join businesses that never miss a license renewal deadline
           </p>
           <Link
-            href="/dashboard"
+            href="/sign-in"
             className="inline-block px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg"
           >
             Sign Up Now
