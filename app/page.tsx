@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { SignInButton, SignUpButton } from '@clerk/nextjs'
 
 export default function Home() {
   return (
@@ -15,16 +14,18 @@ export default function Home() {
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <SignInButton mode="modal">
-                <button className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition">
-                  Sign In
-                </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button className="bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-md text-sm font-medium transition shadow-sm">
-                  Sign Up
-                </button>
-              </SignUpButton>
+              <Link
+                href="/dashboard"
+                className="text-gray-700 hover:text-gray-900 px-4 py-2 rounded-md text-sm font-medium transition"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/dashboard"
+                className="bg-blue-600 text-white hover:bg-blue-700 px-5 py-2 rounded-md text-sm font-medium transition shadow-sm"
+              >
+                Sign Up
+              </Link>
             </div>
           </div>
         </div>
@@ -42,16 +43,18 @@ export default function Home() {
             Avoid costly fines and business shutdowns with timely SMS and email alerts.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <SignUpButton mode="modal">
-              <button className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl">
-                Get Started
-              </button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <button className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-blue-600">
-                Sign In
-              </button>
-            </SignInButton>
+            <Link
+              href="/dashboard"
+              className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
+            >
+              Get Started
+            </Link>
+            <Link
+              href="/dashboard"
+              className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-50 transition border-2 border-blue-600"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
 
@@ -243,11 +246,9 @@ export default function Home() {
                   <span>Document Storage</span>
                 </li>
               </ul>
-              <SignUpButton mode="modal">
-                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
-                  Get Started
-                </button>
-              </SignUpButton>
+              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+                Get Started
+              </Link>
             </div>
 
             <div className="bg-white rounded-lg shadow-xl p-8 border-4 border-blue-500 relative transform scale-105">
@@ -282,11 +283,9 @@ export default function Home() {
                   <span>Priority Support</span>
                 </li>
               </ul>
-              <SignUpButton mode="modal">
-                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
-                  Get Started
-                </button>
-              </SignUpButton>
+              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+                Get Started
+              </Link>
             </div>
 
             <div className="bg-white rounded-lg shadow-lg p-8 border-2 border-gray-200 hover:border-blue-500 transition">
@@ -318,11 +317,9 @@ export default function Home() {
                   <span>Dedicated Support</span>
                 </li>
               </ul>
-              <SignUpButton mode="modal">
-                <button className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
-                  Get Started
-                </button>
-              </SignUpButton>
+              <Link href="/dashboard" className="mt-8 block w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition text-center">
+                Get Started
+              </Link>
             </div>
           </div>
         </div>
@@ -337,11 +334,12 @@ export default function Home() {
           <p className="text-xl text-blue-100 mb-8">
             Join businesses that never miss a license renewal deadline
           </p>
-          <SignUpButton mode="modal">
-            <button className="inline-block px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg">
-              Sign Up Now
-            </button>
-          </SignUpButton>
+          <Link
+            href="/dashboard"
+            className="inline-block px-10 py-4 bg-white text-blue-600 text-lg font-bold rounded-lg hover:bg-gray-100 transition shadow-lg"
+          >
+            Sign Up Now
+          </Link>
         </div>
       </div>
 
