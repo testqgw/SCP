@@ -43,11 +43,11 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const body = await req.json();
-    const { 
-      licenseId, 
-      fileName, 
-      fileUrl, 
-      fileType 
+    const {
+      licenseId,
+      fileName,
+      fileUrl,
+      fileType
     } = body;
 
     if (!userId) {
@@ -84,6 +84,42 @@ export async function POST(req: Request) {
     return NextResponse.json(document);
   } catch (error) {
     console.error('[DOCUMENTS_POST]', error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+// DELETE: Delete a document
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = auth();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!id) {
+      return new NextResponse("ID is required", { status: 400 });
+    }
+
+    // Verify ownership via license -> business
+    const document = await prisma.document.findUnique({
+      where: { id },
+      include: { license: { include: { business: true } } }
+    });
+
+    if (!document || document.license.business.userId !== userId) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    await prisma.document.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[DOCUMENTS_DELETE]', error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

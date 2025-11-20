@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     // 3. THE GATEKEEPER LOGIC 🛡️
     // If User is 'starter' AND they already have 1 or more licenses... BLOCK THEM.
     const isFreeUser = user?.subscriptionTier === 'starter';
-    
+
     if (isFreeUser && licenseCount >= 1) {
       return NextResponse.json(
         { error: "LIMIT_REACHED", message: "Free plan is limited to 1 license. Please upgrade." },
@@ -111,6 +111,42 @@ export async function POST(req: Request) {
     return NextResponse.json(license);
   } catch (error) {
     console.error('[LICENSES_POST]', error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
+// DELETE: Delete a license
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = auth();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!id) {
+      return new NextResponse("ID is required", { status: 400 });
+    }
+
+    // Verify ownership via business
+    const license = await prisma.license.findUnique({
+      where: { id },
+      include: { business: true }
+    });
+
+    if (!license || license.business.userId !== userId) {
+      return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    await prisma.license.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[LICENSES_DELETE]', error);
     return new NextResponse("Internal Error", { status: 500 });
   }
 }

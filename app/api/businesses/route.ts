@@ -79,3 +79,32 @@ export async function POST(req: Request) {
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
+// DELETE: Delete a business
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = auth();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!id) {
+      return new NextResponse("ID is required", { status: 400 });
+    }
+
+    const business = await prisma.business.delete({
+      where: {
+        id,
+        userId, // Ensure user owns the business
+      },
+    });
+
+    return NextResponse.json(business);
+  } catch (error) {
+    console.error('[BUSINESSES_DELETE]', error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
