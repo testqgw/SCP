@@ -39,15 +39,15 @@ export async function POST(req: Request) {
   try {
     const { userId } = auth();
     const body = await req.json();
-    const { 
-      businessId, 
-      licenseType, 
-      licenseNumber, 
-      issuingAuthority, 
-      issueDate, 
-      expirationDate, 
-      renewalUrl, 
-      notes 
+    const {
+      businessId,
+      licenseType,
+      licenseNumber,
+      issuingAuthority,
+      issueDate,
+      expirationDate,
+      renewalUrl,
+      notes
     } = body;
 
     if (!userId) {
@@ -56,6 +56,30 @@ export async function POST(req: Request) {
 
     if (!businessId || !licenseType || !issuingAuthority || !issueDate || !expirationDate) {
       return new NextResponse("Missing required fields", { status: 400 });
+    }
+
+    // 1. Fetch User Tier
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { subscriptionTier: true }
+    });
+
+    // 2. Count Current Licenses
+    const licenseCount = await prisma.license.count({
+      where: {
+        business: { userId: userId }
+      }
+    });
+
+    // 3. THE GATEKEEPER LOGIC 🛡️
+    // If User is 'starter' AND they already have 1 or more licenses... BLOCK THEM.
+    const isFreeUser = user?.subscriptionTier === 'starter';
+    
+    if (isFreeUser && licenseCount >= 1) {
+      return NextResponse.json(
+        { error: "LIMIT_REACHED", message: "Free plan is limited to 1 license. Please upgrade." },
+        { status: 403 }
+      );
     }
 
     // Verify the business belongs to the user

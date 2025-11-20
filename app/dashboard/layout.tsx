@@ -1,12 +1,24 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
-import { LayoutDashboard, FileText, ShieldCheck, Briefcase } from "lucide-react"; 
+import { LayoutDashboard, FileText, ShieldCheck, Briefcase } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { userId } = auth();
+  
+  // Fetch the user's tier
+  const user = await prisma.user.findUnique({
+    where: { id: userId as string },
+    select: { subscriptionTier: true }
+  });
+
+  const isPro = user?.subscriptionTier === 'professional' || user?.subscriptionTier === 'multi_location';
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ✅ GLOBAL NAVIGATION BAR */}
@@ -24,34 +36,44 @@ export default function DashboardLayout({
                   Safe<span className="text-blue-400">Ops</span>
                 </span>
               </div>
+              
+              {/* ✅ THE PLAN BADGE */}
+              <div className={`ml-4 px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
+                isPro
+                  ? "bg-blue-600 text-white border border-blue-400"
+                  : "bg-slate-700 text-slate-300 border border-slate-600"
+              }`}>
+                {isPro ? "PRO" : "FREE PLAN"}
+              </div>
+              
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {/* DASHBOARD LINK */}
-                <Link 
-                  href="/dashboard" 
+                <Link
+                  href="/dashboard"
                   className="border-transparent text-gray-500 hover:border-blue-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   <LayoutDashboard className="w-4 h-4 mr-2" />
                   Dashboard
                 </Link>
 
-                <Link 
-                  href="/dashboard/businesses" 
+                <Link
+                  href="/dashboard/businesses"
                   className="border-transparent text-gray-500 hover:border-blue-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   <Briefcase className="w-4 h-4 mr-2" />
                   Businesses
                 </Link>
 
-                <Link 
-                  href="/dashboard/licenses" 
+                <Link
+                  href="/dashboard/licenses"
                   className="border-transparent text-gray-500 hover:border-blue-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   <ShieldCheck className="w-4 h-4 mr-2" />
                   Licenses
                 </Link>
 
-                <Link 
-                  href="/dashboard/documents" 
+                <Link
+                  href="/dashboard/documents"
                   className="border-transparent text-gray-500 hover:border-blue-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   <FileText className="w-4 h-4 mr-2" />
