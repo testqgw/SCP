@@ -1,33 +1,26 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { isClerkConfigured } from '@/lib/clerk-config'
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export function middleware(request: NextRequest) {
-  // In dev mode without Clerk, allow all routes
-  if (!isClerkConfigured()) {
-    return NextResponse.next()
+// 1. Define routes that DO NOT require authentication
+const isPublicRoute = createRouteMatcher([
+  "/",                  // Landing page
+  "/sign-in(.*)",       // Sign-in page (and all sub-paths)
+  "/sign-up(.*)",       // Sign-up page (and all sub-paths)
+  "/api/webhooks(.*)",  // Webhooks (Stripe/Clerk)
+  "/api/test"           // Test endpoint
+]);
+
+export default clerkMiddleware((auth, req) => {
+  // 2. If the route is NOT public, protect it
+  if (!isPublicRoute(req)) {
+    auth().protect();
   }
-
-  // With Clerk keys, use Clerk middleware
-  const { clerkMiddleware, createRouteMatcher } = require('@clerk/nextjs/server')
-  
-  const isPublicRoute = createRouteMatcher([
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-    '/api/webhooks(.*)',
-  ])
-
-  return clerkMiddleware((auth: any, req: NextRequest) => {
-    if (!isPublicRoute(req)) {
-      auth().protect()
-    }
-  })(request)
-}
+});
 
 export const config = {
   matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
     '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
     '/(api|trpc)(.*)',
   ],
-}
+};

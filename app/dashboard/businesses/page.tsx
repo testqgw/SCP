@@ -1,12 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import Link from "next/link"; // ✅ Import Link for navigation
 
 interface Business {
   id: string;
   name: string;
-  business_type: string;
+  businessType: string;
   address: string;
   city: string;
   state: string;
@@ -15,341 +17,166 @@ interface Business {
 }
 
 export default function BusinessesPage() {
-  // Initialize with empty array (critical!)
+  const { isLoaded, userId } = useAuth();
+  const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Form State
   const [formData, setFormData] = useState({
-    name: '',
-    business_type: 'food_vendor',
-    address: '',
-    city: '',
-    state: '',
-    zip: '',
-    phone: '',
+    name: "",
+    type: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    phone: ""
   });
 
-  // Fetch businesses on load
   useEffect(() => {
-    fetchBusinesses();
-  }, []);
-
-  const fetchBusinesses = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('http://localhost:3001/api/businesses');
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+    async function fetchBusinesses() {
+      try {
+        const response = await fetch("/api/businesses");
+        if (response.ok) {
+          const data = await response.json();
+          setBusinesses(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch businesses", error);
+      } finally {
+        setIsLoading(false);
       }
-      
-      const data = await response.json();
-      
-      // Ensure data is an array
-      if (Array.isArray(data)) {
-        setBusinesses(data);
-      } else {
-        console.error('API returned non-array:', data);
-        setBusinesses([]);
-        setError('Invalid data format from API');
-      }
-    } catch (error) {
-      console.error('Error fetching businesses:', error);
-      setBusinesses([]);
-      setError('Failed to load businesses. Make sure API is running on port 3001.');
-    } finally {
-      setLoading(false);
     }
-  };
+
+    if (isLoaded && userId) {
+      fetchBusinesses();
+    }
+  }, [isLoaded, userId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     try {
-      const response = await fetch('http://localhost:3001/api/businesses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          user_id: 'demo-user-id', // In production, this comes from auth
-        }),
+      const response = await fetch("/api/businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
-        // Reset form
+        const newBiz = await response.json();
+        setBusinesses([newBiz, ...businesses]);
         setFormData({
-          name: '',
-          business_type: 'food_vendor',
-          address: '',
-          city: '',
-          state: '',
-          zip: '',
-          phone: '',
+            name: "", type: "", address: "", 
+            city: "", state: "", zip: "", phone: ""
         });
-        setShowForm(false);
-        // Refresh list
-        fetchBusinesses();
+        router.refresh();
       }
     } catch (error) {
-      console.error('Error creating business:', error);
-      alert('Failed to create business. Make sure the API is running on port 3001.');
+      console.error("Failed to create", error);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this business?')) return;
-
-    try {
-      await fetch(`http://localhost:3001/api/businesses/${id}`, {
-        method: 'DELETE',
-      });
-      fetchBusinesses();
-    } catch (error) {
-      console.error('Error deleting business:', error);
-    }
-  };
+  if (isLoading) return <div className="p-8 text-center">Loading businesses...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Businesses</h1>
-            <Link 
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              ← Back to Dashboard
-            </Link>
+    <div className="max-w-6xl mx-auto p-6">
+      {/* ✅ 1. Back to Dashboard Link */}
+      <div className="mb-6">
+        <Link 
+          href="/dashboard" 
+          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2"
+        >
+          ← Back to Dashboard
+        </Link>
+      </div>
+
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">My Businesses</h1>
+      </div>
+
+      {/* Creation Form */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-10">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Business</h2>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+            <input
+              type="text"
+              placeholder="e.g. Joe's Food Truck"
+              className="w-full p-2 border rounded-md"
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              required
+            />
           </div>
-        </div>
-      </header>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+            <select 
+              className="w-full p-2 border rounded-md bg-white"
+              value={formData.type}
+              onChange={(e) => setFormData({...formData, type: e.target.value})}
+            >
+              <option value="">Select Type</option>
+              <option value="food_truck">Food Truck</option>
+              <option value="contractor">Contractor</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Add Business Form */}
-        {showForm ? (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Add New Business</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-            </div>
+          <div>
+             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+             <input
+              type="text"
+              placeholder="City"
+              className="w-full p-2 border rounded-md"
+              value={formData.city}
+              onChange={(e) => setFormData({...formData, city: e.target.value})}
+            />
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Business Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Taco Paradise"
-                  />
-                </div>
+          <button
+            type="submit"
+            className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2"
+          >
+            Add Business
+          </button>
+        </form>
+      </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Business Type *
-                  </label>
-                  <select
-                    value={formData.business_type}
-                    onChange={(e) => setFormData({...formData, business_type: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium"
-                    style={{ color: '#111827' }}
-                    required
-                  >
-                    <option value="food_vendor" style={{ color: '#111827' }}>Food Vendor</option>
-                    <option value="contractor" style={{ color: '#111827' }}>Contractor</option>
-                    <option value="mobile_service" style={{ color: '#111827' }}>Mobile Service</option>
-                    <option value="other" style={{ color: '#111827' }}>Other</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="123 Food Street"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Austin"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.state}
-                    onChange={(e) => setFormData({...formData, state: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="TX"
-                    maxLength={2}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    ZIP Code *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.zip}
-                    onChange={(e) => setFormData({...formData, zip: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="78701"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+1 555-123-4567"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Save Business
-                </button>
-              </div>
-            </form>
+      {/* Business List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {businesses.length === 0 ? (
+          <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
+            <p className="text-gray-500 text-lg">No businesses yet. Add your first one above!</p>
           </div>
         ) : (
-          <div className="mb-6">
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium"
-            >
-              + Add Business
-            </button>
-          </div>
-        )}
+          businesses.map((biz) => (
+            <div key={biz.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between h-full">
+              <div>
+                {/* ✅ 2. Fixed Text Color (text-gray-900) */}
+                <h3 className="font-bold text-xl text-gray-900 mb-1">{biz.name}</h3>
+                <p className="text-gray-500 text-sm capitalize mb-4">Type: {biz.businessType}</p>
+                
+                <div className="text-sm text-gray-600 space-y-1 mb-6">
+                  {biz.city && <p>📍 {biz.city}, {biz.state}</p>}
+                  {biz.phone && <p>📞 {biz.phone}</p>}
+                </div>
+              </div>
 
-        {/* Business List */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Your Businesses</h2>
-            
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-800">{error}</p>
-                <button
-                  onClick={fetchBusinesses}
-                  className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                {/* ✅ 3. Working Link to Licenses */}
+                <Link 
+                  href="/dashboard/licenses"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1"
                 >
-                  Try Again
-                </button>
+                  Manage Licenses →
+                </Link>
               </div>
-            )}
-            
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Loading businesses...</p>
-              </div>
-            ) : businesses.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600 mb-4">No businesses yet</p>
-                <p className="text-sm text-gray-500">
-                  Click "Add Business" above to get started
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {businesses.map((business) => (
-                  <div
-                    key={business.id}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {business.name || 'Unnamed Business'}
-                        </h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          {(business.business_type || 'other').replace('_', ' ').toUpperCase()}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-2">
-                          {business.address || 'No address'}, {business.city || ''}, {business.state || ''} {business.zip || ''}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {business.phone || 'No phone'}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/dashboard/licenses?business=${business.id}`}
-                          className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700"
-                        >
-                          View Licenses
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(business.id)}
-                          className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

@@ -1,543 +1,496 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-
-interface License {
-  id: string;
-  business_id: string;
-  license_type: string;
-  license_number: string;
-  issuing_authority: string;
-  issue_date: string;
-  expiration_date: string;
-  renewal_url: string;
-  status: 'current' | 'expiring_soon' | 'expired' | 'grace_period';
-  grace_period_days: number;
-}
-
-interface Business {
-  id: string;
-  name: string;
-}
+import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 export default function LicensesPage() {
-  const [licenses, setLicenses] = useState<License[]>([]);
-  const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { isLoaded, userId } = useAuth();
+  const router = useRouter();
+  const [licenses, setLicenses] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    business_id: '',
-    license_type: 'Health Permit',
-    license_number: '',
-    issuing_authority: '',
-    issue_date: '',
-    expiration_date: '',
-    renewal_url: '',
-    grace_period_days: '0',
+
+  // Form state for creating
+  const [selectedBusinessId, setSelectedBusinessId] = useState("");
+  const [licenseType, setLicenseType] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+  const [issuingAuthority, setIssuingAuthority] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [expirationDate, setExpirationDate] = useState("");
+  const [renewalUrl, setRenewalUrl] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Edit state
+  const [editingLicenseId, setEditingLicenseId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    licenseType: "",
+    licenseNumber: "",
+    issuingAuthority: "",
+    issueDate: "",
+    expirationDate: "",
+    renewalUrl: "",
+    notes: "",
   });
-  const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Fetch data on load
+  // Fetch Licenses and Businesses
   useEffect(() => {
-    fetchData();
-  }, []);
+    async function fetchData() {
+      try {
+        // Fetch licenses
+        const licensesResponse = await fetch("/api/licenses");
+        const licensesData = await licensesResponse.json();
+        setLicenses(licensesData);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [licensesRes, businessesRes] = await Promise.all([
-        fetch('http://localhost:3001/api/licenses'),
-        fetch('http://localhost:3001/api/businesses'),
-      ]);
-
-      if (!licensesRes.ok || !businessesRes.ok) {
-        throw new Error('Failed to fetch data');
+        // Fetch businesses for the dropdown
+        const businessesResponse = await fetch("/api/businesses");
+        const businessesData = await businessesResponse.json();
+        setBusinesses(businessesData);
+      } catch (error) {
+        console.error("Failed to fetch data", error);
+      } finally {
+        setIsLoading(false);
       }
-
-      const licensesData = await licensesRes.json();
-      const businessesData = await businessesRes.json();
-
-      setLicenses(Array.isArray(licensesData) ? licensesData : []);
-      setBusinesses(Array.isArray(businessesData) ? businessesData : []);
-    } catch (err) {
-      console.error('Error fetching:', err);
-      setError('Failed to load data. Make sure API is running on port 3001.');
-      setLicenses([]);
-      setBusinesses([]);
-    } finally {
-      setLoading(false);
     }
-  };
 
+    if (isLoaded && userId) {
+      fetchData();
+    }
+  }, [isLoaded, userId]);
+
+  // Create License
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      const url = editingId 
-        ? `http://localhost:3001/api/licenses/${editingId}`
-        : 'http://localhost:3001/api/licenses';
-      const method = editingId ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/licenses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
-          ...formData,
-          grace_period_days: parseInt(formData.grace_period_days),
+          businessId: selectedBusinessId,
+          licenseType,
+          licenseNumber,
+          issuingAuthority,
+          issueDate,
+          expirationDate,
+          renewalUrl,
+          notes,
         }),
       });
 
       if (response.ok) {
-        setFormData({
-          business_id: '',
-          license_type: 'Health Permit',
-          license_number: '',
-          issuing_authority: '',
-          issue_date: '',
-          expiration_date: '',
-          renewal_url: '',
-          grace_period_days: '0',
-        });
-        setEditingId(null);
+        const newLicense = await response.json();
+        setLicenses([newLicense, ...licenses]); // Optimistic update
+        // Reset form
+        setSelectedBusinessId("");
+        setLicenseType("");
+        setLicenseNumber("");
+        setIssuingAuthority("");
+        setIssueDate("");
+        setExpirationDate("");
+        setRenewalUrl("");
+        setNotes("");
         setShowForm(false);
-        fetchData();
-      } else {
-        alert(editingId ? 'Failed to update license' : 'Failed to create license');
+        router.refresh();
       }
     } catch (error) {
-      console.error('Error saving license:', error);
-      alert('Error saving license');
+      console.error("Failed to create license", error);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this license?')) return;
+  // Edit handlers
+  const handleEdit = (license: any) => {
+    setEditingLicenseId(license.id);
+    setEditForm({
+      licenseType: license.licenseType,
+      licenseNumber: license.licenseNumber || "",
+      issuingAuthority: license.issuingAuthority,
+      issueDate: license.issueDate.split('T')[0],
+      expirationDate: license.expirationDate.split('T')[0],
+      renewalUrl: license.renewalUrl || "",
+      notes: license.notes || "",
+    });
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLicenseId) return;
 
     try {
-      await fetch(`http://localhost:3001/api/licenses/${id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/licenses/${editingLicenseId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editForm),
       });
-      fetchData();
+
+      if (response.ok) {
+        const updatedLicense = await response.json();
+        setLicenses(licenses.map(lic => lic.id === editingLicenseId ? updatedLicense : lic));
+        setEditingLicenseId(null);
+        router.refresh();
+      }
     } catch (error) {
-      console.error('Error deleting license:', error);
+      console.error("Failed to update license", error);
     }
   };
 
-  const handleEdit = (license: License) => {
-    setFormData({
-      business_id: license.business_id,
-      license_type: license.license_type,
-      license_number: license.license_number,
-      issuing_authority: license.issuing_authority,
-      issue_date: license.issue_date,
-      expiration_date: license.expiration_date,
-      renewal_url: license.renewal_url,
-      grace_period_days: String(license.grace_period_days),
-    });
-    setEditingId(license.id);
-    setShowForm(true);
+  const handleDelete = async (licenseId: string) => {
+    if (!confirm("Are you sure you want to delete this license?")) return;
+
+    try {
+      const response = await fetch(`/api/licenses/${licenseId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setLicenses(licenses.filter(lic => lic.id !== licenseId));
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Failed to delete license", error);
+    }
   };
 
+  // Get status color
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'current':
-        return 'bg-green-50 border-green-200 text-green-900';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'expiring_soon':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-900';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'expired':
-        return 'bg-red-50 border-red-200 text-red-900';
+        return 'bg-red-100 text-red-800 border-red-200';
       case 'grace_period':
-        return 'bg-orange-50 border-orange-200 text-orange-900';
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-900';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusDot = (status: string) => {
-    switch (status) {
-      case 'current':
-        return 'bg-green-500';
-      case 'expiring_soon':
-        return 'bg-yellow-500';
-      case 'expired':
-        return 'bg-red-500';
-      case 'grace_period':
-        return 'bg-orange-500';
-      default:
-        return 'bg-gray-500';
-    }
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
+  // Calculate days until expiration
   const getDaysUntilExpiration = (expirationDate: string) => {
     const today = new Date();
-    const expDate = new Date(expirationDate);
-    const daysLeft = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return daysLeft;
+    const expiration = new Date(expirationDate);
+    const diffTime = expiration.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   };
 
+  if (isLoading) return <div className="p-6">Loading licenses...</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Licenses</h1>
-            <Link
-              href="/dashboard"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              ← Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">License Tracking</h1>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-medium"
+        >
+          {showForm ? 'Cancel' : '+ Add License'}
+        </button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
-            <button
-              onClick={fetchData}
-              className="mt-2 text-sm text-red-600 hover:text-red-700 underline"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Add License Form */}
-        {showForm ? (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {editingId ? 'Edit License' : 'Add New License'}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                  setFormData({
-                    business_id: '',
-                    license_type: 'Health Permit',
-                    license_number: '',
-                    issuing_authority: '',
-                    issue_date: '',
-                    expiration_date: '',
-                    renewal_url: '',
-                    grace_period_days: '0',
-                  });
-                }}
-                className="text-gray-600 hover:text-gray-800 font-medium"
+      {/* Add License Form */}
+      {showForm && (
+        <div className="bg-white p-6 rounded-lg shadow mb-8 border">
+          <h2 className="text-xl font-semibold mb-4">Add New License</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Business *
+              </label>
+              <select
+                className="w-full p-2 border rounded-md"
+                value={selectedBusinessId}
+                onChange={(e) => setSelectedBusinessId(e.target.value)}
+                required
               >
-                Cancel
-              </button>
+                <option value="">Select a business...</option>
+                {businesses.map((biz) => (
+                  <option key={biz.id} value={biz.id}>
+                    {biz.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Business Dropdown */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Business *
-                  </label>
-                  <select
-                    required
-                    value={formData.business_id}
-                    onChange={(e) =>
-                      setFormData({ ...formData, business_id: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium"
-                    style={{ color: '#111827' }}
-                  >
-                    <option value="" className="text-gray-500">Select a business</option>
-                    {businesses.map((b) => (
-                      <option key={b.id} value={b.id} className="text-gray-900">
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* License Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    License Type *
-                  </label>
-                  <select
-                    value={formData.license_type}
-                    onChange={(e) =>
-                      setFormData({ ...formData, license_type: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium"
-                    style={{ color: '#111827' }}
-                  >
-                    <option value="Health Permit">Health Permit</option>
-                    <option value="Vendor License">Vendor License</option>
-                    <option value="Fire Safety Certificate">Fire Safety Certificate</option>
-                    <option value="Insurance Certificate">Insurance Certificate</option>
-                    <option value="Business License">Business License</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                {/* License Number */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    License Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.license_number}
-                    onChange={(e) =>
-                      setFormData({ ...formData, license_number: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium placeholder-gray-400"
-                    style={{ color: '#111827' }}
-                    placeholder="HP-2024-001"
-                  />
-                </div>
-
-                {/* Issuing Authority */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Issuing Authority *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.issuing_authority}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        issuing_authority: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium placeholder-gray-400"
-                    style={{ color: '#111827' }}
-                    placeholder="City Health Department"
-                  />
-                </div>
-
-                {/* Issue Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Issue Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.issue_date}
-                    onChange={(e) =>
-                      setFormData({ ...formData, issue_date: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium"
-                    style={{ color: '#111827' }}
-                  />
-                </div>
-
-                {/* Expiration Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Expiration Date *
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.expiration_date}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        expiration_date: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium"
-                    style={{ color: '#111827' }}
-                  />
-                </div>
-
-                {/* Renewal URL */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-900 mb-1">
-                    Renewal URL
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.renewal_url}
-                    onChange={(e) =>
-                      setFormData({ ...formData, renewal_url: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium placeholder-gray-400"
-                    style={{ color: '#111827' }}
-                    placeholder="https://example.com/renew"
-                  />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  License Type *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Mobile Food Vendor License"
+                  className="w-full p-2 border rounded-md"
+                  value={licenseType}
+                  onChange={(e) => setLicenseType(e.target.value)}
+                  required
+                />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingId(null);
-                    setFormData({
-                      business_id: '',
-                      license_type: 'Health Permit',
-                      license_number: '',
-                      issuing_authority: '',
-                      issue_date: '',
-                      expiration_date: '',
-                      renewal_url: '',
-                      grace_period_days: '0',
-                    });
-                  }}
-                  className="px-6 py-2 border-2 border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700"
-                >
-                  {editingId ? 'Update License' : 'Save License'}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  License Number
+                </label>
+                <input
+                  type="text"
+                  placeholder="License Number"
+                  className="w-full p-2 border rounded-md"
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                />
               </div>
-            </form>
-          </div>
-        ) : (
-          <div className="mb-6">
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Issuing Authority *
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., NYC Dept of Health"
+                className="w-full p-2 border rounded-md"
+                value={issuingAuthority}
+                onChange={(e) => setIssuingAuthority(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Issue Date *
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-2 border rounded-md"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Expiration Date *
+                </label>
+                <input
+                  type="date"
+                  className="w-full p-2 border rounded-md"
+                  value={expirationDate}
+                  onChange={(e) => setExpirationDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Renewal URL
+              </label>
+              <input
+                type="url"
+                placeholder="https://renewal-portal.com"
+                className="w-full p-2 border rounded-md"
+                value={renewalUrl}
+                onChange={(e) => setRenewalUrl(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes
+              </label>
+              <textarea
+                placeholder="Additional notes..."
+                className="w-full p-2 border rounded-md"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+
             <button
-              onClick={() => setShowForm(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 font-medium"
+              type="submit"
+              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition font-medium"
             >
-              + Add License
+              Add License
             </button>
-          </div>
+          </form>
+        </div>
+      )}
+
+      {/* Licenses List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {licenses.length === 0 ? (
+          <p className="text-gray-500 col-span-full">No licenses found. Add one above!</p>
+        ) : (
+          licenses.map((license) => {
+            const daysUntilExpiration = getDaysUntilExpiration(license.expirationDate);
+            const isExpiringSoon = daysUntilExpiration <= 30 && daysUntilExpiration > 0;
+            const isExpired = daysUntilExpiration < 0;
+
+            return (
+              <div key={license.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="font-bold text-lg flex-1">{license.licenseType}</h3>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(license.status)}`}>
+                    {license.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Edit Form */}
+                {editingLicenseId === license.id ? (
+                  <form onSubmit={handleUpdate} className="space-y-3 mb-4">
+                    <input
+                      type="text"
+                      placeholder="License Type"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.licenseType}
+                      onChange={(e) => setEditForm({...editForm, licenseType: e.target.value})}
+                      required
+                    />
+                    <input
+                      type="text"
+                      placeholder="License Number"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.licenseNumber}
+                      onChange={(e) => setEditForm({...editForm, licenseNumber: e.target.value})}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Issuing Authority"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.issuingAuthority}
+                      onChange={(e) => setEditForm({...editForm, issuingAuthority: e.target.value})}
+                      required
+                    />
+                    <input
+                      type="date"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.issueDate}
+                      onChange={(e) => setEditForm({...editForm, issueDate: e.target.value})}
+                      required
+                    />
+                    <input
+                      type="date"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.expirationDate}
+                      onChange={(e) => setEditForm({...editForm, expirationDate: e.target.value})}
+                      required
+                    />
+                    <input
+                      type="url"
+                      placeholder="Renewal URL"
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={editForm.renewalUrl}
+                      onChange={(e) => setEditForm({...editForm, renewalUrl: e.target.value})}
+                    />
+                    <textarea
+                      placeholder="Notes"
+                      className="w-full p-2 border rounded-md text-sm"
+                      rows={2}
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                    />
+                  </form>
+                ) : (
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p><span className="font-medium">Business:</span> {license.business?.name || 'Unknown'}</p>
+                    {license.licenseNumber && (
+                      <p><span className="font-medium">Number:</span> {license.licenseNumber}</p>
+                    )}
+                    <p><span className="font-medium">Authority:</span> {license.issuingAuthority}</p>
+                    <p><span className="font-medium">Issued:</span> {formatDate(license.issueDate)}</p>
+                    <p>
+                      <span className="font-medium">Expires:</span> {formatDate(license.expirationDate)}
+                      {isExpiringSoon && (
+                        <span className="ml-2 text-yellow-600 font-medium">
+                          ({daysUntilExpiration} days)
+                        </span>
+                      )}
+                      {isExpired && (
+                        <span className="ml-2 text-red-600 font-medium">
+                          ({Math.abs(daysUntilExpiration)} days ago)
+                        </span>
+                      )}
+                    </p>
+                    {license.renewalUrl && (
+                      <p>
+                        <span className="font-medium">Renewal:</span> 
+                        <a 
+                          href={license.renewalUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline ml-1"
+                        >
+                          Link
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {license.notes && editingLicenseId !== license.id && (
+                  <div className="mt-3 pt-3 border-t">
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Notes:</span> {license.notes}
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-4 flex justify-end space-x-2">
+                  {editingLicenseId === license.id ? (
+                    <>
+                      <button 
+                        onClick={handleUpdate}
+                        className="text-green-600 text-sm font-medium hover:underline"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        onClick={() => setEditingLicenseId(null)}
+                        className="text-gray-600 text-sm font-medium hover:underline"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => handleEdit(license)}
+                        className="text-blue-600 text-sm font-medium hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(license.id)}
+                        className="text-red-600 text-sm font-medium hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
-
-        {/* Status Legend */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Status Legend</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-              <span>Current</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-              <span>Expiring Soon</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-              <span>Expired</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-orange-500 rounded-full mr-2"></div>
-              <span>Grace Period</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Licenses List */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">All Licenses</h2>
-
-            {loading ? (
-              <p className="text-gray-600">Loading licenses...</p>
-            ) : licenses.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600 mb-4">No licenses yet</p>
-                <p className="text-sm text-gray-500">
-                  Click "Add License" above to get started
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {licenses.map((license) => {
-                  const daysLeft = getDaysUntilExpiration(license.expiration_date);
-                  return (
-                    <div
-                      key={license.id}
-                      className={`border-2 rounded-lg p-4 ${getStatusColor(
-                        license.status
-                      )}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-3 h-3 rounded-full ${getStatusDot(
-                                license.status
-                              )}`}
-                            ></div>
-                            <h3 className="text-lg font-semibold">
-                              {license.license_type}
-                            </h3>
-                          </div>
-
-                          <p className="text-sm mt-1">
-                            <strong>Number:</strong> {license.license_number}
-                          </p>
-                          <p className="text-sm">
-                            <strong>Authority:</strong>{' '}
-                            {license.issuing_authority}
-                          </p>
-                          <p className="text-sm">
-                            <strong>Expires:</strong>{' '}
-                            {new Date(license.expiration_date).toLocaleDateString()}
-                            {daysLeft >= 0 && (
-                              <span className="ml-2">
-                                ({daysLeft} days remaining)
-                              </span>
-                            )}
-                            {daysLeft < 0 && (
-                              <span className="ml-2">
-                                (Expired {Math.abs(daysLeft)} days ago)
-                              </span>
-                            )}
-                          </p>
-
-                          {license.renewal_url && (
-                            <a
-                              href={license.renewal_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:underline text-sm mt-2 inline-block"
-                            >
-                              Renew →
-                            </a>
-                          )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEdit(license)}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(license.id)}
-                            className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }
