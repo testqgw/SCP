@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'; // 👈 ADD THIS LINE
+export const dynamic = 'force-dynamic'; // Force dynamic route for Vercel build - prevents static generation
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
