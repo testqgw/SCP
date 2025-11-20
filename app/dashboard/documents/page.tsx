@@ -1,339 +1,87 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { UploadButton } from "@/app/utils/uploadthing";
+import { Trash2, ExternalLink, FileText } from "lucide-react";
+
+interface Document { id: string; fileName: string; fileUrl: string; license: { licenseType: string }; }
+interface License { id: string; licenseType: string; }
 
 export default function DocumentsPage() {
   const { isLoaded, userId } = useAuth();
-  const router = useRouter();
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [licenses, setLicenses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
+  const [formData, setFormData] = useState({ licenseId: "", fileName: "", fileUrl: "" });
 
-  // Form state for creating
-  const [selectedLicenseId, setSelectedLicenseId] = useState("");
-  const [fileName, setFileName] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
-  const [fileType, setFileType] = useState("");
-
-  // Edit state
-  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
-    fileName: "",
-    fileUrl: "",
-    fileType: "",
-  });
-
-  // Fetch Documents and Licenses
   useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch documents
-        const documentsResponse = await fetch("/api/documents");
-        const documentsData = await documentsResponse.json();
-        setDocuments(documentsData);
-
-        // Fetch licenses for the dropdown
-        const licensesResponse = await fetch("/api/licenses");
-        const licensesData = await licensesResponse.json();
-        setLicenses(licensesData);
-      } catch (error) {
-        console.error("Failed to fetch data", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    if (isLoaded && userId) {
-      fetchData();
-    }
+    if (!isLoaded || !userId) return;
+    const fetchData = async () => {
+      const [docsRes, licRes] = await Promise.all([fetch("/api/documents"), fetch("/api/licenses")]);
+      if (docsRes.ok) setDocuments(await docsRes.json());
+      if (licRes.ok) setLicenses(await licRes.json());
+    };
+    fetchData();
   }, [isLoaded, userId]);
 
-  // Create Document
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch("/api/documents", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          licenseId: selectedLicenseId,
-          fileName,
-          fileUrl,
-          fileType,
-        }),
-      });
-
-      if (response.ok) {
-        const newDocument = await response.json();
-        setDocuments([newDocument, ...documents]); // Optimistic update
-        // Reset form
-        setSelectedLicenseId("");
-        setFileName("");
-        setFileUrl("");
-        setFileType("");
-        setShowForm(false);
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Failed to create document", error);
+  const handleSave = async () => {
+    if (!formData.fileUrl || !formData.licenseId) return;
+    const res = await fetch("/api/documents", { method: "POST", body: JSON.stringify(formData) });
+    if (res.ok) {
+      const newDoc = await res.json();
+      setDocuments([newDoc, ...documents]);
+      setFormData({ licenseId: "", fileName: "", fileUrl: "" });
+      alert("Document Saved!");
     }
   };
 
-  // Edit handlers
-  const handleEdit = (document: any) => {
-    setEditingDocumentId(document.id);
-    setEditForm({
-      fileName: document.fileName,
-      fileUrl: document.fileUrl,
-      fileType: document.fileType,
-    });
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete document?")) return;
+    await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
+    setDocuments(documents.filter((d) => d.id !== id));
   };
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingDocumentId) return;
-
-    try {
-      const response = await fetch(`/api/documents/${editingDocumentId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editForm),
-      });
-
-      if (response.ok) {
-        const updatedDocument = await response.json();
-        setDocuments(docs => docs.map(doc => doc.id === editingDocumentId ? updatedDocument : doc));
-        setEditingDocumentId(null);
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Failed to update document", error);
-    }
-  };
-
-  const handleDelete = async (documentId: string) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
-
-    try {
-      const response = await fetch(`/api/documents/${documentId}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        setDocuments(docs => docs.filter(doc => doc.id !== documentId));
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Failed to delete document", error);
-    }
-  };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  if (isLoading) return <div className="p-6">Loading documents...</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Document Management</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-medium"
-        >
-          {showForm ? 'Cancel' : '+ Add Document'}
-        </button>
-      </div>
-
-      {/* Add Document Form */}
-      {showForm && (
-        <div className="bg-white p-6 rounded-lg shadow mb-8 border">
-          <h2 className="text-xl font-semibold mb-4">Add New Document</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-6xl mx-auto p-6">
+      <h1 className="text-2xl font-bold text-slate-900 mb-8">Document Storage</h1>
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-10">
+        <h2 className="text-lg font-semibold text-slate-800 mb-4">Upload New Document</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                License *
-              </label>
-              <select
-                className="w-full p-2 border rounded-md"
-                value={selectedLicenseId}
-                onChange={(e) => setSelectedLicenseId(e.target.value)}
-                required
-              >
-                <option value="">Select a license...</option>
-                {licenses.map((license) => (
-                  <option key={license.id} value={license.id}>
-                    {license.licenseType} - {license.business?.name || 'Unknown Business'}
-                  </option>
-                ))}
+              <label className="block text-sm font-medium text-slate-700 mb-1">Link to License</label>
+              <select className="w-full p-2 border rounded-md bg-white" value={formData.licenseId} onChange={(e) => setFormData({ ...formData, licenseId: e.target.value })}>
+                <option value="">Select a License</option>
+                {licenses.map(l => <option key={l.id} value={l.id}>{l.licenseType}</option>)}
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                File Name *
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., License_Certificate.pdf"
-                className="w-full p-2 border rounded-md"
-                value={fileName}
-                onChange={(e) => setFileName(e.target.value)}
-                required
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Document Name</label>
+              <input type="text" placeholder="e.g. PDF Copy" className="w-full p-2 border rounded-md" value={formData.fileName} onChange={(e) => setFormData({ ...formData, fileName: e.target.value })} />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                File URL *
-              </label>
-              <input
-                type="url"
-                placeholder="https://storage.example.com/documents/license.pdf"
-                className="w-full p-2 border rounded-md"
-                value={fileUrl}
-                onChange={(e) => setFileUrl(e.target.value)}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                File Type *
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., application/pdf, image/jpeg"
-                className="w-full p-2 border rounded-md"
-                value={fileType}
-                onChange={(e) => setFileType(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition font-medium"
-            >
-              Add Document
-            </button>
-          </form>
+            <button onClick={handleSave} disabled={!formData.fileUrl || !formData.licenseId} className="bg-slate-900 text-white px-6 py-2 rounded-md hover:bg-slate-800 disabled:opacity-50 w-full mt-2">Save to Vault</button>
+          </div>
+          <div className="border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center bg-slate-50 p-8">
+            {!formData.fileUrl ? (
+              <UploadButton endpoint="documentUploader" onClientUploadComplete={(res) => { if (res && res[0]) { setFormData(prev => ({ ...prev, fileUrl: res[0].url })); if (!formData.fileName) setFormData(prev => ({ ...prev, fileName: res[0].name })); } }} onUploadError={(error: Error) => alert(`ERROR! ${error.message}`)} />
+            ) : (
+              <div className="text-center"><p className="text-green-600 font-semibold mb-2">✅ Upload Complete</p><a href={formData.fileUrl} target="_blank" className="text-sm text-blue-600 underline block mb-4">View File</a><button onClick={() => setFormData({ ...formData, fileUrl: "" })} className="text-xs text-red-500 hover:underline">Remove</button></div>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Documents List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {documents.length === 0 ? (
-          <p className="text-gray-500 col-span-full">No documents found. Add one above!</p>
-        ) : (
-          documents.map((document) => {
-            return (
-              <div key={document.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-lg flex-1 truncate">{document.fileName}</h3>
-                  <span className="px-2 py-1 rounded-full text-xs font-medium border bg-gray-100 text-gray-800 border-gray-200">
-                    {document.fileType}
-                  </span>
-                </div>
-
-                {/* Edit Form */}
-                {editingDocumentId === document.id ? (
-                  <form onSubmit={handleUpdate} className="space-y-3 mb-4">
-                    <input
-                      type="text"
-                      placeholder="File Name"
-                      className="w-full p-2 border rounded-md text-sm"
-                      value={editForm.fileName}
-                      onChange={(e) => setEditForm({...editForm, fileName: e.target.value})}
-                      required
-                    />
-                    <input
-                      type="url"
-                      placeholder="File URL"
-                      className="w-full p-2 border rounded-md text-sm"
-                      value={editForm.fileUrl}
-                      onChange={(e) => setEditForm({...editForm, fileUrl: e.target.value})}
-                      required
-                    />
-                    <input
-                      type="text"
-                      placeholder="File Type"
-                      className="w-full p-2 border rounded-md text-sm"
-                      value={editForm.fileType}
-                      onChange={(e) => setEditForm({...editForm, fileType: e.target.value})}
-                      required
-                    />
-                  </form>
-                ) : (
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p><span className="font-medium">License:</span> {document.license?.licenseType || 'Unknown'}</p>
-                    <p><span className="font-medium">Business:</span> {document.license?.business?.name || 'Unknown'}</p>
-                    <p><span className="font-medium">Type:</span> {document.fileType}</p>
-                    <p>
-                      <span className="font-medium">URL:</span> 
-                      <a 
-                        href={document.fileUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline ml-1 break-all"
-                      >
-                        {document.fileUrl}
-                      </a>
-                    </p>
-                    <p><span className="font-medium">Uploaded:</span> {formatDate(document.uploadedAt)}</p>
-                  </div>
-                )}
-
-                <div className="mt-4 flex justify-end space-x-2">
-                  {editingDocumentId === document.id ? (
-                    <>
-                      <button 
-                        onClick={handleUpdate}
-                        className="text-green-600 text-sm font-medium hover:underline"
-                      >
-                        Save
-                      </button>
-                      <button 
-                        onClick={() => setEditingDocumentId(null)}
-                        className="text-gray-600 text-sm font-medium hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button 
-                        onClick={() => handleEdit(document)}
-                        className="text-blue-600 text-sm font-medium hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(document.id)}
-                        className="text-red-600 text-sm font-medium hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
+      </div>
+      <div className="grid gap-4">
+        {documents.map((doc) => (
+          <div key={doc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg"><FileText className="w-5 h-5 text-blue-600" /></div>
+              <div><h3 className="font-bold text-slate-900">{doc.fileName}</h3><p className="text-xs text-slate-500">Linked to: {doc.license?.licenseType || "Unknown"}</p></div>
+            </div>
+            <div className="flex items-center gap-4">
+              <a href={doc.fileUrl} target="_blank" className="text-blue-600 hover:text-blue-800 p-2"><ExternalLink className="w-5 h-5" /></a>
+              <button onClick={() => handleDelete(doc.id)} className="text-slate-400 hover:text-red-600 p-2"><Trash2 className="w-5 h-5" /></button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

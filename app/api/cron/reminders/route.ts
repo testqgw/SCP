@@ -1,81 +1,45 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import twilio from 'twilio';
 
-export const dynamic = 'force-dynamic'; // Prevent Next.js from caching this route
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // 1. Security Check
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) return new NextResponse('Unauthorized', { status: 401 });
 
   try {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to start of day
-
-    // The intervals we want to check (in days)
     const intervals = [90, 60, 30, 14, 7, 1];
-    
-    const results = {
-      processedAt: new Date().toISOString(),
-      foundReminders: 0,
-      details: [] as any[],
-    };
+    let smsSent = 0;
 
-    // 2. Loop through each interval
     for (const days of intervals) {
-      const targetDate = new Date(today);
-      targetDate.setDate(targetDate.getDate() + days);
+      const targetDate = new Date();
+      targetDate.setDate(today.getDate() + days);
+      const start = new Date(targetDate.setHours(0, 0, 0, 0));
+      const end = new Date(targetDate.setHours(23, 59, 59, 999));
 
-      // Calculate start/end of that target day for database query
-      const startOfTarget = new Date(targetDate);
-      startOfTarget.setHours(0, 0, 0, 0);
-      
-      const endOfTarget = new Date(targetDate);
-      endOfTarget.setHours(23, 59, 59, 999);
-
-      // 3. Find licenses expiring on that specific day
       const licenses = await prisma.license.findMany({
-        where: {
-          expirationDate: {
-            gte: startOfTarget,
-            lte: endOfTarget,
-          },
-          // Optional: Only check active licenses
-          // status: { not: 'canceled' } 
-        },
-        include: {
-          business: {
-            include: {
-              user: true, // We need the user's email/phone later!
-            },
-          },
-        },
+        where: { expirationDate: { gte: start, lte: end } },
+        include: { business: { include: { user: true } } }
       });
 
-      if (licenses.length > 0) {
-        results.foundReminders += licenses.length;
-        results.details.push({
-          daysUntilExpiration: days,
-          count: licenses.length,
-          licenses: licenses.map(l => ({
-            id: l.id,
-            type: l.licenseType,
-            number: l.licenseNumber,
-            business: l.business.name,
-            userEmail: l.business.user.email, // This is where we send the email!
-            expirationDate: l.expirationDate,
-          }))
-        });
+      for (const license of licenses) {
+        const phone = license.business.user.phone;
+        if (phone) {
+          await client.messages.create({
+            body: `⚠️ SafeOps Alert: Your license "${license.licenseType}" expires in ${days} days. Renew now.`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: phone
+          });
+          smsSent++;
+        }
       }
     }
-
-    // 4. Return the summary
-    return NextResponse.json({ success: true, data: results });
-
+    return NextResponse.json({ success: true, smsSent });
   } catch (error) {
-    console.error('Reminder Job Error:', error);
-    return NextResponse.json({ success: false, error: 'Job Failed' }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ error: 'Job Failed' }, { status: 500 });
   }
 }
