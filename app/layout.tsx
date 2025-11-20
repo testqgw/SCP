@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Compliance Reminder - License Renewal Tracking",
-  description: "Never miss a license renewal again",
+  title: "SafeOps | Automated Compliance Reminders",
+  description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
 };
 
 export default function RootLayout({

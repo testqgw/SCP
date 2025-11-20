@@ -17,7 +17,12 @@ export default function DashboardLayout({
             {/* Left Side: Logo & Nav Links */}
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <span className="text-xl font-bold text-blue-600">Compliance SaaS</span>
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-xl font-bold text-blue-600 ml-2">
+                  Safe<span className="text-blue-400">Ops</span>
+                </span>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {/* DASHBOARD LINK */}

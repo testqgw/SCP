@@ -14,7 +14,7 @@ export default function LandingPage() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
-          <span>Compliance<span className="text-slate-400">Reminder</span></span>
+          <span>Safe<span className="text-blue-400">Ops</span></span>
         </div>
         
         <div className="flex items-center gap-6">
