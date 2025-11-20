@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import Link from "next/link"; // ✅ Import Link for navigation
+import Link from "next/link";
+import { Trash2 } from "lucide-react";
 
 interface Business {
   id: string;
@@ -21,7 +22,7 @@ export default function BusinessesPage() {
   const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Form State
   const [formData, setFormData] = useState({
     name: "",
@@ -66,8 +67,8 @@ export default function BusinessesPage() {
         const newBiz = await response.json();
         setBusinesses([newBiz, ...businesses]);
         setFormData({
-            name: "", type: "", address: "", 
-            city: "", state: "", zip: "", phone: ""
+          name: "", type: "", address: "",
+          city: "", state: "", zip: "", phone: ""
         });
         router.refresh();
       }
@@ -82,8 +83,8 @@ export default function BusinessesPage() {
     <div className="max-w-6xl mx-auto p-6">
       {/* ✅ 1. Back to Dashboard Link */}
       <div className="mb-6">
-        <Link 
-          href="/dashboard" 
+        <Link
+          href="/dashboard"
           className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2"
         >
           ← Back to Dashboard
@@ -105,17 +106,17 @@ export default function BusinessesPage() {
               placeholder="e.g. Joe's Food Truck"
               className="w-full p-2 border rounded-md"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
-            <select 
+            <select
               className="w-full p-2 border rounded-md bg-white"
               value={formData.type}
-              onChange={(e) => setFormData({...formData, type: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
             >
               <option value="">Select Type</option>
               <option value="food_truck">Food Truck</option>
@@ -125,13 +126,13 @@ export default function BusinessesPage() {
           </div>
 
           <div>
-             <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-             <input
+            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+            <input
               type="text"
               placeholder="City"
               className="w-full p-2 border rounded-md"
               value={formData.city}
-              onChange={(e) => setFormData({...formData, city: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
             />
           </div>
 
@@ -152,12 +153,27 @@ export default function BusinessesPage() {
           </div>
         ) : (
           businesses.map((biz) => (
-            <div key={biz.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between h-full">
+            <div key={biz.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between h-full relative group">
+
+              {/* DELETE BUTTON (Top Right) */}
+              <button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  if (!confirm("Delete this business and all its licenses?")) return;
+                  await fetch(`/api/businesses?id=${biz.id}`, { method: 'DELETE' });
+                  setBusinesses(businesses.filter(b => b.id !== biz.id));
+                  router.refresh();
+                }}
+                className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
               <div>
                 {/* ✅ 2. Fixed Text Color (text-gray-900) */}
                 <h3 className="font-bold text-xl text-gray-900 mb-1">{biz.name}</h3>
                 <p className="text-gray-500 text-sm capitalize mb-4">Type: {biz.businessType}</p>
-                
+
                 <div className="text-sm text-gray-600 space-y-1 mb-6">
                   {biz.city && <p>📍 {biz.city}, {biz.state}</p>}
                   {biz.phone && <p>📞 {biz.phone}</p>}
@@ -166,7 +182,7 @@ export default function BusinessesPage() {
 
               <div className="pt-4 border-t border-gray-100 flex justify-end">
                 {/* ✅ 3. Working Link to Licenses */}
-                <Link 
+                <Link
                   href="/dashboard/licenses"
                   className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1"
                 >
