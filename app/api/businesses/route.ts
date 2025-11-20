@@ -60,6 +60,24 @@ export async function POST(req: Request) {
       },
     });
 
+    // 🚪 BUSINESS LIMIT ENFORCER: Check tier and existing count
+    const userRecord = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { subscriptionTier: true }
+    });
+
+    const businessCount = await prisma.business.count({
+      where: { userId: user.id }
+    });
+
+    // If starter tier and already has 1+ businesses, block creation
+    if (userRecord?.subscriptionTier === 'starter' && businessCount >= 1) {
+      return NextResponse.json(
+        { error: "LIMIT_REACHED", message: "Free plan limited to 1 Business." },
+        { status: 403 }
+      );
+    }
+
     const business = await prisma.business.create({
       data: {
         userId: user.id,

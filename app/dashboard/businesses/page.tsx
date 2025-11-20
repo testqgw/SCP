@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Trash2, Lock } from "lucide-react";
 
 interface Business {
   id: string;
@@ -17,10 +17,15 @@ interface Business {
   phone: string;
 }
 
+interface UserTier {
+  subscriptionTier: string;
+}
+
 export default function BusinessesPage() {
   const { isLoaded, userId } = useAuth();
   const router = useRouter();
   const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [userTier, setUserTier] = useState<string>('starter');
   const [isLoading, setIsLoading] = useState(true);
 
   // Form State
@@ -35,22 +40,30 @@ export default function BusinessesPage() {
   });
 
   useEffect(() => {
-    async function fetchBusinesses() {
+    async function fetchData() {
       try {
-        const response = await fetch("/api/businesses");
-        if (response.ok) {
-          const data = await response.json();
-          setBusinesses(data);
+        // Fetch businesses
+        const businessesResponse = await fetch("/api/businesses");
+        if (businessesResponse.ok) {
+          const businessesData = await businessesResponse.json();
+          setBusinesses(businessesData);
+        }
+
+        // Fetch user tier
+        const userResponse = await fetch("/api/settings");
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setUserTier(userData.subscriptionTier || 'starter');
         }
       } catch (error) {
-        console.error("Failed to fetch businesses", error);
+        console.error("Failed to fetch data", error);
       } finally {
         setIsLoading(false);
       }
     }
 
     if (isLoaded && userId) {
-      fetchBusinesses();
+      fetchData();
     }
   }, [isLoaded, userId]);
 
@@ -71,6 +84,11 @@ export default function BusinessesPage() {
           city: "", state: "", zip: "", phone: ""
         });
         router.refresh();
+      } else if (response.status === 403) {
+        const errorData = await response.json();
+        if (errorData.error === "LIMIT_REACHED") {
+          alert("Free plan limited to 1 Business. Upgrade to add more!");
+        }
       }
     } catch (error) {
       console.error("Failed to create", error);
@@ -78,6 +96,10 @@ export default function BusinessesPage() {
   };
 
   if (isLoading) return <div className="p-8 text-center">Loading businesses...</div>;
+
+  // Determine if user has reached business limit
+  const isFreeTier = userTier === 'starter';
+  const hasReachedLimit = isFreeTier && businesses.length >= 1;
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -93,57 +115,83 @@ export default function BusinessesPage() {
 
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Businesses</h1>
+        {isFreeTier && (
+          <span className="text-sm text-slate-500">
+            {businesses.length}/1 Free Limit
+          </span>
+        )}
       </div>
 
-      {/* Creation Form */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-10">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Business</h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Joe's Food Truck"
-              className="w-full p-2 border rounded-md"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
+      {/* Creation Form - Only show if limit not reached */}
+      {!hasReachedLimit ? (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-10">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Business</h2>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Joe's Food Truck"
+                className="w-full p-2 border rounded-md"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
-            <select
-              className="w-full p-2 border rounded-md bg-white"
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+              <select
+                className="w-full p-2 border rounded-md bg-white"
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              >
+                <option value="">Select Type</option>
+                <option value="food_truck">Food Truck</option>
+                <option value="contractor">Contractor</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <input
+                type="text"
+                placeholder="City"
+                className="w-full p-2 border rounded-md"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2"
             >
-              <option value="">Select Type</option>
-              <option value="food_truck">Food Truck</option>
-              <option value="contractor">Contractor</option>
-              <option value="other">Other</option>
-            </select>
+              Add Business
+            </button>
+          </form>
+        </div>
+      ) : (
+        // 🚫 Limit Reached - Show Upgrade Prompt
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-10">
+          <div className="flex items-center gap-4">
+            <Lock className="w-8 h-8 text-amber-600" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-amber-900">Free Plan Limit Reached</h3>
+              <p className="text-amber-700 text-sm mt-1">
+                You've reached the maximum of 1 business on the Free plan. Upgrade to Pro to add unlimited businesses.
+              </p>
+            </div>
+            <Link 
+              href="/dashboard/upgrade" 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:shadow-lg transition-all whitespace-nowrap"
+            >
+              Upgrade to Pro 🚀
+            </Link>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-            <input
-              type="text"
-              placeholder="City"
-              className="w-full p-2 border rounded-md"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2"
-          >
-            Add Business
-          </button>
-        </form>
-      </div>
+        </div>
+      )}
 
       {/* Business List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
