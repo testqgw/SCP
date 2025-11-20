@@ -1,211 +1,189 @@
-import Link from 'next/link';
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { Building2, FileText, AlertTriangle, CheckCircle, ArrowRight, Plus, AlertCircle, Clock } from "lucide-react";
 
-export default function DashboardPage() {
-  // In production, these would come from your API
-  // For now, we'll use placeholder data
-  const stats = {
-    totalBusinesses: 1,
-    totalLicenses: 3,
-    expiringSoon: 1,
-    expired: 1,
-  };
+export const dynamic = 'force-dynamic';
+
+export default async function DashboardPage() {
+  const { userId } = auth();
+
+  // 1. Fetch Stats
+  const businessCount = await prisma.business.count({ where: { userId: userId as string } });
+  const licenseCount = await prisma.license.count({ where: { business: { userId: userId as string } } });
+
+  // 2. Fetch Priority Items (Expiring Soon or Expired)
+  const today = new Date();
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+  const expiringLicenses = await prisma.license.findMany({
+    where: {
+      business: { userId: userId as string },
+      expirationDate: { lte: thirtyDaysFromNow }
+    },
+    orderBy: { expirationDate: 'asc' },
+    take: 5,
+    include: { business: true }
+  });
+
+  const expiredCount = expiringLicenses.filter(l => new Date(l.expirationDate) < today).length;
+  const warningCount = expiringLicenses.length - expiredCount;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Compliance Reminder System
-              </p>
+    <div className="space-y-8">
+
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
+          <p className="text-slate-500">Here is your compliance health at a glance.</p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/dashboard/businesses" className="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
+            Manage Businesses
+          </Link>
+          <Link href="/dashboard/licenses" className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm shadow-blue-200">
+            <Plus className="w-4 h-4" /> Add License
+          </Link>
+        </div>
+      </div>
+
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+        {/* Card 1: Businesses */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <Building2 className="w-6 h-6 text-blue-600" />
             </div>
-            <Link 
-              href="/"
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              ← Back to Home
+            <span className="text-xs font-medium text-slate-400 uppercase">Total</span>
+          </div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{businessCount}</div>
+          <div className="text-sm text-slate-500">Active Businesses</div>
+        </div>
+
+        {/* Card 2: Licenses */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <FileText className="w-6 h-6 text-indigo-600" />
+            </div>
+            <span className="text-xs font-medium text-slate-400 uppercase">Total</span>
+          </div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{licenseCount}</div>
+          <div className="text-sm text-slate-500">Tracked Licenses</div>
+        </div>
+
+        {/* Card 3: Expiring Soon */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          {warningCount > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-400/10 rounded-bl-full" />}
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 bg-yellow-50 rounded-lg">
+              <Clock className="w-6 h-6 text-yellow-600" />
+            </div>
+            <span className="text-xs font-bold text-yellow-600 uppercase">Action Needed</span>
+          </div>
+          <div className="text-3xl font-bold text-slate-900 mb-1">{warningCount}</div>
+          <div className="text-sm text-slate-500">Expiring within 30 days</div>
+        </div>
+
+        {/* Card 4: Expired (Critical) */}
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden">
+          {expiredCount > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-red-400/10 rounded-bl-full" />}
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-2 bg-red-50 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-red-600" />
+            </div>
+            <span className="text-xs font-bold text-red-600 uppercase">Critical</span>
+          </div>
+          <div className="text-3xl font-bold text-red-600 mb-1">{expiredCount}</div>
+          <div className="text-sm text-red-600/80">Expired Licenses</div>
+        </div>
+
+      </div>
+
+      {/* PRIORITY ACTION FEED */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* Left: Urgent Tasks */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 className="font-semibold text-slate-900">Priority Action Items</h2>
+            <Link href="/dashboard/licenses" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              View All
             </Link>
           </div>
-        </div>
-      </header>
+          <div className="divide-y divide-slate-100">
+            {expiringLicenses.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <h3 className="text-slate-900 font-medium">All Clear!</h3>
+                <p className="text-slate-500 text-sm mt-1">No licenses are expiring in the next 30 days.</p>
+              </div>
+            ) : (
+              expiringLicenses.map((license) => {
+                const isExpired = new Date(license.expirationDate) < today;
+                const daysLeft = Math.ceil((new Date(license.expirationDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Businesses Card */}
-          <Link href="/dashboard/businesses">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Businesses
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {stats.totalBusinesses}
-                  </p>
-                </div>
-                <div className="bg-blue-100 rounded-full p-3">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-blue-600 mt-3 font-medium">
-                Click to manage →
-              </p>
-            </div>
-          </Link>
-
-          {/* Total Licenses Card */}
-          <Link href="/dashboard/licenses">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-green-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Total Licenses
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {stats.totalLicenses}
-                  </p>
-                </div>
-                <div className="bg-green-100 rounded-full p-3">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-green-600 mt-3 font-medium">
-                Click to view all →
-              </p>
-            </div>
-          </Link>
-
-          {/* Expiring Soon Card */}
-          <Link href="/dashboard/licenses?filter=expiring">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-yellow-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Expiring Soon
-                  </p>
-                  <p className="text-3xl font-bold text-yellow-600 mt-2">
-                    {stats.expiringSoon}
-                  </p>
-                </div>
-                <div className="bg-yellow-100 rounded-full p-3">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-yellow-600 mt-3 font-medium">
-                Click to review →
-              </p>
-            </div>
-          </Link>
-
-          {/* Expired Card */}
-          <Link href="/dashboard/licenses?filter=expired">
-            <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-red-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    Expired
-                  </p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">
-                    {stats.expired}
-                  </p>
-                </div>
-                <div className="bg-red-100 rounded-full p-3">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-              </div>
-              <p className="text-xs text-red-600 mt-3 font-medium">
-                Click to renew →
-              </p>
-            </div>
-          </Link>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
-              href="/dashboard/businesses"
-              className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition"
-            >
-              <span className="text-2xl mr-3">🏢</span>
-              <div>
-                <p className="font-medium text-gray-900">Add Business</p>
-                <p className="text-xs text-gray-600">Create a new business profile</p>
-              </div>
-            </Link>
-            
-            <Link 
-              href="/dashboard/licenses"
-              className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition"
-            >
-              <span className="text-2xl mr-3">📋</span>
-              <div>
-                <p className="font-medium text-gray-900">Add License</p>
-                <p className="text-xs text-gray-600">Track a new license or permit</p>
-              </div>
-            </Link>
-            
-            <Link 
-              href="/dashboard/settings"
-              className="flex items-center p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition"
-            >
-              <span className="text-2xl mr-3">⚙️</span>
-              <div>
-                <p className="font-medium text-gray-900">Settings</p>
-                <p className="text-xs text-gray-600">Manage your account</p>
-              </div>
-            </Link>
+                return (
+                  <div key={license.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 rounded-full ${isExpired ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                      <div>
+                        <div className="font-medium text-slate-900">{license.licenseType}</div>
+                        <div className="text-sm text-slate-500">{license.business.name}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className={`text-sm font-medium ${isExpired ? 'text-red-600' : 'text-yellow-600'}`}>
+                        {isExpired ? `Expired ${Math.abs(daysLeft)} days ago` : `${daysLeft} days left`}
+                      </div>
+                      <Link
+                        href={`/dashboard/licenses`}
+                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 transition-all"
+                      >
+                        <ArrowRight className="w-5 h-5" />
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
-        {/* Getting Started (if no data) */}
-        {stats.totalBusinesses === 0 && (
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              👋 Welcome! Let's get started
-            </h3>
-            <p className="text-blue-800 mb-4">
-              Set up your first business and start tracking license renewals in 3 easy steps:
+        {/* Right: Quick Tips / Upgrade */}
+        <div className="space-y-6">
+          <div className="bg-gradient-to-br from-[#0B1120] to-slate-900 rounded-xl p-6 text-white shadow-lg">
+            <h3 className="font-bold text-lg mb-2">SafeOps Pro</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Unlock unlimited licenses and SMS alerts for your entire team.
             </p>
-            <ol className="space-y-2 text-blue-900">
-              <li className="flex items-start">
-                <span className="font-bold mr-2">1.</span>
-                <span>Add your business information (name, address, type)</span>
-              </li>
-              <li className="flex items-start">
-                <span className="font-bold mr-2">2.</span>
-                <span>Add your licenses (health permit, vendor license, etc.)</span>
-              </li>
-              <li className="flex items-start">
-                <span className="font-bold mr-2">3.</span>
-                <span>We'll automatically remind you before they expire!</span>
-              </li>
-            </ol>
-            <Link 
-              href="/dashboard/businesses"
-              className="inline-block mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium"
-            >
-              Add Your First Business →
+            <Link href="/dashboard/upgrade" className="block w-full bg-blue-600 hover:bg-blue-500 text-center py-2 rounded-lg text-sm font-semibold transition-colors">
+              Upgrade Plan
             </Link>
           </div>
-        )}
-      </main>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="font-semibold text-slate-900 mb-4">Quick Tips</h3>
+            <ul className="space-y-3 text-sm text-slate-600">
+              <li className="flex gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Upload photos of permits for audit protection.</span>
+              </li>
+              <li className="flex gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Add your phone number in Settings for SMS.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }
