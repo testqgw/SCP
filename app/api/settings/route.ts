@@ -1,4 +1,5 @@
-export const dynamic = 'force-dynamic'; // Force dynamic route for Vercel build - prevents static generation
+// Deployment timestamp: 2025-11-20T07:03:45Z - Force dynamic route for Vercel build
+export const dynamic = 'force-dynamic'; // Prevents static generation during build
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
