@@ -14,6 +14,7 @@ export default function LandingPage() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
+          {/* ✅ UPDATED NAME */}
           <span>Safe<span className="text-blue-400">Ops</span></span>
         </div>
         
@@ -34,13 +35,11 @@ export default function LandingPage() {
       <main className="relative z-10 pt-20 pb-20 lg:pt-32 lg:pb-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
           
-          {/* Trust Pill */}
           <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-900/20 px-4 py-1.5 text-sm font-medium text-blue-300 mb-8 shadow-[0_0_15px_-5px_rgba(59,130,246,0.5)]">
             <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
             New: SMS Alerts for Contractors
           </div>
 
-          {/* Headline */}
           <h1 className="mx-auto max-w-5xl text-5xl font-bold tracking-tight text-white sm:text-7xl mb-8 leading-tight">
             Stop Losing Revenue to <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
@@ -48,14 +47,12 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          {/* Human Bio (No AI nonsense) */}
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-10">
             The "set-it-and-forget-it" tool for busy business owners. 
             We track your permits and insurance. You get a text message before you get fined. 
             Simple as that.
           </p>
 
-          {/* Primary CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
               href="/sign-up"
@@ -71,16 +68,13 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* VISUAL DEMO: The "App Preview" */}
+          {/* APP PREVIEW */}
           <div className="relative max-w-4xl mx-auto">
-             {/* Glow behind the card */}
              <div className="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full" />
              
-             {/* The Main Card */}
              <div className="relative bg-[#0F172A] border border-slate-800 rounded-2xl p-1 shadow-2xl">
                 <div className="bg-[#0B1120] rounded-xl border border-slate-800/50 p-8 flex flex-col items-center sm:flex-row gap-8">
                    
-                   {/* Left side: Status */}
                    <div className="flex-1 text-left">
                       <div className="flex items-center gap-2 mb-4">
                          <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
@@ -89,14 +83,12 @@ export default function LandingPage() {
                       <h3 className="text-2xl font-semibold text-white mb-2">Health Permit Expiring</h3>
                       <p className="text-slate-400 mb-6">Your Mobile Food Vendor Permit #HK-882 expires in <span className="text-red-400 font-bold">3 days</span>.</p>
                       
-                      {/* Progress Bar */}
                       <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
                          <div className="bg-red-500 h-full w-[92%]" />
                       </div>
                       <p className="text-xs text-right text-slate-500 mt-2">92% of duration used</p>
                    </div>
 
-                   {/* Right side: The SMS Preview */}
                    <div className="w-full sm:w-72 bg-slate-900 rounded-lg border border-slate-800 p-4 relative">
                       <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
                          SMS PREVIEW
@@ -106,7 +98,7 @@ export default function LandingPage() {
                             <ShieldCheck className="w-4 h-4 text-slate-400" />
                          </div>
                          <div className="bg-slate-800 rounded-2xl rounded-tl-none p-3 text-sm text-slate-300 shadow-sm">
-                            <p>⚠️ <span className="font-bold text-white">Compliance Alert:</span> Your Health Permit expires in 3 days.</p>
+                            <p>⚠️ <span className="font-bold text-white">SafeOps Alert:</span> Your Health Permit expires in 3 days.</p>
                             <p className="mt-2 text-blue-400 underline cursor-pointer">Renew now to avoid fines</p>
                          </div>
                       </div>
@@ -122,10 +114,8 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* FEATURES SECTION (Bento Grid Style) */}
+      {/* FEATURES SECTION (Bento Grid) */}
       <section className="relative z-10 py-32 bg-[#0B1120] border-t border-slate-800 overflow-hidden">
-        
-        {/* Ambient Background Glow */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="mx-auto max-w-7xl px-6 lg:px-8 relative z-10">
@@ -143,9 +133,9 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
-            {/* FEATURE 1: SMS ALERTS (The Hero Feature - Spans 2 columns) */}
+            {/* FEATURE 1: SMS ALERTS */}
             <div className="md:col-span-2 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 sm:p-12 relative overflow-hidden group hover:border-slate-700 transition-colors">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
               <div className="relative z-10 flex flex-col sm:flex-row gap-12 items-center">
                 <div className="flex-1 text-left">
@@ -157,8 +147,6 @@ export default function LandingPage() {
                     We don't rely on email. We text you directly because we know you're on the job site, not behind a desk.
                   </p>
                 </div>
-
-                {/* VISUAL: Mock Phone Notification */}
                 <div className="w-full sm:w-64 bg-[#0F172A] border border-slate-700 rounded-2xl p-4 shadow-2xl transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
                    <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-3">
                       <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center"><ShieldCheck className="w-3 h-3 text-white"/></div>
@@ -173,19 +161,17 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* FEATURE 2: DOCUMENT VAULT (Vertical Card) */}
+            {/* FEATURE 2: DOCUMENT VAULT */}
             <div className="md:col-span-1 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 relative overflow-hidden group hover:border-slate-700 transition-colors">
-              <div className="absolute inset-0 bg-gradient-to-bl from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-bl from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
               <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-6">
                 <FileText className="w-6 h-6 text-indigo-400" />
               </div>
               <h3 className="text-xl font-semibold text-white mb-3">Document Vault</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                Snap a photo of your permit and store it securely. Access it instantly during an audit.
+                Snap a photo of your permit. Store it securely. Access it instantly during an audit.
               </p>
-
-              {/* VISUAL: File Upload Graphic */}
               <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-3 space-y-2 shadow-xl translate-y-4 group-hover:translate-y-2 transition-transform duration-500">
                  <div className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-lg">
                     <div className="w-8 h-10 bg-red-500/20 rounded flex items-center justify-center"><span className="text-[8px] font-bold text-red-400">PDF</span></div>
@@ -195,19 +181,12 @@ export default function LandingPage() {
                     </div>
                     <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center"><Check className="w-2 h-2 text-green-400" /></div>
                  </div>
-                 <div className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-lg opacity-50">
-                    <div className="w-8 h-10 bg-blue-500/20 rounded flex items-center justify-center"><span className="text-[8px] font-bold text-blue-400">IMG</span></div>
-                    <div className="flex-1">
-                       <div className="h-2 w-16 bg-slate-700 rounded mb-1"></div>
-                       <div className="h-1.5 w-8 bg-slate-800 rounded"></div>
-                    </div>
-                 </div>
               </div>
             </div>
 
-            {/* FEATURE 3: AUDIT PROTECTION (Full width on bottom) */}
-            <div className="md:col-span-3 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 sm:p-12 relative overflow-hidden group hover:border-slate-700 transition-colors">
-               <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            {/* FEATURE 3: AUDIT PROTECTION */}
+            <div className="md:col-span-3 lg:col-span-3 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 sm:p-12 relative overflow-hidden group hover:border-slate-700 transition-colors">
+               <div className="absolute inset-0 bg-gradient-to-r from-sky-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                <div className="flex flex-col sm:flex-row items-center gap-8">
                   <div className="flex-1 text-left sm:text-center lg:text-left">
@@ -216,18 +195,14 @@ export default function LandingPage() {
                     </div>
                     <h3 className="text-2xl font-semibold text-white mb-3">Always Audit Ready</h3>
                     <p className="text-slate-400 leading-relaxed max-w-2xl">
-                      When the inspector shows up, you don't dig through filing cabinets. You open SafeOps.
+                      When the inspector shows up, you don't dig through filing cabinets. You open SafeOps. 
                       We verify every renewal and keep a permanent paper trail of your compliance history.
                     </p>
                   </div>
                   
-                  {/* VISUAL: Timeline */}
                   <div className="flex-1 w-full max-w-md bg-[#0F172A] border border-slate-700 rounded-xl p-6 shadow-2xl">
                      <div className="space-y-6 relative pl-2">
-                        {/* Line */}
                         <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-slate-800" />
-                        
-                        {/* Item 1 */}
                         <div className="relative flex gap-4 items-center">
                            <div className="w-10 h-10 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center z-10">
                               <Check className="w-4 h-4 text-green-400" />
@@ -237,7 +212,6 @@ export default function LandingPage() {
                               <p className="text-slate-500 text-xs">Oct 24, 2024 • via Auto-Renewal</p>
                            </div>
                         </div>
-                        {/* Item 2 */}
                         <div className="relative flex gap-4 items-center opacity-50">
                            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center z-10">
                               <Bell className="w-4 h-4 text-slate-400" />
@@ -256,17 +230,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER (New) */}
+      {/* FOOTER */}
       <footer className="bg-[#0B1120] border-t border-slate-800 py-12">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
            <div className="flex items-center gap-2">
              <div className="w-6 h-6 bg-slate-800 rounded flex items-center justify-center">
                 <ShieldCheck className="w-3 h-3 text-slate-400" />
              </div>
-             <span className="text-slate-400 font-semibold text-sm">Compliance Reminder SaaS</span>
+             {/* ✅ UPDATED NAME */}
+             <span className="text-slate-400 font-semibold text-sm">SafeOps</span>
            </div>
            <div className="text-slate-600 text-sm">
-             © {new Date().getFullYear()} All rights reserved.
+             {/* ✅ UPDATED NAME */}
+             © {new Date().getFullYear()} SafeOps Inc. All rights reserved.
            </div>
         </div>
       </footer>
