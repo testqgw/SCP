@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bell, ShieldCheck, Smartphone, FileText, Check } from "lucide-react";
+import { ArrowRight, Bell, ShieldCheck, Smartphone, FileText, Check, CreditCard } from "lucide-react";
 
 export default function LandingPage() {
   return (
@@ -14,7 +14,7 @@ export default function LandingPage() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
-          {/* ✅ UPDATED NAME */}
+          {/* SAFE OPS BRANDING */}
           <span>Safe<span className="text-blue-400">Ops</span></span>
         </div>
         
@@ -49,23 +49,29 @@ export default function LandingPage() {
 
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-10">
             The "set-it-and-forget-it" tool for busy business owners. 
-            We track your permits and insurance. You get a text message before you get fined. 
-            Simple as that.
+            We track your permits and insurance. You get a text message before you get fined.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
-            <Link
-              href="/sign-up"
-              className="w-full sm:w-auto rounded-lg bg-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500 hover:shadow-blue-900/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group"
-            >
-              Start Free Trial <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/sign-in"
-              className="w-full sm:w-auto rounded-lg px-8 py-4 text-sm font-semibold text-white border border-slate-800 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-700 transition-all"
-            >
-              View Demo
-            </Link>
+          {/* UPDATED CTAs */}
+          <div className="flex flex-col items-center gap-4 mb-20">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/sign-up"
+                className="w-full sm:w-auto rounded-lg bg-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500 hover:shadow-blue-900/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group"
+              >
+                Start for Free <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/sign-in"
+                className="w-full sm:w-auto rounded-lg px-8 py-4 text-sm font-semibold text-white border border-slate-800 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-700 transition-all"
+              >
+                View Demo
+              </Link>
+            </div>
+            {/* TRUST SIGNAL - NO CREDIT CARD */}
+            <p className="text-xs text-slate-500 flex items-center gap-2">
+              <CreditCard className="w-3 h-3" /> No credit card required • Track your first license free
+            </p>
           </div>
 
           {/* APP PREVIEW */}
@@ -114,7 +120,7 @@ export default function LandingPage() {
         </div>
       </main>
 
-      {/* FEATURES SECTION (Bento Grid) */}
+      {/* FEATURES SECTION */}
       <section className="relative z-10 py-32 bg-[#0B1120] border-t border-slate-800 overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
 
@@ -237,11 +243,9 @@ export default function LandingPage() {
              <div className="w-6 h-6 bg-slate-800 rounded flex items-center justify-center">
                 <ShieldCheck className="w-3 h-3 text-slate-400" />
              </div>
-             {/* ✅ UPDATED NAME */}
              <span className="text-slate-400 font-semibold text-sm">SafeOps</span>
            </div>
            <div className="text-slate-600 text-sm">
-             {/* ✅ UPDATED NAME */}
              © {new Date().getFullYear()} SafeOps Inc. All rights reserved.
            </div>
         </div>
