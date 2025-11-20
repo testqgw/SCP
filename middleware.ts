@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 // 1. Define routes that DO NOT require authentication
+// Last updated: 2025-11-20T08:20:00Z - Force redeployment
 const isPublicRoute = createRouteMatcher([
   "/",                  // Landing page
   "/demo(.*)",          // 👈 UPDATED: Matches /demo, /demo/, etc.
