@@ -3,6 +3,13 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // ✅ FLIPPED LOGIC: Define only what needs PROTECTION
 // If a URL matches this list, the user MUST be logged in.
 // If a URL does NOT match (like /demo), it is automatically Public.
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/demo',
+  '/sign-in(.*)',
+  '/sign-up(.*)'
+]);
+
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',           // Protect the Dashboard
   '/api/businesses(.*)',      // Protect Data APIs
@@ -13,7 +20,12 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware((auth, req) => {
-  // Only protect if it matches the list above
+  // 1. If it's a public route, do nothing (allow access)
+  if (isPublicRoute(req)) {
+    return;
+  }
+
+  // 2. If it's a protected route, enforce auth
   if (isProtectedRoute(req)) {
     auth().protect();
   }
