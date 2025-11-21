@@ -1,12 +1,20 @@
+import { NextRequest } from "next/server";
 import { createNextRouteHandler } from "uploadthing/next";
 import { ourFileRouter } from "./core";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export const { GET, POST } = createNextRouteHandler({
+const handlers = createNextRouteHandler({
     router: ourFileRouter,
-    config: {
-        callbackUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/uploadthing` : undefined,
-    },
 });
+
+export const GET = (req: NextRequest) => {
+    console.log("🔥 [GET] /api/uploadthing HIT");
+    return handlers.GET(req);
+}
+
+export const POST = (req: NextRequest) => {
+    console.log("🔥 [POST] /api/uploadthing HIT");
+    return handlers.POST(req);
+}

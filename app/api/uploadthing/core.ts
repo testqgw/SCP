@@ -11,17 +11,12 @@ export const ourFileRouter = {
         const user = auth();
         console.log("🔥 [Middleware] Auth result:", user ? JSON.stringify(user) : "No user object");
 
-        // TEMPORARY DEBUG: If auth fails, use a fallback instead of throwing
-        if (!user || !user.userId) {
-          console.warn("⚠️ [Middleware] No user found. Using DEBUG_FALLBACK_USER.");
-          return { userId: "DEBUG_FALLBACK_USER" };
-        }
+        if (!user || !user.userId) throw new Error("Unauthorized");
 
         return { userId: user.userId };
       } catch (error) {
         console.error("🔥 [Middleware] CRITICAL AUTH ERROR:", error);
-        // Fallback on error too, just to see if upload completes
-        return { userId: "DEBUG_FALLBACK_ERROR_USER" };
+        throw new Error("Unauthorized");
       }
     })
     .onUploadComplete(async ({ metadata, file }) => {
