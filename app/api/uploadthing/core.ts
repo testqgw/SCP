@@ -6,6 +6,7 @@ const f = createUploadthing();
 export const ourFileRouter = {
   documentUploader: f({ image: { maxFileSize: "4MB" }, pdf: { maxFileSize: "4MB" } })
     .middleware(async () => {
+      console.log("UploadThing Middleware started");
       try {
         const user = auth();
         if (!user || !user.userId) throw new Error("Unauthorized");
