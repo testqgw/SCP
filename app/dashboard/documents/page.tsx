@@ -192,26 +192,30 @@ export default function DocumentsPage() {
           documents.map((doc) => (
             <div key={doc.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex justify-between items-center group">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                  {/* Show different icon for PDF vs Image if you want, defaulting to FileText */}
+                  <FileText className="w-6 h-6" />
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900">{doc.fileName}</h3>
                   <p className="text-xs text-slate-500 flex items-center gap-1">
-                    Linked to: <span className="font-medium bg-slate-100 px-1.5 py-0.5 rounded">{doc.license?.licenseType || "Unknown"}</span>
+                    Linked to: <span className="font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-700">{doc.license?.licenseType || "General"}</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                {/* ✅ THE NEW VIEW BUTTON */}
                 <a
                   href={doc.fileUrl}
                   target="_blank"
-                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="View File"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors"
                 >
-                  <ExternalLink className="w-5 h-5" />
+                  <ExternalLink className="w-4 h-4" />
+                  View
                 </a>
+
                 <button
                   onClick={() => handleDelete(doc.id)}
                   className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
