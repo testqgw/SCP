@@ -6,16 +6,12 @@ const f = createUploadthing();
 export const ourFileRouter = {
   documentUploader: f({ image: { maxFileSize: "4MB" }, pdf: { maxFileSize: "4MB" } })
     .middleware(async () => {
-      console.log("🔥 [Middleware] UploadThing Middleware executing...");
       try {
         const user = auth();
-        console.log("🔥 [Middleware] Auth result:", user ? JSON.stringify(user) : "No user object");
-
         if (!user || !user.userId) throw new Error("Unauthorized");
-
         return { userId: user.userId };
       } catch (error) {
-        console.error("🔥 [Middleware] CRITICAL AUTH ERROR:", error);
+        console.error("UploadThing Auth Error:", error);
         throw new Error("Unauthorized");
       }
     })

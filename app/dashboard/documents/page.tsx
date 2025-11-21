@@ -147,14 +147,7 @@ export default function DocumentsPage() {
                     button: "bg-slate-900 text-white px-6 py-2 rounded-lg hover:bg-slate-800 transition-all",
                     allowedContent: "text-slate-500 text-xs mt-2"
                   }}
-                  onUploadBegin={(fileName) => {
-                    console.log("Upload started for:", fileName);
-                  }}
-                  onUploadProgress={(progress) => {
-                    console.log("Upload progress:", progress);
-                  }}
                   onClientUploadComplete={(res) => {
-                    console.log("Client upload complete. Response:", res);
                     if (res && res[0]) {
                       setFormData(prev => ({ ...prev, fileUrl: res[0].url }));
                       if (!formData.fileName) setFormData(prev => ({ ...prev, fileName: res[0].name }));
@@ -162,7 +155,6 @@ export default function DocumentsPage() {
                     }
                   }}
                   onUploadError={(error: Error) => {
-                    console.error("Upload error details:", error);
                     alert(`Upload Error: ${error.message}`);
                   }}
                 />
