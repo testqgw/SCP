@@ -8,7 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",       // Sign-up page
   "/api/webhooks(.*)",  // Webhooks (Stripe/Clerk)
   "/api/test",          // Test endpoint
-  "/api/uploadthing"    // 👈 ALLOW UPLOADTHING HANDSHAKE
+  "/api/uploadthing(.*)"    // 👈 ALLOW UPLOADTHING HANDSHAKE
 ]);
 
 export default clerkMiddleware((auth, req) => {
