@@ -61,9 +61,16 @@ export default function DocumentsPage() {
       return;
     }
 
+    // Determine file type from extension
+    const extension = formData.fileName.split('.').pop()?.toLowerCase() || 'unknown';
+    const fileType = extension === 'pdf' ? 'application/pdf' : `image/${extension}`;
+
     const res = await fetch("/api/documents", {
       method: "POST",
-      body: JSON.stringify(formData),
+      body: JSON.stringify({
+        ...formData,
+        fileType,
+      }),
     });
 
     if (res.ok) {
@@ -71,6 +78,9 @@ export default function DocumentsPage() {
       setDocuments([newDoc, ...documents]);
       setFormData({ licenseId: "", fileName: "", fileUrl: "" });
       alert("Document Saved Successfully!");
+    } else {
+      const errorText = await res.text();
+      alert(`Failed to save document: ${errorText}`);
     }
   };
 
