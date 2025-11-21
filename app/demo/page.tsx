@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { useState, useEffect } from "react";
 import { ArrowRight, CheckCircle, ShieldCheck, Bell, Smartphone, Loader2 } from "lucide-react";
 

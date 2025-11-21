@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ArrowRight, Bell, ShieldCheck, Smartphone, FileText, Check, CreditCard } from "lucide-react";
 
 export default function LandingPage() {
   return (
