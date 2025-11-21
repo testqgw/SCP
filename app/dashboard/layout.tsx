@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ShieldCheck, LayoutDashboard, Building2, FileText, Settings, LogOut, User } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { LayoutDashboard, Building2, FileText, Settings } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
@@ -25,18 +26,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* LEFT: LOGO & BADGE */}
             <div className="flex items-center gap-4">
               <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
-                  <ShieldCheck className="w-5 h-5 text-white" />
-                </div>
+                <Logo className="w-8 h-8" />
                 <span className="text-xl font-bold tracking-tight">
                   Safe<span className="text-blue-400">Ops</span>
                 </span>
               </Link>
 
-              {/* ✅ FIXED BADGE ALIGNMENT */}
+              {/* BADGE */}
               <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isPro
-                  ? "bg-blue-600/20 text-blue-200 border-blue-500/30"
-                  : "bg-slate-700/50 text-slate-300 border-slate-600"
+                ? "bg-blue-600/20 text-blue-200 border-blue-500/30"
+                : "bg-slate-700/50 text-slate-300 border-slate-600"
                 }`}>
                 {isPro ? "PRO" : "FREE PLAN"}
               </div>
