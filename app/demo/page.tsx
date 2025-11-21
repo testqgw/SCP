@@ -62,44 +62,57 @@ export default function DemoPage() {
 // 🕹️ THE SIMULATOR COMPONENT
 function DemoSimulator() {
   const [step, setStep] = useState(0);
-  const [text, setText] = useState("");
-  const [expDate, setExpDate] = useState("");
+  const [name, setName] = useState("");
 
   // Animation Script
   useEffect(() => {
     let timeout: any;
 
     const runSimulation = async () => {
-      // 1. Start: Type License Name
+      // 1. Select Business (Instant)
       setStep(1);
+      await new Promise(r => setTimeout(r, 500));
+
+      // 2. Type License Name
+      setStep(2);
       const fullText = "Health Permit 2025";
       for (let i = 0; i <= fullText.length; i++) {
-        await new Promise(r => setTimeout(r, 60));
-        setText(fullText.slice(0, i));
+        await new Promise(r => setTimeout(r, 50));
+        setName(fullText.slice(0, i));
       }
 
-      // 2. Fill details (Instant fill for minor fields to keep demo snappy)
+      // 3. Fill License Number
       await new Promise(r => setTimeout(r, 400));
-      setStep(2); // Fills Authority, Number, etc.
-
-      // 3. Set Expiration Date
-      await new Promise(r => setTimeout(r, 400));
-      setExpDate("2025-12-31");
       setStep(3);
 
-      // 4. Click "Track License"
+      // 4. Fill Issuing Authority
+      await new Promise(r => setTimeout(r, 400));
+      setStep(4);
+
+      // 5. Set Issue Date
+      await new Promise(r => setTimeout(r, 400));
+      setStep(5);
+
+      // 6. Set Expiration Date (Crucial Step)
+      await new Promise(r => setTimeout(r, 400));
+      setStep(6);
+
+      // 7. Fill Renewal URL
+      await new Promise(r => setTimeout(r, 400));
+      setStep(7);
+
+      // 8. Click "Track License"
       await new Promise(r => setTimeout(r, 800));
-      setStep(4); // Loading state
+      setStep(8); // Loading state
 
-      // 5. Success & SMS Arrival
+      // 9. Success & SMS Arrival
       await new Promise(r => setTimeout(r, 1500));
-      setStep(5); // Phone notification
+      setStep(9); // Phone notification
 
-      // 6. Reset Loop
-      await new Promise(r => setTimeout(r, 6000));
+      // 10. Reset Loop
+      await new Promise(r => setTimeout(r, 8000)); // Longer pause at the end
       setStep(0);
-      setText("");
-      setExpDate("");
+      setName("");
     };
 
     if (step === 0) timeout = setTimeout(runSimulation, 1000);
@@ -111,11 +124,8 @@ function DemoSimulator() {
 
       {/* LEFT: REAL DASHBOARD REPLICA */}
       <div className="flex-1 p-8 overflow-hidden">
-
-        {/* Dashboard Header */}
         <h1 className="text-2xl font-bold text-slate-900 mb-8">Manage Licenses</h1>
 
-        {/* The Main Form Card */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
             <span className="text-blue-600 text-xl font-bold">+</span> Add New License
@@ -126,15 +136,15 @@ function DemoSimulator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Business *</label>
-                <div className="w-full p-2 border rounded-md bg-white text-slate-700 border-slate-300">
-                  {step >= 1 ? "Joe's Food Truck" : "Select a Business"}
+                <div className={`w-full p-2 border rounded-md bg-white border-slate-300 transition-colors ${step >= 1 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 1 ? "Joe's Food Truck" : "Select..."}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">License Name *</label>
                 <div className="w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 relative">
-                  {text}
-                  {step === 1 && <span className="w-0.5 h-5 bg-blue-600 animate-pulse ml-0.5"></span>}
+                  {name}
+                  {step === 2 && <span className="w-0.5 h-5 bg-blue-600 animate-pulse ml-0.5"></span>}
                 </div>
               </div>
             </div>
@@ -143,14 +153,14 @@ function DemoSimulator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">License Number</label>
-                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
-                  {step >= 2 ? "HK-882-09" : ""}
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 3 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 3 ? "HK-882-09" : ""}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Issuing Authority</label>
-                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
-                  {step >= 2 ? "City Hall Dept of Health" : ""}
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 4 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 4 ? "City Hall Dept of Health" : ""}
                 </div>
               </div>
             </div>
@@ -159,14 +169,14 @@ function DemoSimulator() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Issue Date</label>
-                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
-                  {step >= 2 ? "2024-01-01" : ""}
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 ${step >= 5 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 5 ? "2024-01-01" : ""}
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Expiration Date *</label>
-                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 ${step >= 3 ? "text-slate-900" : "text-transparent"}`}>
-                  {expDate}
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 ${step >= 6 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 6 ? "2025-12-31" : ""}
                 </div>
               </div>
             </div>
@@ -174,14 +184,14 @@ function DemoSimulator() {
             {/* Row 4: URL */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Renewal URL</label>
-              <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 overflow-hidden ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
-                {step >= 2 ? "https://city.gov/renewals/portal" : ""}
+              <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-blue-600 overflow-hidden ${step >= 7 ? "opacity-100" : "opacity-0"}`}>
+                {step >= 7 ? "https://city.gov/renewals/portal" : ""}
               </div>
             </div>
 
             {/* Button */}
-            <button className={`bg-blue-600 text-white px-6 py-2 rounded-md font-medium w-full sm:w-auto transition-all duration-300 ${step === 4 ? "opacity-80 scale-95" : step === 5 ? "bg-green-600" : ""}`}>
-              {step === 4 ? "Saving..." : step === 5 ? "License Tracked!" : "Track License"}
+            <button className={`bg-blue-600 text-white px-6 py-2 rounded-md font-medium w-full sm:w-auto transition-all duration-300 ${step === 8 ? "opacity-80 scale-95" : step === 9 ? "bg-green-600" : ""}`}>
+              {step === 8 ? "Saving..." : step === 9 ? "License Tracked!" : "Track License"}
             </button>
           </div>
         </div>
@@ -194,7 +204,6 @@ function DemoSimulator() {
 
         {/* Phone Body */}
         <div className="relative z-10 w-64 h-[500px] bg-black border-[8px] border-gray-800 rounded-[45px] shadow-2xl overflow-hidden ring-1 ring-white/10">
-          {/* Notch */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-2xl z-20"></div>
 
           {/* Screen */}
@@ -202,7 +211,7 @@ function DemoSimulator() {
             <div className="text-center text-gray-400 text-[10px] mb-6">Today 9:41 AM</div>
 
             {/* Incoming Message Animation */}
-            <div className={`transform transition-all duration-500 ease-out ${step === 5 ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+            <div className={`transform transition-all duration-500 ease-out ${step === 9 ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
               <div className="flex flex-col gap-1">
                 <div className="bg-[#E9E9EB] text-black text-xs p-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] self-start">
                   <strong>SafeOps:</strong> Tracking enabled for "Health Permit 2025".
