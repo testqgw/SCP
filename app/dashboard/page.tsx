@@ -8,9 +8,24 @@ export const dynamic = 'force-dynamic';
 export default async function DashboardPage() {
   const { userId } = auth();
 
+  if (!userId) {
+    return <div>Please sign in</div>;
+  }
+
   // 1. Fetch Stats
-  const businessCount = await prisma.business.count({ where: { userId: userId as string } });
-  const licenseCount = await prisma.license.count({ where: { business: { userId: userId as string } } });
+  const businessCount = await prisma.business.count({
+    where: {
+      memberships: { some: { userId: userId } }
+    }
+  });
+
+  const licenseCount = await prisma.license.count({
+    where: {
+      business: {
+        memberships: { some: { userId: userId } }
+      }
+    }
+  });
 
   // 2. Fetch Priority Items (Expiring Soon or Expired)
   const today = new Date();
@@ -19,7 +34,9 @@ export default async function DashboardPage() {
 
   const expiringLicenses = await prisma.license.findMany({
     where: {
-      business: { userId: userId as string },
+      business: {
+        memberships: { some: { userId: userId } }
+      },
       expirationDate: { lte: thirtyDaysFromNow }
     },
     orderBy: { expirationDate: 'asc' },

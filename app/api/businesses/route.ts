@@ -14,7 +14,11 @@ export async function GET() {
 
     const businesses = await prisma.business.findMany({
       where: {
-        userId: userId,
+        memberships: {
+          some: {
+            userId: userId,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -44,7 +48,6 @@ export async function POST(req: Request) {
     }
 
     // THE FIX: Lazy Sync - Ensure user exists in database before creating business
-    // This fixes the Foreign Key constraint violation on new databases
     await prisma.user.upsert({
       where: {
         id: user.id,
@@ -66,8 +69,12 @@ export async function POST(req: Request) {
       select: { subscriptionTier: true }
     });
 
-    const businessCount = await prisma.business.count({
-      where: { userId: user.id }
+    // Check membership count instead of ownership
+    const businessCount = await prisma.businessMember.count({
+      where: {
+        userId: user.id,
+        role: 'OWNER' // Only count businesses they OWN against the limit
+      }
     });
 
     // If starter tier and already has 1+ businesses, block creation
@@ -78,17 +85,30 @@ export async function POST(req: Request) {
       );
     }
 
-    const business = await prisma.business.create({
-      data: {
-        userId: user.id,
-        name,
-        businessType: businessType || 'other',
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zip: zip || '',
-        phone: phone || '',
-      },
+    // Create Business + Membership in Transaction
+    const business = await prisma.$transaction(async (tx) => {
+      const newBusiness = await tx.business.create({
+        data: {
+          userId: user.id, // Keep for schema compatibility for now
+          name,
+          businessType: businessType || 'other',
+          address: address || '',
+          city: city || '',
+          state: state || '',
+          zip: zip || '',
+          phone: phone || '',
+        },
+      });
+
+      await tx.businessMember.create({
+        data: {
+          userId: user.id,
+          businessId: newBusiness.id,
+          role: 'OWNER',
+        },
+      });
+
+      return newBusiness;
     });
 
     return NextResponse.json(business);
@@ -113,10 +133,23 @@ export async function DELETE(req: Request) {
       return new NextResponse("ID is required", { status: 400 });
     }
 
+    // 1. Check if user is an OWNER of this business
+    const membership = await prisma.businessMember.findUnique({
+      where: {
+        userId_businessId: {
+          userId,
+          businessId: id,
+        },
+      },
+    });
+
+    if (!membership || membership.role !== 'OWNER') {
+      return new NextResponse("Forbidden: Only Owners can delete businesses", { status: 403 });
+    }
+
     const business = await prisma.business.delete({
       where: {
         id,
-        userId, // Ensure user owns the business
       },
     });
 

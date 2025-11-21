@@ -15,7 +15,11 @@ export async function GET() {
       where: {
         license: {
           business: {
-            userId: userId,
+            memberships: {
+              some: {
+                userId: userId,
+              },
+            },
           },
         },
       },
@@ -58,18 +62,32 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    // Verify the license belongs to the user
-    const license = await prisma.license.findFirst({
+    // Verify the license belongs to a business the user is a member of (ADMIN or OWNER)
+    const license = await prisma.license.findUnique({
       where: {
         id: licenseId,
-        business: {
-          userId: userId,
+      },
+      include: {
+        business: true
+      }
+    });
+
+    if (!license) {
+      return new NextResponse("License not found", { status: 404 });
+    }
+
+    // Check membership
+    const membership = await prisma.businessMember.findUnique({
+      where: {
+        userId_businessId: {
+          userId,
+          businessId: license.businessId,
         },
       },
     });
 
-    if (!license) {
-      return new NextResponse("License not found or unauthorized", { status: 403 });
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return new NextResponse("Forbidden: You do not have permission to add documents to this license.", { status: 403 });
     }
 
     const document = await prisma.document.create({
@@ -109,8 +127,22 @@ export async function DELETE(req: Request) {
       include: { license: { include: { business: true } } }
     });
 
-    if (!document || document.license.business.userId !== userId) {
-      return new NextResponse("Unauthorized", { status: 403 });
+    if (!document) {
+      return new NextResponse("Document not found", { status: 404 });
+    }
+
+    // Check membership
+    const membership = await prisma.businessMember.findUnique({
+      where: {
+        userId_businessId: {
+          userId,
+          businessId: document.license.businessId,
+        },
+      },
+    });
+
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return new NextResponse("Forbidden: You do not have permission to delete documents.", { status: 403 });
     }
 
     await prisma.document.delete({

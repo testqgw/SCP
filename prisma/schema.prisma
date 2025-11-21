@@ -1,11 +1,11 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider   = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_PUBLIC_URL")
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -20,6 +20,7 @@ model User {
   subscriptionStatus  String?  @map("subscription_status") // active, past_due, canceled, trialing
   
   businesses          Business[]
+  memberships         BusinessMember[]
   renewalHistory      RenewalHistory[]
   
   @@map("users")
@@ -40,9 +41,33 @@ model Business {
   
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   licenses      License[]
+  memberships   BusinessMember[]
   
   @@index([userId])
   @@map("businesses")
+}
+
+enum BusinessRole {
+  OWNER
+  ADMIN
+  VIEWER
+}
+
+model BusinessMember {
+  id         String       @id @default(cuid())
+  role       BusinessRole @default(VIEWER)
+  
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  businessId String
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime     @default(now())
+
+  @@unique([userId, businessId])
+  @@index([userId])
+  @@map("business_members")
 }
 
 model License {

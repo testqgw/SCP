@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 
-// GET: Fetch all licenses for the logged-in user (across all businesses)
+// GET: Fetch all licenses for the logged-in user (across all businesses they are a member of)
 export async function GET() {
   try {
     const { userId } = auth();
@@ -15,7 +15,11 @@ export async function GET() {
     const licenses = await prisma.license.findMany({
       where: {
         business: {
-          userId: userId,
+          memberships: {
+            some: {
+              userId: userId,
+            },
+          },
         },
       },
       include: {
@@ -59,40 +63,79 @@ export async function POST(req: Request) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
-    // 1. Fetch User Tier
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { subscriptionTier: true }
-    });
-
-    // 2. Count Current Licenses
-    const licenseCount = await prisma.license.count({
+    // 1. Verify Membership & Role (Must be ADMIN or OWNER)
+    const membership = await prisma.businessMember.findUnique({
       where: {
-        business: { userId: userId }
+        userId_businessId: {
+          userId,
+          businessId,
+        },
+      },
+      include: {
+        business: true // Get business details if needed
       }
     });
 
-    // 3. THE GATEKEEPER LOGIC 🛡️
-    // If User is 'starter' AND they already have 1 or more licenses... BLOCK THEM.
-    const isFreeUser = user?.subscriptionTier === 'starter';
-
-    if (isFreeUser && licenseCount >= 1) {
-      return NextResponse.json(
-        { error: "LIMIT_REACHED", message: "Free plan is limited to 1 license. Please upgrade." },
-        { status: 403 }
-      );
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return new NextResponse("Forbidden: You do not have permission to add licenses to this business.", { status: 403 });
     }
 
-    // Verify the business belongs to the user
-    const business = await prisma.business.findFirst({
+    // 2. Fetch User Tier (of the current user adding the license)
+    // Note: Ideally this should check the Business Owner's tier, but for now we check the actor's tier
+    // or we assume if you are an ADMIN of a business, you are operating under that business's limits.
+    // Let's keep it simple: Check the ACTOR'S tier for now, OR skip limit if they are just an ADMIN.
+    // Actually, let's check the BUSINESS OWNER'S tier.
+
+    // Find the owner of the business
+    const ownerMembership = await prisma.businessMember.findFirst({
       where: {
-        id: businessId,
-        userId: userId,
+        businessId,
+        role: 'OWNER'
       },
+      include: {
+        user: true
+      }
     });
 
-    if (!business) {
-      return new NextResponse("Business not found or unauthorized", { status: 403 });
+    if (!ownerMembership) {
+      return new NextResponse("Business has no owner", { status: 500 });
+    }
+
+    const owner = ownerMembership.user;
+    const isFreeAccount = owner.subscriptionTier === 'starter';
+
+    // Count licenses for this business
+    const businessLicenseCount = await prisma.license.count({
+      where: {
+        businessId
+      }
+    });
+
+    // Limit Logic: Free accounts (Owners) can only have 1 license per business? 
+    // Or 1 license TOTAL? The prompt said "Free plan limited to 1 license".
+    // Let's assume 1 license TOTAL for the Owner across all businesses?
+    // Or 1 license per business?
+    // The previous code counted `where: { business: { userId } }` which is TOTAL licenses for that user.
+    // So we should count all licenses owned by the Business Owner.
+
+    const totalOwnerLicenses = await prisma.license.count({
+      where: {
+        business: {
+          memberships: {
+            some: {
+              userId: owner.id,
+              role: 'OWNER'
+            }
+          }
+        }
+      }
+    });
+
+    if (isFreeAccount && totalOwnerLicenses >= 1) {
+      return NextResponse.json(
+        { error: "LIMIT_REACHED", message: "Business Owner's free plan is limited to 1 license." },
+        { status: 403 }
+      );
     }
 
     const license = await prisma.license.create({
@@ -130,14 +173,28 @@ export async function DELETE(req: Request) {
       return new NextResponse("ID is required", { status: 400 });
     }
 
-    // Verify ownership via business
+    // Verify ownership/admin via business
     const license = await prisma.license.findUnique({
       where: { id },
       include: { business: true }
     });
 
-    if (!license || license.business.userId !== userId) {
-      return new NextResponse("Unauthorized", { status: 403 });
+    if (!license) {
+      return new NextResponse("License not found", { status: 404 });
+    }
+
+    // Check membership
+    const membership = await prisma.businessMember.findUnique({
+      where: {
+        userId_businessId: {
+          userId,
+          businessId: license.businessId,
+        },
+      },
+    });
+
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return new NextResponse("Forbidden: You do not have permission to delete licenses.", { status: 403 });
     }
 
     await prisma.license.delete({
