@@ -63,37 +63,43 @@ export default function DemoPage() {
 function DemoSimulator() {
   const [step, setStep] = useState(0);
   const [text, setText] = useState("");
-  const [date, setDate] = useState("");
+  const [expDate, setExpDate] = useState("");
 
+  // Animation Script
   useEffect(() => {
     let timeout: any;
+
     const runSimulation = async () => {
-      // 1. Type License Name
+      // 1. Start: Type License Name
       setStep(1);
       const fullText = "Health Permit 2025";
       for (let i = 0; i <= fullText.length; i++) {
-        await new Promise(r => setTimeout(r, 80));
+        await new Promise(r => setTimeout(r, 60));
         setText(fullText.slice(0, i));
       }
 
-      // 2. Select Date
-      await new Promise(r => setTimeout(r, 500));
-      setStep(2);
-      setDate("2025-12-31");
+      // 2. Fill details (Instant fill for minor fields to keep demo snappy)
+      await new Promise(r => setTimeout(r, 400));
+      setStep(2); // Fills Authority, Number, etc.
 
-      // 3. Click Save
-      await new Promise(r => setTimeout(r, 800));
+      // 3. Set Expiration Date
+      await new Promise(r => setTimeout(r, 400));
+      setExpDate("2025-12-31");
       setStep(3);
 
-      // 4. Success & SMS
-      await new Promise(r => setTimeout(r, 1500));
-      setStep(4);
+      // 4. Click "Track License"
+      await new Promise(r => setTimeout(r, 800));
+      setStep(4); // Loading state
 
-      // 5. Reset
+      // 5. Success & SMS Arrival
+      await new Promise(r => setTimeout(r, 1500));
+      setStep(5); // Phone notification
+
+      // 6. Reset Loop
       await new Promise(r => setTimeout(r, 6000));
       setStep(0);
       setText("");
-      setDate("");
+      setExpDate("");
     };
 
     if (step === 0) timeout = setTimeout(runSimulation, 1000);
@@ -101,73 +107,112 @@ function DemoSimulator() {
   }, [step]);
 
   return (
-    <div className="relative w-full max-w-5xl mx-auto bg-slate-50 rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-200 font-sans text-slate-900">
+    <div className="relative w-full max-w-6xl mx-auto bg-slate-50 rounded-xl shadow-2xl overflow-hidden flex flex-col lg:flex-row border border-slate-200 font-sans text-slate-900 text-left">
 
-      {/* LEFT: MOCK DASHBOARD (Exact Replica of Real UI) */}
-      <div className="flex-1 p-6">
-        {/* Mock Header */}
-        <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rounded flex items-center justify-center"><div className="w-2 h-2 bg-white rounded-full"></div></div>
-            <span className="font-bold text-lg text-slate-900">SafeOps</span>
-          </div>
-          <div className="flex gap-3 text-sm font-medium text-slate-500">
-            <span>Dashboard</span>
-            <span className="text-blue-600">Licenses</span>
-            <span>Settings</span>
-          </div>
-        </div>
+      {/* LEFT: REAL DASHBOARD REPLICA */}
+      <div className="flex-1 p-8 overflow-hidden">
 
-        {/* Mock Form */}
+        {/* Dashboard Header */}
+        <h1 className="text-2xl font-bold text-slate-900 mb-8">Manage Licenses</h1>
+
+        {/* The Main Form Card */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-800 mb-4">Add New License</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <span className="text-blue-600 text-xl font-bold">+</span> Add New License
+          </h2>
+
           <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">License Name</label>
-              <div className="h-10 w-full bg-white rounded border border-slate-300 flex items-center px-3 text-sm relative">
-                {text}
-                {step === 1 && <span className="w-0.5 h-4 bg-blue-600 animate-pulse ml-0.5"></span>}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 1: Business & Name */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Issue Date</label>
-                <div className="h-10 w-full bg-white rounded border border-slate-300 flex items-center px-3 text-sm text-slate-400">2024-01-01</div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Business *</label>
+                <div className="w-full p-2 border rounded-md bg-white text-slate-700 border-slate-300">
+                  {step >= 1 ? "Joe's Food Truck" : "Select a Business"}
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Expiration Date</label>
-                <div className={`h-10 w-full rounded border flex items-center px-3 text-sm transition-colors ${step >= 2 ? "bg-white border-slate-300 text-slate-900" : "bg-slate-50 border-slate-200"}`}>
-                  {date}
+                <label className="block text-sm font-medium text-slate-700 mb-1">License Name *</label>
+                <div className="w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 relative">
+                  {text}
+                  {step === 1 && <span className="w-0.5 h-5 bg-blue-600 animate-pulse ml-0.5"></span>}
                 </div>
               </div>
             </div>
-            <button className={`w-full h-10 rounded font-medium text-sm transition-all flex items-center justify-center gap-2 ${step === 3 ? "bg-blue-700 text-white" : step === 4 ? "bg-green-600 text-white" : "bg-blue-600 text-white"}`}>
-              {step === 3 ? "Saving..." : step === 4 ? "Saved Successfully!" : "Track License"}
+
+            {/* Row 2: Number & Authority */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">License Number</label>
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 2 ? "HK-882-09" : ""}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Issuing Authority</label>
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 transition-colors text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 2 ? "City Hall Dept of Health" : ""}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: Dates */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Issue Date</label>
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
+                  {step >= 2 ? "2024-01-01" : ""}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Expiration Date *</label>
+                <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 ${step >= 3 ? "text-slate-900" : "text-transparent"}`}>
+                  {expDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 4: URL */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Renewal URL</label>
+              <div className={`w-full h-[38px] border rounded-md bg-white border-slate-300 flex items-center px-2 text-slate-900 overflow-hidden ${step >= 2 ? "text-slate-900" : "text-transparent"}`}>
+                {step >= 2 ? "https://city.gov/renewals/portal" : ""}
+              </div>
+            </div>
+
+            {/* Button */}
+            <button className={`bg-blue-600 text-white px-6 py-2 rounded-md font-medium w-full sm:w-auto transition-all duration-300 ${step === 4 ? "opacity-80 scale-95" : step === 5 ? "bg-green-600" : ""}`}>
+              {step === 4 ? "Saving..." : step === 5 ? "License Tracked!" : "Track License"}
             </button>
           </div>
         </div>
       </div>
 
-      {/* RIGHT: REALISTIC PHONE PREVIEW */}
-      <div className="w-full md:w-80 bg-[#0B1120] p-8 flex flex-col items-center justify-center relative border-l border-slate-800">
+      {/* RIGHT: PHONE PREVIEW (SMS) */}
+      <div className="w-full lg:w-96 bg-[#0B1120] p-8 flex flex-col items-center justify-center relative border-l border-slate-800 min-h-[600px]">
         <div className="absolute inset-0 bg-blue-600/5"></div>
-        <div className="text-slate-400 text-xs font-medium mb-4 uppercase tracking-widest">Customer View</div>
+        <div className="text-slate-400 text-xs font-medium mb-6 uppercase tracking-widest">Your Phone</div>
 
         {/* Phone Body */}
-        <div className="relative z-10 w-60 h-[450px] bg-black border-[6px] border-gray-800 rounded-[35px] shadow-2xl overflow-hidden">
+        <div className="relative z-10 w-64 h-[500px] bg-black border-[8px] border-gray-800 rounded-[45px] shadow-2xl overflow-hidden ring-1 ring-white/10">
           {/* Notch */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-5 bg-black rounded-b-xl z-20"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-2xl z-20"></div>
 
           {/* Screen */}
-          <div className="w-full h-full bg-slate-100 relative pt-8 px-3 flex flex-col">
-            <div className="text-center text-gray-400 text-[10px] mb-4">Today 9:41 AM</div>
+          <div className="w-full h-full bg-slate-100 relative pt-10 px-4 flex flex-col font-sans">
+            <div className="text-center text-gray-400 text-[10px] mb-6">Today 9:41 AM</div>
 
-            {/* Message Bubble */}
-            <div className={`transform transition-all duration-500 ${step === 4 ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
-              <div className="bg-blue-500 text-white text-xs p-3 rounded-2xl rounded-tl-none shadow-sm mb-1 max-w-[90%]">
-                <strong>SafeOps Alert:</strong> Tracking enabled for "Health Permit 2025". We will alert you 90 days before it expires.
+            {/* Incoming Message Animation */}
+            <div className={`transform transition-all duration-500 ease-out ${step === 5 ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
+              <div className="flex flex-col gap-1">
+                <div className="bg-[#E9E9EB] text-black text-xs p-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] self-start">
+                  <strong>SafeOps:</strong> Tracking enabled for "Health Permit 2025".
+                </div>
+                <div className="bg-[#E9E9EB] text-black text-xs p-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] self-start delay-100">
+                  We will text you 90 days before it expires on 12/31/2025.
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
