@@ -6,4 +6,7 @@ export const runtime = "nodejs";
 
 export const { GET, POST } = createNextRouteHandler({
     router: ourFileRouter,
+    config: {
+        callbackUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}/api/uploadthing` : undefined,
+    },
 });
