@@ -33,4 +33,8 @@
     color: var(--foreground);
     font-family: var(--font-sans);
   }
+
+  html {
+    scroll-behavior: smooth; /* Smooth scrolling for anchor links */
+  }
 }

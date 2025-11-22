@@ -19,6 +19,9 @@ export default function LandingPage() {
         </div>
 
         <div className="flex items-center gap-6">
+          <Link href="#pricing" className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden sm:block">
+            Pricing
+          </Link>
           <Link href="/sign-in" className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden sm:block">
             Log in
           </Link>
@@ -62,10 +65,10 @@ export default function LandingPage() {
                 Start for Free <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="/demo"
+                href="#pricing"
                 className="w-full sm:w-auto rounded-lg px-8 py-4 text-sm font-semibold text-white border border-slate-800 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-700 transition-all"
               >
-                View Demo
+                View Pricing
               </Link>
             </div>
             {/* TRUST SIGNAL - NO CREDIT CARD */}
