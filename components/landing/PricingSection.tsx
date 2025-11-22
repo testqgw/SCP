@@ -1,7 +1,24 @@
 import Link from "next/link";
-import { Check, ShieldCheck, Truck, Building2 } from "lucide-react";
+import { Check, ShieldCheck, Truck, Building2, Store, X } from "lucide-react";
 
 const tiers = [
+    {
+        name: "The Starter",
+        price: "$0",
+        description: "For new trucks just getting permits organized.",
+        icon: Store,
+        features: [
+            "1 Business Entity",
+            "Limit: 3 Licenses Tracked",
+            "Email Reminders Only",
+            "Basic Document Storage",
+            "No SMS Alerts", // Clearly show what they are missing
+        ],
+        cta: "Try for Free",
+        href: "/sign-up?plan=free",
+        featured: false,
+        highlighted: false,
+    },
     {
         name: "Owner Operator",
         price: "$49",
@@ -16,7 +33,8 @@ const tiers = [
         ],
         cta: "Start Free Trial",
         href: "/sign-up?plan=standard",
-        featured: true, // Highlights this card
+        featured: true,
+        highlighted: true,
     },
     {
         name: "Fleet Manager",
@@ -33,9 +51,10 @@ const tiers = [
         cta: "Get Growth",
         href: "/sign-up?plan=growth",
         featured: false,
+        highlighted: false,
     },
     {
-        name: "Commissary / Agency",
+        name: "Commissary",
         price: "$149",
         description: "For commissary kitchens managing permits for tenant trucks.",
         icon: ShieldCheck,
@@ -47,67 +66,77 @@ const tiers = [
             "Dedicated Account Manager",
         ],
         cta: "Contact Sales",
-        href: "mailto:sales@safeops.com", // Or link to enterprise form
+        href: "mailto:sales@safeops.com",
         featured: false,
+        highlighted: false,
     },
 ];
 
 export default function PricingSection() {
     return (
-        <section className="py-24 bg-white" id="pricing">
+        <section className="py-24 bg-gray-50" id="pricing">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="text-center mb-16">
                     <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                         Simple pricing, zero hidden fines.
                     </h2>
                     <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                        A single health code violation costs $2,000+. SafeOps costs less than a tank of gas.
+                        Start for free. Upgrade when you need SMS alerts and unlimited tracking.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                {/* Changed grid-cols-3 to grid-cols-4 to fit all cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {tiers.map((tier) => (
                         <div
                             key={tier.name}
-                            className={`relative flex flex-col rounded-2xl border p-8 shadow-sm transition-all hover:shadow-md ${tier.featured
-                                    ? "border-blue-600 ring-1 ring-blue-600 bg-blue-50/50"
+                            className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${tier.highlighted
+                                    ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
                                     : "border-gray-200 bg-white"
                                 }`}
                         >
-                            {tier.featured && (
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white">
+                            {tier.highlighted && (
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white shadow-sm">
                                     Most Popular
                                 </div>
                             )}
 
-                            <div className="mb-6 flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600">
-                                <tier.icon className="h-6 w-6" />
+                            <div className={`mb-4 flex items-center justify-center h-10 w-10 rounded-lg ${tier.highlighted ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600"
+                                }`}>
+                                <tier.icon className="h-5 w-5" />
                             </div>
 
-                            <h3 className="text-xl font-semibold text-gray-900">{tier.name}</h3>
-                            <p className="mt-2 text-sm text-gray-500">{tier.description}</p>
+                            <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
+                            <p className="mt-2 text-sm text-gray-500 min-h-[40px]">{tier.description}</p>
 
-                            <div className="my-6 flex items-baseline">
-                                <span className="text-4xl font-bold tracking-tight text-gray-900">
+                            <div className="my-4 flex items-baseline">
+                                <span className="text-3xl font-bold tracking-tight text-gray-900">
                                     {tier.price}
                                 </span>
-                                <span className="text-sm font-semibold text-gray-500">/month</span>
+                                {tier.price !== "$0" && <span className="text-sm font-semibold text-gray-500">/month</span>}
                             </div>
 
-                            <ul className="mb-8 space-y-4 flex-1">
+                            <ul className="mb-8 space-y-3 flex-1">
                                 {tier.features.map((feature) => (
                                     <li key={feature} className="flex items-start">
-                                        <Check className="h-5 w-5 flex-shrink-0 text-blue-600" />
-                                        <span className="ml-3 text-sm text-gray-600">{feature}</span>
+                                        {/* Logic: If feature contains "No SMS", show an X icon */}
+                                        {feature.includes("No SMS") ? (
+                                            <X className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                                        ) : (
+                                            <Check className={`h-5 w-5 flex-shrink-0 ${tier.highlighted ? "text-blue-600" : "text-green-500"}`} />
+                                        )}
+                                        <span className={`ml-3 text-sm ${feature.includes("No SMS") ? "text-gray-400" : "text-gray-600"}`}>
+                                            {feature}
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
 
                             <Link
                                 href={tier.href}
-                                className={`block w-full rounded-lg px-4 py-3 text-center text-sm font-semibold transition-colors ${tier.featured
-                                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                                        : "bg-gray-50 text-blue-600 hover:bg-gray-100"
+                                className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                                     }`}
                             >
                                 {tier.cta}
