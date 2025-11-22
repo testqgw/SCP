@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // Force dynamic rendering for cron jobs
+
 import { NextResponse } from 'next/server';
 import { getExpiringLicenses } from '@/lib/services/license-checker';
 import { sendSMS, sendEmail, formatExpirationMessage } from '@/lib/services/notifications';
