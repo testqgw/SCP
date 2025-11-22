@@ -15,10 +15,6 @@ async function resolveFeedback(formData: FormData) {
 export default async function AdminFeedbackPage() {
     const feedback = await prisma.feedback.findMany({
         orderBy: { createdAt: "desc" },
-        include: {
-            // If you want to show user details, you'd need to fetch them or relate them
-            // For now, we'll just show the feedback content
-        }
     });
 
     return (
