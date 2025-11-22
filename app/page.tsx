@@ -65,10 +65,16 @@ export default function LandingPage() {
                 Start for Free <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="#pricing"
+                href="/demo"
                 className="w-full sm:w-auto rounded-lg px-8 py-4 text-sm font-semibold text-white border border-slate-800 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-700 transition-all"
               >
-                View Pricing
+                View Demo
+              </Link>
+              <Link
+                href="#pricing"
+                className="w-full sm:w-auto rounded-lg px-8 py-4 text-sm font-semibold text-slate-300 hover:text-white transition-colors"
+              >
+                View Pricing →
               </Link>
             </div>
             {/* TRUST SIGNAL - NO CREDIT CARD */}
