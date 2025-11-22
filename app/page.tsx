@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { ArrowRight, Bell, ShieldCheck, Smartphone, FileText, Check, CreditCard } from "lucide-react";
+import PricingSection from "@/components/landing/PricingSection";
 
 export default function LandingPage() {
   return (
@@ -234,6 +235,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* PRICING SECTION */}
+      <PricingSection />
 
       {/* FOOTER */}
       <footer className="bg-[#0B1120] border-t border-slate-800 py-12">
