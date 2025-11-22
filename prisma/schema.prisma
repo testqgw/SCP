@@ -166,3 +166,18 @@ model Jurisdiction {
   
   @@map("jurisdictions")
 }
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  type      String   // suggestion, bug, help, feature
+  message   String   @db.Text
+  email     String?
+  status    String   @default("new") // new, reviewed, resolved
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@index([status])
+  @@map("feedback")
+}
