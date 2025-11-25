@@ -25,6 +25,8 @@ export async function onSubscribe(priceId: string) {
 
     // 2. Define where they return after payment
     const billingUrl = absoluteUrl("/dashboard/settings");
+    const successUrl = absoluteUrl("/dashboard/success");
+    const cancelUrl = absoluteUrl("/dashboard/upgrade");
 
     // 3. IF they already have a Stripe Customer ID, create a portal session (Manage Subscription)
     if (dbUser.stripeCustomerId && dbUser.stripePriceId) {
@@ -38,8 +40,8 @@ export async function onSubscribe(priceId: string) {
 
     // 4. IF NOT, create a Checkout Session (New Purchase)
     const stripeSession = await stripe.checkout.sessions.create({
-        success_url: billingUrl,
-        cancel_url: billingUrl,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         payment_method_types: ["card"],
         mode: "subscription",
         billing_address_collection: "auto",
