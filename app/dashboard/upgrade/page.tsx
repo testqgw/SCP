@@ -67,8 +67,8 @@ const plans = [
       "Bulk License Import",
       "Dedicated Account Manager",
     ],
-    actionLabel: "Contact Sales",
-    priceId: "contact", // Special handler
+    actionLabel: "Upgrade to Commissary",
+    priceId: process.env.NEXT_PUBLIC_PRICE_ID_AGENCY || null,
     popular: false,
   }
 ];
