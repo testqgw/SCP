@@ -15,9 +15,12 @@ model User {
   phone               String?
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
-  stripeCustomerId    String?  @map("stripe_customer_id")
-  subscriptionTier    String?  @map("subscription_tier") // starter, professional, multi_location
-  subscriptionStatus  String?  @map("subscription_status") // active, past_due, canceled, trialing
+  stripeCustomerId       String?   @unique @map("stripe_customer_id")
+  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
+  stripePriceId          String?   @map("stripe_price_id")
+  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
+  subscriptionTier       String?   @map("subscription_tier") // starter, professional, multi_location
+  subscriptionStatus     String?   @map("subscription_status") // active, past_due, canceled, trialing
   
   businesses          Business[]
   memberships         BusinessMember[]

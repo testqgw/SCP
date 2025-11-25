@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Check, ShieldCheck, Truck, Building2, Store, X } from "lucide-react";
+import { onSubscribe } from "@/actions/stripe-redirect";
+import { toast } from "sonner";
 
 const tiers = [
     {
@@ -18,6 +22,7 @@ const tiers = [
         href: "/sign-up?plan=free",
         featured: false,
         highlighted: false,
+        priceId: null,
     },
     {
         name: "Owner Operator",
@@ -35,6 +40,7 @@ const tiers = [
         href: "/sign-up?plan=standard",
         featured: true,
         highlighted: true,
+        priceId: process.env.NEXT_PUBLIC_PRICE_ID_STANDARD,
     },
     {
         name: "Fleet Manager",
@@ -52,6 +58,7 @@ const tiers = [
         href: "/sign-up?plan=growth",
         featured: false,
         highlighted: false,
+        priceId: process.env.NEXT_PUBLIC_PRICE_ID_GROWTH,
     },
     {
         name: "Commissary",
@@ -69,10 +76,28 @@ const tiers = [
         href: "mailto:sales@safeops.com",
         featured: false,
         highlighted: false,
+        priceId: process.env.NEXT_PUBLIC_PRICE_ID_AGENCY,
     },
 ];
 
 export default function PricingSection() {
+    const onCheckout = async (priceId: string) => {
+        try {
+            const response = await onSubscribe(priceId);
+            if (response.url) {
+                window.location.href = response.url;
+            } else if (response.error) {
+                toast.error(response.error);
+                // If unauthorized, maybe redirect to sign up
+                if (response.error === "Unauthorized") {
+                    window.location.href = "/sign-up";
+                }
+            }
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
+    };
+
     return (
         <section className="py-24 bg-gray-50" id="pricing">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -91,8 +116,8 @@ export default function PricingSection() {
                         <div
                             key={tier.name}
                             className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${tier.highlighted
-                                    ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
-                                    : "border-gray-200 bg-white"
+                                ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
+                                : "border-gray-200 bg-white"
                                 }`}
                         >
                             {tier.highlighted && (
@@ -132,15 +157,27 @@ export default function PricingSection() {
                                 ))}
                             </ul>
 
-                            <Link
-                                href={tier.href}
-                                className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
+                            {tier.priceId ? (
+                                <button
+                                    onClick={() => onCheckout(tier.priceId!)}
+                                    className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
                                         ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
                                         : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                                    }`}
-                            >
-                                {tier.cta}
-                            </Link>
+                                        }`}
+                                >
+                                    {tier.cta}
+                                </button>
+                            ) : (
+                                <Link
+                                    href={tier.href}
+                                    className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    {tier.cta}
+                                </Link>
+                            )}
                         </div>
                     ))}
                 </div>
