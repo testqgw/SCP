@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // ShadCN utility, or just use template literals
 
 // 1. Define the Plans to match your Landing Page
+// 1. Define the Plans to match your Landing Page
 const plans = [
   {
     name: "Starter",
@@ -36,7 +37,7 @@ const plans = [
       "2 Team Members",
     ],
     actionLabel: "Upgrade to Pro",
-    priceId: process.env.NEXT_PUBLIC_PRICE_ID_STANDARD,
+    priceId: process.env.NEXT_PUBLIC_PRICE_ID_STANDARD || null,
     popular: true, // This triggers the Blue Dark Mode look
   },
   {
@@ -52,7 +53,7 @@ const plans = [
       "Priority Support",
     ],
     actionLabel: "Upgrade to Fleet",
-    priceId: process.env.NEXT_PUBLIC_PRICE_ID_GROWTH,
+    priceId: process.env.NEXT_PUBLIC_PRICE_ID_GROWTH || null,
     popular: false,
   },
   {
