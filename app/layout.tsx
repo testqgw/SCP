@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
 };
 
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: {
@@ -22,6 +24,7 @@ export default function RootLayout({
           <div className="min-h-screen bg-gray-50">
             {children}
           </div>
+          <Toaster position="bottom-right" />
         </body>
       </html>
     </ClerkProvider>
