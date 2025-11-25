@@ -37,7 +37,7 @@ const plans = [
       "2 Team Members",
     ],
     actionLabel: "Upgrade to Pro",
-    priceId: process.env.NEXT_PUBLIC_PRICE_ID_STANDARD || null,
+    priceId: "price_1SXRu34ybcRPBciWNYNTDukK", // Hardcoded for immediate testing
     popular: true, // This triggers the Blue Dark Mode look
   },
   {
@@ -53,7 +53,7 @@ const plans = [
       "Priority Support",
     ],
     actionLabel: "Upgrade to Fleet",
-    priceId: process.env.NEXT_PUBLIC_PRICE_ID_GROWTH || null,
+    priceId: "price_1SXRui4ybcRPBciWD2Nq4Xub", // Hardcoded for immediate testing
     popular: false,
   },
   {
@@ -68,7 +68,7 @@ const plans = [
       "Dedicated Account Manager",
     ],
     actionLabel: "Upgrade to Commissary",
-    priceId: process.env.NEXT_PUBLIC_PRICE_ID_AGENCY || null,
+    priceId: "price_1SXRw54ybcRPBciW4KwpyZWE", // Hardcoded for immediate testing
     popular: false,
   }
 ];

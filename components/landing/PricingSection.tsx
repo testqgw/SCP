@@ -40,7 +40,7 @@ const tiers = [
         href: "/sign-up?plan=standard",
         featured: true,
         highlighted: true,
-        priceId: process.env.NEXT_PUBLIC_PRICE_ID_STANDARD,
+        priceId: "price_1SXRu34ybcRPBciWNYNTDukK",
     },
     {
         name: "Fleet Manager",
@@ -58,7 +58,7 @@ const tiers = [
         href: "/sign-up?plan=growth",
         featured: false,
         highlighted: false,
-        priceId: process.env.NEXT_PUBLIC_PRICE_ID_GROWTH,
+        priceId: "price_1SXRui4ybcRPBciWD2Nq4Xub",
     },
     {
         name: "Commissary",
@@ -76,7 +76,7 @@ const tiers = [
         href: "mailto:sales@safeops.com",
         featured: false,
         highlighted: false,
-        priceId: process.env.NEXT_PUBLIC_PRICE_ID_AGENCY,
+        priceId: "price_1SXRw54ybcRPBciW4KwpyZWE",
     },
 ];
 
