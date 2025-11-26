@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, Building2, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Building2, FileText, Settings, ShieldAlert } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
@@ -12,7 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // Fetch Tier
   const user = await prisma.user.findUnique({
     where: { id: userId as string },
-    select: { subscriptionTier: true }
+    select: { subscriptionTier: true, role: true }
   });
 
   const isPro = user?.subscriptionTier === 'professional' || user?.subscriptionTier === 'multi_location';
@@ -34,12 +34,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </Link>
 
               {/* BADGE */}
-              <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isPro
-                ? "bg-blue-600/20 text-blue-200 border-blue-500/30"
-                : "bg-slate-700/50 text-slate-300 border-slate-600"
-                }`}>
-                {isPro ? "PRO" : "FREE PLAN"}
-              </div>
+              {user?.role === 'ADMIN' ? (
+                <Link href="/admin">
+                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-red-100 text-red-700 border-red-200 cursor-pointer hover:bg-red-200 flex items-center gap-1">
+                    <ShieldAlert className="w-3 h-3" /> MASTER ADMIN
+                  </div>
+                </Link>
+              ) : (
+                <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isPro
+                  ? "bg-blue-600/20 text-blue-200 border-blue-500/30"
+                  : "bg-slate-700/50 text-slate-300 border-slate-600"
+                  }`}>
+                  {isPro ? "PRO" : "FREE PLAN"}
+                </div>
+              )}
             </div>
 
             {/* MIDDLE: NAVIGATION LINKS */}
