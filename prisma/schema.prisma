@@ -8,11 +8,21 @@ datasource db {
   url      = env("DATABASE_PUBLIC_URL")
 }
 
+// 1. Add this Enum
+enum UserRole {
+  USER
+  ADMIN
+}
+
 model User {
   id                  String   @id @default(uuid())
   email               String   @unique
   name                String?
   phone               String?
+  
+  // 2. Add the role field (Default is USER so new signups aren't admins)
+  role     UserRole  @default(USER) 
+
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
   stripeCustomerId       String?   @unique @map("stripe_customer_id")
