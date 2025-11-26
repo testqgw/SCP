@@ -1,29 +1,30 @@
-// prisma/seed.ts
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create a Demo User if one doesn't exist
+  // Your seed logic goes here
+  // For example:
+  /*
   const user = await prisma.user.upsert({
-    where: { email: 'demo@example.com' },
+    where: { email: 'admin@safeops.com' },
     update: {},
     create: {
-      email: 'demo@example.com',
-      name: 'Demo Admin',
-      phone: '555-0199',
-      subscriptionStatus: 'active',
-      subscriptionTier: 'pro'
+      email: 'admin@safeops.com',
+      clerkId: 'user_mock_id',
+      role: 'ADMIN',
     },
-  });
-  
-  console.log('✅ Seeded User:', user.email);
+  })
+  console.log({ user })
+  */
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });

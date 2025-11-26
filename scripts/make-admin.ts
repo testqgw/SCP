@@ -3,7 +3,7 @@ const db = new PrismaClient();
 
 async function main() {
     // Replace this with your email
-    const email = "quinc@example.com";
+    const email = "quincygw@gmail.com";
 
     console.log(`Checking for user with email: ${email}...`);
 
