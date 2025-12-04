@@ -3,9 +3,47 @@
 import { useEffect, useState } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { LogOut, Phone, MessageSquare, Check, Crown, Loader2, Smartphone, Mail, Building2, FileText, Users, Shield } from "lucide-react";
+import { LogOut, Phone, MessageSquare, Check, Crown, Loader2, Smartphone, Mail, Building2, FileText, Users, Shield, CreditCard } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
+// Billing Portal Button Component
+function BillingPortalButton() {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/billing-portal", { method: "POST" });
+      const data = await res.json();
+
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.message || "Failed to open billing portal");
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className="flex-1 flex items-center justify-center gap-2 bg-white text-slate-700 py-2.5 rounded-lg font-medium border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50"
+    >
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <CreditCard className="w-4 h-4" />
+      )}
+      Manage Billing
+    </button>
+  );
+}
 // Plan configuration
 const PLANS: Record<string, { name: string; price: string; features: string[]; color: string }> = {
   starter: {
@@ -184,7 +222,7 @@ export default function SettingsPage() {
           {/* Plan Actions */}
           <div className="flex flex-wrap gap-3 mt-4">
             <Link
-              href="/dashboard/upgrade"
+              href={isPaid ? "/dashboard/settings/plan" : "/dashboard/upgrade"}
               className={`flex-1 text-center py-2.5 rounded-lg font-medium transition-colors ${isPaid
                 ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
                 : 'bg-blue-600 text-white hover:bg-blue-500'
@@ -193,14 +231,7 @@ export default function SettingsPage() {
               {isPaid ? 'Change Plan' : 'View Plans'}
             </Link>
             {isPaid && (
-              <a
-                href="https://billing.stripe.com/p/login/test_00g8wG0eR1TFfTi4gg"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 text-center bg-white text-slate-700 py-2.5 rounded-lg font-medium border border-slate-200 hover:bg-slate-50 transition-colors"
-              >
-                Manage Billing →
-              </a>
+              <BillingPortalButton />
             )}
           </div>
         </div>
