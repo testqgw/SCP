@@ -7,6 +7,8 @@ import { auth } from "@clerk/nextjs/server";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import { DashboardNav } from "@/components/dashboard/Navbar";
 
+// Force Vercel redeploy - Dec 4 2024
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = auth();
 
@@ -51,7 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               )}
             </div>
 
-            {/* MIDDLE: NAVIGATION LINKS - Using client component for dynamic highlighting */}
+            {/* MIDDLE: NAVIGATION LINKS */}
             <DashboardNav />
 
             {/* RIGHT: HOME, SETTINGS & USER */}
