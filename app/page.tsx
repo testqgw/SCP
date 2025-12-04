@@ -94,6 +94,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-2 mb-4">
                     <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse" />
                     <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Urgent Alert</span>
+                    <span className="ml-auto text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded">(EXAMPLE)</span>
                   </div>
                   <h3 className="text-2xl font-semibold text-white mb-2">Health Permit Expiring</h3>
                   <p className="text-slate-400 mb-6">Your Mobile Food Vendor Permit #HK-882 expires in <span className="text-red-400 font-bold">3 days</span>.</p>
@@ -106,7 +107,7 @@ export default function LandingPage() {
 
                 <div className="w-full sm:w-72 bg-slate-900 rounded-lg border border-slate-800 p-4 relative">
                   <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">
-                    SMS PREVIEW
+                    EXAMPLE SMS
                   </div>
                   <div className="flex gap-3 mb-4">
                     <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">

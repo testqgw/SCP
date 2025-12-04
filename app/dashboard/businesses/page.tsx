@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Lock } from "lucide-react";
+import { Trash2, Lock, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface Business {
   id: string;
@@ -27,11 +28,13 @@ export default function BusinessesPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [userTier, setUserTier] = useState<string>('starter');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Form State
+  // Form State - Changed 'type' to 'businessType' to match API expectation
   const [formData, setFormData] = useState({
     name: "",
-    type: "",
+    businessType: "",
     address: "",
     city: "",
     state: "",
@@ -69,6 +72,7 @@ export default function BusinessesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const response = await fetch("/api/businesses", {
         method: "POST",
@@ -80,18 +84,42 @@ export default function BusinessesPage() {
         const newBiz = await response.json();
         setBusinesses([newBiz, ...businesses]);
         setFormData({
-          name: "", type: "", address: "",
+          name: "", businessType: "", address: "",
           city: "", state: "", zip: "", phone: ""
         });
+        toast.success("Business created successfully!");
         router.refresh();
       } else if (response.status === 403) {
         const errorData = await response.json();
         if (errorData.error === "LIMIT_REACHED") {
-          alert("Free plan limited to 1 Business. Upgrade to add more!");
+          toast.error("Free plan limited to 1 Business. Upgrade to add more!", {
+            action: {
+              label: "Upgrade",
+              onClick: () => router.push("/dashboard/upgrade"),
+            },
+          });
         }
+      } else {
+        toast.error("Failed to create business. Please try again.");
       }
     } catch (error) {
       console.error("Failed to create", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await fetch(`/api/businesses?id=${id}`, { method: 'DELETE' });
+      setBusinesses(businesses.filter(b => b.id !== id));
+      toast.success("Business deleted successfully");
+      router.refresh();
+    } catch (error) {
+      toast.error("Failed to delete business");
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -100,6 +128,14 @@ export default function BusinessesPage() {
   // Determine if user has reached business limit
   const isFreeTier = userTier === 'starter';
   const hasReachedLimit = isFreeTier && businesses.length >= 1;
+
+  // Format city/state display - only show comma if both city and state exist
+  const formatLocation = (city: string, state: string) => {
+    if (city && state) return `${city}, ${state}`;
+    if (city) return city;
+    if (state) return state;
+    return null;
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -136,6 +172,7 @@ export default function BusinessesPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                disabled={isSubmitting}
               />
             </div>
 
@@ -143,8 +180,9 @@ export default function BusinessesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
               <select
                 className="w-full p-2 border rounded-md bg-white"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                value={formData.businessType}
+                onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
+                disabled={isSubmitting}
               >
                 <option value="">Select Type</option>
                 <option value="food_truck">Food Truck</option>
@@ -161,14 +199,35 @@ export default function BusinessesPage() {
                 className="w-full p-2 border rounded-md"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <input
+                type="text"
+                placeholder="State"
+                className="w-full p-2 border rounded-md"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                disabled={isSubmitting}
               />
             </div>
 
             <button
               type="submit"
-              className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2"
+              disabled={isSubmitting}
+              className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Add Business
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Creating Business...
+                </>
+              ) : (
+                "Add Business"
+              )}
             </button>
           </form>
         </div>
@@ -183,8 +242,8 @@ export default function BusinessesPage() {
                 You've reached the maximum of 1 business on the Free plan. Upgrade to Pro to add unlimited businesses.
               </p>
             </div>
-            <Link 
-              href="/dashboard/upgrade" 
+            <Link
+              href="/dashboard/upgrade"
               className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:shadow-lg transition-all whitespace-nowrap"
             >
               Upgrade to Pro 🚀
@@ -203,35 +262,46 @@ export default function BusinessesPage() {
           businesses.map((biz) => (
             <div key={biz.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between h-full relative group">
 
-              {/* DELETE BUTTON (Top Right) */}
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  if (!confirm("Delete this business and all its licenses?")) return;
-                  await fetch(`/api/businesses?id=${biz.id}`, { method: 'DELETE' });
-                  setBusinesses(businesses.filter(b => b.id !== biz.id));
-                  router.refresh();
-                }}
-                className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {/* DELETE BUTTON with inline confirmation */}
+              {deleteConfirmId === biz.id ? (
+                <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
+                  <span className="text-xs text-red-700">Delete?</span>
+                  <button
+                    onClick={() => handleDelete(biz.id)}
+                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setDeleteConfirmId(biz.id)}
+                  className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
 
               <div>
-                {/* ✅ 2. Fixed Text Color (text-gray-900) */}
                 <h3 className="font-bold text-xl text-gray-900 mb-1">{biz.name}</h3>
-                <p className="text-gray-500 text-sm capitalize mb-4">Type: {biz.businessType}</p>
+                <p className="text-gray-500 text-sm capitalize mb-4">Type: {biz.businessType?.replace('_', ' ') || 'Not specified'}</p>
 
                 <div className="text-sm text-gray-600 space-y-1 mb-6">
-                  {biz.city && <p>📍 {biz.city}, {biz.state}</p>}
+                  {formatLocation(biz.city, biz.state) && <p>📍 {formatLocation(biz.city, biz.state)}</p>}
                   {biz.phone && <p>📞 {biz.phone}</p>}
                 </div>
               </div>
 
               <div className="pt-4 border-t border-gray-100 flex justify-end">
-                {/* ✅ 3. Working Link to Licenses */}
+                {/* Link includes businessId for auto-fill */}
                 <Link
-                  href="/dashboard/licenses"
+                  href={`/dashboard/licenses?businessId=${biz.id}`}
                   className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1"
                 >
                   Manage Licenses →

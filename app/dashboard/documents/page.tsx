@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { UploadButton } from "@/app/utils/uploadthing"; // Ensure this path matches where you put the helper
+import { UploadButton } from "@/app/utils/uploadthing";
 import { Trash2, ExternalLink, FileText, Plus } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 interface Document {
   id: string;
@@ -24,6 +25,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -57,7 +59,7 @@ export default function DocumentsPage() {
   // Save to Database after Upload
   const handleSave = async () => {
     if (!formData.fileUrl || !formData.licenseId) {
-      alert("Please select a license and upload a file first.");
+      toast.error("Please select a license and upload a file first.");
       return;
     }
 
@@ -77,17 +79,23 @@ export default function DocumentsPage() {
       const newDoc = await res.json();
       setDocuments([newDoc, ...documents]);
       setFormData({ licenseId: "", fileName: "", fileUrl: "" });
-      alert("Document Saved Successfully!");
+      toast.success("Document saved to vault!");
     } else {
       const errorText = await res.text();
-      alert(`Failed to save document: ${errorText}`);
+      toast.error(`Failed to save document: ${errorText}`);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Permanently delete this document?")) return;
-    await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
-    setDocuments(documents.filter((d) => d.id !== id));
+    try {
+      await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
+      setDocuments(documents.filter((d) => d.id !== id));
+      toast.success("Document deleted");
+    } catch (error) {
+      toast.error("Failed to delete document");
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
   if (isLoading) return <div className="p-8 text-center">Loading documents...</div>;
@@ -151,11 +159,11 @@ export default function DocumentsPage() {
                     if (res && res[0]) {
                       setFormData(prev => ({ ...prev, fileUrl: res[0].url }));
                       if (!formData.fileName) setFormData(prev => ({ ...prev, fileName: res[0].name }));
-                      alert("Upload successful! Click 'Save to Vault' to finish.");
+                      toast.success("Upload complete! Click 'Save to Vault' to finish.");
                     }
                   }}
                   onUploadError={(error: Error) => {
-                    alert(`Upload Error: ${error.message}`);
+                    toast.error(`Upload Error: ${error.message}`);
                   }}
                 />
               </div>
@@ -204,7 +212,6 @@ export default function DocumentsPage() {
             <div key={doc.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex justify-between items-center group">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                  {/* Show different icon for PDF vs Image if you want, defaulting to FileText */}
                   <FileText className="w-6 h-6" />
                 </div>
                 <div>
@@ -216,7 +223,7 @@ export default function DocumentsPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* ✅ THE NEW VIEW BUTTON */}
+                {/* View Button */}
                 <a
                   href={doc.fileUrl}
                   target="_blank"
@@ -227,13 +234,32 @@ export default function DocumentsPage() {
                   View
                 </a>
 
-                <button
-                  onClick={() => handleDelete(doc.id)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete File"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                {/* DELETE with inline confirmation */}
+                {deleteConfirmId === doc.id ? (
+                  <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
+                    <span className="text-xs text-red-700">Delete?</span>
+                    <button
+                      onClick={() => handleDelete(doc.id)}
+                      className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setDeleteConfirmId(doc.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete File"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
               </div>
             </div>
           ))

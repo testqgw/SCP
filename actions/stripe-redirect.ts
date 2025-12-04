@@ -4,7 +4,6 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
-import { redirect } from "next/navigation";
 
 export async function onSubscribe(priceId: string) {
     const { userId } = auth();
@@ -28,34 +27,54 @@ export async function onSubscribe(priceId: string) {
     const successUrl = absoluteUrl("/dashboard/success");
     const cancelUrl = absoluteUrl("/dashboard/upgrade");
 
-    // 3. IF they already have a Stripe Customer ID, create a portal session (Manage Subscription)
-    if (dbUser.stripeCustomerId && dbUser.stripePriceId) {
-        const stripeSession = await stripe.billingPortal.sessions.create({
-            customer: dbUser.stripeCustomerId,
-            return_url: billingUrl,
+    try {
+        // 3. IF they already have a Stripe Customer ID, create a portal session (Manage Subscription)
+        if (dbUser.stripeCustomerId && dbUser.stripePriceId) {
+            const stripeSession = await stripe.billingPortal.sessions.create({
+                customer: dbUser.stripeCustomerId,
+                return_url: billingUrl,
+            });
+
+            return { url: stripeSession.url };
+        }
+
+        // 4. IF NOT, create a Checkout Session (New Purchase)
+        const stripeSession = await stripe.checkout.sessions.create({
+            success_url: successUrl,
+            cancel_url: cancelUrl,
+            payment_method_types: ["card"],
+            mode: "subscription",
+            billing_address_collection: "auto",
+            customer_email: user.emailAddresses[0].emailAddress,
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            metadata: {
+                userId: userId, // CRITICAL: This lets us know WHO paid in the webhook
+            },
         });
 
         return { url: stripeSession.url };
+    } catch (error: any) {
+        console.error("[STRIPE_CHECKOUT_ERROR]", {
+            message: error.message,
+            code: error.code,
+            type: error.type,
+            priceId: priceId,
+            userId: userId,
+        });
+
+        // Return user-friendly error message
+        if (error.code === 'resource_missing') {
+            return { error: "Invalid price configuration. Please contact support." };
+        }
+        if (error.code === 'api_key_expired' || error.code === 'invalid_api_key') {
+            return { error: "Payment system configuration error. Please contact support." };
+        }
+
+        return { error: `Failed to create checkout: ${error.message}` };
     }
-
-    // 4. IF NOT, create a Checkout Session (New Purchase)
-    const stripeSession = await stripe.checkout.sessions.create({
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        payment_method_types: ["card"],
-        mode: "subscription",
-        billing_address_collection: "auto",
-        customer_email: user.emailAddresses[0].emailAddress,
-        line_items: [
-            {
-                price: priceId,
-                quantity: 1,
-            },
-        ],
-        metadata: {
-            userId: userId, // CRITICAL: This lets us know WHO paid in the webhook
-        },
-    });
-
-    return { url: stripeSession.url };
 }

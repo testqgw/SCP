@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Local state for the form
   const [formData, setFormData] = useState({
     name: "",
@@ -90,7 +91,7 @@ export default function SettingsPage() {
       )}
 
       <div className="grid gap-8">
-        
+
         {/* CARD 1: Profile Settings */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
@@ -106,7 +107,7 @@ export default function SettingsPage() {
                   type="text"
                   className="w-full p-2 border rounded-md bg-gray-50"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
               <div>
@@ -130,7 +131,7 @@ export default function SettingsPage() {
                 placeholder="+1 (555) 000-0000"
                 className="w-full p-2 border rounded-md"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
               <p className="text-xs text-gray-500 mt-1">
                 We'll send text alerts to this number.
@@ -149,24 +150,23 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* CARD 2: Subscription (Placeholder for Week 3) */}
+        {/* CARD 2: Subscription */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Subscription</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              formData.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-            }`}>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${formData.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
               {formData.status.toUpperCase()}
             </span>
           </div>
-          
+
           <div className="bg-gray-50 p-4 rounded-lg mb-6">
             <p className="text-gray-700">
               Current Plan: <span className="font-bold capitalize">{formData.tier} Plan</span>
             </p>
           </div>
 
-          <button 
+          <button
             className="text-gray-400 border border-gray-300 px-4 py-2 rounded-md cursor-not-allowed w-full sm:w-auto"
             disabled
           >
@@ -174,16 +174,35 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* CARD 3: Danger Zone */}
+        {/* CARD 3: Account Actions (Sign Out moved here) */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Actions</h2>
+          <div className="flex justify-between items-center">
+            <p className="text-gray-600 text-sm">Sign out of your current session.</p>
+            <button
+              onClick={() => signOut(() => router.push("/"))}
+              className="flex items-center gap-2 text-gray-700 hover:bg-gray-100 px-4 py-2 rounded-md transition font-medium border border-gray-200"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
+        </div>
+
+        {/* CARD 4: Danger Zone (Reserved for destructive actions) */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-red-100">
           <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
           <div className="flex justify-between items-center">
-            <p className="text-gray-600 text-sm">Sign out of your account session.</p>
-            <button 
-              onClick={() => signOut(() => router.push("/"))}
-              className="text-red-600 hover:bg-red-50 px-4 py-2 rounded-md transition font-medium border border-red-200"
+            <div>
+              <p className="text-gray-600 text-sm font-medium">Delete Account</p>
+              <p className="text-gray-500 text-xs mt-1">Permanently delete your account and all data. This action cannot be undone.</p>
+            </div>
+            <button
+              className="text-red-600 hover:bg-red-50 px-4 py-2 rounded-md transition font-medium border border-red-200 cursor-not-allowed opacity-50"
+              disabled
+              title="Contact support to delete your account"
             >
-              Sign Out
+              Delete Account
             </button>
           </div>
         </div>

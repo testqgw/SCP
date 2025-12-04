@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, Building2, FileText, Settings, ShieldAlert } from "lucide-react";
+import { Settings, ShieldAlert } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import FeedbackWidget from "@/components/FeedbackWidget";
+import { DashboardNav } from "@/components/dashboard/Navbar";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = auth();
@@ -50,13 +51,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
               )}
             </div>
 
-            {/* MIDDLE: NAVIGATION LINKS */}
-            <div className="hidden md:flex items-center space-x-1">
-              <NavLink href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} text="Dashboard" active />
-              <NavLink href="/dashboard/businesses" icon={<Building2 className="w-4 h-4" />} text="Businesses" />
-              <NavLink href="/dashboard/licenses" icon={<FileText className="w-4 h-4" />} text="Licenses" />
-              <NavLink href="/dashboard/documents" icon={<FileText className="w-4 h-4" />} text="Documents" />
-            </div>
+            {/* MIDDLE: NAVIGATION LINKS - Using client component for dynamic highlighting */}
+            <DashboardNav />
 
             {/* RIGHT: USER & SETTINGS */}
             <div className="flex items-center gap-4">
@@ -81,18 +77,5 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Feedback Widget */}
       <FeedbackWidget />
     </div>
-  );
-}
-
-// Helper component for cleaner links
-function NavLink({ href, icon, text, active = false }: { href: string, icon: React.ReactNode, text: string, active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${active ? "text-white bg-slate-800" : "text-slate-400 hover:text-white hover:bg-slate-800/50"}`}
-    >
-      {icon}
-      {text}
-    </Link>
   );
 }
