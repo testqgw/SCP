@@ -25,7 +25,7 @@ async function main() {
         return;
     }
 
-    console.log('✅ Found user:', user.email);
+    console.log('✅ Found user:', user.email, '(ID:', user.id, ')');
 
     // 2. Upgrade to ADMIN role and professional tier
     await prisma.user.update({
@@ -39,7 +39,15 @@ async function main() {
 
     console.log('✅ Upgraded user to ADMIN with multi_location tier');
 
-    // 3. Create a sample business
+    // 3. Delete existing sample business if it exists (to avoid duplicates)
+    await prisma.business.deleteMany({
+        where: {
+            userId: user.id,
+            name: "Joe's Atlanta Food Truck"
+        }
+    });
+
+    // 4. Create a sample business WITH membership
     const sampleBusiness = await prisma.business.create({
         data: {
             userId: user.id,
@@ -53,7 +61,18 @@ async function main() {
 
     console.log('✅ Created sample business:', sampleBusiness.name);
 
-    // 4. Create licenses with various expiration statuses
+    // 5. IMPORTANT: Create BusinessMember record so the user can see the business!
+    await prisma.businessMember.create({
+        data: {
+            userId: user.id,
+            businessId: sampleBusiness.id,
+            role: 'OWNER'
+        }
+    });
+
+    console.log('✅ Created BusinessMember (OWNER) for user');
+
+    // 6. Create licenses with various expiration statuses
     const today = new Date();
 
     const licenses = [
