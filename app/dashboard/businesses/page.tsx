@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Lock, Loader2 } from "lucide-react";
+import { Trash2, Lock, Loader2, Plus, Building2, MapPin, Phone, FileText, ChevronDown, ChevronUp, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Business {
@@ -16,6 +16,7 @@ interface Business {
   state: string;
   zip: string;
   phone: string;
+  _count?: { licenses: number };
 }
 
 interface UserTier {
@@ -30,8 +31,9 @@ export default function BusinessesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  // Form State - Changed 'type' to 'businessType' to match API expectation
+  // Form State
   const [formData, setFormData] = useState({
     name: "",
     businessType: "",
@@ -45,14 +47,12 @@ export default function BusinessesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        // Fetch businesses
         const businessesResponse = await fetch("/api/businesses");
         if (businessesResponse.ok) {
           const businessesData = await businessesResponse.json();
           setBusinesses(businessesData);
         }
 
-        // Fetch user tier
         const userResponse = await fetch("/api/settings");
         if (userResponse.ok) {
           const userData = await userResponse.json();
@@ -83,27 +83,21 @@ export default function BusinessesPage() {
       if (response.ok) {
         const newBiz = await response.json();
         setBusinesses([newBiz, ...businesses]);
-        setFormData({
-          name: "", businessType: "", address: "",
-          city: "", state: "", zip: "", phone: ""
-        });
+        setFormData({ name: "", businessType: "", address: "", city: "", state: "", zip: "", phone: "" });
+        setShowAddForm(false);
         toast.success("Business created successfully!");
         router.refresh();
       } else if (response.status === 403) {
         const errorData = await response.json();
         if (errorData.error === "LIMIT_REACHED") {
           toast.error("Free plan limited to 1 Business. Upgrade to add more!", {
-            action: {
-              label: "Upgrade",
-              onClick: () => router.push("/dashboard/upgrade"),
-            },
+            action: { label: "Upgrade", onClick: () => router.push("/dashboard/upgrade") },
           });
         }
       } else {
         toast.error("Failed to create business. Please try again.");
       }
     } catch (error) {
-      console.error("Failed to create", error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -123,13 +117,17 @@ export default function BusinessesPage() {
     }
   };
 
-  if (isLoading) return <div className="p-8 text-center">Loading businesses...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
-  // Determine if user has reached business limit
   const isFreeTier = userTier === 'starter';
   const hasReachedLimit = isFreeTier && businesses.length >= 1;
 
-  // Format city/state display - only show comma if both city and state exist
   const formatLocation = (city: string, state: string) => {
     if (city && state) return `${city}, ${state}`;
     if (city) return city;
@@ -137,38 +135,50 @@ export default function BusinessesPage() {
     return null;
   };
 
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      {/* ✅ 1. Back to Dashboard Link */}
-      <div className="mb-6">
-        <Link
-          href="/dashboard"
-          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2"
-        >
-          ← Back to Dashboard
-        </Link>
-      </div>
+  const getBusinessTypeLabel = (type: string) => {
+    const types: Record<string, string> = {
+      food_truck: 'Food Truck',
+      contractor: 'Contractor',
+      restaurant: 'Restaurant',
+      other: 'Other'
+    };
+    return types[type] || type?.replace('_', ' ') || 'Not specified';
+  };
 
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Businesses</h1>
-        {isFreeTier && (
-          <span className="text-sm text-slate-500">
-            {businesses.length}/1 Free Limit
-          </span>
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Businesses</h1>
+          <p className="text-slate-500 mt-1">
+            {businesses.length} {businesses.length === 1 ? 'business' : 'businesses'}
+            {isFreeTier && <span className="text-amber-600 ml-2">• Free plan (1 max)</span>}
+          </p>
+        </div>
+
+        {!hasReachedLimit && (
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
+          >
+            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showAddForm ? 'Cancel' : 'Add Business'}
+          </button>
         )}
       </div>
 
-      {/* Creation Form - Only show if limit not reached */}
-      {!hasReachedLimit ? (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-10">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Business</h2>
+      {/* ADD FORM - Collapsible */}
+      {showAddForm && !hasReachedLimit && (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8 animate-in slide-in-from-top-2 duration-200">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Add New Business</h2>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Business Name *</label>
               <input
                 type="text"
                 placeholder="e.g. Joe's Food Truck"
-                className="w-full p-2 border rounded-md"
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -177,26 +187,39 @@ export default function BusinessesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Business Type</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Business Type</label>
               <select
-                className="w-full p-2 border rounded-md bg-white"
+                className="w-full p-2.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.businessType}
                 onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
                 disabled={isSubmitting}
               >
                 <option value="">Select Type</option>
                 <option value="food_truck">Food Truck</option>
+                <option value="restaurant">Restaurant</option>
                 <option value="contractor">Contractor</option>
                 <option value="other">Other</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                placeholder="(555) 123-4567"
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
               <input
                 type="text"
-                placeholder="City"
-                className="w-full p-2 border rounded-md"
+                placeholder="Atlanta"
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 disabled={isSubmitting}
@@ -204,113 +227,136 @@ export default function BusinessesPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
               <input
                 type="text"
-                placeholder="State"
-                className="w-full p-2 border rounded-md"
+                placeholder="GA"
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                 disabled={isSubmitting}
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="md:col-span-2 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition font-medium mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Creating Business...
-                </>
-              ) : (
-                "Add Business"
-              )}
-            </button>
+            <div className="md:col-span-2 flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddForm(false)}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-500 transition font-medium disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : 'Create Business'}
+              </button>
+            </div>
           </form>
         </div>
-      ) : (
-        // 🚫 Limit Reached - Show Upgrade Prompt
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-10">
+      )}
+
+      {/* LIMIT REACHED BANNER */}
+      {hasReachedLimit && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5 mb-8">
           <div className="flex items-center gap-4">
-            <Lock className="w-8 h-8 text-amber-600" />
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Lock className="w-6 h-6 text-amber-600" />
+            </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-amber-900">Free Plan Limit Reached</h3>
-              <p className="text-amber-700 text-sm mt-1">
-                You've reached the maximum of 1 business on the Free plan. Upgrade to Pro to add unlimited businesses.
-              </p>
+              <h3 className="font-semibold text-amber-900">Free Plan Limit Reached</h3>
+              <p className="text-amber-700 text-sm">Upgrade to Pro to add unlimited businesses.</p>
             </div>
             <Link
               href="/dashboard/upgrade"
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:shadow-lg transition-all whitespace-nowrap"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:shadow-lg transition-all"
             >
-              Upgrade to Pro 🚀
+              Upgrade 🚀
             </Link>
           </div>
         </div>
       )}
 
-      {/* Business List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {businesses.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
-            <p className="text-gray-500 text-lg">No businesses yet. Add your first one above!</p>
-          </div>
-        ) : (
-          businesses.map((biz) => (
-            <div key={biz.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col justify-between h-full relative group">
+      {/* BUSINESS LIST */}
+      {businesses.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
+          <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-slate-900 mb-2">No businesses yet</h3>
+          <p className="text-slate-500 mb-6">Add your first business to start tracking licenses</p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-500"
+          >
+            <Plus className="w-4 h-4" /> Add Your First Business
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {businesses.map((biz) => (
+            <div key={biz.id} className="bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md hover:border-slate-300 transition-all group">
+              {/* Card Header */}
+              <div className="p-5 border-b border-slate-100">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-slate-900">{biz.name}</h3>
+                      <span className="text-sm text-slate-500 capitalize">{getBusinessTypeLabel(biz.businessType)}</span>
+                    </div>
+                  </div>
 
-              {/* DELETE BUTTON with inline confirmation */}
-              {deleteConfirmId === biz.id ? (
-                <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
-                  <span className="text-xs text-red-700">Delete?</span>
-                  <button
-                    onClick={() => handleDelete(biz.id)}
-                    className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(null)}
-                    className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setDeleteConfirmId(biz.id)}
-                  className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-
-              <div>
-                <h3 className="font-bold text-xl text-gray-900 mb-1">{biz.name}</h3>
-                <p className="text-gray-500 text-sm capitalize mb-4">Type: {biz.businessType?.replace('_', ' ') || 'Not specified'}</p>
-
-                <div className="text-sm text-gray-600 space-y-1 mb-6">
-                  {formatLocation(biz.city, biz.state) && <p>📍 {formatLocation(biz.city, biz.state)}</p>}
-                  {biz.phone && <p>📞 {biz.phone}</p>}
+                  {/* Delete Button */}
+                  {deleteConfirmId === biz.id ? (
+                    <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
+                      <span className="text-xs text-red-700">Delete?</span>
+                      <button onClick={() => handleDelete(biz.id)} className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Yes</button>
+                      <button onClick={() => setDeleteConfirmId(null)} className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300">No</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setDeleteConfirmId(biz.id)}
+                      className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
-                {/* Link includes businessId for auto-fill */}
+              {/* Card Body */}
+              <div className="p-5">
+                <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-4">
+                  {formatLocation(biz.city, biz.state) && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-slate-400" />
+                      {formatLocation(biz.city, biz.state)}
+                    </div>
+                  )}
+                  {biz.phone && (
+                    <div className="flex items-center gap-1.5">
+                      <Phone className="w-4 h-4 text-slate-400" />
+                      {biz.phone}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Button */}
                 <Link
                   href={`/dashboard/licenses?businessId=${biz.id}`}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1"
+                  className="inline-flex items-center gap-2 w-full justify-center bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors border border-slate-200 hover:border-blue-200"
                 >
-                  Manage Licenses →
+                  <FileText className="w-4 h-4" />
+                  View Licenses
                 </Link>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
