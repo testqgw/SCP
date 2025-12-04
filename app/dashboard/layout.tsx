@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { Settings, ShieldAlert } from "lucide-react";
+import { Settings, ShieldAlert, Home } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
@@ -54,8 +54,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {/* MIDDLE: NAVIGATION LINKS - Using client component for dynamic highlighting */}
             <DashboardNav />
 
-            {/* RIGHT: USER & SETTINGS */}
+            {/* RIGHT: HOME, SETTINGS & USER */}
             <div className="flex items-center gap-4">
+              <Link href="/" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors" title="Back to Home">
+                <Home className="w-5 h-5" />
+              </Link>
               <Link href="/dashboard/settings" className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors">
                 <Settings className="w-5 h-5" />
               </Link>

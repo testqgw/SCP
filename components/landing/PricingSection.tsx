@@ -158,7 +158,20 @@ export default function PricingSection() {
                                 ))}
                             </ul>
 
-                            {tier.priceId ? (
+                            {/* Handle different button types based on tier configuration */}
+                            {tier.href.startsWith("mailto:") ? (
+                                // Contact Sales - opens email
+                                <a
+                                    href={tier.href}
+                                    className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    {tier.cta}
+                                </a>
+                            ) : tier.priceId ? (
+                                // Paid tier with Stripe checkout
                                 <button
                                     onClick={() => onCheckout(tier.priceId!)}
                                     className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
@@ -169,6 +182,7 @@ export default function PricingSection() {
                                     {tier.cta}
                                 </button>
                             ) : (
+                                // Free tier - sign up link
                                 <Link
                                     href={tier.href}
                                     className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
