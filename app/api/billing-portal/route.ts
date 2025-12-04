@@ -3,9 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-02-24.acacia",
-});
+// Force dynamic to avoid build-time initialization
+export const dynamic = 'force-dynamic';
 
 export async function POST() {
     try {
@@ -14,6 +13,11 @@ export async function POST() {
         if (!userId) {
             return new NextResponse("Unauthorized", { status: 401 });
         }
+
+        // Initialize Stripe inside the function to avoid build-time errors
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+            apiVersion: "2025-02-24.acacia",
+        });
 
         // Get user's Stripe customer ID from database
         const user = await prisma.user.findUnique({
@@ -49,9 +53,10 @@ export async function POST() {
         }
 
         // Create billing portal session
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://safeops.app';
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
+            return_url: `${appUrl}/dashboard/settings`,
         });
 
         return NextResponse.json({ url: session.url });
