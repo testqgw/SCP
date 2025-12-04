@@ -19,11 +19,15 @@ function BillingPortalButton() {
 
       if (res.ok && data.url) {
         window.location.href = data.url;
+      } else if (data.error === "NO_SUBSCRIPTION") {
+        toast.info("No Stripe subscription found. If you upgraded recently, please contact support.", {
+          duration: 5000,
+        });
       } else {
-        toast.error(data.message || "Failed to open billing portal");
+        toast.error(data.message || "Failed to open billing portal. Please contact support.");
       }
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error("Unable to connect. Please try again or contact support.");
     } finally {
       setLoading(false);
     }
