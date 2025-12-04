@@ -159,7 +159,17 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-slate-900 mb-8">Account Settings</h1>
+      {/* Header with Sign Out */}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-bold text-slate-900">Account Settings</h1>
+        <button
+          onClick={() => signOut(() => router.push("/"))}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 px-3 py-2 rounded-lg transition text-sm"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
+      </div>
 
       {/* Notification Message */}
       {message.text && (
@@ -327,21 +337,6 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
-        </div>
-
-        {/* CARD 3: Account Actions */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">Account Actions</h2>
-          <div className="flex justify-between items-center">
-            <p className="text-slate-600 text-sm">Sign out of your current session</p>
-            <button
-              onClick={() => signOut(() => router.push("/"))}
-              className="flex items-center gap-2 text-slate-700 hover:bg-slate-100 px-4 py-2 rounded-lg transition font-medium border border-slate-200"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </button>
-          </div>
         </div>
 
         {/* CARD 4: Danger Zone */}
