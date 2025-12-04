@@ -180,6 +180,29 @@ export default function SettingsPage() {
               </Link>
             )}
           </div>
+
+          {/* Plan Actions */}
+          <div className="flex flex-wrap gap-3 mt-4">
+            <Link
+              href="/dashboard/upgrade"
+              className={`flex-1 text-center py-2.5 rounded-lg font-medium transition-colors ${isPaid
+                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                : 'bg-blue-600 text-white hover:bg-blue-500'
+                }`}
+            >
+              {isPaid ? 'Change Plan' : 'View Plans'}
+            </Link>
+            {isPaid && (
+              <a
+                href="https://billing.stripe.com/p/login/test_00g8wG0eR1TFfTi4gg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-center bg-white text-slate-700 py-2.5 rounded-lg font-medium border border-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                Manage Billing →
+              </a>
+            )}
+          </div>
         </div>
 
         {/* CARD 2: Contact Information with SMS Setup */}
