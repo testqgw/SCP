@@ -112,7 +112,7 @@ export async function POST(req: Request) {
     });
 
     // Limit Logic: Free accounts (Owners) can only have 1 license per business? 
-    // Or 1 license TOTAL? The prompt said "Free plan limited to 1 license".
+    // Or 1 license TOTAL? The prompt said "Free plan limited to 3 licenses. Upgrade to add more!".
     // Let's assume 1 license TOTAL for the Owner across all businesses?
     // Or 1 license per business?
     // The previous code counted `where: { business: { userId } }` which is TOTAL licenses for that user.
@@ -131,9 +131,9 @@ export async function POST(req: Request) {
       }
     });
 
-    if (isFreeAccount && totalOwnerLicenses >= 1) {
+    if (isFreeAccount && totalOwnerLicenses >= 3) {
       return NextResponse.json(
-        { error: "LIMIT_REACHED", message: "Business Owner's free plan is limited to 1 license." },
+        { error: "LIMIT_REACHED", message: "Business Owner's free plan is limited to 3 licenses. Upgrade to add more!." },
         { status: 403 }
       );
     }
