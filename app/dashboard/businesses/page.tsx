@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Trash2, Lock, Loader2, Plus, Building2, MapPin, Phone, FileText, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Trash2, Lock, Loader2, Plus, Building2, MapPin, Phone, FileText, ChevronDown, ChevronUp, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface Business {
@@ -32,6 +32,8 @@ export default function BusinessesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -114,6 +116,34 @@ export default function BusinessesPage() {
       toast.error("Failed to delete business");
     } finally {
       setDeleteConfirmId(null);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBusiness) return;
+
+    setIsEditing(true);
+    try {
+      const res = await fetch("/api/businesses", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editingBusiness),
+      });
+
+      if (res.ok) {
+        const updatedBiz = await res.json();
+        setBusinesses(businesses.map(b => b.id === updatedBiz.id ? updatedBiz : b));
+        setEditingBusiness(null);
+        toast.success("Business updated successfully!");
+        router.refresh();
+      } else {
+        toast.error("Failed to update business.");
+      }
+    } catch (error) {
+      toast.error("Something went wrong.");
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -315,21 +345,29 @@ export default function BusinessesPage() {
                     </div>
                   </div>
 
-                  {/* Delete Button */}
-                  {deleteConfirmId === biz.id ? (
-                    <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
-                      <span className="text-xs text-red-700">Delete?</span>
-                      <button onClick={() => handleDelete(biz.id)} className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Yes</button>
-                      <button onClick={() => setDeleteConfirmId(null)} className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300">No</button>
-                    </div>
-                  ) : (
+                  {/* Edit & Delete Buttons */}
+                  <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setDeleteConfirmId(biz.id)}
-                      className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      onClick={() => setEditingBusiness(biz)}
+                      className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </button>
-                  )}
+                    {deleteConfirmId === biz.id ? (
+                      <div className="flex items-center gap-2 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200">
+                        <span className="text-xs text-red-700">Delete?</span>
+                        <button onClick={() => handleDelete(biz.id)} className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700">Yes</button>
+                        <button onClick={() => setDeleteConfirmId(null)} className="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded hover:bg-slate-300">No</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirmId(biz.id)}
+                        className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -361,6 +399,133 @@ export default function BusinessesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {editingBusiness && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Edit Business</h2>
+              <button
+                onClick={() => setEditingBusiness(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Business Name *</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={100}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={editingBusiness.name}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, name: e.target.value })}
+                  disabled={isEditing}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Business Type</label>
+                <select
+                  className="w-full p-2.5 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={editingBusiness.businessType}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, businessType: e.target.value })}
+                  disabled={isEditing}
+                >
+                  <option value="food_truck">Food Truck</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="catering">Catering Company</option>
+                  <option value="food_stand">Food Stand / Cart</option>
+                  <option value="commissary_kitchen">Commissary Kitchen</option>
+                  <option value="other">Other Food Business</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+                <input
+                  type="text"
+                  className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={editingBusiness.address}
+                  onChange={(e) => setEditingBusiness({ ...editingBusiness, address: e.target.value })}
+                  disabled={isEditing}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+                  <input
+                    type="text"
+                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={editingBusiness.city}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, city: e.target.value })}
+                    disabled={isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    placeholder="GA"
+                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={editingBusiness.state}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, state: e.target.value.toUpperCase() })}
+                    disabled={isEditing}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">ZIP Code</label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={editingBusiness.zip}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, zip: e.target.value })}
+                    disabled={isEditing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={editingBusiness.phone}
+                    onChange={(e) => setEditingBusiness({ ...editingBusiness, phone: e.target.value })}
+                    disabled={isEditing}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setEditingBusiness(null)}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                  disabled={isEditing}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-500 transition font-medium disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isEditing ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
