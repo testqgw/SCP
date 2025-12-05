@@ -88,6 +88,7 @@ export default function LicensesPage() {
     try {
       const res = await fetch("/api/licenses", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData)
       });
 

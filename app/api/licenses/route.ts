@@ -138,14 +138,20 @@ export async function POST(req: Request) {
       );
     }
 
+    // Parse dates at noon UTC to avoid timezone off-by-one issues
+    const parseDate = (dateStr: string) => {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    };
+
     const license = await prisma.license.create({
       data: {
         businessId,
         licenseType,
         licenseNumber: licenseNumber || '',
         issuingAuthority,
-        issueDate: new Date(issueDate),
-        expirationDate: new Date(expirationDate),
+        issueDate: parseDate(issueDate),
+        expirationDate: parseDate(expirationDate),
         renewalUrl: renewalUrl || '',
         notes: notes || '',
       },
