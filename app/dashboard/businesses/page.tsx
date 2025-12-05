@@ -183,7 +183,9 @@ export default function BusinessesPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 disabled={isSubmitting}
+                maxLength={100}
               />
+              <p className="text-xs text-slate-400 mt-1 text-right">{formData.name.length}/100</p>
             </div>
 
             <div>
