@@ -138,9 +138,11 @@ export default function BusinessesPage() {
   const getBusinessTypeLabel = (type: string) => {
     const types: Record<string, string> = {
       food_truck: 'Food Truck',
-      contractor: 'Contractor',
       restaurant: 'Restaurant',
-      other: 'Other'
+      catering: 'Catering Company',
+      food_stand: 'Food Stand / Cart',
+      commissary_kitchen: 'Commissary Kitchen',
+      other: 'Other Food Business'
     };
     return types[type] || type?.replace('_', ' ') || 'Not specified';
   };
@@ -199,8 +201,10 @@ export default function BusinessesPage() {
                 <option value="">Select Type</option>
                 <option value="food_truck">Food Truck</option>
                 <option value="restaurant">Restaurant</option>
-                <option value="contractor">Contractor</option>
-                <option value="other">Other</option>
+                <option value="catering">Catering Company</option>
+                <option value="food_stand">Food Stand / Cart</option>
+                <option value="commissary_kitchen">Commissary Kitchen</option>
+                <option value="other">Other Food Business</option>
               </select>
             </div>
 
