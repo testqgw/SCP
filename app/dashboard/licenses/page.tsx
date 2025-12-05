@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Plus, Calendar, AlertCircle, ExternalLink, Loader2, FileText, Clock, CheckCircle, X, Filter, Building2 } from "lucide-react";
+import { Trash2, Plus, Calendar, AlertCircle, ExternalLink, Loader2, FileText, Clock, CheckCircle, X, Filter, Building2, ChevronDown, ChevronUp as ChevronUpIcon, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -18,6 +18,7 @@ interface License {
   notes?: string;
   status: string;
   business: { id: string; name: string };
+  documents?: { id: string; fileName: string; fileUrl: string }[];
 }
 
 interface Business {
@@ -393,8 +394,10 @@ export default function LicensesPage() {
 
 // License Card Component
 function LicenseCard({ license, getStatus, formatDate, deleteConfirmId, setDeleteConfirmId, handleDelete }: any) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const status = getStatus(license.expirationDate);
   const StatusIcon = status.icon;
+  const docCount = license.documents?.length || 0;
 
   const colorClasses: Record<string, { bg: string; text: string; border: string; badge: string }> = {
     red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', badge: 'bg-red-100 text-red-700' },
@@ -404,68 +407,111 @@ function LicenseCard({ license, getStatus, formatDate, deleteConfirmId, setDelet
   const colors = colorClasses[status.color];
 
   return (
-    <div className={`p-4 rounded-xl border ${colors.border} ${colors.bg} hover:shadow-md transition-all group`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className={`p-2 rounded-lg ${colors.badge}`}>
-            <StatusIcon className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-slate-900">{license.licenseType}</h3>
-              {license.licenseNumber && (
-                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">#{license.licenseNumber}</span>
-              )}
+    <div className={`rounded-xl border ${colors.border} ${colors.bg} hover:shadow-md transition-all group overflow-hidden`}>
+      {/* Main Row - Clickable */}
+      <div className="p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className={`p-2 rounded-lg ${colors.badge}`}>
+              <StatusIcon className="w-5 h-5" />
             </div>
-            <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-              <span className="flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5" /> {license.business?.name}
-              </span>
-              {license.issuingAuthority && (
-                <span>• {license.issuingAuthority}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <div className={`text-sm font-medium ${colors.text}`}>
-              {status.label === 'Expired' ? `Expired ${status.days} days ago` :
-                status.label === 'Expiring Soon' ? `${status.days} days left` :
-                  `${status.days} days left`}
-            </div>
-            <div className="text-xs text-slate-500 mt-0.5">
-              Exp: {formatDate(license.expirationDate)}
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold text-slate-900">{license.licenseType}</h3>
+                {license.licenseNumber && (
+                  <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">#{license.licenseNumber}</span>
+                )}
+                {docCount > 0 && (
+                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Paperclip className="w-3 h-3" /> {docCount}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
+                <span className="flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5" /> {license.business?.name}
+                </span>
+                {license.issuingAuthority && (
+                  <span>• {license.issuingAuthority}</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {license.renewalUrl && (
-            <a
-              href={license.renewalUrl.startsWith('http') ? license.renewalUrl : `https://${license.renewalUrl}`}
-              target="_blank"
-              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Renewal Link"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          )}
-
-          {deleteConfirmId === license.id ? (
-            <div className="flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg border border-red-200">
-              <button onClick={() => handleDelete(license.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">Yes</button>
-              <button onClick={() => setDeleteConfirmId(null)} className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">No</button>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className={`text-sm font-medium ${colors.text}`}>
+                {status.label === 'Expired' ? `Expired ${status.days} days ago` :
+                  status.label === 'Expiring Soon' ? `${status.days} days left` :
+                    `${status.days} days left`}
+              </div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                Exp: {formatDate(license.expirationDate)}
+              </div>
             </div>
-          ) : (
-            <button
-              onClick={() => setDeleteConfirmId(license.id)}
-              className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+
+            {license.renewalUrl && (
+              <a
+                href={license.renewalUrl.startsWith('http') ? license.renewalUrl : `https://${license.renewalUrl}`}
+                target="_blank"
+                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Renewal Link"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            )}
+
+            {deleteConfirmId === license.id ? (
+              <div className="flex items-center gap-1 bg-red-50 px-2 py-1 rounded-lg border border-red-200" onClick={(e) => e.stopPropagation()}>
+                <button onClick={() => handleDelete(license.id)} className="text-xs bg-red-600 text-white px-2 py-0.5 rounded">Yes</button>
+                <button onClick={() => setDeleteConfirmId(null)} className="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded">No</button>
+              </div>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(license.id); }}
+                className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+
+            <div className={`p-1 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+              <ChevronDown className="w-5 h-5" />
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Expanded Documents Section */}
+      {isExpanded && (
+        <div className="border-t border-slate-200 bg-white p-4">
+          <h4 className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Linked Documents
+          </h4>
+          {docCount === 0 ? (
+            <p className="text-sm text-slate-500 italic">No documents attached to this license.</p>
+          ) : (
+            <div className="space-y-2">
+              {license.documents?.map((doc: any) => (
+                <a
+                  key={doc.id}
+                  href={doc.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg hover:bg-blue-50 transition-colors group/doc"
+                >
+                  <div className="p-1.5 bg-blue-100 rounded">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-sm text-slate-700 group-hover/doc:text-blue-700 flex-1">{doc.fileName}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover/doc:text-blue-600" />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
