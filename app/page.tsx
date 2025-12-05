@@ -277,13 +277,26 @@ export default function LandingPage() {
 
       {/* FOOTER */}
       <footer className="bg-[#0B1120] border-t border-slate-800 py-12">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Logo className="w-6 h-6" />
-            <span className="text-slate-400 font-semibold text-sm">SafeOps</span>
-          </div>
-          <div className="text-slate-600 text-sm">
-            © {new Date().getFullYear()} SafeOps Inc. All rights reserved.
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Logo className="w-6 h-6" />
+              <span className="text-slate-400 font-semibold text-sm">SafeOps</span>
+            </div>
+            <div className="flex items-center gap-6 text-sm">
+              <Link href="/privacy" className="text-slate-500 hover:text-slate-300 transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="text-slate-500 hover:text-slate-300 transition-colors">
+                Terms of Service
+              </Link>
+              <a href="mailto:support@safeops.com" className="text-slate-500 hover:text-slate-300 transition-colors">
+                Contact
+              </a>
+            </div>
+            <div className="text-slate-600 text-sm">
+              © {new Date().getFullYear()} SafeOps Inc. All rights reserved.
+            </div>
           </div>
         </div>
       </footer>
