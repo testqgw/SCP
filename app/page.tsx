@@ -87,6 +87,14 @@ export default function LandingPage() {
           <div className="relative max-w-4xl mx-auto">
             <div className="absolute inset-0 bg-blue-500/5 blur-3xl rounded-full" />
 
+            {/* PROMINENT EXAMPLE BANNER */}
+            <div className="relative mb-3 text-center">
+              <span className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full border border-amber-500/30">
+                <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                Preview Example — Not a Real Alert
+              </span>
+            </div>
+
             <div className="relative bg-[#0F172A] border border-slate-800 rounded-2xl p-1 shadow-2xl">
               <div className="bg-[#0B1120] rounded-xl border border-slate-800/50 p-8 flex flex-col items-center sm:flex-row gap-8">
 
