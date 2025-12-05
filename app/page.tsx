@@ -40,20 +40,39 @@ export default function LandingPage() {
 
           <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-900/20 px-4 py-1.5 text-sm font-medium text-blue-300 mb-8 shadow-[0_0_15px_-5px_rgba(59,130,246,0.5)]">
             <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
-            New: SMS Alerts for Contractors
+            For Food Trucks, Restaurants & Mobile Vendors
           </div>
 
           <h1 className="mx-auto max-w-5xl text-5xl font-bold tracking-tight text-white sm:text-7xl mb-8 leading-tight">
-            Stop Losing Revenue to <br />
+            Never Miss a License<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-              Expired Licenses
+              Renewal Again
             </span>
           </h1>
 
-          <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-10">
-            Built for busy food truck owners who can't afford compliance surprises.
-            Add your permits once — we'll text you before they expire.
+          <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-6">
+            The compliance tracker built specifically for food service businesses.
+            Track health permits, food handler cards, and business licenses in one place.
           </p>
+
+          {/* AUDIENCE BADGES */}
+          <div className="flex flex-wrap justify-center gap-3 mb-10">
+            <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+              🚚 Food Trucks
+            </span>
+            <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+              🍽️ Restaurants
+            </span>
+            <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+              🍿 Food Stands
+            </span>
+            <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+              👨‍🍳 Catering
+            </span>
+            <span className="text-xs text-slate-500 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+              🏭 Commissary Kitchens
+            </span>
+          </div>
 
           {/* UPDATED CTAs */}
           <div className="flex flex-col items-center gap-4 mb-20">
