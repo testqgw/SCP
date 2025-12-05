@@ -51,8 +51,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-10">
-            The "set-it-and-forget-it" tool for busy business owners.
-            We track your permits and insurance. You get a text message before you get fined.
+            Built for busy food truck owners who can't afford compliance surprises.
+            Add your permits once — we'll text you before they expire.
           </p>
 
           {/* UPDATED CTAs */}
@@ -148,10 +148,10 @@ export default function LandingPage() {
               Features
             </h2>
             <p className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Everything you need to stay safe.
+              Built for the way you actually work.
             </p>
             <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
-              We replaced the spreadsheet with an intelligent engine that works 24/7.
+              No spreadsheets. No calendar reminders. Just automatic tracking that runs in the background.
             </p>
           </div>
 
@@ -166,9 +166,9 @@ export default function LandingPage() {
                   <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6">
                     <Smartphone className="w-6 h-6 text-blue-400" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-white mb-3">SMS-First Alerts</h3>
+                  <h3 className="text-2xl font-semibold text-white mb-3">Texts, Not Emails</h3>
                   <p className="text-slate-400 leading-relaxed">
-                    We don't rely on email. We text you directly because we know you're on the job site, not behind a desk.
+                    You're at the window serving customers, not checking your inbox. That's why we send SMS alerts directly to your phone.
                   </p>
                 </div>
                 <div className="w-full sm:w-64 bg-[#0F172A] border border-slate-700 rounded-2xl p-4 shadow-2xl transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
@@ -192,9 +192,9 @@ export default function LandingPage() {
               <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center mb-6">
                 <FileText className="w-6 h-6 text-indigo-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Document Vault</h3>
+              <h3 className="text-xl font-semibold text-white mb-3">Your Docs, Always Ready</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-8">
-                Snap a photo of your permit. Store it securely. Access it instantly during an audit.
+                Snap a photo, upload it, done. When an inspector asks for your health permit, it's one tap away.
               </p>
               <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-3 space-y-2 shadow-xl translate-y-4 group-hover:translate-y-2 transition-transform duration-500">
                 <div className="flex items-center gap-3 p-2 bg-slate-800/50 rounded-lg">
@@ -217,10 +217,9 @@ export default function LandingPage() {
                   <div className="inline-flex items-center gap-2 text-sky-400 font-medium text-sm mb-4">
                     <ShieldCheck className="w-4 h-4" /> Audit Protection
                   </div>
-                  <h3 className="text-2xl font-semibold text-white mb-3">Always Audit Ready</h3>
+                  <h3 className="text-2xl font-semibold text-white mb-3">Surprise Inspections? No Problem.</h3>
                   <p className="text-slate-400 leading-relaxed max-w-2xl">
-                    When the inspector shows up, you don't dig through filing cabinets. You open SafeOps.
-                    We verify every renewal and keep a permanent paper trail of your compliance history.
+                    Pull up your complete compliance history in seconds. Every license, every renewal date, every document — organized and ready.
                   </p>
                 </div>
 
