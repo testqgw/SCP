@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // 🚪 BUSINESS LIMIT ENFORCER: Check tier and existing count
+    // BUSINESS LIMIT ENFORCER: Check tier and existing count
     const userRecord = await prisma.user.findUnique({
       where: { id: user.id },
       select: { subscriptionTier: true }
@@ -118,6 +118,56 @@ export async function POST(req: Request) {
   }
 }
 
+// PUT: Update a business
+export async function PUT(req: Request) {
+  try {
+    const { userId } = auth();
+    const body = await req.json();
+    const { id, name, businessType, address, city, state, zip, phone } = body;
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    if (!id) {
+      return new NextResponse("Business ID is required", { status: 400 });
+    }
+
+    // Check if user is an OWNER or ADMIN of this business
+    const membership = await prisma.businessMember.findUnique({
+      where: {
+        userId_businessId: {
+          userId,
+          businessId: id,
+        },
+      },
+    });
+
+    if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
+      return new NextResponse("Forbidden: Only Owners/Admins can edit businesses", { status: 403 });
+    }
+
+    // Update the business - trim city to remove trailing commas
+    const updatedBusiness = await prisma.business.update({
+      where: { id },
+      data: {
+        name: name?.trim() || undefined,
+        businessType: businessType || undefined,
+        address: address?.trim() || undefined,
+        city: city?.trim().replace(/,+$/, '') || undefined,
+        state: state?.trim() || undefined,
+        zip: zip?.trim() || undefined,
+        phone: phone?.trim() || undefined,
+      },
+    });
+
+    return NextResponse.json(updatedBusiness);
+  } catch (error) {
+    console.error('[BUSINESSES_PUT]', error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
 // DELETE: Delete a business
 export async function DELETE(req: Request) {
   try {
@@ -133,7 +183,7 @@ export async function DELETE(req: Request) {
       return new NextResponse("ID is required", { status: 400 });
     }
 
-    // 1. Check if user is an OWNER of this business
+    // Check if user is an OWNER of this business
     const membership = await prisma.businessMember.findUnique({
       where: {
         userId_businessId: {
