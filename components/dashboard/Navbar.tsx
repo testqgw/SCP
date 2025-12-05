@@ -12,15 +12,19 @@ interface NavLinkProps {
 
 function NavLink({ href, icon, text }: NavLinkProps) {
     const pathname = usePathname();
-    const isActive = pathname === href ||
-        (href !== '/dashboard' && pathname.startsWith(href));
+
+    // For exact /dashboard match, only highlight if we're exactly on /dashboard
+    // For other paths, highlight if pathname starts with the href
+    const isActive = href === '/dashboard'
+        ? pathname === '/dashboard'
+        : pathname.startsWith(href);
 
     return (
         <Link
             href={href}
             className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${isActive
-                    ? "text-white bg-slate-800"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                ? "text-white bg-slate-800"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
                 }`}
         >
             {icon}
