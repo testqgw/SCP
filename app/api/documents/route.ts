@@ -97,6 +97,13 @@ export async function POST(req: Request) {
         fileUrl,
         fileType,
       },
+      include: {
+        license: {
+          include: {
+            business: true,
+          },
+        },
+      },
     });
 
     return NextResponse.json(document);
