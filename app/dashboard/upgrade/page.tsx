@@ -89,10 +89,14 @@ export default function UpgradePage() {
       const response = await onSubscribe(priceId);
       if (response.url) {
         window.location.href = response.url; // Redirect to Stripe
+      } else if (response.error) {
+        // Show specific error from Stripe action
+        toast.error(response.error);
       } else {
-        toast.error("Failed to create checkout session.");
+        toast.error("Unable to start checkout. Please try again.");
       }
     } catch (error) {
+      console.error("Checkout error:", error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(null);
