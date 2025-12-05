@@ -87,15 +87,17 @@ export default function PricingSection() {
             if (response.url) {
                 window.location.href = response.url;
             } else if (response.error) {
-                // If unauthorized, redirect directly to sign up without showing error
+                // If unauthorized, redirect directly to sign up WITHOUT showing error toast
                 if (response.error === "Unauthorized") {
                     window.location.href = "/sign-up";
                     return;
                 }
+                // Only show toast for actual errors, not auth redirects
                 toast.error(response.error);
             }
         } catch (error) {
-            toast.error("Something went wrong");
+            // Redirect to sign-up on any error (likely unauthorized)
+            window.location.href = "/sign-up";
         }
     };
 
