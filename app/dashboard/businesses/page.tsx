@@ -36,7 +36,7 @@ export default function BusinessesPage() {
   // Form State
   const [formData, setFormData] = useState({
     name: "",
-    businessType: "",
+    businessType: "food_truck",
     address: "",
     city: "",
     state: "",
@@ -83,7 +83,7 @@ export default function BusinessesPage() {
       if (response.ok) {
         const newBiz = await response.json();
         setBusinesses([newBiz, ...businesses]);
-        setFormData({ name: "", businessType: "", address: "", city: "", state: "", zip: "", phone: "" });
+        setFormData({ name: "", businessType: "food_truck", address: "", city: "", state: "", zip: "", phone: "" });
         setShowAddForm(false);
         toast.success("Business created successfully!");
         router.refresh();
@@ -197,8 +197,8 @@ export default function BusinessesPage() {
                 value={formData.businessType}
                 onChange={(e) => setFormData({ ...formData, businessType: e.target.value })}
                 disabled={isSubmitting}
+                required
               >
-                <option value="">Select Type</option>
                 <option value="food_truck">Food Truck</option>
                 <option value="restaurant">Restaurant</option>
                 <option value="catering">Catering Company</option>
