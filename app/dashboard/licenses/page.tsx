@@ -283,9 +283,10 @@ export default function LicensesPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Issue Date</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Issue Date *</label>
                 <input
                   type="date"
+                  required
                   className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={formData.issueDate}
                   onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
