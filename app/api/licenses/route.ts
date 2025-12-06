@@ -155,6 +155,10 @@ export async function POST(req: Request) {
         renewalUrl: renewalUrl || '',
         notes: notes || '',
       },
+      include: {
+        business: true,
+        documents: true,
+      },
     });
 
     return NextResponse.json(license);
