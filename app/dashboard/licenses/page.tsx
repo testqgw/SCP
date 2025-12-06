@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
-import { Trash2, Plus, Calendar, AlertCircle, ExternalLink, Loader2, FileText, Clock, CheckCircle, X, Filter, Building2, ChevronDown, ChevronUp as ChevronUpIcon, Paperclip } from "lucide-react";
+import { Trash2, Plus, Calendar, AlertCircle, ExternalLink, Loader2, FileText, Clock, CheckCircle, X, Filter, Building2, ChevronDown, ChevronUp as ChevronUpIcon, Paperclip, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 
 interface License {
@@ -41,6 +42,7 @@ export default function LicensesPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [filterBusiness, setFilterBusiness] = useState<string>(preselectedBusinessId || 'all');
   const [filterStatus, setFilterStatus] = useState<string>(filterParam || 'all');
+  const [userTier, setUserTier] = useState<string>('starter');
 
   const [formData, setFormData] = useState({
     businessId: preselectedBusinessId || "",
@@ -63,14 +65,19 @@ export default function LicensesPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [licRes, bizRes] = await Promise.all([
+        const [licRes, bizRes, settingsRes] = await Promise.all([
           fetch("/api/licenses"),
-          fetch("/api/businesses")
+          fetch("/api/businesses"),
+          fetch("/api/settings")
         ]);
 
         if (licRes.ok && bizRes.ok) {
           setLicenses(await licRes.json());
           setBusinesses(await bizRes.json());
+        }
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          setUserTier(settings.subscriptionTier || 'starter');
         }
       } catch (error) {
         console.error("Error fetching data");
@@ -184,13 +191,24 @@ export default function LicensesPage() {
           <p className="text-slate-500 mt-1">{licenses.length} total licenses tracked</p>
         </div>
 
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
-        >
-          {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {showAddForm ? 'Cancel' : 'Add License'}
-        </button>
+        {/* Add/Upgrade Button */}
+        {userTier === 'starter' && licenses.length >= 3 ? (
+          <Link
+            href="/dashboard/upgrade"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+          >
+            <Lock className="w-4 h-4" />
+            Upgrade for More Licenses
+          </Link>
+        ) : (
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
+          >
+            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {showAddForm ? 'Cancel' : 'Add License'}
+          </button>
+        )}
       </div>
 
       {/* FILTERS */}
