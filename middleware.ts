@@ -4,11 +4,13 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublicRoute = createRouteMatcher([
   "/",                  // Landing page
   "/demo(.*)",          // Demo page (and all sub-paths)
+  "/privacy",           // Privacy Policy page
+  "/terms",             // Terms of Service page
   "/sign-in(.*)",       // Sign-in page
   "/sign-up(.*)",       // Sign-up page
   "/api/webhooks(.*)",  // Webhooks (Stripe/Clerk)
   "/api/test",          // Test endpoint
-  "/api/uploadthing(.*)"    // 👈 ALLOW UPLOADTHING HANDSHAKE
+  "/api/uploadthing(.*)"    // ALLOW UPLOADTHING HANDSHAKE
 ]);
 
 export default clerkMiddleware((auth, req) => {
