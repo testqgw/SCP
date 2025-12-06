@@ -59,7 +59,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    if (!businessId || !licenseType || !issuingAuthority || !issueDate || !expirationDate) {
+    if (!businessId || !licenseType || !issueDate || !expirationDate) {
       return new NextResponse("Missing required fields", { status: 400 });
     }
 
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
         businessId,
         licenseType,
         licenseNumber: licenseNumber || '',
-        issuingAuthority,
+        issuingAuthority: issuingAuthority || '',
         issueDate: parseDate(issueDate),
         expirationDate: parseDate(expirationDate),
         renewalUrl: renewalUrl || '',
