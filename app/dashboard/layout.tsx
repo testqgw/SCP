@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               <Link href="/dashboard" className="flex items-center gap-2">
                 <Logo className="w-8 h-8" />
                 <span className="text-xl font-bold tracking-tight">
-                  Safe<span className="text-blue-400">Ops</span>
+                  Ult<span className="text-blue-400">Ops</span>
                 </span>
               </Link>
 

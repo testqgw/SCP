@@ -14,8 +14,8 @@ export default function LandingPage() {
       <nav className="relative z-20 mx-auto max-w-7xl px-6 lg:px-8 pt-6 flex justify-between items-center">
         <div className="text-xl font-bold tracking-tight flex items-center gap-2 cursor-default">
           <Logo className="w-8 h-8" />
-          {/* SAFE OPS BRANDING */}
-          <span>Safe<span className="text-blue-400">Ops</span></span>
+          {/* ULT OPS BRANDING */}
+          <span>Ult<span className="text-blue-400">Ops</span></span>
         </div>
 
         <div className="flex items-center gap-6">

@@ -23,7 +23,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <div className="p-6 border-b border-slate-800 flex items-center gap-2">
                     <Logo className="w-8 h-8" />
                     <span className="text-xl font-bold tracking-tight">
-                        Safe<span className="text-blue-400">Ops</span> <span className="text-xs text-slate-500 ml-1">ADMIN</span>
+                        Ult<span className="text-blue-400">Ops</span> <span className="text-xs text-slate-500 ml-1">ADMIN</span>
                     </span>
                 </div>
 

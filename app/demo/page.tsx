@@ -13,7 +13,7 @@ export default function DemoPage() {
       <nav className="mx-auto max-w-7xl px-6 lg:px-8 pt-6 flex justify-between items-center">
         <Link href="/" className="text-xl font-bold tracking-tight flex items-center gap-2">
           <Logo className="w-8 h-8" />
-          <span>Safe<span className="text-blue-400">Ops</span></span>
+          <span>Ult<span className="text-blue-400">Ops</span></span>
         </Link>
         <Link href="/sign-up" className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-all">
           Start Free

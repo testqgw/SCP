@@ -12,7 +12,7 @@ export default function TermsPage() {
                 <div className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-2">
                         <Logo className="w-8 h-8" />
-                        <span className="text-xl font-bold">Safe<span className="text-blue-400">Ops</span></span>
+                        <span className="text-xl font-bold">Ult<span className="text-blue-400">Ops</span></span>
                     </Link>
                     <Link href="/" className="text-slate-400 hover:text-white flex items-center gap-2 text-sm">
                         <ArrowLeft className="w-4 h-4" /> Back to Home
