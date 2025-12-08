@@ -25,7 +25,7 @@ export default function DemoPage() {
 
           <div className="text-center mb-16">
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl mb-6">
-              See SafeOps in Action
+              See UltOps in Action
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               No video buffering. Watch our code simulate exactly how you secure your business in 3 steps.
@@ -53,7 +53,7 @@ export default function DemoPage() {
       </main>
 
       <footer className="bg-[#0B1120] border-t border-slate-800 py-12 text-center text-slate-600 text-sm">
-        © {new Date().getFullYear()} SafeOps Inc.
+        © {new Date().getFullYear()} UltOps Inc.
       </footer>
     </div>
   );
@@ -214,7 +214,7 @@ function DemoSimulator() {
             <div className={`transform transition-all duration-500 ease-out ${step === 9 ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"}`}>
               <div className="flex flex-col gap-1">
                 <div className="bg-[#E9E9EB] text-black text-xs p-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] self-start">
-                  <strong>SafeOps:</strong> Tracking enabled for "Health Permit 2025".
+                  <strong>UltOps:</strong> Tracking enabled for "Health Permit 2025".
                 </div>
                 <div className="bg-[#E9E9EB] text-black text-xs p-3 rounded-2xl rounded-bl-none shadow-sm max-w-[85%] self-start delay-100">
                   We will text you 90 days before it expires on 12/31/2025.

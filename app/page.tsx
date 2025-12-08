@@ -141,7 +141,7 @@ export default function LandingPage() {
                       <ShieldCheck className="w-4 h-4 text-slate-400" />
                     </div>
                     <div className="bg-slate-800 rounded-2xl rounded-tl-none p-3 text-sm text-slate-300 shadow-sm">
-                      <p>⚠️ <span className="font-bold text-white">SafeOps Alert:</span> Your Health Permit expires in 3 days.</p>
+                      <p>⚠️ <span className="font-bold text-white">UltOps Alert:</span> Your Health Permit expires in 3 days.</p>
                       <p className="mt-2 text-blue-400 underline cursor-pointer">Renew now to avoid fines</p>
                     </div>
                   </div>
@@ -193,7 +193,7 @@ export default function LandingPage() {
                 <div className="w-full sm:w-64 bg-[#0F172A] border border-slate-700 rounded-2xl p-4 shadow-2xl transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
                   <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-3">
                     <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center"><ShieldCheck className="w-3 h-3 text-white" /></div>
-                    <span className="text-xs font-bold text-slate-300">SafeOps Alert</span>
+                    <span className="text-xs font-bold text-slate-300">UltOps Alert</span>
                     <span className="text-[10px] text-slate-500 ml-auto">Now</span>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3 mb-2">
@@ -281,7 +281,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
               <Logo className="w-6 h-6" />
-              <span className="text-slate-400 font-semibold text-sm">SafeOps</span>
+              <span className="text-slate-400 font-semibold text-sm">UltOps</span>
             </div>
             <div className="flex items-center gap-6 text-sm">
               <Link href="/privacy" className="text-slate-500 hover:text-slate-300 transition-colors">
@@ -290,12 +290,12 @@ export default function LandingPage() {
               <Link href="/terms" className="text-slate-500 hover:text-slate-300 transition-colors">
                 Terms of Service
               </Link>
-              <a href="mailto:support@safeops.com" className="text-slate-500 hover:text-slate-300 transition-colors">
+              <a href="mailto:support@ultops.com" className="text-slate-500 hover:text-slate-300 transition-colors">
                 Contact
               </a>
             </div>
             <div className="text-slate-600 text-sm">
-              © {new Date().getFullYear()} SafeOps Inc. All rights reserved.
+              © {new Date().getFullYear()} UltOps Inc. All rights reserved.
             </div>
           </div>
         </div>

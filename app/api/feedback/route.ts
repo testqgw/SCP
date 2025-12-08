@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         });
 
         // TODO: Optional - Send email notification to support team
-        // await sendEmail('support@safeops.com', `New ${type}: ${message}`);
+        // await sendEmail('support@ultops.com', `New ${type}: ${message}`);
 
         console.log(`📝 New ${type} received from ${userId || 'anonymous'}`);
 

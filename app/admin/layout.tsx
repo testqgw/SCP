@@ -5,7 +5,7 @@ import { Logo } from "@/components/Logo";
 import { LayoutDashboard, MessageSquare, Users, Settings, LogOut } from "lucide-react";
 
 const ADMIN_EMAILS = [
-    "quincy@safeops.com", // Replace with your actual admin email
+    "quincy@ultops.com", // Replace with your actual admin email
     process.env.ADMIN_EMAIL
 ].filter(Boolean);
 

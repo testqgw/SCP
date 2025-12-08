@@ -7,10 +7,10 @@ async function main() {
   // For example:
   /*
   const user = await prisma.user.upsert({
-    where: { email: 'admin@safeops.com' },
+    where: { email: 'admin@ultops.com' },
     update: {},
     create: {
-      email: 'admin@safeops.com',
+      email: 'admin@ultops.com',
       clerkId: 'user_mock_id',
       role: 'ADMIN',
     },

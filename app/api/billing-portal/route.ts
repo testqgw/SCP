@@ -53,7 +53,7 @@ export async function POST() {
         }
 
         // Create billing portal session
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://safeops.app';
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ultops.com';
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
             return_url: `${appUrl}/dashboard/settings`,

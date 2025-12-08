@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SafeOps | Automated Compliance Reminders",
+  title: "UltOps | Automated Compliance Reminders",
   description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
 };
 

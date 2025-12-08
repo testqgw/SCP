@@ -79,7 +79,7 @@ export default function UpgradePage() {
   const onCheckout = async (priceId: string | null, planName: string) => {
     if (!priceId) return; // Free plan
     if (priceId === "contact") {
-      window.location.href = "mailto:sales@safeops.com";
+      window.location.href = "mailto:sales@ultops.com";
       return;
     }
 
@@ -107,7 +107,7 @@ export default function UpgradePage() {
     <div className="flex flex-col py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="text-center mb-12">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-          Upgrade to SafeOps Pro
+          Upgrade to UltOps Pro
         </h1>
         <p className="mt-4 text-lg text-gray-600">
           Unlock SMS alerts, unlimited licenses, and team features.

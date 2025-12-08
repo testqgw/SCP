@@ -29,7 +29,7 @@ export async function GET(request: Request) {
         const phone = license.business.user.phone;
         if (phone) {
           await client.messages.create({
-            body: `⚠️ SafeOps Alert: Your license "${license.licenseType}" expires in ${days} days. Renew now.`,
+            body: `⚠️ UltOps Alert: Your license "${license.licenseType}" expires in ${days} days. Renew now.`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: phone
           });

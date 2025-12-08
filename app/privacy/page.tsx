@@ -29,7 +29,7 @@ export default function PrivacyPage() {
                     <section>
                         <h2 className="text-2xl font-semibold text-white mb-4">1. Information We Collect</h2>
                         <p className="text-slate-400 leading-relaxed">
-                            SafeOps collects information you provide directly, including your name, email address, phone number,
+                            UltOps collects information you provide directly, including your name, email address, phone number,
                             and business information. We also collect data about your licenses, permits, and uploaded documents
                             to provide our compliance tracking services.
                         </p>
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
                         <h2 className="text-2xl font-semibold text-white mb-4">5. Contact Us</h2>
                         <p className="text-slate-400 leading-relaxed">
                             If you have questions about this Privacy Policy, please contact us at{" "}
-                            <a href="mailto:privacy@safeops.com" className="text-blue-400 hover:underline">privacy@safeops.com</a>.
+                            <a href="mailto:privacy@ultops.com" className="text-blue-400 hover:underline">privacy@ultops.com</a>.
                         </p>
                     </section>
                 </div>

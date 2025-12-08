@@ -202,7 +202,7 @@ export default async function DashboardPage() {
         {/* Right: Quick Tips / Upgrade */}
         <div className="space-y-6">
           <div className="bg-gradient-to-br from-[#0B1120] to-slate-900 rounded-xl p-6 text-white shadow-lg">
-            <h3 className="font-bold text-lg mb-2">SafeOps Pro</h3>
+            <h3 className="font-bold text-lg mb-2">UltOps Pro</h3>
             <p className="text-slate-400 text-sm mb-6">
               Unlock unlimited licenses and SMS alerts for your entire team.
             </p>

@@ -137,10 +137,10 @@ export default function ChangePlanPage() {
                         <div
                             key={plan.id}
                             className={`relative p-6 rounded-xl border-2 transition-all ${isCurrentPlan
-                                    ? "border-blue-500 bg-blue-50/50"
-                                    : plan.popular
-                                        ? "border-slate-900 bg-slate-900 text-white"
-                                        : "border-slate-200 bg-white hover:border-slate-300"
+                                ? "border-blue-500 bg-blue-50/50"
+                                : plan.popular
+                                    ? "border-slate-900 bg-slate-900 text-white"
+                                    : "border-slate-200 bg-white hover:border-slate-300"
                                 }`}
                         >
                             {/* Current Plan Badge */}
@@ -206,8 +206,8 @@ export default function ChangePlanPage() {
                                     onClick={() => onCheckout(plan.priceId, plan.name)}
                                     disabled={loading !== null}
                                     className={`w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${plan.popular
-                                            ? "bg-blue-600 hover:bg-blue-500 text-white"
-                                            : "bg-slate-900 hover:bg-slate-800 text-white"
+                                        ? "bg-blue-600 hover:bg-blue-500 text-white"
+                                        : "bg-slate-900 hover:bg-slate-800 text-white"
                                         } disabled:opacity-50`}
                                 >
                                     {loading === plan.name ? (
@@ -231,7 +231,7 @@ export default function ChangePlanPage() {
                 <Link href="/dashboard/settings" className="text-blue-600 hover:underline">
                     Manage Billing
                 </Link>
-                {" "}or contact <a href="mailto:support@safeops.com" className="text-blue-600 hover:underline">support@safeops.com</a>
+                {" "}or contact <a href="mailto:support@ultops.com" className="text-blue-600 hover:underline">support@ultops.com</a>
             </div>
         </div>
     );

@@ -29,7 +29,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-semibold text-white mb-4">1. Acceptance of Terms</h2>
                         <p className="text-slate-400 leading-relaxed">
-                            By accessing or using SafeOps, you agree to be bound by these Terms of Service.
+                            By accessing or using UltOps, you agree to be bound by these Terms of Service.
                             If you do not agree to these terms, please do not use our services.
                         </p>
                     </section>
@@ -37,7 +37,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-semibold text-white mb-4">2. Description of Service</h2>
                         <p className="text-slate-400 leading-relaxed">
-                            SafeOps provides license and permit tracking services for food service businesses.
+                            UltOps provides license and permit tracking services for food service businesses.
                             We send reminders about upcoming expirations and provide document storage.
                             Our service is designed to help you stay compliant, but does not guarantee compliance
                             with any regulatory requirements.
@@ -48,7 +48,7 @@ export default function TermsPage() {
                         <h2 className="text-2xl font-semibold text-white mb-4">3. User Responsibilities</h2>
                         <p className="text-slate-400 leading-relaxed">
                             You are responsible for maintaining accurate information about your licenses and permits.
-                            SafeOps relies on the data you provide to send reminders. You are solely responsible
+                            UltOps relies on the data you provide to send reminders. You are solely responsible
                             for ensuring your licenses are renewed on time and that you maintain compliance with
                             all applicable regulations.
                         </p>
@@ -66,7 +66,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-2xl font-semibold text-white mb-4">5. Limitation of Liability</h2>
                         <p className="text-slate-400 leading-relaxed">
-                            SafeOps is not liable for any fines, penalties, or damages resulting from expired
+                            UltOps is not liable for any fines, penalties, or damages resulting from expired
                             licenses or permits. While we strive to send timely reminders, delivery of SMS and
                             email messages cannot be guaranteed. You acknowledge that compliance with regulatory
                             requirements is your sole responsibility.
@@ -77,7 +77,7 @@ export default function TermsPage() {
                         <h2 className="text-2xl font-semibold text-white mb-4">6. Contact Us</h2>
                         <p className="text-slate-400 leading-relaxed">
                             If you have questions about these Terms, please contact us at{" "}
-                            <a href="mailto:legal@safeops.com" className="text-blue-400 hover:underline">legal@safeops.com</a>.
+                            <a href="mailto:legal@ultops.com" className="text-blue-400 hover:underline">legal@ultops.com</a>.
                         </p>
                     </section>
                 </div>
