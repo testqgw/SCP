@@ -51,8 +51,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-6">
-            We text you before your permits expire — so you don't get fined or shut down.
-            Health permits, food handler cards, business licenses — all tracked automatically.
+            We text you before your permits expire so you don't get fined or shut down.
+            Health permits, food handler cards, business licenses. All tracked automatically.
           </p>
 
           {/* AUDIENCE BADGES */}
