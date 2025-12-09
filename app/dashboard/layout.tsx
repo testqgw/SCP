@@ -3,14 +3,19 @@ import { Logo } from "@/components/Logo";
 import { Settings, ShieldAlert, Home } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import { DashboardNav } from "@/components/dashboard/Navbar";
 
-// Force Vercel redeploy - Dec 4 2024
+const ADMIN_EMAILS = [
+  "quincy@ultops.com",
+  "quincygw@gmail.com",
+  process.env.ADMIN_EMAIL
+].filter(Boolean) as string[];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { userId } = auth();
+  const clerkUser = await currentUser();
 
   // Fetch Tier
   const user = await prisma.user.findUnique({
@@ -19,6 +24,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
   });
 
   const isPro = user?.subscriptionTier === 'professional' || user?.subscriptionTier === 'multi_location';
+
+  // Check if user is admin by email OR database role
+  const userEmail = clerkUser?.emailAddresses[0]?.emailAddress;
+  const isAdmin = (userEmail && ADMIN_EMAILS.includes(userEmail)) || user?.role === 'ADMIN';
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -37,7 +46,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </Link>
 
               {/* BADGE */}
-              {user?.role === 'ADMIN' ? (
+              {isAdmin ? (
                 <Link href="/admin">
                   <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-red-100 text-red-700 border-red-200 cursor-pointer hover:bg-red-200 flex items-center gap-1">
                     <ShieldAlert className="w-3 h-3" /> MASTER ADMIN
