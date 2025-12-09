@@ -1,8 +1,9 @@
 import { getAdminAccess } from "@/lib/admin"; // Secure it
 import { prisma as db } from "@/lib/prisma";
 import Link from "next/link";
-import { ShieldAlert, Users, Building2, DollarSign } from "lucide-react";
+import { ShieldAlert, Users, Building2, DollarSign, Settings } from "lucide-react";
 import SupportMessages from "@/components/admin/SupportMessages";
+import TestSmsButton from "@/components/admin/TestSmsButton";
 
 export default async function AdminDashboard() {
     // 1. 🔒 Security Check
@@ -44,7 +45,7 @@ export default async function AdminDashboard() {
                 </div>
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-xl shadow-sm border">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
@@ -77,6 +78,17 @@ export default async function AdminDashboard() {
                                 <h3 className="text-2xl font-bold">{licenses.length}</h3>
                             </div>
                         </div>
+                    </div>
+
+                    {/* System Tests Card */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="p-2 bg-gray-100 rounded-lg text-gray-600">
+                                <Settings className="w-5 h-5" />
+                            </div>
+                            <h3 className="font-semibold text-gray-900">System Tests</h3>
+                        </div>
+                        <TestSmsButton />
                     </div>
                 </div>
 
