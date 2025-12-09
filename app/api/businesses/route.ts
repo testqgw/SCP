@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'; // Force dynamic route for Vercel build
 import { NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { isInBetaPeriod, getNewTrialEndDate } from '@/lib/utils';
 
 // GET: Fetch all businesses for the logged-in user
 export async function GET() {
@@ -48,6 +49,9 @@ export async function POST(req: Request) {
     }
 
     // THE FIX: Lazy Sync - Ensure user exists in database before creating business
+    // NEW: Set trialEndsAt for 3-month free beta for new users
+    const existingUser = await prisma.user.findUnique({ where: { id: user.id } });
+
     await prisma.user.upsert({
       where: {
         id: user.id,
@@ -59,14 +63,15 @@ export async function POST(req: Request) {
         name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || "User",
         phone: "",
         subscriptionStatus: "active",
-        subscriptionTier: "starter"
+        subscriptionTier: "starter",
+        trialEndsAt: getNewTrialEndDate(), // 3-month free beta!
       },
     });
 
     // BUSINESS LIMIT ENFORCER: Check tier and existing count
     const userRecord = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { subscriptionTier: true }
+      select: { subscriptionTier: true, trialEndsAt: true }
     });
 
     // Check membership count instead of ownership
@@ -77,8 +82,11 @@ export async function POST(req: Request) {
       }
     });
 
-    // If starter tier and already has 1+ businesses, block creation
-    if (userRecord?.subscriptionTier === 'starter' && businessCount >= 1) {
+    // BETA BYPASS: Skip limit if user is in beta period
+    const isBetaUser = isInBetaPeriod(userRecord?.trialEndsAt);
+
+    // If starter tier and already has 1+ businesses AND not in beta, block creation
+    if (!isBetaUser && userRecord?.subscriptionTier === 'starter' && businessCount >= 1) {
       return NextResponse.json(
         { error: "LIMIT_REACHED", message: "Free plan limited to 1 Business." },
         { status: 403 }

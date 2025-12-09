@@ -32,6 +32,9 @@ model User {
   subscriptionTier       String?   @map("subscription_tier") // starter, professional, multi_location
   subscriptionStatus     String?   @map("subscription_status") // active, past_due, canceled, trialing
   
+  trialEndsAt            DateTime? @map("trial_ends_at") // For beta access
+
+  
   businesses          Business[]
   memberships         BusinessMember[]
   renewalHistory      RenewalHistory[]

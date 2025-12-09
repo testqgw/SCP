@@ -38,6 +38,16 @@ export default function LandingPage() {
       <main className="relative z-10 pt-20 pb-20 lg:pt-32 lg:pb-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
 
+          {/* 🎉 FOUNDING MEMBER BANNER */}
+          <div className="inline-flex items-center gap-3 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-r from-emerald-900/40 to-cyan-900/40 px-6 py-3 mb-8 shadow-[0_0_30px_-5px_rgba(16,185,129,0.4)] animate-pulse">
+            <span className="text-2xl">🎉</span>
+            <div className="text-left">
+              <span className="text-emerald-300 font-bold text-sm uppercase tracking-wide">Limited Time Offer</span>
+              <p className="text-white font-semibold">FREE for 3 months • No credit card required</p>
+            </div>
+            <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">FOUNDING MEMBER</span>
+          </div>
+
           <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-900/20 px-4 py-1.5 text-sm font-medium text-blue-300 mb-8 shadow-[0_0_15px_-5px_rgba(59,130,246,0.5)]">
             <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
             For Food Trucks, Restaurants & Mobile Vendors
@@ -74,14 +84,14 @@ export default function LandingPage() {
             </span>
           </div>
 
-          {/* UPDATED CTAs */}
+          {/* UPDATED CTAs - BETA FOCUSED */}
           <div className="flex flex-col items-center gap-4 mb-20">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/sign-up"
-                className="w-full sm:w-auto rounded-lg bg-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 hover:bg-blue-500 hover:shadow-blue-900/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group"
+                className="w-full sm:w-auto rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-emerald-900/30 hover:from-emerald-400 hover:to-cyan-400 hover:shadow-emerald-900/50 hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 group"
               >
-                Start for Free <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                🚀 Claim Your Free 3 Months <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/demo"
@@ -96,9 +106,9 @@ export default function LandingPage() {
                 View Pricing →
               </Link>
             </div>
-            {/* TRUST SIGNAL - NO CREDIT CARD */}
-            <p className="text-xs text-slate-500 flex items-center gap-2">
-              <CreditCard className="w-3 h-3" /> No credit card required • Track your first license free
+            {/* TRUST SIGNAL - BETA VERSION */}
+            <p className="text-xs text-emerald-400 flex items-center gap-2 font-medium">
+              <CreditCard className="w-3 h-3" /> No credit card required • Full Pro access for 3 months • Limited spots
             </p>
           </div>
 

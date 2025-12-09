@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { Settings, ShieldAlert, Home } from "lucide-react";
+import { Settings, ShieldAlert, Home, Rocket } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import { DashboardNav } from "@/components/dashboard/Navbar";
+import { isInBetaPeriod, getBetaDaysRemaining } from "@/lib/utils";
 
 const ADMIN_EMAILS = [
   "quincy@ultops.com",
@@ -17,13 +18,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { userId } = auth();
   const clerkUser = await currentUser();
 
-  // Fetch Tier
+  // Fetch Tier + Trial Info
   const user = await prisma.user.findUnique({
     where: { id: userId as string },
-    select: { subscriptionTier: true, role: true }
+    select: { subscriptionTier: true, role: true, trialEndsAt: true }
   });
 
   const isPro = user?.subscriptionTier === 'professional' || user?.subscriptionTier === 'multi_location';
+
+  // Beta status
+  const isBetaUser = isInBetaPeriod(user?.trialEndsAt);
+  const betaDaysRemaining = getBetaDaysRemaining(user?.trialEndsAt);
 
   // Check if user is admin by email OR database role
   const userEmail = clerkUser?.emailAddresses[0]?.emailAddress;
@@ -45,13 +50,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </span>
               </Link>
 
-              {/* BADGE */}
+              {/* BADGE - Priority: Admin > Beta > Pro > Free */}
               {isAdmin ? (
                 <Link href="/admin">
                   <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-red-100 text-red-700 border-red-200 cursor-pointer hover:bg-red-200 flex items-center gap-1">
                     <ShieldAlert className="w-3 h-3" /> MASTER ADMIN
                   </div>
                 </Link>
+              ) : isBetaUser ? (
+                <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-300 border-emerald-500/30 flex items-center gap-1 animate-pulse">
+                  <Rocket className="w-3 h-3" /> FOUNDING MEMBER • {betaDaysRemaining} days left
+                </div>
               ) : (
                 <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isPro
                   ? "bg-blue-600/20 text-blue-200 border-blue-500/30"

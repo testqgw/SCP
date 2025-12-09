@@ -15,3 +15,36 @@ export function absoluteUrl(path: string) {
     }
     return `http://localhost:3000${path}`;
 }
+
+/**
+ * Check if a user is in an active beta/trial period
+ * @param trialEndsAt - The trial end date from the user record
+ * @returns true if the trial is still active
+ */
+export function isInBetaPeriod(trialEndsAt: Date | null | undefined): boolean {
+    if (!trialEndsAt) return false;
+    return new Date(trialEndsAt) > new Date();
+}
+
+/**
+ * Get the number of days remaining in the beta period
+ * @param trialEndsAt - The trial end date from the user record
+ * @returns Number of days remaining, or 0 if expired/not set
+ */
+export function getBetaDaysRemaining(trialEndsAt: Date | null | undefined): number {
+    if (!trialEndsAt) return 0;
+    const endDate = new Date(trialEndsAt);
+    const now = new Date();
+    if (endDate <= now) return 0;
+    const diffMs = endDate.getTime() - now.getTime();
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Get trial end date for new signups (3 months from now)
+ */
+export function getNewTrialEndDate(): Date {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 3);
+    return date;
+}

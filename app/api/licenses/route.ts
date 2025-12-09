@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'; // Force dynamic route for Vercel build
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { isInBetaPeriod } from '@/lib/utils';
 
 // GET: Fetch all licenses for the logged-in user (across all businesses they are a member of)
 export async function GET() {
@@ -104,6 +105,9 @@ export async function POST(req: Request) {
     const owner = ownerMembership.user;
     const isFreeAccount = owner.subscriptionTier === 'starter';
 
+    // BETA BYPASS: Check if owner is in beta period
+    const isBetaUser = isInBetaPeriod(owner.trialEndsAt);
+
     // Count licenses for this business
     const businessLicenseCount = await prisma.license.count({
       where: {
@@ -131,7 +135,8 @@ export async function POST(req: Request) {
       }
     });
 
-    if (isFreeAccount && totalOwnerLicenses >= 3) {
+    // BETA BYPASS: Skip limit if owner is in beta period
+    if (!isBetaUser && isFreeAccount && totalOwnerLicenses >= 3) {
       return NextResponse.json(
         { error: "LIMIT_REACHED", message: "Business Owner's free plan is limited to 3 licenses. Upgrade to add more!." },
         { status: 403 }
