@@ -116,15 +116,12 @@ export default async function AdminDashboard() {
                                         {new Date(user.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4">
-                                        {/* This link allows you to "Support" them by seeing what they see */}
-                                        {user.businesses[0] && (
-                                            <Link
-                                                href={`/dashboard/${user.businesses[0].id}`}
-                                                className="text-blue-600 hover:underline"
-                                            >
-                                                View Dashboard
-                                            </Link>
-                                        )}
+                                        <Link
+                                            href={`/admin/users/${user.id}`}
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            View Details
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}

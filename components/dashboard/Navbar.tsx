@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Building2, FileText, MessageSquare } from "lucide-react";
 
 interface NavLinkProps {
     href: string;
@@ -40,6 +40,8 @@ export function DashboardNav() {
             <NavLink href="/dashboard/businesses" icon={<Building2 className="w-4 h-4" />} text="Businesses" />
             <NavLink href="/dashboard/licenses" icon={<FileText className="w-4 h-4" />} text="Licenses" />
             <NavLink href="/dashboard/documents" icon={<FileText className="w-4 h-4" />} text="Documents" />
+            <NavLink href="/dashboard/messages" icon={<MessageSquare className="w-4 h-4" />} text="Messages" />
         </div>
     );
 }
+
