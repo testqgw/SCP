@@ -1,17 +1,18 @@
 import { getAdminAccess } from "@/lib/admin"; // Secure it
 import { prisma as db } from "@/lib/prisma";
 import Link from "next/link";
-import { ShieldAlert, Users, Building2, DollarSign } from "lucide-react";
+import { ShieldAlert, Users, Building2, DollarSign, MessageSquare, Mail, AlertCircle, Lightbulb, Bug, HelpCircle } from "lucide-react";
 
 export default async function AdminDashboard() {
     // 1. 🔒 Security Check
     await getAdminAccess();
 
     // 2. 📊 Fetch System-Wide Data
-    const [users, businesses, licenses] = await Promise.all([
+    const [users, businesses, licenses, feedbackItems] = await Promise.all([
         db.user.findMany({ include: { businesses: true }, orderBy: { createdAt: 'desc' } }),
         db.business.findMany({ include: { licenses: true } }),
         db.license.findMany(),
+        db.feedback.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
     ]);
 
     // Calculate MRR (Rough estimate based on plan IDs)
@@ -128,6 +129,71 @@ export default async function AdminDashboard() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Support Messages Section */}
+                <div className="bg-white rounded-xl shadow-sm border overflow-hidden mt-8">
+                    <div className="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <MessageSquare className="w-5 h-5 text-blue-600" />
+                            Support Messages
+                        </h3>
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            {feedbackItems.filter(f => f.status === 'new').length} New
+                        </span>
+                    </div>
+                    {feedbackItems.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                            <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                            <p>No support messages yet</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+                            {feedbackItems.map((item) => (
+                                <div key={item.id} className={`p-4 hover:bg-gray-50 ${item.status === 'new' ? 'bg-blue-50/50' : ''}`}>
+                                    <div className="flex items-start gap-4">
+                                        <div className={`p-2 rounded-lg ${item.type === 'bug' ? 'bg-red-100 text-red-600' :
+                                                item.type === 'suggestion' ? 'bg-yellow-100 text-yellow-600' :
+                                                    item.type === 'feature' ? 'bg-purple-100 text-purple-600' :
+                                                        'bg-blue-100 text-blue-600'
+                                            }`}>
+                                            {item.type === 'bug' ? <Bug className="w-5 h-5" /> :
+                                                item.type === 'suggestion' ? <Lightbulb className="w-5 h-5" /> :
+                                                    item.type === 'feature' ? <AlertCircle className="w-5 h-5" /> :
+                                                        <HelpCircle className="w-5 h-5" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase ${item.type === 'bug' ? 'bg-red-100 text-red-700' :
+                                                        item.type === 'suggestion' ? 'bg-yellow-100 text-yellow-700' :
+                                                            item.type === 'feature' ? 'bg-purple-100 text-purple-700' :
+                                                                'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                    {item.type}
+                                                </span>
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.status === 'new' ? 'bg-green-100 text-green-700' :
+                                                        item.status === 'reviewed' ? 'bg-gray-100 text-gray-600' :
+                                                            'bg-slate-100 text-slate-600'
+                                                    }`}>
+                                                    {item.status}
+                                                </span>
+                                            </div>
+                                            <p className="text-gray-900 text-sm mb-2">{item.message}</p>
+                                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                {item.email && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Mail className="w-3 h-3" />
+                                                        {item.email}
+                                                    </span>
+                                                )}
+                                                <span>{new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
             </div>
