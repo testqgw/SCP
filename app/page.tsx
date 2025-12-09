@@ -51,8 +51,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-6">
-            The compliance tracker built specifically for food service businesses.
-            Track health permits, food handler cards, and business licenses in one place.
+            We text you before your permits expire — so you don't get fined or shut down.
+            Health permits, food handler cards, business licenses — all tracked automatically.
           </p>
 
           {/* AUDIENCE BADGES */}
@@ -146,7 +146,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <span className="text-[10px] text-slate-600">Sent via Automated Cron Job • 9:00 AM</span>
+                    <span className="text-[10px] text-slate-600">Sent automatically every morning • 9:00 AM</span>
                   </div>
                 </div>
 
@@ -167,10 +167,10 @@ export default function LandingPage() {
               Features
             </h2>
             <p className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-              Built for the way you actually work.
+              Stop using sticky notes and calendar reminders.
             </p>
             <p className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto">
-              No spreadsheets. No calendar reminders. Just automatic tracking that runs in the background.
+              You've got enough to worry about. Let us handle the paperwork deadlines.
             </p>
           </div>
 
