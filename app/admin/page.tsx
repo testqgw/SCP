@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ShieldAlert, Users, Building2, DollarSign, Settings } from "lucide-react";
 import SupportMessages from "@/components/admin/SupportMessages";
 import TestSmsButton from "@/components/admin/TestSmsButton";
+import TestEmailButton from "@/components/admin/TestEmailButton";
 
 export default async function AdminDashboard() {
     // 1. 🔒 Security Check
@@ -88,7 +89,10 @@ export default async function AdminDashboard() {
                             </div>
                             <h3 className="font-semibold text-gray-900">System Tests</h3>
                         </div>
-                        <TestSmsButton />
+                        <div className="space-y-2">
+                            <TestEmailButton />
+                            <TestSmsButton />
+                        </div>
                     </div>
                 </div>
 

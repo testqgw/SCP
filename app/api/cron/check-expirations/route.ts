@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'; // Force dynamic rendering for cron jobs
 
 import { NextResponse } from 'next/server';
 import { getExpiringLicenses } from '@/lib/services/license-checker';
-import { sendSMS, sendEmail, formatExpirationMessage } from '@/lib/services/notifications';
+import { sendSMS, sendEmail, formatExpirationMessage, generateExpirationEmailHtml } from '@/lib/services/notifications';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -55,7 +55,15 @@ export async function GET(request: Request) {
                         renewalUrl || undefined
                     );
 
-                    // Send SMS if user has a phone number
+                    // Generate HTML email
+                    const htmlEmail = generateExpirationEmailHtml(
+                        licenseType,
+                        business.name,
+                        days,
+                        renewalUrl || undefined
+                    );
+
+                    // Send SMS if user has a phone number (optional - future feature)
                     if (user.phone) {
                         const smsResult = await sendSMS(user.phone, message);
                         if (smsResult.success) {
@@ -79,11 +87,12 @@ export async function GET(request: Request) {
                         }
                     }
 
-                    // Send Email
+                    // Send Email with HTML template
                     const emailResult = await sendEmail(
                         user.email,
-                        `License Expiring Soon: ${licenseType}`,
-                        message
+                        `⚠️ License Expiring Soon: ${licenseType}`,
+                        message,
+                        htmlEmail
                     );
 
                     if (emailResult.success) {
