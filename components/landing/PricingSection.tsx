@@ -56,12 +56,11 @@ const tiers = [
             "Secure Document Vault",
             "2 Team Members",
         ],
-        cta: "Buy Now",
+        cta: "Subscribe Now",
         href: "/sign-up?plan=standard",
         featured: false,
         highlighted: false,
-        priceId: "price_1Scrl79HXJ0MifVdn5LxZr8P",
-        paymentMode: "payment" as const, // One-time purchase
+        priceId: "price_1ScscN9HXJ0MifVdh6FBWoku",
     },
     {
         name: "Fleet Manager",
@@ -79,7 +78,7 @@ const tiers = [
         href: "/sign-up?plan=growth",
         featured: false,
         highlighted: false,
-        priceId: "price_1SXRui4ybcRPBciWD2Nq4Xub",
+        priceId: "price_1Scse99HXJ0MifVdGh9NhzyC",
     },
     {
         name: "Commissary",
@@ -97,7 +96,7 @@ const tiers = [
         href: "/sign-up?plan=commissary",
         featured: false,
         highlighted: false,
-        priceId: "price_1SXRw54ybcRPBciW4KwpyZWE",
+        priceId: "price_1Scsew9HXJ0MifVd8URkdiuz",
     },
 ];
 
