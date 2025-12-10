@@ -61,7 +61,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="mx-auto max-w-2xl text-lg leading-8 text-slate-400 mb-6">
-            We text you before your permits expire so you don't get fined or shut down.
+            We remind you before your permits expire so you don't get fined or shut down.
             Health permits, food handler cards, business licenses. All tracked automatically.
           </p>
 
@@ -186,28 +186,28 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* FEATURE 1: SMS ALERTS */}
+            {/* FEATURE 1: EMAIL REMINDERS */}
             <div className="md:col-span-2 bg-slate-900/50 border border-slate-800 rounded-3xl p-8 sm:p-12 relative overflow-hidden group hover:border-slate-700 transition-colors">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
               <div className="relative z-10 flex flex-col sm:flex-row gap-12 items-center">
                 <div className="flex-1 text-left">
                   <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6">
-                    <Smartphone className="w-6 h-6 text-blue-400" />
+                    <Bell className="w-6 h-6 text-blue-400" />
                   </div>
-                  <h3 className="text-2xl font-semibold text-white mb-3">Texts, Not Emails</h3>
+                  <h3 className="text-2xl font-semibold text-white mb-3">Automatic Reminders</h3>
                   <p className="text-slate-400 leading-relaxed">
-                    You're at the window serving customers, not checking your inbox. That's why we send SMS alerts directly to your phone.
+                    Get email alerts at 90, 60, 30, 14, 7, and 1 day before expiration. Never miss a deadline again.
                   </p>
                 </div>
                 <div className="w-full sm:w-64 bg-[#0F172A] border border-slate-700 rounded-2xl p-4 shadow-2xl transform rotate-3 group-hover:rotate-0 transition-transform duration-500">
                   <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-3">
                     <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center"><ShieldCheck className="w-3 h-3 text-white" /></div>
                     <span className="text-xs font-bold text-slate-300">UltOps Alert</span>
-                    <span className="text-[10px] text-slate-500 ml-auto">Now</span>
+                    <span className="text-[10px] text-slate-500 ml-auto">9:00 AM</span>
                   </div>
                   <div className="bg-slate-800/50 rounded-lg p-3 mb-2">
-                    <p className="text-xs text-slate-300">⚠️ <span className="font-semibold text-white">Urgent:</span> Your Electrical License expires in 3 days.</p>
+                    <p className="text-xs text-slate-300">⚠️ <span className="font-semibold text-white">Reminder:</span> Your Health Permit expires in 30 days.</p>
                   </div>
                   <div className="h-2 w-24 bg-slate-800 rounded-full" />
                 </div>

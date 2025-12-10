@@ -15,7 +15,7 @@ const tiers = [
         features: [
             "Unlimited Businesses",
             "Unlimited Licenses & Permits",
-            "SMS & Email Expiration Alerts",
+            "Email Expiration Alerts",
             "Secure Document Vault",
             "Unlimited Team Members",
             "Then just $49/mo after trial",
@@ -35,9 +35,8 @@ const tiers = [
         features: [
             "1 Business Entity",
             "Limit: 3 Licenses Tracked",
-            "Email Reminders Only",
+            "Email Reminders",
             "Basic Document Storage",
-            "No SMS Alerts", // Clearly show what they are missing
         ],
         cta: "Get Started Free",
         href: "/sign-up?plan=free",
@@ -53,7 +52,7 @@ const tiers = [
         features: [
             "1 Business Entity (Truck)",
             "Unlimited Licenses & Permits",
-            "SMS & Email Expiration Alerts",
+            "Email Expiration Alerts",
             "Secure Document Vault",
             "2 Team Members",
         ],
@@ -130,7 +129,7 @@ export default function PricingSection() {
                         Simple pricing, zero hidden fines.
                     </h2>
                     <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                        Start for free. Upgrade when you need SMS alerts and unlimited tracking.
+                        Start for free. Upgrade when you need unlimited tracking and more features.
                     </p>
                 </div>
 
@@ -185,15 +184,10 @@ export default function PricingSection() {
                                 <ul className="mb-8 space-y-3 flex-1">
                                     {tier.features.map((feature) => (
                                         <li key={feature} className="flex items-start">
-                                            {/* Logic: If feature contains "No SMS", show an X icon */}
-                                            {feature.includes("No SMS") ? (
-                                                <X className="h-5 w-5 flex-shrink-0 text-gray-400" />
-                                            ) : (
-                                                <Check className={`h-5 w-5 flex-shrink-0 ${isFoundingMember ? "text-emerald-500" :
-                                                        tier.highlighted ? "text-blue-600" : "text-green-500"
-                                                    }`} />
-                                            )}
-                                            <span className={`ml-3 text-sm ${feature.includes("No SMS") ? "text-gray-400" : "text-gray-600"}`}>
+                                            <Check className={`h-5 w-5 flex-shrink-0 ${isFoundingMember ? "text-emerald-500" :
+                                                    tier.highlighted ? "text-blue-600" : "text-green-500"
+                                                }`} />
+                                            <span className="ml-3 text-sm text-gray-600">
                                                 {feature}
                                             </span>
                                         </li>
@@ -228,10 +222,10 @@ export default function PricingSection() {
                                     <Link
                                         href={tier.href}
                                         className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${isFoundingMember
-                                                ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-400 hover:to-cyan-400 shadow-lg"
-                                                : tier.highlighted
-                                                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                                    : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                            ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-400 hover:to-cyan-400 shadow-lg"
+                                            : tier.highlighted
+                                                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                                                : "bg-gray-100 text-gray-900 hover:bg-gray-200"
                                             }`}
                                     >
                                         {tier.cta}
