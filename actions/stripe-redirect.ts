@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 import { absoluteUrl } from "@/lib/utils";
 
-export async function onSubscribe(priceId: string) {
+export async function onSubscribe(priceId: string, mode: "subscription" | "payment" = "subscription") {
     const { userId } = auth();
     const user = await currentUser();
 
@@ -28,8 +28,8 @@ export async function onSubscribe(priceId: string) {
     const cancelUrl = absoluteUrl("/dashboard/upgrade");
 
     try {
-        // 3. IF they already have a Stripe Customer ID, create a portal session (Manage Subscription)
-        if (dbUser.stripeCustomerId && dbUser.stripePriceId) {
+        // 3. IF they already have a Stripe Customer ID AND this is a subscription, create a portal session
+        if (dbUser.stripeCustomerId && dbUser.stripePriceId && mode === "subscription") {
             const stripeSession = await stripe.billingPortal.sessions.create({
                 customer: dbUser.stripeCustomerId,
                 return_url: billingUrl,
@@ -38,12 +38,12 @@ export async function onSubscribe(priceId: string) {
             return { url: stripeSession.url };
         }
 
-        // 4. IF NOT, create a Checkout Session (New Purchase)
+        // 4. Create a Checkout Session (subscription or one-time payment)
         const stripeSession = await stripe.checkout.sessions.create({
             success_url: successUrl,
             cancel_url: cancelUrl,
             payment_method_types: ["card"],
-            mode: "subscription",
+            mode: mode,
             billing_address_collection: "auto",
             customer_email: user.emailAddresses[0].emailAddress,
             line_items: [
@@ -53,7 +53,8 @@ export async function onSubscribe(priceId: string) {
                 },
             ],
             metadata: {
-                userId: userId, // CRITICAL: This lets us know WHO paid in the webhook
+                userId: userId,
+                mode: mode, // Track if this was subscription or one-time
             },
         });
 

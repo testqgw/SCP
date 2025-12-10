@@ -56,11 +56,12 @@ const tiers = [
             "Secure Document Vault",
             "2 Team Members",
         ],
-        cta: "Subscribe Now",
+        cta: "Buy Now",
         href: "/sign-up?plan=standard",
         featured: false,
         highlighted: false,
         priceId: "price_1Scrl79HXJ0MifVdn5LxZr8P",
+        paymentMode: "payment" as const, // One-time purchase
     },
     {
         name: "Fleet Manager",
@@ -101,9 +102,9 @@ const tiers = [
 ];
 
 export default function PricingSection() {
-    const onCheckout = async (priceId: string) => {
+    const onCheckout = async (priceId: string, mode: "subscription" | "payment" = "subscription") => {
         try {
-            const response = await onSubscribe(priceId);
+            const response = await onSubscribe(priceId, mode);
             if (response.url) {
                 window.location.href = response.url;
             } else if (response.error) {
@@ -209,7 +210,7 @@ export default function PricingSection() {
                                 ) : tier.priceId ? (
                                     // Paid tier with Stripe checkout
                                     <button
-                                        onClick={() => onCheckout(tier.priceId!)}
+                                        onClick={() => onCheckout(tier.priceId!, ('paymentMode' in tier ? tier.paymentMode : 'subscription') as "subscription" | "payment")}
                                         className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
                                             ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
                                             : "bg-gray-100 text-gray-900 hover:bg-gray-200"
