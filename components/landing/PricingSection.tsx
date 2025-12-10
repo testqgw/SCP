@@ -60,7 +60,7 @@ const tiers = [
         href: "/sign-up?plan=standard",
         featured: false,
         highlighted: false,
-        priceId: "price_1SXRu34ybcRPBciWNYNTDukK",
+        priceId: "price_1Scrl79HXJ0MifVdn5LxZr8P",
     },
     {
         name: "Fleet Manager",
@@ -185,7 +185,7 @@ export default function PricingSection() {
                                     {tier.features.map((feature) => (
                                         <li key={feature} className="flex items-start">
                                             <Check className={`h-5 w-5 flex-shrink-0 ${isFoundingMember ? "text-emerald-500" :
-                                                    tier.highlighted ? "text-blue-600" : "text-green-500"
+                                                tier.highlighted ? "text-blue-600" : "text-green-500"
                                                 }`} />
                                             <span className="ml-3 text-sm text-gray-600">
                                                 {feature}
