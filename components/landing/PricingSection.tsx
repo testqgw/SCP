@@ -10,15 +10,15 @@ const tiers = [
         name: "Starter",
         price: "$0",
         period: "forever",
-        description: "For new trucks just getting permits organized.",
+        description: "For simplified tracking.",
         icon: Store,
         features: [
-            "1 Business Entity",
-            "Up to 3 Licenses Tracked",
-            "Email Reminders",
-            "Basic Document Storage",
+            "<strong>1</strong> Business",
+            "Track <strong>3</strong> Licenses",
+            "Standard Email Reminders",
+            "Basic Document Uploads",
         ],
-        cta: "Get Started Free",
+        cta: "Start for Free",
         href: "/sign-up?plan=free",
         highlighted: false,
         priceId: null,
@@ -27,16 +27,16 @@ const tiers = [
         name: "Owner Operator",
         price: "$49",
         period: "/month",
-        description: "Perfect for the single food truck owner who can't afford downtime.",
+        description: "Total compliance for one location.",
         icon: Truck,
         features: [
-            "1 Business Entity (Truck)",
-            "Unlimited Licenses & Permits",
-            "Email Expiration Alerts",
-            "Secure Document Vault",
-            "2 Team Members",
+            "<strong>1</strong> Business",
+            "<strong>Unlimited</strong> Licenses & Permits",
+            "<strong>Inspection-Ready</strong> Document Vault",
+            "Smart Email Alerts (Escalation)",
+            "<strong>2</strong> Team Members",
         ],
-        cta: "Subscribe Now",
+        cta: "Start Trial",
         href: "/sign-up?plan=standard",
         highlighted: true,
         priceId: "price_1ScscN9HXJ0MifVdh6FBWoku",
@@ -45,16 +45,16 @@ const tiers = [
         name: "Fleet Manager",
         price: "$99",
         period: "/month",
-        description: "For growing empires with multiple trucks or locations.",
+        description: "Control for growing groups.",
         icon: Building2,
         features: [
-            "Up to 5 Business Entities",
-            "Everything in Owner Operator",
-            "Role-Based Access (Admin/Viewer)",
-            "Audit Logs (See who changed what)",
+            "<strong>5</strong> Businesses",
+            "<strong>Everything in Owner</strong>",
+            "Admin & Staff Roles",
+            "Activity/Audit Logs",
             "Priority Support",
         ],
-        cta: "Subscribe Now",
+        cta: "Subscribe",
         href: "/sign-up?plan=growth",
         highlighted: false,
         priceId: "price_1Scse99HXJ0MifVdGh9NhzyC",
@@ -63,19 +63,19 @@ const tiers = [
         name: "Commissary",
         price: "$149",
         period: "/month",
-        description: "For commissary kitchens managing permits for tenant trucks.",
+        description: "Management for kitchens.",
         icon: ShieldCheck,
         features: [
-            "Up to 15 Business Entities",
-            "Client/Tenant View Mode",
-            "Unlimited Team Members",
+            "<strong>15</strong> Businesses",
+            "<strong>Everything in Fleet</strong>",
+            "Tenant View Mode (Read-Only)",
             "Bulk License Import",
-            "Dedicated Account Manager",
+            "Dedicated Onboarding",
         ],
-        cta: "Subscribe Now",
-        href: "/sign-up?plan=commissary",
+        cta: "Contact Sales",
+        href: "mailto:sales@ultops.com?subject=Commissary Plan Inquiry",
         highlighted: false,
-        priceId: "price_1Scsew9HXJ0MifVd8URkdiuz",
+        priceId: null,
     },
 ];
 
@@ -143,10 +143,10 @@ export default function PricingSection() {
                             </div>
 
                             <ul className="mb-8 space-y-3 flex-1">
-                                {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-start gap-3">
+                                {tier.features.map((feature, idx) => (
+                                    <li key={idx} className="flex items-start gap-3">
                                         <Check className={`h-5 w-5 flex-shrink-0 mt-0.5 ${tier.highlighted ? "text-blue-600" : "text-green-500"}`} />
-                                        <span className="text-sm text-gray-600">{feature}</span>
+                                        <span className="text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: feature }} />
                                     </li>
                                 ))}
                             </ul>
