@@ -36,7 +36,7 @@ const tiers = [
             "Smart Email Alerts (Escalation)",
             "<strong>2</strong> Team Members",
         ],
-        cta: "Start Trial",
+        cta: "Subscribe",
         href: "/sign-up?plan=standard",
         highlighted: true,
         priceId: "price_1ScscN9HXJ0MifVdh6FBWoku",
@@ -72,10 +72,10 @@ const tiers = [
             "Bulk License Import",
             "Dedicated Onboarding",
         ],
-        cta: "Contact Sales",
-        href: "mailto:sales@ultops.com?subject=Commissary Plan Inquiry",
+        cta: "Subscribe",
+        href: "/sign-up?plan=commissary",
         highlighted: false,
-        priceId: null,
+        priceId: "price_1Scsew9HXJ0MifVd8URkdiuz",
     },
 ];
 
