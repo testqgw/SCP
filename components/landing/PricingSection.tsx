@@ -1,14 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ShieldCheck, Truck, Building2 } from "lucide-react";
+import { Check, ShieldCheck, Truck, Building2, Store } from "lucide-react";
 import { onSubscribe } from "@/actions/stripe-redirect";
 import { toast } from "sonner";
 
 const tiers = [
     {
+        name: "Starter",
+        price: "$0",
+        period: "forever",
+        description: "For new trucks just getting permits organized.",
+        icon: Store,
+        features: [
+            "1 Business Entity",
+            "Up to 3 Licenses Tracked",
+            "Email Reminders",
+            "Basic Document Storage",
+        ],
+        cta: "Get Started Free",
+        href: "/sign-up?plan=free",
+        highlighted: false,
+        priceId: null,
+    },
+    {
         name: "Owner Operator",
         price: "$49",
+        period: "/month",
         description: "Perfect for the single food truck owner who can't afford downtime.",
         icon: Truck,
         features: [
@@ -20,13 +38,13 @@ const tiers = [
         ],
         cta: "Subscribe Now",
         href: "/sign-up?plan=standard",
-        featured: true,
         highlighted: true,
         priceId: "price_1ScscN9HXJ0MifVdh6FBWoku",
     },
     {
         name: "Fleet Manager",
         price: "$99",
+        period: "/month",
         description: "For growing empires with multiple trucks or locations.",
         icon: Building2,
         features: [
@@ -38,13 +56,13 @@ const tiers = [
         ],
         cta: "Subscribe Now",
         href: "/sign-up?plan=growth",
-        featured: false,
         highlighted: false,
         priceId: "price_1Scse99HXJ0MifVdGh9NhzyC",
     },
     {
         name: "Commissary",
         price: "$149",
+        period: "/month",
         description: "For commissary kitchens managing permits for tenant trucks.",
         icon: ShieldCheck,
         features: [
@@ -56,7 +74,6 @@ const tiers = [
         ],
         cta: "Subscribe Now",
         href: "/sign-up?plan=commissary",
-        featured: false,
         highlighted: false,
         priceId: "price_1Scsew9HXJ0MifVd8URkdiuz",
     },
@@ -69,16 +86,13 @@ export default function PricingSection() {
             if (response.url) {
                 window.location.href = response.url;
             } else if (response.error) {
-                // If unauthorized, redirect directly to sign up WITHOUT showing error toast
                 if (response.error === "Unauthorized") {
                     window.location.href = "/sign-up";
                     return;
                 }
-                // Only show toast for actual errors, not auth redirects
                 toast.error(response.error);
             }
         } catch (error) {
-            // Redirect to sign-up on any error (likely unauthorized)
             window.location.href = "/sign-up";
         }
     };
@@ -95,65 +109,68 @@ export default function PricingSection() {
                     </p>
                 </div>
 
-                {/* Pricing Grid - 3 columns now */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {tiers.map((tier) => {
-                        return (
-                            <div
-                                key={tier.name}
-                                className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${tier.highlighted
-                                    ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
-                                    : "border-gray-200 bg-white"
-                                    }`}
-                            >
-                                {tier.highlighted && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white shadow-sm">
-                                        Most Popular
-                                    </div>
-                                )}
-
-                                <div className={`mb-4 flex items-center justify-center h-10 w-10 rounded-lg ${tier.highlighted
-                                    ? "bg-blue-100 text-blue-600"
-                                    : "bg-gray-100 text-gray-600"
-                                    }`}>
-                                    <tier.icon className="h-5 w-5" />
+                {/* Pricing Grid - 4 columns */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {tiers.map((tier) => (
+                        <div
+                            key={tier.name}
+                            className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${tier.highlighted
+                                ? "border-blue-600 ring-2 ring-blue-600 bg-white scale-[1.02] z-10"
+                                : "border-gray-200 bg-white"
+                                }`}
+                        >
+                            {tier.highlighted && (
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white shadow-sm">
+                                    Most Popular
                                 </div>
+                            )}
 
-                                <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
-                                <p className="mt-2 text-sm text-gray-500 min-h-[40px]">{tier.description}</p>
+                            <div className={`mb-4 flex items-center justify-center h-12 w-12 rounded-xl ${tier.highlighted
+                                ? "bg-blue-100 text-blue-600"
+                                : "bg-gray-100 text-gray-600"
+                                }`}>
+                                <tier.icon className="h-6 w-6" />
+                            </div>
 
-                                <div className="my-4 flex items-baseline gap-2">
-                                    <span className="text-3xl font-bold tracking-tight text-gray-900">
-                                        {tier.price}
-                                    </span>
-                                    <span className="text-sm font-semibold text-gray-500">/month</span>
-                                </div>
+                            <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
+                            <p className="mt-2 text-sm text-gray-500 min-h-[48px]">{tier.description}</p>
 
-                                <ul className="mb-8 space-y-3 flex-1">
-                                    {tier.features.map((feature) => (
-                                        <li key={feature} className="flex items-start">
-                                            <Check className={`h-5 w-5 flex-shrink-0 ${tier.highlighted ? "text-blue-600" : "text-green-500"
-                                                }`} />
-                                            <span className="ml-3 text-sm text-gray-600">
-                                                {feature}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
+                            <div className="my-6 flex items-baseline gap-1">
+                                <span className={`text-4xl font-bold tracking-tight ${tier.highlighted ? "text-blue-600" : "text-gray-900"}`}>
+                                    {tier.price}
+                                </span>
+                                <span className="text-sm font-medium text-gray-500">{tier.period}</span>
+                            </div>
 
-                                {/* All tiers now have Stripe checkout */}
+                            <ul className="mb-8 space-y-3 flex-1">
+                                {tier.features.map((feature) => (
+                                    <li key={feature} className="flex items-start gap-3">
+                                        <Check className={`h-5 w-5 flex-shrink-0 mt-0.5 ${tier.highlighted ? "text-blue-600" : "text-green-500"}`} />
+                                        <span className="text-sm text-gray-600">{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {tier.priceId ? (
                                 <button
-                                    onClick={() => onCheckout(tier.priceId, 'subscription')}
-                                    className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
-                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                    onClick={() => onCheckout(tier.priceId!, 'subscription')}
+                                    className={`block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold transition-all ${tier.highlighted
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20"
+                                        : "bg-gray-900 text-white hover:bg-gray-800"
                                         }`}
                                 >
                                     {tier.cta}
                                 </button>
-                            </div>
-                        );
-                    })}
+                            ) : (
+                                <Link
+                                    href={tier.href}
+                                    className="block w-full rounded-xl px-4 py-3 text-center text-sm font-semibold bg-gray-100 text-gray-900 hover:bg-gray-200 transition-all"
+                                >
+                                    {tier.cta}
+                                </Link>
+                            )}
+                        </div>
+                    ))}
                 </div>
             </div>
         </section>
