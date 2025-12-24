@@ -189,3 +189,172 @@ export function generateExpirationEmailHtml(
     `;
 }
 
+/**
+ * Sends a welcome email to a newly registered user
+ */
+export async function sendWelcomeEmail(email: string, firstName?: string) {
+    if (!resend) {
+        console.warn('⚠️  Resend not configured. Welcome email not sent.');
+        return { success: false };
+    }
+
+    const name = firstName || 'there';
+    const htmlEmail = generateWelcomeEmailHtml(name);
+
+    return sendEmail(
+        email,
+        'Welcome to UltOps! 🚀',
+        `Welcome to UltOps, ${name}! We're thrilled to have you.`,
+        htmlEmail
+    );
+}
+
+/**
+ * Generate HTML for Welcome Email
+ */
+export function generateWelcomeEmailHtml(name: string): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Welcome to UltOps! 🚀</h1>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">
+                    Hi ${name},
+                </h2>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Thanks for joining UltOps. We're here to make sure you <strong>never miss a license renewal again</strong>.
+                </p>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Here's how to get started:
+                </p>
+
+                <ul style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; padding-left: 20px;">
+                    <li style="margin-bottom: 10px;">🚚 <strong>Add your first business</strong> (Truck, Restaurant, Ghost Kitchen)</li>
+                    <li style="margin-bottom: 10px;">📄 <strong>Upload your licenses</strong> (Health permit, Business license, Food Handler cards)</li>
+                    <li style="margin-bottom: 10px;">✅ <strong>Relax</strong>. We'll notify you before anything expires.</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://ultops.com/dashboard" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                        Go to Dashboard →
+                    </a>
+                </div>
+
+                <p style="color: #64748b; font-size: 14px; margin-top: 30px;">
+                    Need help? Just reply to this email. We're real people!
+                </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                    © ${new Date().getFullYear()} UltOps Inc.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
+
+/**
+ * Sends a daily activity summary to a user
+ */
+export async function sendActivitySummaryEmail(
+    email: string,
+    firstName: string | undefined,
+    businessCount: number,
+    licenseCount: number
+) {
+    if (!resend) {
+        console.warn('⚠️  Resend not configured. Activity email not sent.');
+        return { success: false };
+    }
+
+    const name = firstName || 'there';
+    const htmlEmail = generateActivitySummaryHtml(name, businessCount, licenseCount);
+
+    return sendEmail(
+        email,
+        'Your Day at UltOps: Summary 📊',
+        `You added ${businessCount} businesses and ${licenseCount} licenses today. Great work staying compliant!`,
+        htmlEmail
+    );
+}
+
+/**
+ * Generate HTML for Daily Activity Summary
+ */
+export function generateActivitySummaryHtml(name: string, businessCount: number, licenseCount: number): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Daily Activity Summary 📊</h1>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">
+                    Great work today, ${name}!
+                </h2>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    You've taken important steps towards full compliance. Here's what you added to UltOps today:
+                </p>
+
+                <div style="display: flex; gap: 20px; margin: 30px 0;">
+                    <div style="flex: 1; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 20px; text-align: center;">
+                        <span style="display: block; font-size: 32px; font-weight: bold; color: #0284c7;">${businessCount}</span>
+                        <span style="color: #0c4a6e; font-size: 14px;">Total Businesses</span>
+                    </div>
+                    <div style="flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; text-align: center;">
+                        <span style="display: block; font-size: 32px; font-weight: bold; color: #16a34a;">${licenseCount}</span>
+                        <span style="color: #14532d; font-size: 14px;">Total Licenses</span>
+                    </div>
+                </div>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Every document you track is one less worry for your business. Keep it up!
+                </p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://ultops.com/dashboard" style="display: inline-block; background: #3b82f6; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                        View Dashboard →
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                    This is a daily summary of your activity. You can disable this in settings.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+}
