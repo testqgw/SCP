@@ -2,7 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { LayoutDashboard, MessageSquare, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Users, Settings, LogOut, AlertTriangle } from "lucide-react";
 
 const ADMIN_EMAILS = [
     "quincy@ultops.com",
@@ -29,13 +29,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 </div>
 
                 <nav className="flex-1 p-4 space-y-1">
-                    <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md bg-slate-800 text-white">
-                        <MessageSquare className="w-5 h-5" />
-                        Feedback
+                    <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
+                        <LayoutDashboard className="w-5 h-5" />
+                        Overview
                     </Link>
-                    <Link href="/admin/users" className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
+                    <Link href="/admin/expiring" className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
+                        <AlertTriangle className="w-5 h-5" />
+                        Expiring Licenses
+                    </Link>
+                    <Link href="/admin" className="flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors">
                         <Users className="w-5 h-5" />
-                        Users (Soon)
+                        All Users
                     </Link>
                 </nav>
 
