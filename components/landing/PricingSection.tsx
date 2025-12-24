@@ -1,49 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ShieldCheck, Truck, Building2, Store, X, Rocket, Sparkles } from "lucide-react";
+import { Check, ShieldCheck, Truck, Building2 } from "lucide-react";
 import { onSubscribe } from "@/actions/stripe-redirect";
 import { toast } from "sonner";
 
 const tiers = [
-    {
-        name: "🚀 Founding Member",
-        price: "$0",
-        period: "for 3 months",
-        description: "Full Pro access FREE. Be part of our founding community.",
-        icon: Rocket,
-        features: [
-            "Unlimited Businesses",
-            "Unlimited Licenses & Permits",
-            "Email Expiration Alerts",
-            "Secure Document Vault",
-            "Unlimited Team Members",
-            "Then just $49/mo after trial",
-        ],
-        cta: "🎉 Claim Free Access",
-        href: "/sign-up?plan=founding",
-        featured: true,
-        highlighted: true,
-        priceId: null, // Free signup
-        isFoundingMember: true,
-    },
-    {
-        name: "The Starter",
-        price: "$0",
-        description: "For new trucks just getting permits organized.",
-        icon: Store,
-        features: [
-            "1 Business Entity",
-            "Limit: 3 Licenses Tracked",
-            "Email Reminders",
-            "Basic Document Storage",
-        ],
-        cta: "Get Started Free",
-        href: "/sign-up?plan=free",
-        featured: false,
-        highlighted: false,
-        priceId: null,
-    },
     {
         name: "Owner Operator",
         price: "$49",
@@ -58,8 +20,8 @@ const tiers = [
         ],
         cta: "Subscribe Now",
         href: "/sign-up?plan=standard",
-        featured: false,
-        highlighted: false,
+        featured: true,
+        highlighted: true,
         priceId: "price_1ScscN9HXJ0MifVdh6FBWoku",
     },
     {
@@ -133,59 +95,44 @@ export default function PricingSection() {
                     </p>
                 </div>
 
-                {/* Pricing Grid - 5 columns now */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                {/* Pricing Grid - 3 columns now */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {tiers.map((tier) => {
-                        const isFoundingMember = 'isFoundingMember' in tier && tier.isFoundingMember;
-
                         return (
                             <div
                                 key={tier.name}
-                                className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${isFoundingMember
-                                    ? "border-emerald-500 ring-2 ring-emerald-500 bg-gradient-to-b from-emerald-50 to-white scale-105 z-10"
-                                    : tier.highlighted
-                                        ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
-                                        : "border-gray-200 bg-white"
+                                className={`relative flex flex-col rounded-2xl border p-6 shadow-sm transition-all hover:shadow-md ${tier.highlighted
+                                    ? "border-blue-600 ring-1 ring-blue-600 bg-white scale-105 z-10"
+                                    : "border-gray-200 bg-white"
                                     }`}
                             >
-                                {isFoundingMember ? (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 px-4 py-1 text-sm font-bold text-white shadow-lg animate-pulse">
-                                        ✨ Limited Time
-                                    </div>
-                                ) : tier.highlighted && (
+                                {tier.highlighted && (
                                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-sm font-semibold text-white shadow-sm">
                                         Most Popular
                                     </div>
                                 )}
 
-                                <div className={`mb-4 flex items-center justify-center h-10 w-10 rounded-lg ${isFoundingMember
-                                    ? "bg-emerald-100 text-emerald-600"
-                                    : tier.highlighted
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-gray-100 text-gray-600"
+                                <div className={`mb-4 flex items-center justify-center h-10 w-10 rounded-lg ${tier.highlighted
+                                    ? "bg-blue-100 text-blue-600"
+                                    : "bg-gray-100 text-gray-600"
                                     }`}>
                                     <tier.icon className="h-5 w-5" />
                                 </div>
 
-                                <h3 className={`text-lg font-semibold ${isFoundingMember ? "text-emerald-700" : "text-gray-900"}`}>{tier.name}</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
                                 <p className="mt-2 text-sm text-gray-500 min-h-[40px]">{tier.description}</p>
 
                                 <div className="my-4 flex items-baseline gap-2">
-                                    <span className={`text-3xl font-bold tracking-tight ${isFoundingMember ? "text-emerald-600" : "text-gray-900"}`}>
+                                    <span className="text-3xl font-bold tracking-tight text-gray-900">
                                         {tier.price}
                                     </span>
-                                    {'period' in tier ? (
-                                        <span className="text-sm font-semibold text-emerald-600">{tier.period}</span>
-                                    ) : (
-                                        tier.price !== "$0" && <span className="text-sm font-semibold text-gray-500">/month</span>
-                                    )}
+                                    <span className="text-sm font-semibold text-gray-500">/month</span>
                                 </div>
 
                                 <ul className="mb-8 space-y-3 flex-1">
                                     {tier.features.map((feature) => (
                                         <li key={feature} className="flex items-start">
-                                            <Check className={`h-5 w-5 flex-shrink-0 ${isFoundingMember ? "text-emerald-500" :
-                                                tier.highlighted ? "text-blue-600" : "text-green-500"
+                                            <Check className={`h-5 w-5 flex-shrink-0 ${tier.highlighted ? "text-blue-600" : "text-green-500"
                                                 }`} />
                                             <span className="ml-3 text-sm text-gray-600">
                                                 {feature}
@@ -194,43 +141,16 @@ export default function PricingSection() {
                                     ))}
                                 </ul>
 
-                                {/* Handle different button types based on tier configuration */}
-                                {tier.href.startsWith("mailto:") ? (
-                                    // Contact Sales - opens email
-                                    <a
-                                        href={tier.href}
-                                        className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
-                                            ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                            : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                                            }`}
-                                    >
-                                        {tier.cta}
-                                    </a>
-                                ) : tier.priceId ? (
-                                    // Paid tier with Stripe checkout
-                                    <button
-                                        onClick={() => onCheckout(tier.priceId!, ('paymentMode' in tier ? tier.paymentMode : 'subscription') as "subscription" | "payment")}
-                                        className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
-                                            ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                            : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                                            }`}
-                                    >
-                                        {tier.cta}
-                                    </button>
-                                ) : (
-                                    // Free tier - sign up link (special button for Founding Member)
-                                    <Link
-                                        href={tier.href}
-                                        className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${isFoundingMember
-                                            ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:from-emerald-400 hover:to-cyan-400 shadow-lg"
-                                            : tier.highlighted
-                                                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                                                : "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                                            }`}
-                                    >
-                                        {tier.cta}
-                                    </Link>
-                                )}
+                                {/* All tiers now have Stripe checkout */}
+                                <button
+                                    onClick={() => onCheckout(tier.priceId, 'subscription')}
+                                    className={`block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${tier.highlighted
+                                        ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                                        : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    {tier.cta}
+                                </button>
                             </div>
                         );
                     })}
