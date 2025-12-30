@@ -52,6 +52,7 @@ const tiers = [
         features: [
             "<strong>5</strong> Businesses",
             "<strong>Limit: 100</strong> Licenses",
+            "<strong>Everything in Owner +</strong>",
             "Admin & Staff Roles",
             "Activity/Audit Logs",
             "Priority Support",
@@ -71,6 +72,7 @@ const tiers = [
         features: [
             "<strong>10</strong> Businesses Included",
             "<strong>Unlimited</strong> Licenses",
+            "<strong>Everything in Fleet +</strong>",
             "Tenant Compliance Dashboard",
             "Bulk License Import",
             "Dedicated Onboarding",
