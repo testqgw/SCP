@@ -103,7 +103,7 @@ export async function POST(req: Request) {
     }
 
     const owner = ownerMembership.user;
-    const isFreeAccount = owner.subscriptionTier === 'starter';
+    const ownerTier = owner.subscriptionTier || 'starter';
 
     // BETA BYPASS: Check if owner is in beta period
     const isBetaUser = isInBetaPeriod(owner.trialEndsAt);
@@ -115,13 +115,7 @@ export async function POST(req: Request) {
       }
     });
 
-    // Limit Logic: Free accounts (Owners) can only have 1 license per business? 
-    // Or 1 license TOTAL? The prompt said "Free plan limited to 3 licenses. Upgrade to add more!".
-    // Let's assume 1 license TOTAL for the Owner across all businesses?
-    // Or 1 license per business?
-    // The previous code counted `where: { business: { userId } }` which is TOTAL licenses for that user.
-    // So we should count all licenses owned by the Business Owner.
-
+    // Count TOTAL licenses owned by the Business Owner (across all their businesses)
     const totalOwnerLicenses = await prisma.license.count({
       where: {
         business: {
@@ -135,10 +129,32 @@ export async function POST(req: Request) {
       }
     });
 
+    // License limits by tier
+    const LICENSE_LIMITS: Record<string, number> = {
+      'starter': 3,
+      'owner_operator': 20,
+      'fleet_manager': 100,
+      'commissary': Infinity, // Unlimited
+    };
+
+    const limit = LICENSE_LIMITS[ownerTier] || 3;
+
     // BETA BYPASS: Skip limit if owner is in beta period
-    if (!isBetaUser && isFreeAccount && totalOwnerLicenses >= 3) {
+    if (!isBetaUser && totalOwnerLicenses >= limit) {
+      const tierNames: Record<string, string> = {
+        'starter': 'Owner Operator',
+        'owner_operator': 'Fleet Manager',
+        'fleet_manager': 'Commissary',
+      };
+      const nextTier = tierNames[ownerTier] || 'a higher plan';
+
       return NextResponse.json(
-        { error: "LIMIT_REACHED", message: "Business Owner's free plan is limited to 3 licenses. Upgrade to add more!." },
+        {
+          error: "LIMIT_REACHED",
+          message: `You've reached the ${limit} license limit for your plan. Upgrade to ${nextTier} to add more!`,
+          currentCount: totalOwnerLicenses,
+          limit: limit
+        },
         { status: 403 }
       );
     }

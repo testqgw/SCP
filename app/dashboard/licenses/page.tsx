@@ -192,23 +192,38 @@ export default function LicensesPage() {
         </div>
 
         {/* Add/Upgrade Button */}
-        {userTier === 'starter' && licenses.length >= 3 ? (
-          <Link
-            href="/dashboard/upgrade"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
-          >
-            <Lock className="w-4 h-4" />
-            Upgrade for More Licenses
-          </Link>
-        ) : (
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
-          >
-            {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showAddForm ? 'Cancel' : 'Add License'}
-          </button>
-        )}
+        {(() => {
+          const LICENSE_LIMITS: Record<string, number> = {
+            'starter': 3,
+            'owner_operator': 20,
+            'fleet_manager': 100,
+            'commissary': Infinity,
+          };
+          const limit = LICENSE_LIMITS[userTier] || 3;
+          const isAtLimit = licenses.length >= limit && limit !== Infinity;
+
+          if (isAtLimit) {
+            return (
+              <Link
+                href="/dashboard/upgrade"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all shadow-sm"
+              >
+                <Lock className="w-4 h-4" />
+                Upgrade for More Licenses ({licenses.length}/{limit})
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors shadow-sm"
+            >
+              {showAddForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {showAddForm ? 'Cancel' : `Add License (${licenses.length}/${limit === Infinity ? '∞' : limit})`}
+            </button>
+          );
+        })()}
       </div>
 
       {/* FILTERS */}
