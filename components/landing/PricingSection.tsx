@@ -149,12 +149,20 @@ export default function PricingSection() {
                             </div>
 
                             <ul className="mb-8 space-y-3 flex-1">
-                                {tier.features.map((feature, idx) => (
-                                    <li key={idx} className="flex items-start gap-3">
-                                        <Check className={`h-5 w-5 flex-shrink-0 mt-0.5 ${tier.highlighted ? "text-blue-600" : "text-green-500"}`} />
-                                        <span className="text-sm text-gray-600" dangerouslySetInnerHTML={{ __html: feature }} />
-                                    </li>
-                                ))}
+                                {tier.features.map((feature, idx) => {
+                                    // Safe parsing: extract bold text without dangerouslySetInnerHTML
+                                    const parts = feature.split(/<strong>|<\/strong>/);
+                                    return (
+                                        <li key={idx} className="flex items-start gap-3">
+                                            <Check className={`h-5 w-5 flex-shrink-0 mt-0.5 ${tier.highlighted ? "text-blue-600" : "text-green-500"}`} />
+                                            <span className="text-sm text-gray-600">
+                                                {parts.map((part, i) =>
+                                                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                                                )}
+                                            </span>
+                                        </li>
+                                    );
+                                })}
                             </ul>
 
                             {tier.priceId ? (

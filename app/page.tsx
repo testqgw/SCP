@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { ArrowRight, Bell, ShieldCheck, Smartphone, FileText, Check, CreditCard } from "lucide-react";
 import PricingSection from "@/components/landing/PricingSection";
+import { MobileMenu } from "@/components/landing/MobileMenu";
 
 export default function LandingPage() {
   return (
@@ -27,10 +28,16 @@ export default function LandingPage() {
           </Link>
           <Link
             href="/sign-up"
-            className="rounded-full bg-white/10 border border-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-all"
+            className="rounded-full bg-white/10 border border-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 transition-all hidden sm:block"
           >
             Get Started
           </Link>
+          <MobileMenu
+            links={[
+              { href: "#pricing", label: "Pricing" },
+              { href: "/sign-in", label: "Log in" },
+            ]}
+          />
         </div>
       </nav>
 
@@ -251,7 +258,7 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <p className="text-white text-sm font-medium">License Renewed</p>
-                        <p className="text-slate-500 text-xs">Oct 24, 2024 • via Auto-Renewal</p>
+                        <p className="text-slate-500 text-xs">Oct 24, {new Date().getFullYear()} • via Auto-Renewal</p>
                       </div>
                     </div>
                     <div className="relative flex gap-4 items-center opacity-50">
@@ -260,7 +267,7 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <p className="text-slate-300 text-sm">Reminder Sent</p>
-                        <p className="text-slate-600 text-xs">Oct 20, 2024 • SMS & Email</p>
+                        <p className="text-slate-600 text-xs">Oct 20, {new Date().getFullYear()} • SMS & Email</p>
                       </div>
                     </div>
                   </div>

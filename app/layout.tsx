@@ -8,6 +8,25 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "UltOps | Automated Compliance Reminders",
   description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
+  keywords: ["compliance", "license renewal", "food truck permits", "SMS reminders", "permit tracking"],
+  authors: [{ name: "UltOps" }],
+  openGraph: {
+    title: "UltOps | Automated Compliance Reminders",
+    description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
+    url: "https://ultops.com",
+    siteName: "UltOps",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UltOps | Automated Compliance Reminders",
+    description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 import { Toaster } from "sonner";
