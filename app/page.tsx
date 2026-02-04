@@ -297,9 +297,9 @@ export default function LandingPage() {
               <Link href="/terms" className="text-slate-500 hover:text-slate-300 transition-colors">
                 Terms of Service
               </Link>
-              <a href="mailto:masterq@ultops.com" className="text-slate-500 hover:text-slate-300 transition-colors">
+              <Link href="/contact" className="text-slate-500 hover:text-slate-300 transition-colors">
                 Contact
-              </a>
+              </Link>
             </div>
             <div className="text-slate-600 text-sm">
               © {new Date().getFullYear()} UltOps Inc. All rights reserved.
