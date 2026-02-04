@@ -55,6 +55,7 @@ export async function onSubscribe(priceId: string, mode: "subscription" | "payme
             metadata: {
                 userId: userId,
                 mode: mode, // Track if this was subscription or one-time
+                priceId: priceId, // Track which price was purchased
             },
         });
 
