@@ -231,7 +231,7 @@ export default function ChangePlanPage() {
                 <Link href="/dashboard/settings" className="text-blue-600 hover:underline">
                     Manage Billing
                 </Link>
-                {" "}or contact <a href="mailto:support@ultops.com" className="text-blue-600 hover:underline">support@ultops.com</a>
+                {" "}or contact <a href="mailto:masterq@ultops.com" className="text-blue-600 hover:underline">masterq@ultops.com</a>
             </div>
         </div>
     );
