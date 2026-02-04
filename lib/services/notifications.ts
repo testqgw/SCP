@@ -358,3 +358,75 @@ export function generateActivitySummaryHtml(name: string, businessCount: number,
     </html>
     `;
 }
+
+/**
+ * Send VIP Onboarding purchase notification to admin
+ * @param customerEmail - Email of the customer who purchased
+ * @param customerName - Name of the customer (optional)
+ */
+export async function sendVIPPurchaseNotification(customerEmail: string, customerName?: string) {
+    const adminEmail = process.env.ADMIN_EMAIL || 'quincy@ultops.com';
+
+    const name = customerName || 'A customer';
+    const subject = '🎉 NEW VIP Onboarding Purchase!';
+
+    const htmlEmail = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">🎉 VIP Onboarding Sold!</h1>
+            </div>
+            
+            <!-- Content -->
+            <div style="padding: 30px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 20px;">
+                    New $499 VIP Purchase!
+                </h2>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    <strong>${name}</strong> just purchased VIP Onboarding!
+                </p>
+                
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                    <p style="margin: 0; color: #92400e; font-size: 14px;">
+                        <strong>Customer Email:</strong> ${customerEmail}
+                    </p>
+                </div>
+                
+                <p style="color: #64748b; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                    Time to reach out and schedule the onboarding session!
+                </p>
+                
+                <a href="mailto:${customerEmail}?subject=Your VIP Onboarding - Let's Get Started!" style="display: inline-block; background: #f59e0b; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; margin-top: 10px;">
+                    Contact Customer →
+                </a>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
+                    This is an automated notification from UltOps.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    console.log(`[VIP_NOTIFICATION] Sending VIP purchase alert to ${adminEmail} for customer ${customerEmail}`);
+
+    return sendEmail(
+        adminEmail,
+        subject,
+        `New VIP Onboarding purchase! Customer: ${name} (${customerEmail}). Reach out to schedule their onboarding session.`,
+        htmlEmail
+    );
+}

@@ -80,7 +80,7 @@ const tiers = [
         cta: "Subscribe",
         href: "/sign-up?plan=commissary",
         highlighted: false,
-        priceId: "price_1Scsew9HXJ0MifVd8URkdiuz",
+        priceId: "price_1SxAiS9HXJ0MifVdeoIl4HJX",
         isContactSales: false,
     },
 ];
@@ -222,12 +222,12 @@ export default function PricingSection() {
                                 Get a 100% ready-to-go account
                             </li>
                         </ul>
-                        <a
-                            href="mailto:masterq@ultops.com?subject=VIP Onboarding Request"
-                            className="inline-block px-8 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20"
+                        <button
+                            onClick={() => onCheckout("price_1SxAl49HXJ0MifVdQe1szxsa", 'payment')}
+                            className="inline-block px-8 py-3 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
                         >
                             Get VIP Setup
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>

@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { sendVIPPurchaseNotification } from "@/lib/services/notifications";
+
+// VIP Onboarding Price ID
+const VIP_ONBOARDING_PRICE_ID = "price_1SxAl49HXJ0MifVdQe1szxsa";
 
 export const dynamic = 'force-dynamic';
 
@@ -34,8 +38,9 @@ export async function POST(req: Request) {
 
         const userId = session.metadata.userId;
         const paymentMode = session.metadata.mode || "subscription";
+        const priceId = session.metadata?.priceId;
 
-        console.log(`[STRIPE_WEBHOOK] Checkout completed for user ${userId}, mode: ${paymentMode}`);
+        console.log(`[STRIPE_WEBHOOK] Checkout completed for user ${userId}, mode: ${paymentMode}, priceId: ${priceId}`);
 
         try {
             if (session.subscription) {
@@ -65,13 +70,35 @@ export async function POST(req: Request) {
                     where: { id: userId },
                     data: {
                         stripeCustomerId: session.customer as string,
-                        stripePriceId: session.metadata?.priceId || "one_time_purchase",
+                        stripePriceId: priceId || "one_time_purchase",
                         subscriptionStatus: "active",
                         subscriptionTier: "professional", // Upgrade to pro on purchase
                     },
                 });
 
                 console.log(`[STRIPE_WEBHOOK] One-time purchase completed for user ${userId}`);
+
+                // Check if this is a VIP Onboarding purchase
+                if (priceId === VIP_ONBOARDING_PRICE_ID) {
+                    console.log(`[STRIPE_WEBHOOK] 🎉 VIP Onboarding purchased by user ${userId}!`);
+
+                    // Get customer email from session or database
+                    const user = await prisma.user.findUnique({
+                        where: { id: userId },
+                        select: { email: true, name: true }
+                    });
+
+                    if (user?.email) {
+                        await sendVIPPurchaseNotification(user.email, user.name || undefined);
+                    } else {
+                        // Fallback: use email from Stripe session
+                        const customerEmail = session.customer_details?.email || session.customer_email;
+                        const customerName = session.customer_details?.name;
+                        if (customerEmail) {
+                            await sendVIPPurchaseNotification(customerEmail, customerName || undefined);
+                        }
+                    }
+                }
             }
         } catch (dbError: any) {
             console.error("[STRIPE_WEBHOOK] Database update failed:", dbError.message);
