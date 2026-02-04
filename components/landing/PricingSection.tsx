@@ -28,7 +28,7 @@ const tiers = [
         name: "Owner Operator",
         price: "$49",
         period: "/month",
-        description: "For trucks & small teams.",
+        description: "For delis, restaurants & small teams.",
         icon: Truck,
         features: [
             "<strong>1</strong> Business",
@@ -67,7 +67,7 @@ const tiers = [
         name: "Commissary",
         price: "$399",
         period: "/month",
-        description: "For kitchens managing tenant trucks.",
+        description: "For shared kitchens & multi-tenant facilities.",
         icon: ShieldCheck,
         features: [
             "<strong>10</strong> Businesses Included",
