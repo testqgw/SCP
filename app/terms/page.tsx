@@ -77,7 +77,7 @@ export default function TermsPage() {
                         <h2 className="text-2xl font-semibold text-white mb-4">6. Contact Us</h2>
                         <p className="text-slate-400 leading-relaxed">
                             If you have questions about these Terms, please contact us at{" "}
-                            <a href="mailto:legal@ultops.com" className="text-blue-400 hover:underline">legal@ultops.com</a>.
+                            <a href="mailto:masterq@ultops.com" className="text-blue-400 hover:underline">masterq@ultops.com</a>.
                         </p>
                     </section>
                 </div>

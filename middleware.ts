@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/demo(.*)",          // Demo page (and all sub-paths)
   "/privacy",           // Privacy Policy page
   "/terms",             // Terms of Service page
+  "/contact",           // Contact/Help page
   "/sign-in(.*)",       // Sign-in page
   "/sign-up(.*)",       // Sign-up page
   "/api/webhooks(.*)",  // Webhooks (Stripe/Clerk)
