@@ -365,7 +365,7 @@ export function generateActivitySummaryHtml(name: string, businessCount: number,
  * @param customerName - Name of the customer (optional)
  */
 export async function sendVIPPurchaseNotification(customerEmail: string, customerName?: string) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'quincy@ultops.com';
+    const adminEmail = process.env.ADMIN_EMAIL || 'masterq@ultops.com';
 
     const name = customerName || 'A customer';
     const subject = '🎉 NEW VIP Onboarding Purchase!';

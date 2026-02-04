@@ -3,7 +3,7 @@ import { prisma as db } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
 const ADMIN_EMAILS = [
-  "quincy@ultops.com",
+  "masterq@ultops.com",
   "quincygw@gmail.com",
   process.env.ADMIN_EMAIL
 ].filter(Boolean) as string[];
