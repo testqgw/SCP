@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { SportsDataClient } from "@/lib/sportsdata/client";
-import { getEtDateShifted } from "@/lib/snapshot/time";
+import { etDateShift } from "@/lib/snapshot/time";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
     try {
         const client = new SportsDataClient();
-        const dateEt = getEtDateShifted(new Date());
+        const dateEt = etDateShift(new Date().toISOString(), 0);
 
         // Fetch directly from the legacy endpoint
         const rawData = await client.fetchLegacyPlayerPropsByDate(dateEt);
