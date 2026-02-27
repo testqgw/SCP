@@ -1,5 +1,5 @@
 
-import type { PlayerGameLog, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
 import { ALL_MARKETS, isLineReasonableForMarket, marketValueFromLog } from "@/lib/snapshot/markets";
@@ -734,7 +734,7 @@ async function scoreAndPersistEdges(
     take: 6000,
   });
 
-  const logsByPlayer = new Map<string, PlayerGameLog[]>();
+  const logsByPlayer = new Map<string, (typeof playerLogs)[number][]>();
   playerLogs.forEach((log) => {
     const list = logsByPlayer.get(log.playerId) ?? [];
     list.push(log);
