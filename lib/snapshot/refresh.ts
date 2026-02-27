@@ -21,22 +21,18 @@ import { scrapeUnderdogProps } from "@/lib/sportsdata/scraper";
 import {
   normalizeActiveSportsbooks,
   normalizeBettingEvents,
-  normalizeBettingMetadata,
-  normalizeBettingPlayerProps,
   normalizeBoxScorePlayerLogs,
   normalizeGames,
   normalizeInjuries,
-  normalizeLegacyPlayerPropsByDate,
   normalizeSeasonPlayers,
 } from "@/lib/sportsdata/normalize";
 import type {
-  BettingMetadata,
   NormalizedPlayerGameStat,
   NormalizedPlayerProp,
   NormalizedPlayerSeason,
   NormalizedSportsbook,
 } from "@/lib/sportsdata/types";
-import { clamp, round, toStringOrNull } from "@/lib/utils";
+import { clamp, round } from "@/lib/utils";
 
 type RefreshMode = "FULL" | "DELTA";
 
@@ -52,11 +48,6 @@ type RefreshResult = {
     lines: number;
     edges: number;
   };
-};
-
-type GameTeamProviders = {
-  homeTeamProvider: string | null;
-  awayTeamProvider: string | null;
 };
 
 const QUALITY_GATE_ENABLED = process.env.SNAPSHOT_QUALITY_GATE_ENABLED !== "false";
@@ -108,26 +99,7 @@ function teamNameFromAbbr(abbreviation: string | null): string {
   return abbreviation.toUpperCase();
 }
 
-function asRecord(input: unknown): Record<string, unknown> | null {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return null;
-  return input as Record<string, unknown>;
-}
 
-function buildProviderGameTeams(rawGames: unknown[]): Map<string, GameTeamProviders> {
-  const map = new Map<string, GameTeamProviders>();
-
-  rawGames.forEach((item) => {
-    const row = asRecord(item);
-    if (!row) return;
-    const gameId = toStringOrNull(row.GameID ?? row.GameId ?? row.gameId);
-    if (!gameId) return;
-    const homeTeamProvider = toStringOrNull(row.HomeTeam ?? row.homeTeam);
-    const awayTeamProvider = toStringOrNull(row.AwayTeam ?? row.awayTeam);
-    map.set(gameId, { homeTeamProvider, awayTeamProvider });
-  });
-
-  return map;
-}
 
 async function ensureSportsbooks(providerBooks: NormalizedSportsbook[], props: NormalizedPlayerProp[]): Promise<Map<string, string>> {
   const known = new Map<string, NormalizedSportsbook>();
@@ -449,7 +421,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const warnings: string[] = [];
   const season = inferSeasonFromEtDate(dateEt);
 
-  const [rawGames, rawSeasonPlayers, rawInjuries, rawSportsbooks, rawMetadata, rawEvents] = await Promise.all([
+  const [rawGames, rawSeasonPlayers, rawInjuries, rawSportsbooks, rawEvents] = await Promise.all([
     client.fetchSchedule(dateEt),
     client.fetchSeasonStats(season).catch((error) => {
       warnings.push(`Season stats unavailable: ${error instanceof Error ? error.message : "unknown"}`);
@@ -463,10 +435,6 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       warnings.push(`Active sportsbooks unavailable: ${error instanceof Error ? error.message : "unknown"}`);
       return [];
     }),
-    client.fetchBettingMetadata().catch((error) => {
-      warnings.push(`Betting metadata unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-      return {};
-    }),
     client.fetchBettingEventsByDate(dateEt).catch((error) => {
       warnings.push(`Betting events unavailable: ${error instanceof Error ? error.message : "unknown"}`);
       return [];
@@ -475,7 +443,6 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
 
   const games = normalizeGames(rawGames);
   const sportsbooks = normalizeActiveSportsbooks(rawSportsbooks);
-  const metadata = normalizeBettingMetadata(rawMetadata);
   const events = normalizeBettingEvents(rawEvents);
   const datesToFetch = collectHistoricalFetchDates(mode, dateEt);
   const rawLogs: unknown[] = [];

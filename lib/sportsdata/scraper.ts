@@ -46,8 +46,8 @@ export async function scrapeUnderdogProps(
             const overUnder = line.over_under;
             if (!overUnder) continue;
 
-            const overOption = line.options.find((o: any) => o.choice === "higher");
-            const underOption = line.options.find((o: any) => o.choice === "lower");
+            const overOption = line.options.find((o: { choice: string; selection_header?: string }) => o.choice === "higher");
+            const underOption = line.options.find((o: { choice: string; selection_header?: string }) => o.choice === "lower");
 
             const playerName = overOption?.selection_header || underOption?.selection_header;
             if (!playerName) continue;
