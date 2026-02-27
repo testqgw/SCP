@@ -376,8 +376,9 @@ async function insertPropSnapshots(
       return;
     }
 
-    // Sanity check: reject lines outside expected ranges for the market
-    if (!isLineReasonableForMarket(prop.market, prop.line)) {
+    // Sanity check: reject lines outside expected ranges for the market, unless from the legacy feed (which scrambles values)
+    const isLegacy = prop.sourceFeed.includes("LEGACY");
+    if (!isLegacy && !isLineReasonableForMarket(prop.market, prop.line)) {
       rejectedCount += 1;
       return;
     }
