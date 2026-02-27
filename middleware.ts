@@ -12,6 +12,7 @@ const INTERNAL_PREFIXES = [
   "/api/internal/refresh/full",
   "/api/internal/refresh/delta",
   "/api/internal/cleanup/lines",
+  "/api/internal/debug-props",
 ];
 
 function isPublicPath(pathname: string): boolean {

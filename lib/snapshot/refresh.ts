@@ -17,6 +17,7 @@ import { scoreEdge } from "@/lib/snapshot/scoring";
 import { etDateShift, getTodayEtDateString, inferSeasonFromEtDate } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
 import { SportsDataClient } from "@/lib/sportsdata/client";
+import { scrapeUnderdogProps } from "@/lib/sportsdata/scraper";
 import {
   normalizeActiveSportsbooks,
   normalizeBettingEvents,
@@ -29,6 +30,7 @@ import {
   normalizeSeasonPlayers,
 } from "@/lib/sportsdata/normalize";
 import type {
+  BettingMetadata,
   NormalizedPlayerGameStat,
   NormalizedPlayerProp,
   NormalizedPlayerSeason,
@@ -219,8 +221,9 @@ async function upsertTeams(
   return map;
 }
 
-async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<{ playerMap: Map<string, string>; playerNameMap: Map<string, string> }> {
+  const playerMap = new Map<string, string>();
+  const playerNameMap = new Map<string, string>();
 
   for (const player of players) {
     const teamId = player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null;
@@ -245,14 +248,17 @@ async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<str
         isActive: player.isActive,
         teamId,
       },
-      select: { id: true, externalId: true },
+      select: { id: true, externalId: true, fullName: true },
     });
     if (saved.externalId) {
-      map.set(saved.externalId, saved.id);
+      playerMap.set(saved.externalId, saved.id);
+    }
+    if (saved.fullName) {
+      playerNameMap.set(saved.fullName.toLowerCase().trim(), saved.id);
     }
   }
 
-  return map;
+  return { playerMap, playerNameMap };
 }
 
 async function upsertGames(
@@ -364,12 +370,17 @@ async function insertPropSnapshots(
   playerMap: Map<string, string>,
   gameMap: Map<string, string>,
   sportsbookMap: Map<string, string>,
+  playerNameMap?: Map<string, string>,
 ): Promise<number> {
   const payload: Prisma.PropLineSnapshotCreateManyInput[] = [];
   let rejectedCount = 0;
 
   props.forEach((prop) => {
-    const playerId = playerMap.get(prop.externalPlayerId);
+    let playerId = playerMap.get(prop.externalPlayerId);
+    if (!playerId && playerNameMap && prop.sourceFeed === "UNDERDOG_API") {
+      playerId = playerNameMap.get(prop.externalPlayerId.toLowerCase().trim());
+    }
+
     const gameId = gameMap.get(prop.externalGameId);
     const sportsbookId = sportsbookMap.get(prop.sportsbookKey);
     if (!playerId || !gameId || !sportsbookId) {
@@ -466,67 +477,6 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const sportsbooks = normalizeActiveSportsbooks(rawSportsbooks);
   const metadata = normalizeBettingMetadata(rawMetadata);
   const events = normalizeBettingEvents(rawEvents);
-  const gameProviderMap = buildProviderGameTeams(rawGames);
-  const eventGameIds = new Set(events.map((event) => event.gameId));
-
-  const rawPropsByGame: unknown[] = [];
-  let primaryGamesAttempted = 0;
-  let primaryGamesSucceeded = 0;
-  for (const game of games) {
-    if (eventGameIds.size > 0 && !eventGameIds.has(game.externalGameId)) {
-      continue;
-    }
-    primaryGamesAttempted += 1;
-    try {
-      const rows = await client.fetchBettingPlayerPropsByGameId(game.externalGameId);
-      const providers = gameProviderMap.get(game.externalGameId) ?? { homeTeamProvider: null, awayTeamProvider: null };
-      const normalized = normalizeBettingPlayerProps(rows, {
-        metadata,
-        externalGameId: game.externalGameId,
-        capturedAt: new Date(),
-        homeTeamProvider: providers.homeTeamProvider,
-        awayTeamProvider: providers.awayTeamProvider,
-      });
-      if (normalized.length > 0) {
-        primaryGamesSucceeded += 1;
-      }
-      rawPropsByGame.push(...normalized);
-    } catch (error) {
-      warnings.push(
-        `Betting player props unavailable for game ${game.externalGameId}: ${error instanceof Error ? error.message : "unknown"}`,
-      );
-    }
-  }
-
-  let props = rawPropsByGame as NormalizedPlayerProp[];
-  if (props.length === 0) {
-    logger.warn("Primary BettingPlayerPropsByGameID produced no data", {
-      gamesAttempted: primaryGamesAttempted,
-      gamesSucceeded: primaryGamesSucceeded,
-      totalGames: games.length,
-      eventGameIds: eventGameIds.size,
-    });
-    try {
-      const legacyRows = await client.fetchLegacyPlayerPropsByDate(dateEt);
-      logger.info("Legacy PlayerPropsByDate response", {
-        rowCount: legacyRows.length,
-      });
-      const legacyProps = normalizeLegacyPlayerPropsByDate(legacyRows, new Date());
-      if (legacyProps.length > 0) {
-        props = legacyProps;
-        warnings.push(`Using legacy PlayerPropsByDate fallback feed (${legacyRows.length} raw rows → ${legacyProps.length} props).`);
-      }
-    } catch (error) {
-      warnings.push(`Legacy player props unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-    }
-  } else {
-    logger.info("Primary endpoint produced props", {
-      totalProps: props.length,
-      gamesAttempted: primaryGamesAttempted,
-      gamesSucceeded: primaryGamesSucceeded,
-    });
-  }
-
   const datesToFetch = collectHistoricalFetchDates(mode, dateEt);
   const rawLogs: unknown[] = [];
   for (const fetchDate of datesToFetch) {
@@ -541,6 +491,16 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   }
 
   const seasonPlayers = normalizeSeasonPlayers(rawSeasonPlayers);
+
+  let props: NormalizedPlayerProp[] = [];
+  try {
+    props = await scrapeUnderdogProps(games, seasonPlayers);
+    logger.info("Underdog scraper produced props", {
+      totalProps: props.length,
+    });
+  } catch (error) {
+    warnings.push(`Underdog scraper failed: ${error instanceof Error ? error.message : "unknown"}`);
+  }
   const logs = normalizeBoxScorePlayerLogs(rawLogs);
   const players = mergePlayers(seasonPlayers, logs);
   const injuries = normalizeInjuries(rawInjuries);
@@ -1001,10 +961,10 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
 
     const sportsbookMap = await ensureSportsbooks(fetched.sportsbooks, fetched.props);
     const teamMap = await upsertTeams(fetched.games, fetched.players, fetched.logs);
-    const playerMap = await upsertPlayers(fetched.players, teamMap);
+    const { playerMap, playerNameMap } = await upsertPlayers(fetched.players, teamMap);
     const gameMap = await upsertGames(fetched.games, teamMap);
     await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
-    const lineCount = await insertPropSnapshots(fetched.props, playerMap, gameMap, sportsbookMap);
+    const lineCount = await insertPropSnapshots(fetched.props, playerMap, gameMap, sportsbookMap, playerNameMap);
     const scored = await scoreAndPersistEdges(run.id, dateEt, runStartedAt, fetched.injuriesByTeam);
 
     const qualityIssues = evaluateQualityInput({
