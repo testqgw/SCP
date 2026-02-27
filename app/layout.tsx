@@ -1,51 +1,36 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { ClerkProvider } from '@clerk/nextjs';
+import { Space_Grotesk, Archivo_Black } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
+
+const archivoBlack = Archivo_Black({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-archivo-black",
+});
 
 export const metadata: Metadata = {
-  title: "UltOps | Automated Compliance Reminders",
-  description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
-  keywords: ["compliance", "license renewal", "food truck permits", "SMS reminders", "permit tracking"],
-  authors: [{ name: "UltOps" }],
-  openGraph: {
-    title: "UltOps | Automated Compliance Reminders",
-    description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
-    url: "https://ultops.com",
-    siteName: "UltOps",
-    type: "website",
-    locale: "en_US",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "UltOps | Automated Compliance Reminders",
-    description: "Never miss a license renewal. Automated SMS and email alerts for contractors and food trucks.",
-  },
+  title: "NBA Snapshot Board",
+  description:
+    "Private NBA player prop intelligence board with last-5 hit rates, bounce-back signals, and opponent archetype allowance.",
   robots: {
-    index: true,
-    follow: true,
+    index: false,
+    follow: false,
   },
 };
 
-import { Toaster } from "sonner";
-
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>): React.ReactElement {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>
-          <div className="min-h-screen bg-gray-50">
-            {children}
-          </div>
-          <Toaster position="bottom-right" />
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <body className={`${spaceGrotesk.variable} ${archivoBlack.variable}`}>{children}</body>
+    </html>
   );
 }

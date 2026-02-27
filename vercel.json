@@ -1,12 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-expirations",
-      "schedule": "0 9 * * *"
+      "path": "/api/internal/refresh/full",
+      "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/weekly-digest",
-      "schedule": "0 9 * * 1"
+      "path": "/api/internal/refresh/delta",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/internal/cleanup/lines",
+      "schedule": "0 8 * * *"
     }
   ]
 }

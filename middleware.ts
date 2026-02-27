@@ -1,31 +1,54 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 
-// 1. Define routes that DO NOT require authentication
-const isPublicRoute = createRouteMatcher([
-  "/",                  // Landing page
-  "/demo(.*)",          // Demo page (and all sub-paths)
-  "/privacy",           // Privacy Policy page
-  "/terms",             // Terms of Service page
-  "/contact",           // Contact/Help page
-  "/sign-in(.*)",       // Sign-in page
-  "/sign-up(.*)",       // Sign-up page
-  "/api/webhooks(.*)",  // Webhooks (Stripe/Clerk)
-  "/api/test",          // Test endpoint
-  "/api/uploadthing(.*)"    // ALLOW UPLOADTHING HANDSHAKE
-]);
+const PUBLIC_PATHS = [
+  "/unlock",
+  "/api/auth/unlock",
+  "/api/health",
+];
 
-export default clerkMiddleware((auth, req) => {
-  // 2. If the route is NOT public, protect it
-  if (!isPublicRoute(req)) {
-    auth().protect();
+const INTERNAL_PREFIXES = [
+  "/api/internal/refresh/full",
+  "/api/internal/refresh/delta",
+  "/api/internal/cleanup/lines",
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+function isInternalPath(pathname: string): boolean {
+  return INTERNAL_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isStaticPath(pathname: string): boolean {
+  return pathname.startsWith("/_next") || pathname.includes(".");
+}
+
+export async function middleware(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+
+  if (isStaticPath(pathname) || isPublicPath(pathname) || isInternalPath(pathname)) {
+    return NextResponse.next();
   }
-});
+
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  const isAuthenticated = token ? await verifySessionToken(token) : null;
+
+  if (isAuthenticated) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const unlockUrl = new URL("/unlock", request.url);
+  unlockUrl.searchParams.set("next", pathname);
+  return NextResponse.redirect(unlockUrl);
+}
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

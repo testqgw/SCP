@@ -5,196 +5,297 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_PUBLIC_URL")
+  url      = env("DATABASE_URL")
 }
 
-// 1. Add this Enum
-enum UserRole {
-  USER
-  ADMIN
+enum Market {
+  PTS
+  REB
+  AST
+  THREES
+  PRA
+  PA
+  PR
+  RA
+  STL
+  BLK
+  TOV
+  DOUBLE_DOUBLE
+  TRIPLE_DOUBLE
 }
 
-model User {
-  id                  String   @id @default(uuid())
-  email               String   @unique
-  name                String?
-  phone               String?
-  
-  // 2. Add the role field (Default is USER so new signups aren't admins)
-  role     UserRole  @default(USER) 
-
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
-  stripeCustomerId       String?   @unique @map("stripe_customer_id")
-  stripeSubscriptionId   String?   @unique @map("stripe_subscription_id")
-  stripePriceId          String?   @map("stripe_price_id")
-  stripeCurrentPeriodEnd DateTime? @map("stripe_current_period_end")
-  subscriptionTier       String?   @map("subscription_tier") // starter, professional, multi_location
-  subscriptionStatus     String?   @map("subscription_status") // active, past_due, canceled, trialing
-  
-  trialEndsAt            DateTime? @map("trial_ends_at") // For beta access
-
-  
-  businesses          Business[]
-  memberships         BusinessMember[]
-  renewalHistory      RenewalHistory[]
-  
-  @@map("users")
+enum Side {
+  OVER
+  UNDER
 }
 
-model Business {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  name          String
-  businessType  String?  @map("business_type") // food_vendor, contractor, mobile_service, other
-  address       String?
-  city          String?
-  state         String?
-  zip           String?
-  phone         String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  licenses      License[]
-  memberships   BusinessMember[]
-  
-  @@index([userId])
-  @@map("businesses")
+enum Confidence {
+  A
+  B
+  C
+  LOW
 }
 
-enum BusinessRole {
-  OWNER
-  ADMIN
-  VIEWER
+enum RefreshType {
+  FULL
+  DELTA
+  CLEANUP
 }
 
-model BusinessMember {
-  id         String       @id @default(cuid())
-  role       BusinessRole @default(VIEWER)
-  
-  userId     String
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  businessId String
-  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  createdAt  DateTime     @default(now())
-
-  @@unique([userId, businessId])
-  @@index([userId])
-  @@map("business_members")
+enum RefreshStatus {
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILED
 }
 
-model License {
-  id                String   @id @default(uuid())
-  businessId        String   @map("business_id")
-  licenseType       String   @map("license_type")
-  licenseNumber     String?  @map("license_number")
-  issuingAuthority  String   @map("issuing_authority")
-  issueDate         DateTime @map("issue_date")
-  expirationDate    DateTime @map("expiration_date")
-  renewalUrl        String?  @map("renewal_url")
-  status            String   @default("current") // current, expiring_soon, expired, grace_period
-  gracePeriodDays   Int      @default(0) @map("grace_period_days")
-  notes             String?
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
-  
-  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  documents         Document[]
-  reminderSchedules ReminderSchedule[]
-  renewalHistory    RenewalHistory[]
-  
-  @@index([businessId])
-  @@index([expirationDate])
-  @@map("licenses")
+model Team {
+  id          String   @id @default(cuid())
+  externalId  String?  @unique
+  abbreviation String  @unique
+  name        String
+  city        String?
+  conference  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  homeGames          Game[] @relation("HomeTeam")
+  awayGames          Game[] @relation("AwayTeam")
+  players            Player[]
+  logsAsTeam         PlayerGameLog[] @relation("LogTeam")
+  logsAsOpponent     PlayerGameLog[] @relation("LogOpponent")
+
+  @@map("teams")
 }
 
-model Document {
-  id          String   @id @default(uuid())
-  licenseId   String   @map("license_id")
-  fileName    String   @map("file_name")
-  fileUrl     String   @map("file_url")
-  fileType    String   @map("file_type")
-  uploadedAt  DateTime @default(now()) @map("uploaded_at")
-  
-  license     License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  
-  @@index([licenseId])
-  @@map("documents")
+model Player {
+  id          String   @id @default(cuid())
+  externalId  String?  @unique
+  fullName    String
+  firstName   String?
+  lastName    String?
+  position    String?
+  usageRate   Float?
+  isActive    Boolean  @default(true)
+  teamId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  team            Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  gameLogs        PlayerGameLog[]
+  propSnapshots   PropLineSnapshot[]
+  metrics         PlayerMarketMetric[]
+  edgeSnapshots   EdgeSnapshot[]
+
+  @@index([teamId])
+  @@map("players")
 }
 
-model ReminderSchedule {
-  id                    String    @id @default(cuid())
-  licenseId             String    @map("license_id")
-  daysBeforeExpiration  Int       @map("days_before_expiration")
-  reminderType          String    @map("reminder_type") // 'sms' | 'email' | 'both'
-  sentAt                DateTime? @map("sent_at")
-  status                String    @default("pending") // pending, sent, failed
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  
-  license               License   @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  
-  @@unique([licenseId, daysBeforeExpiration, reminderType]) // prevents duplicates
-  @@index([licenseId])
-  @@index([sentAt])
-  @@map("reminder_schedules")
+model Game {
+  id             String   @id @default(cuid())
+  externalId     String   @unique
+  gameDateEt     String
+  season         String?
+  status         String?
+  commenceTimeUtc DateTime?
+  homeTeamId     String
+  awayTeamId     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  homeTeam       Team                @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
+  awayTeam       Team                @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
+  propSnapshots  PropLineSnapshot[]
+  metrics        PlayerMarketMetric[]
+  edgeSnapshots  EdgeSnapshot[]
+
+  @@index([gameDateEt])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@map("games")
 }
 
-model JobRun {
-  id        String   @id @default(cuid())
-  jobName   String
-  runDate   DateTime // use date-only semantics (UTC midnight) in code
-  createdAt DateTime @default(now())
+model PlayerGameLog {
+  id             String   @id @default(cuid())
+  playerId       String
+  externalGameId String
+  gameDateEt     String
+  teamId         String?
+  opponentTeamId String?
+  minutes        Float?
+  points         Float?
+  rebounds       Float?
+  assists        Float?
+  threes         Float?
+  steals         Float?
+  blocks         Float?
+  turnovers      Float?
+  pace           Float?
+  total          Float?
+  isHome         Boolean?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  @@unique([jobName, runDate])
-  @@map("job_runs")
+  player         Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team           Team?  @relation("LogTeam", fields: [teamId], references: [id], onDelete: SetNull)
+  opponentTeam   Team?  @relation("LogOpponent", fields: [opponentTeamId], references: [id], onDelete: SetNull)
+
+  @@index([gameDateEt])
+  @@index([playerId, gameDateEt])
+  @@index([opponentTeamId, gameDateEt])
+  @@unique([playerId, externalGameId])
+  @@map("player_game_logs")
 }
 
-model RenewalHistory {
-  id                      String   @id @default(uuid())
-  licenseId               String   @map("license_id")
-  renewedAt               DateTime @default(now()) @map("renewed_at")
-  previousExpirationDate  DateTime @map("previous_expiration_date")
-  newExpirationDate       DateTime @map("new_expiration_date")
-  renewedBy               String   @map("renewed_by")
-  notes                   String?
-  
-  license                 License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
-  user                    User     @relation(fields: [renewedBy], references: [id])
-  
-  @@index([licenseId])
-  @@map("renewal_history")
+model Sportsbook {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  displayName         String
+  providerSportsbookId Int?    @unique
+  providerNameRaw     String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  propSnapshots PropLineSnapshot[]
+  metrics       PlayerMarketMetric[]
+  edgeSnapshots EdgeSnapshot[]
+
+  @@map("sportsbooks")
 }
 
-model Jurisdiction {
-  id                    String   @id @default(uuid())
-  name                  String
-  state                 String
-  licenseTypes          String?  @map("license_types")
-  renewalPortalUrls     String?  @map("renewal_portal_urls")
-  typicalRequirements   String?  @map("typical_requirements")
-  gracePeriods          String?  @map("grace_periods")
-  createdAt             DateTime @default(now()) @map("created_at")
-  updatedAt             DateTime @updatedAt @map("updated_at")
-  
-  @@map("jurisdictions")
+model PropLineSnapshot {
+  id                  String   @id @default(cuid())
+  gameId              String
+  playerId            String
+  sportsbookId        String
+  market              Market
+  rawMarketName       String
+  line                Float
+  overPrice           Int?
+  underPrice          Int?
+  providerMarketId    String?
+  providerBetTypeId   Int?
+  providerPeriodTypeId Int?
+  providerOutcomeType String?
+  teamCodeProvider    String?
+  opponentCodeProvider String?
+  teamCodeCanonical   String?
+  opponentCodeCanonical String?
+  sourceFeed          String?
+  capturedAt          DateTime
+  createdAt           DateTime @default(now())
+
+  game          Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sportsbook    Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, sportsbookId, market])
+  @@index([playerId, market])
+  @@index([capturedAt])
+  @@map("prop_line_snapshots")
 }
 
-model Feedback {
-  id         String   @id @default(uuid())
-  userId     String?  @map("user_id")
-  type       String   // suggestion, bug, help, feature
-  message    String   @db.Text
-  email      String?
-  status     String   @default("new") // new, reviewed, resolved
-  adminReply String?  @db.Text @map("admin_reply")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  
-  @@index([userId])
-  @@index([status])
-  @@map("feedback")
+model PlayerMarketMetric {
+  id                    String   @id @default(cuid())
+  refreshRunId          String
+  playerId              String
+  gameId                String
+  sportsbookId          String
+  market                Market
+  line                  Float
+  last5OverRate         Float
+  last5UnderRate        Float
+  seasonOverRate        Float
+  seasonUnderRate       Float
+  bounceBackFlag        Boolean
+  bounceBackScore       Float
+  archetypeKey          String
+  opponentAllowanceDelta Float
+  lineValueScore        Float
+  minutesTrendScore     Float
+  paceTotalScore        Float
+  injuryContextScore    Float
+  recentFormScore       Float
+  seasonVsLineScore     Float
+  updatedAt             DateTime @default(now())
+
+  refreshRun            RefreshRun @relation(fields: [refreshRunId], references: [id], onDelete: Cascade)
+  player                Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  sportsbook            Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
+
+  @@unique([refreshRunId, playerId, gameId, sportsbookId, market])
+  @@index([playerId, market])
+  @@index([sportsbookId, market, gameId])
+  @@map("player_market_metrics")
+}
+
+model EdgeSnapshot {
+  id                    String   @id @default(cuid())
+  refreshRunId          String
+  playerId              String
+  gameId                String
+  sportsbookId          String
+  market                Market
+  line                  Float
+  overPrice             Int?
+  underPrice            Int?
+  recommendedSide       Side
+  overEdgeScore         Float
+  underEdgeScore        Float
+  edgeScore             Float
+  confidence            Confidence
+  last5OverRate         Float
+  bounceBackFlag        Boolean
+  opponentAllowanceDelta Float
+  archetypeKey          String
+  lineMove24h           Float
+  dataSource            String?
+  componentScores       Json
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  refreshRun            RefreshRun @relation(fields: [refreshRunId], references: [id], onDelete: Cascade)
+  player                Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  sportsbook            Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
+
+  @@unique([refreshRunId, playerId, gameId, sportsbookId, market])
+  @@index([playerId, market])
+  @@index([sportsbookId, market, gameId])
+  @@map("edge_snapshots")
+}
+
+model RefreshRun {
+  id            String        @id @default(cuid())
+  type          RefreshType
+  status        RefreshStatus @default(RUNNING)
+  startedAt     DateTime      @default(now())
+  completedAt   DateTime?
+  durationMs    Int?
+  totalGames    Int           @default(0)
+  totalPlayers  Int           @default(0)
+  totalLines    Int           @default(0)
+  totalEdges    Int           @default(0)
+  errorCount    Int           @default(0)
+  warningCount  Int           @default(0)
+  isPublishable Boolean       @default(false)
+  qualityIssues Json?
+  errorMessage  String?
+  notes         Json?
+
+  metrics       PlayerMarketMetric[]
+  edgeSnapshots EdgeSnapshot[]
+
+  @@index([startedAt])
+  @@map("refresh_runs")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
 }
