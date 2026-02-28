@@ -7,7 +7,7 @@ type HomePageProps = {
   searchParams?: {
     date?: string;
     market?: string;
-    team?: string;
+    matchup?: string;
     player?: string;
   };
 };
@@ -35,7 +35,7 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
     <SnapshotDashboard
       data={boardData}
       initialMarket={getMarket(searchParams?.market)}
-      initialTeam={searchParams?.team?.toUpperCase() ?? ""}
+      initialMatchup={searchParams?.matchup?.toUpperCase() ?? ""}
       initialPlayerSearch={searchParams?.player ?? ""}
     />
   );
