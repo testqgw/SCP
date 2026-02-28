@@ -33,6 +33,20 @@ function toStringOrNull(value: unknown): string | null {
   return null;
 }
 
+function toBooleanOrNull(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "y", "active"].includes(normalized)) return true;
+    if (["0", "false", "no", "n", "inactive"].includes(normalized)) return false;
+  }
+  return null;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -132,6 +146,8 @@ function playerFromBoxScore(
       position: toStringOrNull(player.position),
       teamAbbr,
       opponentAbbr,
+      starter: toBooleanOrNull(player.starter),
+      played: toBooleanOrNull(player.played),
       minutes: parseMinutes(statistics.minutes),
       points: toNumber(statistics.points),
       rebounds: toNumber(statistics.reboundsTotal),
@@ -289,6 +305,8 @@ export class NbaDataClient {
           teamAbbr,
           opponentAbbr,
           isHome,
+          starter: parsed.stats.starter ?? null,
+          played: parsed.stats.played ?? null,
           minutes: parsed.stats.minutes ?? null,
           points: parsed.stats.points ?? null,
           rebounds: parsed.stats.rebounds ?? null,

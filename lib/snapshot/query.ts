@@ -73,6 +73,9 @@ type PlayerProfile = {
   minutesTrend: number | null;
   minutesVolatility: number | null;
   stocksPer36Last10: number | null;
+  startsLast10: number;
+  starterRateLast10: number | null;
+  startedLastGame: boolean | null;
   archetype: string;
   positionTokens: Set<PositionToken>;
 };
@@ -173,11 +176,26 @@ function determineArchetype(last10Average: SnapshotMetricRecord, minutesLast10Av
   return "Balanced Rotation";
 }
 
-function projectedStarterLabel(rotationRank: number | null, minutesLast10Avg: number | null): string {
+function fallbackStarterLabel(rotationRank: number | null, minutesLast10Avg: number | null): string {
   if (rotationRank == null || minutesLast10Avg == null) return "Unknown";
   if (rotationRank <= 5 && minutesLast10Avg >= 20) return "Likely Starter";
   if (rotationRank <= 7 && minutesLast10Avg >= 16) return "Fringe Starter";
   return "Bench / Reserve";
+}
+
+function starterStatusLabel(input: {
+  startedLastGame: boolean | null;
+  starterRateLast10: number | null;
+  rotationRank: number | null;
+  minutesLast10Avg: number | null;
+}): string {
+  const { startedLastGame, starterRateLast10, rotationRank, minutesLast10Avg } = input;
+  if (startedLastGame === true && starterRateLast10 != null && starterRateLast10 >= 0.6) return "Starter";
+  if (startedLastGame === true && starterRateLast10 != null && starterRateLast10 >= 0.3) return "Spot Starter";
+  if (startedLastGame === false && starterRateLast10 != null && starterRateLast10 >= 0.6) return "Starter (recent bench)";
+  if (starterRateLast10 != null && starterRateLast10 >= 0.5) return "Likely Starter";
+  if (starterRateLast10 != null && starterRateLast10 <= 0.2) return "Bench";
+  return fallbackStarterLabel(rotationRank, minutesLast10Avg);
 }
 
 function choosePrimaryDefender(
@@ -577,6 +595,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       gameDateEt: log.gameDateEt,
       opponent: log.opponentTeam?.abbreviation ?? null,
       isHome: log.isHome,
+      starter: log.starter,
+      played: log.played,
       minutes: toStat(log.minutes),
       points: toStat(log.points),
       rebounds: toStat(log.rebounds),
@@ -681,6 +701,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const minutesVolatility = standardDeviation(last10Logs.map((log) => log.minutes));
     const stealsLast10Avg = average(last10Logs.map((log) => log.steals));
     const blocksLast10Avg = average(last10Logs.map((log) => log.blocks));
+    const startsLast10 = last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
+    const starterRateLast10 = last10Logs.length > 0 ? round(startsLast10 / last10Logs.length, 2) : null;
+    const startedLastGame = last10Logs[0]?.starter ?? null;
     const stocksPer36Last10 =
       minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
         ? null
@@ -697,6 +720,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       minutesTrend,
       minutesVolatility,
       stocksPer36Last10,
+      startsLast10,
+      starterRateLast10,
+      startedLastGame,
       archetype: determineArchetype(last10Average, minutesLast10Avg),
       positionTokens: parsePositionTokens(player.position),
     };
@@ -785,7 +811,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         recentLogs: last10Logs,
         playerContext: {
           archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
-          projectedStarter: projectedStarterLabel(rotationRank, playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes))),
+          projectedStarter: starterStatusLabel({
+            startedLastGame: playerProfile?.startedLastGame ?? last10Logs[0]?.starter ?? null,
+            starterRateLast10:
+              playerProfile?.starterRateLast10 ??
+              (last10Logs.length > 0
+                ? round(last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0) / last10Logs.length, 2)
+                : null),
+            rotationRank,
+            minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
+          }),
+          startedLastGame: playerProfile?.startedLastGame ?? last10Logs[0]?.starter ?? null,
+          startsLast10:
+            playerProfile?.startsLast10 ??
+            last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0),
+          starterRateLast10:
+            playerProfile?.starterRateLast10 ??
+            (last10Logs.length > 0
+              ? round(last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0) / last10Logs.length, 2)
+              : null),
           rotationRank,
           minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
           minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),

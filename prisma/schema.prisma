@@ -99,6 +99,8 @@ model PlayerGameLog {
   pace           Float?
   total          Float?
   isHome         Boolean?
+  starter        Boolean?
+  played         Boolean?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

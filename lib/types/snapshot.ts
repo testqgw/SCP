@@ -4,6 +4,8 @@ export type SnapshotStatLog = {
   gameDateEt: string;
   opponent: string | null;
   isHome: boolean | null;
+  starter: boolean | null;
+  played: boolean | null;
   minutes: number;
   points: number;
   rebounds: number;
@@ -36,6 +38,9 @@ export type SnapshotPrimaryDefender = {
 export type SnapshotPlayerContext = {
   archetype: string;
   projectedStarter: string;
+  startedLastGame: boolean | null;
+  startsLast10: number;
+  starterRateLast10: number | null;
   rotationRank: number | null;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;

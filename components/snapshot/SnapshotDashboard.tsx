@@ -349,7 +349,7 @@ export function SnapshotDashboard({
                     <th className="px-4 py-3">
                       <HeaderWithTip
                         label="Starter"
-                        definition="Projected starter status inferred from team rotation rank and last-10 average minutes."
+                        definition="Starter status from actual game logs: last-game starter flag and starts in last 10."
                       />
                     </th>
                     <th className="px-4 py-3">
@@ -450,7 +450,9 @@ export function SnapshotDashboard({
                         <td className="px-4 py-3 text-xs">
                           <div>{row.playerContext.projectedStarter}</div>
                           <div className="text-slate-400">
-                            Rank {row.playerContext.rotationRank != null ? row.playerContext.rotationRank : "-"}
+                            Start L10 {row.playerContext.startsLast10}/10 ({formatPercentValue(
+                              row.playerContext.starterRateLast10 == null ? null : row.playerContext.starterRateLast10 * 100,
+                            )})
                           </div>
                         </td>
                         <td className="px-4 py-3 text-xs">
@@ -536,14 +538,42 @@ export function SnapshotDashboard({
                       Starter
                       <InfoTip
                         label="Starter"
-                        definition="Projected starter status inferred from team minutes hierarchy."
+                        definition="Based on actual starter flags in game logs, plus last-game starter status."
                       />
                     </p>
                     <p className="text-right">
                       {selectedPlayer.playerContext.projectedStarter}
-                      {selectedPlayer.playerContext.rotationRank != null
-                        ? ` (Rank ${selectedPlayer.playerContext.rotationRank})`
-                        : ""}
+                      {selectedPlayer.playerContext.startedLastGame == null
+                        ? ""
+                        : selectedPlayer.playerContext.startedLastGame
+                          ? " (Started last game)"
+                          : " (Did not start last game)"}
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Starts L10
+                      <InfoTip
+                        label="Starts L10"
+                        definition="How many of the player's last 10 completed games were starts."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {selectedPlayer.playerContext.startsLast10}/10 ({formatPercentValue(
+                        selectedPlayer.playerContext.starterRateLast10 == null
+                          ? null
+                          : selectedPlayer.playerContext.starterRateLast10 * 100,
+                      )})
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Rotation Rank
+                      <InfoTip
+                        label="Rotation Rank"
+                        definition="Team rank by last-10 minutes among active teammates."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {selectedPlayer.playerContext.rotationRank != null ? selectedPlayer.playerContext.rotationRank : "-"}
                     </p>
 
                     <p className="inline-flex items-center gap-1">
@@ -883,6 +913,7 @@ export function SnapshotDashboard({
                               <th className="px-2 py-2 text-left">Date</th>
                               <th className="px-2 py-2 text-left">Opp</th>
                               <th className="px-2 py-2 text-left">Site</th>
+                              <th className="px-2 py-2 text-left">Start</th>
                               <th className="px-2 py-2 text-left">Min</th>
                               <th className="px-2 py-2 text-left">{m}</th>
                               <th className="px-2 py-2 text-left">Vs line</th>
@@ -892,7 +923,7 @@ export function SnapshotDashboard({
                           <tbody>
                             {selectedPlayer.recentLogs.length === 0 ? (
                               <tr className="border-t border-slate-300/10">
-                                <td colSpan={7} className="px-2 py-3 text-slate-300">
+                                <td colSpan={8} className="px-2 py-3 text-slate-300">
                                   No completed-game logs available yet.
                                 </td>
                               </tr>
@@ -906,6 +937,7 @@ export function SnapshotDashboard({
                                     <td className="px-2 py-2">{log.gameDateEt}</td>
                                     <td className="px-2 py-2">{log.opponent ?? "-"}</td>
                                     <td className="px-2 py-2">{log.isHome ? "Home" : "Away"}</td>
+                                    <td className="px-2 py-2">{log.starter == null ? "-" : log.starter ? "Y" : "N"}</td>
                                     <td className="px-2 py-2">{formatStat(log.minutes)}</td>
                                     <td className="px-2 py-2 font-semibold text-white">{formatStat(value)}</td>
                                     <td className="px-2 py-2">{diff == null ? "-" : formatAverage(diff, true)}</td>
@@ -947,6 +979,7 @@ export function SnapshotDashboard({
                         <th className="px-2 py-2 text-left">Date</th>
                         <th className="px-2 py-2 text-left">Opp</th>
                         <th className="px-2 py-2 text-left">Site</th>
+                        <th className="px-2 py-2 text-left">Start</th>
                         <th className="px-2 py-2 text-left">Min</th>
                         <th className="px-2 py-2 text-left">PTS</th>
                         <th className="px-2 py-2 text-left">REB</th>
@@ -971,6 +1004,7 @@ export function SnapshotDashboard({
                             <td className="px-2 py-2">{log.gameDateEt}</td>
                             <td className="px-2 py-2">{log.opponent ?? "-"}</td>
                             <td className="px-2 py-2">{log.isHome ? "Home" : "Away"}</td>
+                            <td className="px-2 py-2">{log.starter == null ? "-" : log.starter ? "Y" : "N"}</td>
                             <td className="px-2 py-2">{formatStat(log.minutes)}</td>
                             <td className="px-2 py-2">{formatStat(log.points)}</td>
                             <td className="px-2 py-2">{formatStat(log.rebounds)}</td>

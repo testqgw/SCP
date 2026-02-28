@@ -33,6 +33,8 @@ export type NormalizedPlayerGameStat = {
   teamAbbr: string | null;
   opponentAbbr: string | null;
   isHome: boolean | null;
+  starter: boolean | null;
+  played: boolean | null;
   minutes: number | null;
   points: number | null;
   rebounds: number | null;

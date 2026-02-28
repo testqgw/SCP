@@ -51,6 +51,23 @@ function readNumber(record: UnknownRecord, keys: string[]): number | null {
   return null;
 }
 
+function readBoolean(record: UnknownRecord, keys: string[]): boolean | null {
+  for (const key of keys) {
+    const raw = record[key];
+    if (typeof raw === "boolean") return raw;
+    if (typeof raw === "number") {
+      if (raw === 1) return true;
+      if (raw === 0) return false;
+    }
+    if (typeof raw === "string") {
+      const normalized = raw.trim().toLowerCase();
+      if (["1", "true", "yes", "y", "active"].includes(normalized)) return true;
+      if (["0", "false", "no", "n", "inactive"].includes(normalized)) return false;
+    }
+  }
+  return null;
+}
+
 function toDate(value: string | null): Date | null {
   if (!value) {
     return null;
@@ -189,6 +206,8 @@ export function normalizeBoxScorePlayerLogs(rawRows: unknown[]): NormalizedPlaye
         teamAbbr: toCanonicalTeamCode(teamProvider),
         opponentAbbr: toCanonicalTeamCode(opponentProvider),
         isHome: normalizedHomeAway.includes("home") ? true : normalizedHomeAway.includes("away") ? false : null,
+        starter: readBoolean(row, ["Starter", "IsStarter", "Started"]),
+        played: readBoolean(row, ["Played", "DidPlay"]),
         minutes: readNumber(row, ["Minutes", "Min", "minutes"]),
         points: readNumber(row, ["Points", "Pts", "points"]),
         rebounds: readNumber(row, ["Rebounds", "Reb", "rebounds"]),
@@ -229,5 +248,4 @@ export function normalizeInjuries(rawRows: unknown[]): NormalizedInjury[] {
 
   return injuries;
 }
-
 
