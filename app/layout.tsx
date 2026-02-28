@@ -16,7 +16,7 @@ const archivoBlack = Archivo_Black({
 export const metadata: Metadata = {
   title: "NBA Snapshot Board",
   description:
-    "Private NBA player prop intelligence board with last-5 hit rates, bounce-back signals, and opponent archetype allowance.",
+    "NBA player data board with today’s slate, recent game logs, and manual line tracking.",
   robots: {
     index: false,
     follow: false,

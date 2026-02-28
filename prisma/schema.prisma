@@ -8,34 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Market {
-  PTS
-  REB
-  AST
-  THREES
-  PRA
-  PA
-  PR
-  RA
-  STL
-  BLK
-  TOV
-  DOUBLE_DOUBLE
-  TRIPLE_DOUBLE
-}
-
-enum Side {
-  OVER
-  UNDER
-}
-
-enum Confidence {
-  A
-  B
-  C
-  LOW
-}
-
 enum RefreshType {
   FULL
   DELTA
@@ -83,9 +55,6 @@ model Player {
 
   team            Team?               @relation(fields: [teamId], references: [id], onDelete: SetNull)
   gameLogs        PlayerGameLog[]
-  propSnapshots   PropLineSnapshot[]
-  metrics         PlayerMarketMetric[]
-  edgeSnapshots   EdgeSnapshot[]
 
   @@index([teamId])
   @@map("players")
@@ -105,9 +74,6 @@ model Game {
 
   homeTeam       Team                @relation("HomeTeam", fields: [homeTeamId], references: [id], onDelete: Cascade)
   awayTeam       Team                @relation("AwayTeam", fields: [awayTeamId], references: [id], onDelete: Cascade)
-  propSnapshots  PropLineSnapshot[]
-  metrics        PlayerMarketMetric[]
-  edgeSnapshots  EdgeSnapshot[]
 
   @@index([gameDateEt])
   @@index([homeTeamId])
@@ -147,126 +113,6 @@ model PlayerGameLog {
   @@map("player_game_logs")
 }
 
-model Sportsbook {
-  id                  String   @id @default(cuid())
-  code                String   @unique
-  displayName         String
-  providerSportsbookId Int?    @unique
-  providerNameRaw     String?
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  propSnapshots PropLineSnapshot[]
-  metrics       PlayerMarketMetric[]
-  edgeSnapshots EdgeSnapshot[]
-
-  @@map("sportsbooks")
-}
-
-model PropLineSnapshot {
-  id                  String   @id @default(cuid())
-  gameId              String
-  playerId            String
-  sportsbookId        String
-  market              Market
-  rawMarketName       String
-  line                Float
-  overPrice           Int?
-  underPrice          Int?
-  providerMarketId    String?
-  providerBetTypeId   Int?
-  providerPeriodTypeId Int?
-  providerOutcomeType String?
-  teamCodeProvider    String?
-  opponentCodeProvider String?
-  teamCodeCanonical   String?
-  opponentCodeCanonical String?
-  sourceFeed          String?
-  capturedAt          DateTime
-  createdAt           DateTime @default(now())
-
-  game          Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  player        Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  sportsbook    Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
-
-  @@index([gameId, sportsbookId, market])
-  @@index([playerId, market])
-  @@index([capturedAt])
-  @@map("prop_line_snapshots")
-}
-
-model PlayerMarketMetric {
-  id                    String   @id @default(cuid())
-  refreshRunId          String
-  playerId              String
-  gameId                String
-  sportsbookId          String
-  market                Market
-  line                  Float
-  last5OverRate         Float
-  last5UnderRate        Float
-  seasonOverRate        Float
-  seasonUnderRate       Float
-  bounceBackFlag        Boolean
-  bounceBackScore       Float
-  archetypeKey          String
-  opponentAllowanceDelta Float
-  lineValueScore        Float
-  minutesTrendScore     Float
-  paceTotalScore        Float
-  injuryContextScore    Float
-  recentFormScore       Float
-  seasonVsLineScore     Float
-  updatedAt             DateTime @default(now())
-
-  refreshRun            RefreshRun @relation(fields: [refreshRunId], references: [id], onDelete: Cascade)
-  player                Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  sportsbook            Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
-
-  @@unique([refreshRunId, playerId, gameId, sportsbookId, market])
-  @@index([playerId, market])
-  @@index([sportsbookId, market, gameId])
-  @@map("player_market_metrics")
-}
-
-model EdgeSnapshot {
-  id                    String   @id @default(cuid())
-  refreshRunId          String
-  playerId              String
-  gameId                String
-  sportsbookId          String
-  market                Market
-  line                  Float
-  overPrice             Int?
-  underPrice            Int?
-  recommendedSide       Side
-  overEdgeScore         Float
-  underEdgeScore        Float
-  edgeScore             Float
-  confidence            Confidence
-  last5OverRate         Float
-  bounceBackFlag        Boolean
-  opponentAllowanceDelta Float
-  archetypeKey          String
-  lineMove24h           Float
-  dataSource            String?
-  componentScores       Json
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  refreshRun            RefreshRun @relation(fields: [refreshRunId], references: [id], onDelete: Cascade)
-  player                Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  game                  Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  sportsbook            Sportsbook @relation(fields: [sportsbookId], references: [id], onDelete: Cascade)
-
-  @@unique([refreshRunId, playerId, gameId, sportsbookId, market])
-  @@index([playerId, market])
-  @@index([sportsbookId, market, gameId])
-  @@map("edge_snapshots")
-}
-
 model RefreshRun {
   id            String        @id @default(cuid())
   type          RefreshType
@@ -276,17 +122,12 @@ model RefreshRun {
   durationMs    Int?
   totalGames    Int           @default(0)
   totalPlayers  Int           @default(0)
-  totalLines    Int           @default(0)
-  totalEdges    Int           @default(0)
   errorCount    Int           @default(0)
   warningCount  Int           @default(0)
   isPublishable Boolean       @default(false)
   qualityIssues Json?
   errorMessage  String?
   notes         Json?
-
-  metrics       PlayerMarketMetric[]
-  edgeSnapshots EdgeSnapshot[]
 
   @@index([startedAt])
   @@map("refresh_runs")

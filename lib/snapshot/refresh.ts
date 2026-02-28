@@ -1,26 +1,10 @@
 
-import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
-import { ALL_MARKETS, isLineReasonableForMarket, marketValueFromLog } from "@/lib/snapshot/markets";
-import {
-  buildArchetypeKey,
-  computeBounceBack,
-  computeHitRate,
-  computeInjuryContext,
-  computeLineValueScores,
-  computeMinutesTrend,
-  computeOpponentAllowanceScore,
-  computePaceTotal,
-} from "@/lib/snapshot/metrics";
-import { scoreEdge } from "@/lib/snapshot/scoring";
 import { etDateShift, getTodayEtDateString, inferSeasonFromEtDate } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
 import { SportsDataClient } from "@/lib/sportsdata/client";
-import { scrapeUnderdogProps } from "@/lib/sportsdata/scraper";
 import {
-  normalizeActiveSportsbooks,
-  normalizeBettingEvents,
   normalizeBoxScorePlayerLogs,
   normalizeGames,
   normalizeInjuries,
@@ -28,11 +12,8 @@ import {
 } from "@/lib/sportsdata/normalize";
 import type {
   NormalizedPlayerGameStat,
-  NormalizedPlayerProp,
   NormalizedPlayerSeason,
-  NormalizedSportsbook,
 } from "@/lib/sportsdata/types";
-import { clamp, round } from "@/lib/utils";
 
 type RefreshMode = "FULL" | "DELTA";
 
@@ -45,13 +26,10 @@ type RefreshResult = {
   totals: {
     games: number;
     players: number;
-    lines: number;
-    edges: number;
   };
 };
 
 const QUALITY_GATE_ENABLED = process.env.SNAPSHOT_QUALITY_GATE_ENABLED !== "false";
-const ALLOW_LEGACY_PUBLISH = process.env.SNAPSHOT_ALLOW_LEGACY_PUBLISH !== "false";
 
 function collectHistoricalFetchDates(mode: RefreshMode, dateEt: string): string[] {
   const days = mode === "FULL" ? 14 : 7;
@@ -101,45 +79,7 @@ function teamNameFromAbbr(abbreviation: string | null): string {
 
 
 
-async function ensureSportsbooks(providerBooks: NormalizedSportsbook[], props: NormalizedPlayerProp[]): Promise<Map<string, string>> {
-  const known = new Map<string, NormalizedSportsbook>();
-  providerBooks.forEach((book) => {
-    known.set(book.key, book);
-  });
-  props.forEach((prop) => {
-    if (!known.has(prop.sportsbookKey)) {
-      known.set(prop.sportsbookKey, {
-        key: prop.sportsbookKey,
-        displayName: prop.sportsbookDisplayName,
-        providerSportsbookId: prop.providerSportsbookId,
-        providerNameRaw: prop.sportsbookDisplayName,
-      });
-    }
-  });
 
-  const result = new Map<string, string>();
-  for (const book of known.values()) {
-    const saved = await prisma.sportsbook.upsert({
-      where: { code: book.key },
-      update: {
-        displayName: book.displayName,
-        providerSportsbookId: book.providerSportsbookId,
-        providerNameRaw: book.providerNameRaw,
-        isActive: true,
-      },
-      create: {
-        code: book.key,
-        displayName: book.displayName,
-        providerSportsbookId: book.providerSportsbookId,
-        providerNameRaw: book.providerNameRaw,
-        isActive: true,
-      },
-      select: { id: true, code: true },
-    });
-    result.set(saved.code, saved.id);
-  }
-  return result;
-}
 async function upsertTeams(
   games: ReturnType<typeof normalizeGames>,
   players: NormalizedPlayerSeason[],
@@ -337,82 +277,12 @@ async function upsertPlayerLogs(
   return inserted;
 }
 
-async function insertPropSnapshots(
-  props: NormalizedPlayerProp[],
-  playerMap: Map<string, string>,
-  gameMap: Map<string, string>,
-  sportsbookMap: Map<string, string>,
-  playerNameMap?: Map<string, string>,
-): Promise<number> {
-  const payload: Prisma.PropLineSnapshotCreateManyInput[] = [];
-  let rejectedCount = 0;
 
-  props.forEach((prop) => {
-    let playerId = playerMap.get(prop.externalPlayerId);
-    if (!playerId && playerNameMap && prop.sourceFeed === "UNDERDOG_API") {
-      playerId = playerNameMap.get(prop.externalPlayerId.toLowerCase().trim());
-    }
-
-    const gameId = gameMap.get(prop.externalGameId);
-    const sportsbookId = sportsbookMap.get(prop.sportsbookKey);
-    if (!playerId || !gameId || !sportsbookId) {
-      return;
-    }
-
-    // Sanity check: reject lines outside expected ranges for the market, unless from the legacy feed (which scrambles values)
-    const isLegacy = prop.sourceFeed.includes("LEGACY");
-    if (!isLegacy && !isLineReasonableForMarket(prop.market, prop.line)) {
-      rejectedCount += 1;
-      return;
-    }
-
-    payload.push({
-      gameId,
-      playerId,
-      sportsbookId,
-      market: prop.market,
-      rawMarketName: prop.rawMarketName,
-      line: prop.line,
-      overPrice: prop.overPrice,
-      underPrice: prop.underPrice,
-      providerMarketId: prop.providerMarketId,
-      providerBetTypeId: prop.providerBetTypeId,
-      providerPeriodTypeId: prop.providerPeriodTypeId,
-      providerOutcomeType: prop.providerOutcomeType,
-      teamCodeProvider: prop.teamCodeProvider,
-      opponentCodeProvider: prop.opponentCodeProvider,
-      teamCodeCanonical: prop.teamCodeCanonical,
-      opponentCodeCanonical: prop.opponentCodeCanonical,
-      sourceFeed: prop.sourceFeed,
-      capturedAt: prop.capturedAt,
-    });
-  });
-
-  if (rejectedCount > 0) {
-    logger.warn("Line sanity check rejected rows", {
-      rejected: rejectedCount,
-      accepted: payload.length,
-      sampleRejected: props
-        .filter((p) => !isLineReasonableForMarket(p.market, p.line))
-        .slice(0, 3)
-        .map((p) => ({ market: p.market, line: p.line, player: p.externalPlayerId })),
-    });
-  }
-
-  if (!payload.length) {
-    return 0;
-  }
-
-  const inserted = await prisma.propLineSnapshot.createMany({ data: payload });
-  return inserted.count;
-}
 
 type FetchDataResult = {
   games: ReturnType<typeof normalizeGames>;
-  props: NormalizedPlayerProp[];
   players: NormalizedPlayerSeason[];
   logs: NormalizedPlayerGameStat[];
-  sportsbooks: NormalizedSportsbook[];
   injuriesByTeam: Map<string, string[]>;
   warnings: string[];
 };
@@ -421,7 +291,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const warnings: string[] = [];
   const season = inferSeasonFromEtDate(dateEt);
 
-  const [rawGames, rawSeasonPlayers, rawInjuries, rawSportsbooks, rawEvents] = await Promise.all([
+  const [rawGames, rawSeasonPlayers, rawInjuries] = await Promise.all([
     client.fetchSchedule(dateEt),
     client.fetchSeasonStats(season).catch((error) => {
       warnings.push(`Season stats unavailable: ${error instanceof Error ? error.message : "unknown"}`);
@@ -431,19 +301,9 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       warnings.push(`Injury feed unavailable: ${error instanceof Error ? error.message : "unknown"}`);
       return [];
     }),
-    client.fetchActiveSportsbooks().catch((error) => {
-      warnings.push(`Active sportsbooks unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-      return [];
-    }),
-    client.fetchBettingEventsByDate(dateEt).catch((error) => {
-      warnings.push(`Betting events unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-      return [];
-    }),
   ]);
 
   const games = normalizeGames(rawGames);
-  const sportsbooks = normalizeActiveSportsbooks(rawSportsbooks);
-  const events = normalizeBettingEvents(rawEvents);
   const datesToFetch = collectHistoricalFetchDates(mode, dateEt);
   const rawLogs: unknown[] = [];
   for (const fetchDate of datesToFetch) {
@@ -459,15 +319,6 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
 
   const seasonPlayers = normalizeSeasonPlayers(rawSeasonPlayers);
 
-  let props: NormalizedPlayerProp[] = [];
-  try {
-    props = await scrapeUnderdogProps(games, seasonPlayers);
-    logger.info("Underdog scraper produced props", {
-      totalProps: props.length,
-    });
-  } catch (error) {
-    warnings.push(`Underdog scraper failed: ${error instanceof Error ? error.message : "unknown"}`);
-  }
   const logs = normalizeBoxScorePlayerLogs(rawLogs);
   const players = mergePlayers(seasonPlayers, logs);
   const injuries = normalizeInjuries(rawInjuries);
@@ -476,18 +327,11 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     dateEt,
     rawGames: rawGames.length,
     normalizedGames: games.length,
-    normalizedProps: props.length,
     rawSeasonPlayers: rawSeasonPlayers.length,
     normalizedPlayers: players.length,
     rawBoxScores: rawLogs.length,
     normalizedLogs: logs.length,
-    sportsbooks: sportsbooks.length,
-    events: events.length,
   });
-
-  if (props.length === 0) {
-    warnings.push("No normalized sportsbook props for current slate.");
-  }
 
   const injuriesByTeam = injuries.reduce((map, injury) => {
     if (!injury.teamAbbr) return map;
@@ -499,393 +343,24 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
 
   return {
     games,
-    props,
     players,
     logs,
-    sportsbooks,
     injuriesByTeam,
     warnings,
   };
 }
 
-function average(values: Array<number | null>): number | null {
-  const valid = values.filter((value): value is number => value != null);
-  if (!valid.length) return null;
-  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
-}
-
-function pushLimited(map: Map<string, number[]>, key: string, value: number, limit: number): void {
-  const list = map.get(key) ?? [];
-  if (list.length < limit) {
-    list.push(value);
-  }
-  map.set(key, list);
-}
-
-function confidenceForApi(confidence: "A" | "B" | "C" | "LOW"): "A" | "B" | "C" | "LOW" {
-  return confidence;
-}
-
 function evaluateQualityInput(data: {
-  props: NormalizedPlayerProp[];
   logs: NormalizedPlayerGameStat[];
-  edges: number;
 }): string[] {
   const issues: string[] = [];
-  if (data.props.length === 0) {
-    issues.push("No parsed sportsbook props were produced.");
-    return issues;
-  }
-
-  const sourceSet = new Set(data.props.map((prop) => prop.sourceFeed));
-  const isLegacyOnly = sourceSet.size === 1 && sourceSet.has("PLAYER_PROPS_BY_DATE_LEGACY");
-
-  if (!isLegacyOnly) {
-    const uniqueBooks = new Set(data.props.map((prop) => prop.sportsbookKey));
-    if (uniqueBooks.size < 2) {
-      issues.push(`Only ${uniqueBooks.size} sportsbook(s) detected for today's props.`);
-    }
-
-    const allScrambledNames = data.props.every((prop) => prop.sportsbookDisplayName.toLowerCase().includes("scrambled"));
-    if (allScrambledNames) {
-      issues.push("All sportsbook names appear scrambled from provider feed.");
-    }
-
-    const reasonableCount = data.props.filter((prop) => isLineReasonableForMarket(prop.market, prop.line)).length;
-    const reasonableRatio = reasonableCount / Math.max(data.props.length, 1);
-    if (reasonableRatio < 0.8) {
-      issues.push(`Line sanity check failed (${round(reasonableRatio * 100, 1)}% within expected range).`);
-    }
-  } else if (!ALLOW_LEGACY_PUBLISH) {
-    issues.push("Legacy props fallback is disabled.");
-  }
 
   const completedLogs = data.logs.filter((log) => (log.minutes ?? 0) > 0);
   if (completedLogs.length < 120) {
     issues.push(`Insufficient completed player logs (${completedLogs.length}) for stable metrics.`);
   }
 
-  if (data.edges === 0) {
-    issues.push("No edge rows were generated.");
-  }
-
   return issues;
-}
-async function scoreAndPersistEdges(
-  runId: string,
-  dateEt: string,
-  capturedAfter: Date,
-  injuriesByTeam: Map<string, string[]>,
-): Promise<{ edges: number }> {
-  const latestLines = await prisma.propLineSnapshot.findMany({
-    where: {
-      game: { gameDateEt: dateEt },
-      capturedAt: { gte: capturedAfter },
-    },
-    orderBy: [{ capturedAt: "desc" }],
-    distinct: ["gameId", "playerId", "sportsbookId", "market"],
-    select: {
-      id: true,
-      gameId: true,
-      playerId: true,
-      sportsbookId: true,
-      market: true,
-      line: true,
-      overPrice: true,
-      underPrice: true,
-      sourceFeed: true,
-      capturedAt: true,
-    },
-  });
-
-  if (!latestLines.length) {
-    return { edges: 0 };
-  }
-
-  const lineGroup = new Map<string, typeof latestLines>();
-  latestLines.forEach((line) => {
-    const key = `${line.gameId}|${line.playerId}|${line.market}`;
-    const list = lineGroup.get(key) ?? [];
-    list.push(line);
-    lineGroup.set(key, list);
-  });
-
-  const twoDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 30);
-  const history = await prisma.propLineSnapshot.findMany({
-    where: {
-      game: { gameDateEt: dateEt },
-      capturedAt: { gte: twoDaysAgo },
-    },
-    orderBy: [{ capturedAt: "asc" }],
-    select: {
-      gameId: true,
-      playerId: true,
-      sportsbookId: true,
-      market: true,
-      line: true,
-      capturedAt: true,
-    },
-  });
-
-  const historyMap = new Map<string, Array<{ line: number; capturedAt: Date }>>();
-  history.forEach((entry) => {
-    const key = `${entry.gameId}|${entry.playerId}|${entry.sportsbookId}|${entry.market}`;
-    const list = historyMap.get(key) ?? [];
-    list.push({ line: entry.line, capturedAt: entry.capturedAt });
-    historyMap.set(key, list);
-  });
-
-  const [players, games] = await Promise.all([
-    prisma.player.findMany({ select: { id: true, position: true, usageRate: true, teamId: true } }),
-    prisma.game.findMany({
-      where: { id: { in: Array.from(new Set(latestLines.map((line) => line.gameId))) } },
-      select: {
-        id: true,
-        homeTeamId: true,
-        awayTeamId: true,
-        homeTeam: { select: { abbreviation: true } },
-        awayTeam: { select: { abbreviation: true } },
-      },
-    }),
-  ]);
-
-  const playerMap = new Map(players.map((player) => [player.id, player]));
-  const gameMap = new Map(games.map((game) => [game.id, game]));
-  const playerIds = Array.from(new Set(latestLines.map((line) => line.playerId)));
-
-  const playerLogs = await prisma.playerGameLog.findMany({
-    where: {
-      playerId: { in: playerIds },
-      minutes: { gt: 0 },
-    },
-    orderBy: [{ gameDateEt: "desc" }],
-    take: 6000,
-  });
-
-  const logsByPlayer = new Map<string, (typeof playerLogs)[number][]>();
-  playerLogs.forEach((log) => {
-    const list = logsByPlayer.get(log.playerId) ?? [];
-    list.push(log);
-    logsByPlayer.set(log.playerId, list);
-  });
-
-  const allowanceLogs = await prisma.playerGameLog.findMany({
-    where: {
-      gameDateEt: { gte: etDateShift(dateEt, -45) },
-      minutes: { gt: 0 },
-      opponentTeamId: { not: null },
-    },
-    orderBy: [{ gameDateEt: "desc" }],
-    take: 20000,
-    select: {
-      playerId: true,
-      opponentTeamId: true,
-      gameDateEt: true,
-      points: true,
-      rebounds: true,
-      assists: true,
-      threes: true,
-      steals: true,
-      blocks: true,
-      turnovers: true,
-      minutes: true,
-      pace: true,
-      total: true,
-    },
-  });
-
-  const missingPlayers = Array.from(new Set(allowanceLogs.map((entry) => entry.playerId))).filter(
-    (playerId) => !playerMap.has(playerId),
-  );
-  if (missingPlayers.length) {
-    const extraPlayers = await prisma.player.findMany({
-      where: { id: { in: missingPlayers } },
-      select: { id: true, position: true, usageRate: true, teamId: true },
-    });
-    extraPlayers.forEach((player) => {
-      playerMap.set(player.id, player);
-    });
-  }
-
-  const archetypeByPlayer = new Map<string, string>();
-  playerMap.forEach((player, playerId) => {
-    archetypeByPlayer.set(playerId, buildArchetypeKey(player));
-  });
-
-  const leagueArchetypeMarket = new Map<string, number[]>();
-  const opponentArchetypeMarket = new Map<string, number[]>();
-  allowanceLogs.forEach((log) => {
-    const archetype = archetypeByPlayer.get(log.playerId);
-    if (!archetype || !log.opponentTeamId) return;
-
-    ALL_MARKETS.forEach((market) => {
-      const value = marketValueFromLog(market, {
-        points: log.points,
-        rebounds: log.rebounds,
-        assists: log.assists,
-        threes: log.threes,
-        steals: log.steals,
-        blocks: log.blocks,
-        turnovers: log.turnovers,
-      });
-      if (value == null) return;
-
-      pushLimited(leagueArchetypeMarket, `${archetype}|${market}`, value, 250);
-      pushLimited(opponentArchetypeMarket, `${log.opponentTeamId}|${archetype}|${market}`, value, 10);
-    });
-  });
-
-  const metricsRows: Prisma.PlayerMarketMetricCreateManyInput[] = [];
-  const edgeRows: Prisma.EdgeSnapshotCreateManyInput[] = [];
-  const dayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
-  for (const line of latestLines) {
-    const player = playerMap.get(line.playerId);
-    const game = gameMap.get(line.gameId);
-    if (!player || !game) {
-      continue;
-    }
-
-    const playerLogList = (logsByPlayer.get(line.playerId) ?? []).sort((a, b) => b.gameDateEt.localeCompare(a.gameDateEt));
-    const last5Logs = playerLogList.slice(0, 5);
-    const seasonLogs = playerLogList.slice(0, 82);
-    const lastGame = playerLogList[0] ?? null;
-
-    const last5OverRate = computeHitRate(last5Logs, line.market, line.line, "OVER");
-    const last5UnderRate = computeHitRate(last5Logs, line.market, line.line, "UNDER");
-    const seasonOverRate = computeHitRate(seasonLogs, line.market, line.line, "OVER");
-    const seasonUnderRate = computeHitRate(seasonLogs, line.market, line.line, "UNDER");
-    const { bounceBackFlag, bounceBackScore } = computeBounceBack(lastGame, line.market, line.line);
-    const archetypeKey = buildArchetypeKey(player);
-
-    const opponentTeamId = game.homeTeamId === player.teamId ? game.awayTeamId : game.homeTeamId;
-    const oppValues = opponentArchetypeMarket.get(`${opponentTeamId}|${archetypeKey}|${line.market}`) ?? [];
-    const leagueValues = leagueArchetypeMarket.get(`${archetypeKey}|${line.market}`) ?? [];
-    const opponentAverage = average(oppValues);
-    const leagueAverage = average(leagueValues);
-    const opponentAllowanceDelta = round((opponentAverage ?? 0) - (leagueAverage ?? 0), 3);
-    const opponentAllowanceScores = computeOpponentAllowanceScore(opponentAllowanceDelta, line.line);
-
-    const siblingLines = lineGroup.get(`${line.gameId}|${line.playerId}|${line.market}`) ?? [line];
-    const consensusLine = average(siblingLines.map((entry) => entry.line)) ?? line.line;
-    const lineValue = computeLineValueScores(line.line, consensusLine, line.overPrice, line.underPrice);
-
-    const minutesTrendScore = computeMinutesTrend(last5Logs);
-    const paceTotalScore = computePaceTotal(last5Logs);
-
-    const opponentAbbreviation =
-      opponentTeamId === game.homeTeamId ? game.homeTeam.abbreviation : game.awayTeam.abbreviation;
-    const injuryStatuses = injuriesByTeam.get(opponentAbbreviation) ?? [];
-    const injuryContextScore = computeInjuryContext(injuryStatuses);
-
-    const overRecentForm = round(last5OverRate * 100, 2);
-    const underRecentForm = round(last5UnderRate * 100, 2);
-    const overSeasonScore = round(seasonOverRate * 100, 2);
-    const underSeasonScore = round(seasonUnderRate * 100, 2);
-
-    const edge = scoreEdge({
-      recentFormOver: overRecentForm,
-      recentFormUnder: underRecentForm,
-      opponentOver: opponentAllowanceScores.overScore,
-      opponentUnder: opponentAllowanceScores.underScore,
-      seasonOver: overSeasonScore,
-      seasonUnder: underSeasonScore,
-      bounceOver: bounceBackScore,
-      bounceUnder: clamp(100 - bounceBackScore, 0, 100),
-      minutesTrend: minutesTrendScore,
-      paceTotal: paceTotalScore,
-      lineValueOver: lineValue.overScore,
-      lineValueUnder: lineValue.underScore,
-    });
-
-    const historyKey = `${line.gameId}|${line.playerId}|${line.sportsbookId}|${line.market}`;
-    const historicalPoints = historyMap.get(historyKey) ?? [];
-    let baseline24h = historicalPoints[0]?.line ?? line.line;
-    for (let index = historicalPoints.length - 1; index >= 0; index -= 1) {
-      if (historicalPoints[index].capturedAt <= dayAgo) {
-        baseline24h = historicalPoints[index].line;
-        break;
-      }
-    }
-    const lineMove24h = round(line.line - baseline24h, 3);
-
-    metricsRows.push({
-      refreshRunId: runId,
-      playerId: line.playerId,
-      gameId: line.gameId,
-      sportsbookId: line.sportsbookId,
-      market: line.market,
-      line: line.line,
-      last5OverRate: round(last5OverRate, 4),
-      last5UnderRate: round(last5UnderRate, 4),
-      seasonOverRate: round(seasonOverRate, 4),
-      seasonUnderRate: round(seasonUnderRate, 4),
-      bounceBackFlag,
-      bounceBackScore,
-      archetypeKey,
-      opponentAllowanceDelta,
-      lineValueScore: edge.recommendedSide === "OVER" ? lineValue.overScore : lineValue.underScore,
-      minutesTrendScore,
-      paceTotalScore,
-      injuryContextScore,
-      recentFormScore: edge.recommendedSide === "OVER" ? overRecentForm : underRecentForm,
-      seasonVsLineScore: edge.recommendedSide === "OVER" ? overSeasonScore : underSeasonScore,
-      updatedAt: new Date(),
-    });
-
-    edgeRows.push({
-      refreshRunId: runId,
-      playerId: line.playerId,
-      gameId: line.gameId,
-      sportsbookId: line.sportsbookId,
-      market: line.market,
-      line: line.line,
-      overPrice: line.overPrice,
-      underPrice: line.underPrice,
-      recommendedSide: edge.recommendedSide,
-      overEdgeScore: edge.overEdgeScore,
-      underEdgeScore: edge.underEdgeScore,
-      edgeScore: edge.edgeScore,
-      confidence: confidenceForApi(edge.confidence),
-      last5OverRate: round(last5OverRate, 4),
-      bounceBackFlag,
-      opponentAllowanceDelta,
-      archetypeKey,
-      lineMove24h,
-      dataSource: line.sourceFeed,
-      componentScores: {
-        recentFormOver: overRecentForm,
-        recentFormUnder: underRecentForm,
-        opponentOver: opponentAllowanceScores.overScore,
-        opponentUnder: opponentAllowanceScores.underScore,
-        seasonOver: overSeasonScore,
-        seasonUnder: underSeasonScore,
-        bounceOver: bounceBackScore,
-        bounceUnder: clamp(100 - bounceBackScore, 0, 100),
-        minutesTrend: minutesTrendScore,
-        paceTotal: paceTotalScore,
-        lineValueOver: lineValue.overScore,
-        lineValueUnder: lineValue.underScore,
-        injuryContext: injuryContextScore,
-      },
-      updatedAt: new Date(),
-    });
-  }
-
-  if (metricsRows.length) {
-    await prisma.playerMarketMetric.createMany({ data: metricsRows, skipDuplicates: true });
-  }
-  if (edgeRows.length) {
-    await prisma.edgeSnapshot.createMany({ data: edgeRows, skipDuplicates: true });
-  }
-
-  logger.info("Scoring complete", {
-    runId,
-    lines: latestLines.length,
-    metrics: metricsRows.length,
-    edges: edgeRows.length,
-  });
-
-  return { edges: edgeRows.length };
 }
 
 export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
@@ -926,18 +401,13 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
     const fetched = await fetchData(mode, dateEt);
     warnings.push(...fetched.warnings);
 
-    const sportsbookMap = await ensureSportsbooks(fetched.sportsbooks, fetched.props);
     const teamMap = await upsertTeams(fetched.games, fetched.players, fetched.logs);
-    const { playerMap, playerNameMap } = await upsertPlayers(fetched.players, teamMap);
-    const gameMap = await upsertGames(fetched.games, teamMap);
+    const { playerMap } = await upsertPlayers(fetched.players, teamMap);
+    await upsertGames(fetched.games, teamMap);
     await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
-    const lineCount = await insertPropSnapshots(fetched.props, playerMap, gameMap, sportsbookMap, playerNameMap);
-    const scored = await scoreAndPersistEdges(run.id, dateEt, runStartedAt, fetched.injuriesByTeam);
 
     const qualityIssues = evaluateQualityInput({
-      props: fetched.props,
       logs: fetched.logs,
-      edges: scored.edges,
     });
     const qualityPass = qualityIssues.length === 0;
     const isPublishable = QUALITY_GATE_ENABLED ? qualityPass : true;
@@ -956,8 +426,6 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         durationMs,
         totalGames: fetched.games.length,
         totalPlayers: fetched.players.length,
-        totalLines: lineCount,
-        totalEdges: scored.edges,
         warningCount: warnings.length,
         isPublishable,
         qualityIssues,
@@ -1024,8 +492,6 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
       totals: {
         games: fetched.games.length,
         players: fetched.players.length,
-        lines: lineCount,
-        edges: scored.edges,
       },
     };
   } catch (error) {
@@ -1049,15 +515,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
   }
 }
 
-export async function pruneOldLineSnapshots(daysToKeep = 60): Promise<number> {
-  const cutoff = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
-  const result = await prisma.propLineSnapshot.deleteMany({
-    where: {
-      capturedAt: { lt: cutoff },
-    },
-  });
-  return result.count;
-}
+
 
 export function assertCronGuard(request: Request): void {
   const nextRequest = request as unknown as Parameters<typeof isCronAuthorized>[0];
