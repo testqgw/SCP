@@ -7,8 +7,10 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
-    "refresh:full": "ts-node scripts/run-refresh.ts full",
-    "refresh:delta": "ts-node scripts/run-refresh.ts delta"
+    "refresh:full": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts full",
+    "refresh:delta": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts delta",
+    "season:backfill": "tsx --env-file=.env.local --env-file=.env scripts/backfill-season-stats.ts",
+    "season:export": "tsx --env-file=.env.local --env-file=.env scripts/export-season-stats.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -34,6 +36,7 @@
     "prisma": "^6.19.0",
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.6.2"
   }
 }
