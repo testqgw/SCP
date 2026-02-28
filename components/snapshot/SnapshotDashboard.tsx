@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
@@ -64,6 +64,32 @@ function edge(offense: number | null, defenseAllowed: number | null): number | n
   return offense - defenseAllowed;
 }
 
+function marketValueFromLog(
+  log: SnapshotRow["recentLogs"][number],
+  market: SnapshotMarket,
+): number {
+  if (market === "PTS") return log.points;
+  if (market === "REB") return log.rebounds;
+  if (market === "AST") return log.assists;
+  if (market === "THREES") return log.threes;
+  if (market === "PRA") return log.points + log.rebounds + log.assists;
+  if (market === "PA") return log.points + log.assists;
+  if (market === "PR") return log.points + log.rebounds;
+  return log.rebounds + log.assists;
+}
+
+function formatPercent(numerator: number, denominator: number): string {
+  if (denominator === 0) return "-";
+  const pct = (numerator / denominator) * 100;
+  return `${pct.toFixed(0)}%`;
+}
+
+function resultLabel(value: number, line: number): "OVER" | "UNDER" | "PUSH" {
+  if (value > line) return "OVER";
+  if (value < line) return "UNDER";
+  return "PUSH";
+}
+
 export function SnapshotDashboard({
   data,
   initialMarket,
@@ -77,6 +103,13 @@ export function SnapshotDashboard({
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
+  const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
+
+  useEffect(() => {
+    if (!selectedPlayer) {
+      setFocusedMarket(market);
+    }
+  }, [selectedPlayer, market]);
 
   const matchupStatsByKey = useMemo(() => {
     const map = new Map<string, SnapshotBoardData["teamMatchups"][number]>();
@@ -252,7 +285,10 @@ export function SnapshotDashboard({
                     return (
                       <tr
                         key={row.playerId}
-                        onClick={() => setSelectedPlayer(row)}
+                        onClick={() => {
+                          setFocusedMarket(market);
+                          setSelectedPlayer(row);
+                        }}
                         className="cursor-pointer border-t border-slate-300/10 text-slate-100 hover:bg-cyan-300/8"
                       >
                         <td className="px-4 py-3 font-semibold">
@@ -323,7 +359,10 @@ export function SnapshotDashboard({
 
             <section className="mt-5">
               <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">All Markets Detail</h3>
-              <div className="mt-2 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <p className="mt-1 text-xs text-slate-400">
+                Click any market card to open a full breakdown against your typed line.
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {MARKET_OPTIONS.map((option) => {
                   const m = option.value;
                   const l5 = selectedPlayer.last5[m];
@@ -332,18 +371,51 @@ export function SnapshotDashboard({
                   const selectedLine = parseLine(lineMap[key] ?? "");
                   const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
                   const l10Hit = selectedLine == null ? null : hitCounts(l10, selectedLine);
+                  const isFocused = focusedMarket === m;
                   return (
-                    <article key={m} className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
-                      <p className="font-semibold text-white">{option.label}</p>
-                      <p className="mt-1 text-slate-300">L3 Avg: {formatAverage(selectedPlayer.last3Average[m])}</p>
-                      <p className="text-slate-300">L10 Avg: {formatAverage(selectedPlayer.last10Average[m])}</p>
-                      <p className="text-slate-300">Season: {formatAverage(selectedPlayer.seasonAverage[m])}</p>
-                      <p className="text-slate-300">Home/Away: {formatAverage(selectedPlayer.homeAwayAverage[m])}</p>
-                      <p className="text-slate-300">Trend: {formatAverage(selectedPlayer.trendVsSeason[m], true)}</p>
-                      <p className="text-slate-300">Opp +/-: {formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</p>
-                      <p className="mt-1 text-slate-300">L5: {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}</p>
+                    <article
+                      key={m}
+                      onClick={() => setFocusedMarket(m)}
+                      className={`cursor-pointer rounded-xl border p-3 text-xs transition ${
+                        isFocused
+                          ? "border-cyan-300/70 bg-cyan-400/10"
+                          : "border-slate-300/20 bg-[#101938] hover:border-cyan-200/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-white">{option.label}</p>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${
+                            isFocused ? "bg-cyan-300/20 text-cyan-100" : "bg-slate-600/30 text-slate-300"
+                          }`}
+                        >
+                          {isFocused ? "Selected" : "View"}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-300">
+                        <p>L3 Avg</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.last3Average[m])}</p>
+                        <p>L10 Avg</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.last10Average[m])}</p>
+                        <p>Season</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.seasonAverage[m])}</p>
+                        <p>Home/Away</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.homeAwayAverage[m])}</p>
+                        <p>Trend</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.trendVsSeason[m], true)}</p>
+                        <p>Opp +/-</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</p>
+                      </div>
+
+                      <p className="mt-2 text-[11px] text-slate-300">
+                        L5 Values: {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}
+                      </p>
+
                       <input
                         value={lineMap[key] ?? ""}
+                        onClick={(event) => event.stopPropagation()}
+                        onFocus={() => setFocusedMarket(m)}
                         onChange={(event) =>
                           setLineMap((current) => ({
                             ...current,
@@ -354,20 +426,170 @@ export function SnapshotDashboard({
                         placeholder="Set line"
                         className="mt-2 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
                       />
-                      <p className="mt-1 text-slate-300">
-                        L5 O/U:{" "}
-                        {selectedLine == null || !l5Hit ? "-" : `${l5Hit.over}/${l5.length} O | ${l5Hit.under}/${l5.length} U`}
-                      </p>
-                      <p className="text-slate-300">
-                        L10 O/U:{" "}
-                        {selectedLine == null || !l10Hit
-                          ? "-"
-                          : `${l10Hit.over}/${l10.length} O | ${l10Hit.under}/${l10.length} U`}
-                      </p>
+
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
+                        <p className="rounded-md bg-[#0d1630] px-2 py-1 text-slate-300">
+                          L5 O/U:{" "}
+                          {selectedLine == null || !l5Hit ? "-" : `${l5Hit.over}/${l5.length} O | ${l5Hit.under}/${l5.length} U`}
+                        </p>
+                        <p className="rounded-md bg-[#0d1630] px-2 py-1 text-slate-300">
+                          L10 O/U:{" "}
+                          {selectedLine == null || !l10Hit
+                            ? "-"
+                            : `${l10Hit.over}/${l10.length} O | ${l10Hit.under}/${l10.length} U`}
+                        </p>
+                      </div>
                     </article>
                   );
                 })}
               </div>
+
+              {(() => {
+                const m = focusedMarket;
+                const key = lineKey(selectedPlayer.playerId, m);
+                const selectedLine = parseLine(lineMap[key] ?? "");
+                const l5 = selectedPlayer.last5[m];
+                const l10 = selectedPlayer.last10[m];
+                const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
+                const l10Hit = selectedLine == null ? null : hitCounts(l10, selectedLine);
+                const focusedLabel = MARKET_OPTIONS.find((option) => option.value === m)?.label ?? m;
+                const l3VsLine =
+                  selectedLine == null || selectedPlayer.last3Average[m] == null ? null : selectedPlayer.last3Average[m] - selectedLine;
+                const l10VsLine =
+                  selectedLine == null || selectedPlayer.last10Average[m] == null ? null : selectedPlayer.last10Average[m] - selectedLine;
+                const seasonVsLine =
+                  selectedLine == null || selectedPlayer.seasonAverage[m] == null ? null : selectedPlayer.seasonAverage[m] - selectedLine;
+
+                return (
+                  <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-cyan-100">{focusedLabel} Analyzer</h4>
+                      <p className="text-[11px] text-slate-400">Line-based breakdown for the selected market.</p>
+                    </div>
+
+                    <div className="mt-3 grid gap-3 lg:grid-cols-[280px_1fr]">
+                      <div className="rounded-lg border border-slate-300/20 bg-[#101938] p-3">
+                        <label className="text-[11px] uppercase tracking-[0.12em] text-slate-300">
+                          Your line
+                          <input
+                            value={lineMap[key] ?? ""}
+                            onChange={(event) =>
+                              setLineMap((current) => ({
+                                ...current,
+                                [key]: event.target.value,
+                              }))
+                            }
+                            inputMode="decimal"
+                            placeholder="Set line"
+                            className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                          />
+                        </label>
+
+                        <div className="mt-3 space-y-1 text-xs text-slate-300">
+                          <p className="flex items-center justify-between">
+                            <span>L3 Avg</span>
+                            <span>{formatAverage(selectedPlayer.last3Average[m])}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>L10 Avg</span>
+                            <span>{formatAverage(selectedPlayer.last10Average[m])}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Season Avg</span>
+                            <span>{formatAverage(selectedPlayer.seasonAverage[m])}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Home/Away Avg</span>
+                            <span>{formatAverage(selectedPlayer.homeAwayAverage[m])}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Trend vs Season</span>
+                            <span>{formatAverage(selectedPlayer.trendVsSeason[m], true)}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Opp +/-</span>
+                            <span>{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</span>
+                          </p>
+                        </div>
+
+                        {selectedLine == null ? (
+                          <p className="mt-3 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-300">
+                            Enter a line to see over/under rates and per-game comparisons.
+                          </p>
+                        ) : (
+                          <div className="mt-3 space-y-1 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-200">
+                            <p>
+                              L5: {l5Hit?.over ?? 0}/{l5.length} OVER ({formatPercent(l5Hit?.over ?? 0, l5.length)}) |{" "}
+                              {l5Hit?.under ?? 0}/{l5.length} UNDER ({formatPercent(l5Hit?.under ?? 0, l5.length)})
+                            </p>
+                            <p>
+                              L10: {l10Hit?.over ?? 0}/{l10.length} OVER ({formatPercent(l10Hit?.over ?? 0, l10.length)}) |{" "}
+                              {l10Hit?.under ?? 0}/{l10.length} UNDER ({formatPercent(l10Hit?.under ?? 0, l10.length)})
+                            </p>
+                            <p>L3 Avg vs line: {formatAverage(l3VsLine, true)}</p>
+                            <p>L10 Avg vs line: {formatAverage(l10VsLine, true)}</p>
+                            <p>Season Avg vs line: {formatAverage(seasonVsLine, true)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="overflow-hidden rounded-lg border border-slate-300/20">
+                        <table className="w-full text-xs">
+                          <thead className="bg-[#162249] text-slate-200/80">
+                            <tr>
+                              <th className="px-2 py-2 text-left">Date</th>
+                              <th className="px-2 py-2 text-left">Opp</th>
+                              <th className="px-2 py-2 text-left">Site</th>
+                              <th className="px-2 py-2 text-left">Min</th>
+                              <th className="px-2 py-2 text-left">{m}</th>
+                              <th className="px-2 py-2 text-left">Vs line</th>
+                              <th className="px-2 py-2 text-left">Result</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedPlayer.recentLogs.length === 0 ? (
+                              <tr className="border-t border-slate-300/10">
+                                <td colSpan={7} className="px-2 py-3 text-slate-300">
+                                  No completed-game logs available yet.
+                                </td>
+                              </tr>
+                            ) : (
+                              selectedPlayer.recentLogs.map((log, index) => {
+                                const value = marketValueFromLog(log, m);
+                                const diff = selectedLine == null ? null : value - selectedLine;
+                                const result = selectedLine == null ? null : resultLabel(value, selectedLine);
+                                return (
+                                  <tr key={`${m}-${log.gameDateEt}-${index}`} className="border-t border-slate-300/10">
+                                    <td className="px-2 py-2">{log.gameDateEt}</td>
+                                    <td className="px-2 py-2">{log.opponent ?? "-"}</td>
+                                    <td className="px-2 py-2">{log.isHome ? "Home" : "Away"}</td>
+                                    <td className="px-2 py-2">{formatStat(log.minutes)}</td>
+                                    <td className="px-2 py-2 font-semibold text-white">{formatStat(value)}</td>
+                                    <td className="px-2 py-2">{diff == null ? "-" : formatAverage(diff, true)}</td>
+                                    <td
+                                      className={`px-2 py-2 font-semibold ${
+                                        result === "OVER"
+                                          ? "text-emerald-300"
+                                          : result === "UNDER"
+                                            ? "text-amber-300"
+                                            : result === "PUSH"
+                                              ? "text-cyan-200"
+                                              : "text-slate-300"
+                                      }`}
+                                    >
+                                      {result ?? "-"}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })()}
             </section>
 
             <section className="mt-5">
