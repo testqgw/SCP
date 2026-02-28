@@ -90,6 +90,79 @@ function resultLabel(value: number, line: number): "OVER" | "UNDER" | "PUSH" {
   return "PUSH";
 }
 
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  return sorted[middle];
+}
+
+function standardDeviation(values: number[]): number | null {
+  const avg = average(values);
+  if (avg == null || values.length === 0) return null;
+  const variance =
+    values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function minValue(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.min(...values);
+}
+
+function maxValue(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.max(...values);
+}
+
+function consistencyPct(values: number[]): number | null {
+  const avg = average(values);
+  const sd = standardDeviation(values);
+  if (avg == null || sd == null || values.length === 0) return null;
+  if (sd === 0) return 100;
+  const withinBand = values.filter((value) => Math.abs(value - avg) <= sd).length;
+  return (withinBand / values.length) * 100;
+}
+
+function formatPercentValue(value: number | null): string {
+  if (value == null) return "-";
+  return `${value.toFixed(0)}%`;
+}
+
+type InfoTipProps = {
+  label: string;
+  definition: string;
+};
+
+function InfoTip({ label, definition }: InfoTipProps): React.ReactElement {
+  return (
+    <span
+      title={`${label}: ${definition}`}
+      className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyan-200/40 bg-cyan-200/10 text-[10px] font-bold text-cyan-100"
+      aria-label={`${label} help`}
+    >
+      ?
+    </span>
+  );
+}
+
+type HeaderWithTipProps = {
+  label: string;
+  definition: string;
+};
+
+function HeaderWithTip({ label, definition }: HeaderWithTipProps): React.ReactElement {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {label}
+      <InfoTip label={label} definition={definition} />
+    </span>
+  );
+}
+
 export function SnapshotDashboard({
   data,
   initialMarket,
@@ -140,6 +213,7 @@ export function SnapshotDashboard({
           <p className="text-sm text-slate-300">
             Manual betting board: composite markets + full player detail + team matchup context.
           </p>
+          <p className="text-xs text-slate-400">Hover any small ? icon for term definitions and metric formulas.</p>
           <p className="text-sm text-slate-300">
             Last refresh: {data.lastUpdatedAt ? new Date(data.lastUpdatedAt).toLocaleString() : "No refresh yet"}
           </p>
@@ -261,24 +335,71 @@ export function SnapshotDashboard({
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0f1734]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1300px] text-left text-sm">
+              <table className="w-full min-w-[1540px] text-left text-sm">
                 <thead className="bg-[#162249] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
                     <th className="px-4 py-3">Matchup</th>
                     <th className="px-4 py-3">L5 {market}</th>
-                    <th className="px-4 py-3">L10 Avg</th>
-                    <th className="px-4 py-3">Season Avg</th>
-                    <th className="px-4 py-3">Trend</th>
-                    <th className="px-4 py-3">Opp +/-</th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="L10 Avg"
+                        definition="Average stat value across the player's last 10 completed games."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Season Avg"
+                        definition="Average stat value across all completed games this season."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Vol (SD)"
+                        definition="Volatility measured by standard deviation over last 10 games. Higher means less stable output."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Consistency"
+                        definition="Percent of last 10 games within 1 standard deviation of the player's own L10 average."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Floor/Ceil"
+                        definition="Lowest and highest values from the last 10 games."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Trend"
+                        definition="Last-3 average minus season average. Positive means recent form is above season baseline."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Opp +/-"
+                        definition="Opponent allowance vs league average for this market. Positive means softer matchup."
+                      />
+                    </th>
                     <th className="px-4 py-3">Your Line</th>
-                    <th className="px-4 py-3">L10 O/U</th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="L10 O/U"
+                        definition="Over/under count versus your line using the player's last 10 completed games."
+                      />
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRows.map((row) => {
                     const l5Values = row.last5[market];
                     const l10Values = row.last10[market];
+                    const l10Volatility = standardDeviation(l10Values);
+                    const l10Consistency = consistencyPct(l10Values);
+                    const floor = minValue(l10Values);
+                    const ceiling = maxValue(l10Values);
                     const currentLine = parseLine(lineMap[lineKey(row.playerId, market)] ?? "");
                     const l10Hit = currentLine == null ? null : hitCounts(l10Values, currentLine);
 
@@ -306,6 +427,11 @@ export function SnapshotDashboard({
                         </td>
                         <td className="px-4 py-3">{formatAverage(row.last10Average[market])}</td>
                         <td className="px-4 py-3">{formatAverage(row.seasonAverage[market])}</td>
+                        <td className="px-4 py-3">{formatAverage(l10Volatility)}</td>
+                        <td className="px-4 py-3">{formatPercentValue(l10Consistency)}</td>
+                        <td className="px-4 py-3">
+                          {floor == null || ceiling == null ? "-" : `${formatStat(floor)} / ${formatStat(ceiling)}`}
+                        </td>
                         <td className="px-4 py-3">{formatAverage(row.trendVsSeason[market], true)}</td>
                         <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[market], true)}</td>
                         <td className="px-4 py-3">
@@ -453,12 +579,27 @@ export function SnapshotDashboard({
                 const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
                 const l10Hit = selectedLine == null ? null : hitCounts(l10, selectedLine);
                 const focusedLabel = MARKET_OPTIONS.find((option) => option.value === m)?.label ?? m;
+                const l10Median = median(l10);
+                const l10StdDev = standardDeviation(l10);
+                const l10Min = minValue(l10);
+                const l10Max = maxValue(l10);
+                const l10Range = l10Min == null || l10Max == null ? null : l10Max - l10Min;
+                const l10Consistency = consistencyPct(l10);
                 const l3VsLine =
                   selectedLine == null || selectedPlayer.last3Average[m] == null ? null : selectedPlayer.last3Average[m] - selectedLine;
                 const l10VsLine =
                   selectedLine == null || selectedPlayer.last10Average[m] == null ? null : selectedPlayer.last10Average[m] - selectedLine;
                 const seasonVsLine =
                   selectedLine == null || selectedPlayer.seasonAverage[m] == null ? null : selectedPlayer.seasonAverage[m] - selectedLine;
+                const zEdge =
+                  selectedLine == null ||
+                  selectedPlayer.last10Average[m] == null ||
+                  l10StdDev == null ||
+                  l10StdDev === 0
+                    ? null
+                    : (selectedPlayer.last10Average[m] - selectedLine) / l10StdDev;
+                const oneSdBandLow = selectedLine == null || l10StdDev == null ? null : selectedLine - l10StdDev;
+                const oneSdBandHigh = selectedLine == null || l10StdDev == null ? null : selectedLine + l10StdDev;
 
                 return (
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
@@ -512,6 +653,60 @@ export function SnapshotDashboard({
                           </p>
                         </div>
 
+                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2">
+                          <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Advanced Metrics</p>
+                          <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs text-slate-300">
+                            <p className="inline-flex items-center gap-1">
+                              Median L10
+                              <InfoTip
+                                label="Median L10"
+                                definition="Middle value of the last 10 games; less sensitive to one-off spikes than average."
+                              />
+                            </p>
+                            <p className="text-right">{formatAverage(l10Median)}</p>
+
+                            <p className="inline-flex items-center gap-1">
+                              Volatility (SD)
+                              <InfoTip
+                                label="Volatility (SD)"
+                                definition="Standard deviation of last 10 games; bigger number means more boom/bust outcomes."
+                              />
+                            </p>
+                            <p className="text-right">{formatAverage(l10StdDev)}</p>
+
+                            <p className="inline-flex items-center gap-1">
+                              Consistency
+                              <InfoTip
+                                label="Consistency"
+                                definition="Share of last 10 games within one SD of the player's L10 average."
+                              />
+                            </p>
+                            <p className="text-right">{formatPercentValue(l10Consistency)}</p>
+
+                            <p className="inline-flex items-center gap-1">
+                              L10 Range
+                              <InfoTip
+                                label="L10 Range"
+                                definition="Difference between last 10 max and min values, plus floor/ceiling for context."
+                              />
+                            </p>
+                            <p className="text-right">
+                              {l10Range == null || l10Min == null || l10Max == null
+                                ? "-"
+                                : `${formatStat(l10Range)} (${formatStat(l10Min)}-${formatStat(l10Max)})`}
+                            </p>
+
+                            <p className="inline-flex items-center gap-1">
+                              Z-Edge
+                              <InfoTip
+                                label="Z-Edge"
+                                definition="(L10 average - your line) divided by volatility. +0.5 or higher is a stronger over lean; -0.5 or lower is a stronger under lean."
+                              />
+                            </p>
+                            <p className="text-right">{zEdge == null ? "-" : zEdge.toFixed(2)}</p>
+                          </div>
+                        </div>
+
                         {selectedLine == null ? (
                           <p className="mt-3 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-300">
                             Enter a line to see over/under rates and per-game comparisons.
@@ -529,6 +724,12 @@ export function SnapshotDashboard({
                             <p>L3 Avg vs line: {formatAverage(l3VsLine, true)}</p>
                             <p>L10 Avg vs line: {formatAverage(l10VsLine, true)}</p>
                             <p>Season Avg vs line: {formatAverage(seasonVsLine, true)}</p>
+                            <p>
+                              1 SD line band:{" "}
+                              {oneSdBandLow == null || oneSdBandHigh == null
+                                ? "-"
+                                : `${formatStat(oneSdBandLow)} to ${formatStat(oneSdBandHigh)}`}
+                            </p>
                           </div>
                         )}
                       </div>
