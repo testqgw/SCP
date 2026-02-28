@@ -65,6 +65,16 @@ type TeamSummary = {
 
 type PositionToken = "G" | "F" | "C";
 
+type PlayerStatusLog = {
+  gameDateEt: string;
+  externalGameId: string;
+  isHome: boolean | null;
+  starter: boolean | null;
+  played: boolean | null;
+  teamId: string | null;
+  opponentTeamId: string | null;
+};
+
 type PlayerProfile = {
   playerId: string;
   playerName: string;
@@ -269,6 +279,10 @@ type IntelBuildInput = {
   teammateCore: SnapshotTeammateCore[];
   last10Logs: SnapshotStatLog[];
   last5Logs: SnapshotStatLog[];
+  statusLast10: PlayerStatusLog[];
+  teammateUnavailableLastGame: number;
+  teammateUnknownStatusLastGame: number;
+  opponentStarterShareTop5: number | null;
   seasonAverage: SnapshotMetricRecord;
   last10Average: SnapshotMetricRecord;
   last3Average: SnapshotMetricRecord;
@@ -280,9 +294,18 @@ type IntelBuildInput = {
 
 function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
   const modules: SnapshotIntelModule[] = [];
-  const playedLast10 = input.last10Logs.filter((log) => log.played !== false).length;
-  const startsLast10 = input.last10Logs.filter((log) => log.starter === true).length;
-  const restDays = input.last10Logs[0] ? daysBetweenEt(input.last10Logs[0].gameDateEt, input.dateEt) : null;
+  const statusLogs = input.statusLast10;
+  const playedLast10 = statusLogs.length
+    ? statusLogs.filter((log) => log.played !== false).length
+    : input.last10Logs.length;
+  const startsLast10 = statusLogs.length
+    ? statusLogs.filter((log) => log.starter === true).length
+    : input.last10Logs.filter((log) => log.starter === true).length;
+  const restDays = statusLogs[0]
+    ? daysBetweenEt(statusLogs[0].gameDateEt, input.dateEt)
+    : input.last10Logs[0]
+      ? daysBetweenEt(input.last10Logs[0].gameDateEt, input.dateEt)
+      : null;
 
   const minutes = input.playerProfile?.minutesLast10Avg;
   const pts = input.last10Average.PTS ?? 0;
@@ -500,61 +523,109 @@ function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
     items: schemeItems,
   });
 
-  const microItems: SnapshotIntelItem[] = [];
-  const sortedPts = input.last10Logs.map((log) => log.points).sort((a, b) => a - b);
-  const l10MedianPtsRaw = sortedPts.length > 0 ? sortedPts[Math.floor(sortedPts.length / 2)] ?? null : null;
-  const l10MedianPts = l10MedianPtsRaw == null ? null : round(l10MedianPtsRaw, 1);
-  const ptsStd = standardDeviation(input.last10Logs.map((log) => log.points));
-  addIntelItem(microItems, "Median PTS Baseline", formatNumber(l10MedianPts));
-  addIntelItem(microItems, "Volatility Band (PTS SD)", formatNumber(ptsStd));
-  addIntelItem(
-    microItems,
-    "Line Sensitivity",
-    ptsStd != null && ptsStd >= 7 ? "HIGH" : ptsStd != null && ptsStd >= 4 ? "MED" : "LOW",
-  );
-  addIntelItem(microItems, "Cross-book Drift", "Pending sportsbook depth feed");
-  addIntelItem(microItems, "Hold/Vig Monitor", "Pending sportsbook depth feed");
-  modules.push({
-    id: "market-micro",
-    title: "9. Market Microstructure",
-    description: "Line sensitivity and market-quality diagnostics.",
-    status: "PENDING",
-    items: microItems,
-  });
-
   const newsItems: SnapshotIntelItem[] = [];
+  const latestStatus = statusLogs[0] ?? null;
+  const latestStatusLabel =
+    latestStatus == null
+      ? "Unknown"
+      : latestStatus.played === false
+        ? "DNP"
+        : latestStatus.starter === true
+          ? "Started"
+          : "Active (bench)";
+  const availabilitySignal =
+    playedLast10 >= 9
+      ? "Stable Available"
+      : playedLast10 >= 7
+        ? "Mostly Available"
+        : "Volatile Availability";
   addIntelItem(newsItems, "Played Last 10", `${playedLast10}/10`);
   addIntelItem(newsItems, "Started Last 10", `${startsLast10}/10`);
+  addIntelItem(newsItems, "Latest Status", latestStatusLabel);
+  addIntelItem(newsItems, "Availability Signal", availabilitySignal);
   addIntelItem(
     newsItems,
-    "Latest Availability Signal",
-    input.last10Logs[0]?.played === false ? "Questionable" : "Available",
+    "Core Teammates Out (Last Game)",
+    `${input.teammateUnavailableLastGame}/${input.teammateCore.length}`,
   );
-  addIntelItem(newsItems, "Injury Feed", "Pending external news/injury connector");
-  addIntelItem(newsItems, "Lineup Alerts", "Pending external lineup connector");
+  addIntelItem(
+    newsItems,
+    "Core Teammates Unknown",
+    `${input.teammateUnknownStatusLastGame}/${input.teammateCore.length}`,
+  );
+  addIntelItem(
+    newsItems,
+    "Opponent Starter Continuity",
+    input.opponentStarterShareTop5 == null ? "-" : formatPercent(input.opponentStarterShareTop5),
+  );
   modules.push({
     id: "news-status",
     title: "10. News/Status Event Feed",
     description: "Availability and lineup status signals.",
-    status: "PENDING",
+    status: "LIVE",
     items: newsItems,
   });
+
+  const scheduleLogs = statusLogs.length
+    ? statusLogs.map((log) => ({ gameDateEt: log.gameDateEt, isHome: log.isHome }))
+    : input.last10Logs.map((log) => ({ gameDateEt: log.gameDateEt, isHome: log.isHome }));
+  const gamesLast4 = scheduleLogs.filter((log) => {
+    const days = daysBetweenEt(log.gameDateEt, input.dateEt);
+    return days != null && days <= 3;
+  }).length;
+  const gamesLast7 = scheduleLogs.filter((log) => {
+    const days = daysBetweenEt(log.gameDateEt, input.dateEt);
+    return days != null && days <= 6;
+  }).length;
+  const last5Sites = scheduleLogs.slice(0, 5).map((log) => log.isHome);
+  let siteSwitchesLast5 = 0;
+  for (let index = 1; index < last5Sites.length; index += 1) {
+    const previous = last5Sites[index - 1];
+    const current = last5Sites[index];
+    if (previous != null && current != null && previous !== current) {
+      siteSwitchesLast5 += 1;
+    }
+  }
+  const firstSite = scheduleLogs[0]?.isHome ?? null;
+  let siteStreak = 0;
+  for (const log of scheduleLogs) {
+    if (log.isHome == null || firstSite == null || log.isHome !== firstSite) break;
+    siteStreak += 1;
+  }
+  const awayLast4 = scheduleLogs.filter((log) => {
+    const days = daysBetweenEt(log.gameDateEt, input.dateEt);
+    return days != null && days <= 3 && log.isHome === false;
+  }).length;
+  const travelStress =
+    awayLast4 >= 2 || siteSwitchesLast5 >= 2
+      ? "HIGH"
+      : awayLast4 >= 1 || siteSwitchesLast5 >= 1
+        ? "MED"
+        : "LOW";
 
   const refItems: SnapshotIntelItem[] = [];
   addIntelItem(refItems, "Rest Days", restDays == null ? "-" : String(restDays));
   addIntelItem(refItems, "Back-to-Back", restDays === 0 ? "YES" : "NO");
+  addIntelItem(refItems, "Games Last 4 Days", String(gamesLast4));
+  addIntelItem(refItems, "Games Last 7 Days", String(gamesLast7));
   addIntelItem(refItems, "Tonight Venue", input.isHome ? "Home" : "Away");
   addIntelItem(
     refItems,
-    "Travel Load Proxy",
-    !input.isHome && input.last10Logs[0] && input.last10Logs[0].isHome === false ? "HIGH" : !input.isHome ? "MED" : "LOW",
+    "Site Streak",
+    firstSite == null ? "-" : `${firstSite ? "Home" : "Away"} x${siteStreak}`,
   );
-  addIntelItem(refItems, "Referee Tendencies", "Pending referee assignment feed");
+  addIntelItem(refItems, "Site Switches L5", String(siteSwitchesLast5));
+  addIntelItem(
+    refItems,
+    "Travel Load Proxy",
+    travelStress,
+  );
+  addIntelItem(refItems, "Ref Crew Published", "No cached pregame assignment");
   modules.push({
     id: "ref-rest-travel",
     title: "11. Ref/Rest/Travel Layer",
-    description: "Schedule stress and officiating context.",
-    status: "PENDING",
+    description: "Schedule stress, site movement, and officiating availability context.",
+    status: "DERIVED",
     items: refItems,
   });
 
@@ -947,6 +1018,24 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
   });
 
+  const statusLogsRaw = await prisma.playerGameLog.findMany({
+    where: {
+      playerId: { in: playerIds },
+      gameDateEt: { lt: dateEt },
+    },
+    select: {
+      playerId: true,
+      gameDateEt: true,
+      externalGameId: true,
+      isHome: true,
+      starter: true,
+      played: true,
+      teamId: true,
+      opponentTeamId: true,
+    },
+    orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
+  });
+
   const logsByPlayerId = new Map<string, SnapshotStatLog[]>();
   for (const log of logs) {
     const existing = logsByPlayerId.get(log.playerId) ?? [];
@@ -969,6 +1058,22 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       blocks: toStat(log.blocks),
     });
     logsByPlayerId.set(log.playerId, existing);
+  }
+
+  const statusLogsByPlayerId = new Map<string, PlayerStatusLog[]>();
+  for (const log of statusLogsRaw) {
+    const existing = statusLogsByPlayerId.get(log.playerId) ?? [];
+    if (existing.length >= 20) continue;
+    existing.push({
+      gameDateEt: log.gameDateEt,
+      externalGameId: log.externalGameId,
+      isHome: log.isHome,
+      starter: log.starter,
+      played: log.played,
+      teamId: log.teamId,
+      opponentTeamId: log.opponentTeamId,
+    });
+    statusLogsByPlayerId.set(log.playerId, existing);
   }
 
   const opponentTeamIds = Array.from(
@@ -1054,6 +1159,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
 
   for (const player of players) {
     const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
+    const statusForPlayer = statusLogsByPlayerId.get(player.id) ?? [];
+    const statusLast10 = statusForPlayer.slice(0, 10);
     const last10Logs = logsForPlayer.slice(0, 10);
     const last3Logs = logsForPlayer.slice(0, 3);
     const last10Average = averagesByMarket(last10Logs);
@@ -1064,9 +1171,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const minutesVolatility = standardDeviation(last10Logs.map((log) => log.minutes));
     const stealsLast10Avg = average(last10Logs.map((log) => log.steals));
     const blocksLast10Avg = average(last10Logs.map((log) => log.blocks));
-    const startsLast10 = last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
-    const starterRateLast10 = last10Logs.length > 0 ? round(startsLast10 / last10Logs.length, 2) : null;
-    const startedLastGame = last10Logs[0]?.starter ?? null;
+    const startsLast10 = statusLast10.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
+    const starterRateLast10 = statusLast10.length > 0 ? round(startsLast10 / statusLast10.length, 2) : null;
+    const startedLastGame = statusLast10[0]?.starter ?? null;
     const stocksPer36Last10 =
       minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
         ? null
@@ -1119,6 +1226,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     }
 
     const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
+    const statusForPlayer = statusLogsByPlayerId.get(player.id) ?? [];
+    const statusLast10 = statusForPlayer.slice(0, 10);
     const last5Logs = logsForPlayer.slice(0, 5);
     const last10Logs = logsForPlayer.slice(0, 10);
     const last3Logs = logsForPlayer.slice(0, 3);
@@ -1152,6 +1261,26 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         avgPRA10: profile.last10Average.PRA,
         avgAST10: profile.last10Average.AST,
       }));
+    const teammateUnavailableLastGame = teammateCore.reduce((count, teammate) => {
+      const latest = statusLogsByPlayerId.get(teammate.playerId)?.[0];
+      return count + (latest?.played === false ? 1 : 0);
+    }, 0);
+    const teammateUnknownStatusLastGame = teammateCore.reduce((count, teammate) => {
+      const latest = statusLogsByPlayerId.get(teammate.playerId)?.[0];
+      return count + (latest == null || latest.played == null ? 1 : 0);
+    }, 0);
+    const opponentTop5 = opponentProfiles.slice(0, 5);
+    const opponentStarterShareTop5 =
+      opponentTop5.length > 0
+        ? round(
+            opponentTop5.reduce((sum, profile) => sum + (profile.starterRateLast10 ?? 0), 0) / opponentTop5.length,
+            2,
+          )
+        : null;
+    const computedStartsLast10 = statusLast10.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
+    const computedStarterRateLast10 =
+      statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
+    const computedStartedLastGame = statusLast10[0]?.starter ?? null;
 
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
@@ -1177,24 +1306,14 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         playerContext: {
           archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
           projectedStarter: starterStatusLabel({
-            startedLastGame: playerProfile?.startedLastGame ?? last10Logs[0]?.starter ?? null,
-            starterRateLast10:
-              playerProfile?.starterRateLast10 ??
-              (last10Logs.length > 0
-                ? round(last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0) / last10Logs.length, 2)
-                : null),
+            startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
+            starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
             rotationRank,
             minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
           }),
-          startedLastGame: playerProfile?.startedLastGame ?? last10Logs[0]?.starter ?? null,
-          startsLast10:
-            playerProfile?.startsLast10 ??
-            last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0),
-          starterRateLast10:
-            playerProfile?.starterRateLast10 ??
-            (last10Logs.length > 0
-              ? round(last10Logs.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0) / last10Logs.length, 2)
-              : null),
+          startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
+          startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
+          starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
           rotationRank,
           minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
           minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
@@ -1215,6 +1334,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           teammateCore,
           last10Logs,
           last5Logs,
+          statusLast10,
+          teammateUnavailableLastGame,
+          teammateUnknownStatusLastGame,
+          opponentStarterShareTop5,
           seasonAverage,
           last10Average,
           last3Average,

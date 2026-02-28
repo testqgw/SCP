@@ -183,12 +183,39 @@ export function SnapshotDashboard({
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedPlayer) {
       setFocusedMarket(market);
     }
   }, [selectedPlayer, market]);
+
+  async function handleRefresh(): Promise<void> {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshError(null);
+    setRefreshMessage(null);
+    try {
+      const response = await fetch("/api/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "DELTA" }),
+      });
+      const payload = (await response.json()) as { result?: { status?: string }; error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Refresh failed");
+      }
+      setRefreshMessage(`Refresh complete (${payload.result?.status ?? "SUCCESS"}). Reloading board...`);
+      window.location.reload();
+    } catch (error) {
+      setRefreshError(error instanceof Error ? error.message : "Refresh failed");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   const matchupStatsByKey = useMemo(() => {
     const map = new Map<string, SnapshotBoardData["teamMatchups"][number]>();
@@ -223,6 +250,20 @@ export function SnapshotDashboard({
           <p className="text-sm text-slate-300">
             Last refresh: {data.lastUpdatedAt ? new Date(data.lastUpdatedAt).toLocaleString() : "No refresh yet"}
           </p>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                void handleRefresh();
+              }}
+              disabled={isRefreshing}
+              className="rounded-xl border border-cyan-300/40 bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRefreshing ? "Refreshing..." : "Refresh Snapshot"}
+            </button>
+            {refreshMessage ? <p className="text-xs text-emerald-200">{refreshMessage}</p> : null}
+            {refreshError ? <p className="text-xs text-rose-200">{refreshError}</p> : null}
+          </div>
         </div>
 
         <form method="GET" className="mt-5 flex flex-wrap items-end gap-3">
@@ -662,7 +703,9 @@ export function SnapshotDashboard({
             </section>
 
             <section className="mt-5">
-              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">Game Intelligence (12 Modules)</h3>
+              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">
+                Game Intelligence ({selectedPlayer.gameIntel.modules.length} Modules)
+              </h3>
               <p className="mt-1 text-xs text-slate-400">
                 Full game context stack: live signals + derived models + pending feed connectors.
               </p>
