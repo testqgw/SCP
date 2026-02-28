@@ -163,6 +163,12 @@ function HeaderWithTip({ label, definition }: HeaderWithTipProps): React.ReactEl
   );
 }
 
+function intelStatusClass(status: "LIVE" | "DERIVED" | "PENDING"): string {
+  if (status === "LIVE") return "bg-emerald-400/20 text-emerald-200";
+  if (status === "DERIVED") return "bg-cyan-400/20 text-cyan-100";
+  return "bg-amber-400/20 text-amber-200";
+}
+
 export function SnapshotDashboard({
   data,
   initialMarket,
@@ -652,6 +658,33 @@ export function SnapshotDashboard({
                     </div>
                   )}
                 </article>
+              </div>
+            </section>
+
+            <section className="mt-5">
+              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">Game Intelligence (12 Modules)</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Full game context stack: live signals + derived models + pending feed connectors.
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                {selectedPlayer.gameIntel.modules.map((module) => (
+                  <article key={module.id} className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-white">{module.title}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${intelStatusClass(module.status)}`}>
+                        {module.status}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-slate-400">{module.description}</p>
+                    <div className="mt-2 space-y-1 text-slate-200">
+                      {module.items.map((item, index) => (
+                        <p key={`${module.id}-${index}`}>
+                          <span className="text-slate-400">{item.label}:</span> {item.value}
+                        </p>
+                      ))}
+                    </div>
+                  </article>
+                ))}
               </div>
             </section>
 

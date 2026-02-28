@@ -2,6 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { formatUtcToEt } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
+  SnapshotGameIntel,
+  SnapshotIntelItem,
+  SnapshotIntelModule,
   SnapshotMarket,
   SnapshotMatchupOption,
   SnapshotMetricRecord,
@@ -97,6 +100,33 @@ function blankMetricRecord(): SnapshotMetricRecord {
 
 function toStat(value: number | null): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function formatNumber(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatSigned(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  const text = formatNumber(value);
+  return value > 0 ? `+${text}` : text;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${(value * 100).toFixed(0)}%`;
+}
+
+function daysBetweenEt(fromEt: string, toEt: string): number | null {
+  const from = new Date(`${fromEt}T00:00:00Z`).getTime();
+  const to = new Date(`${toEt}T00:00:00Z`).getTime();
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return Math.max(0, Math.round((to - from) / (24 * 60 * 60 * 1000)));
+}
+
+function addIntelItem(items: SnapshotIntelItem[], label: string, value: string, hint?: string): void {
+  items.push({ label, value, hint });
 }
 
 function metricsFromBase(points: number, rebounds: number, assists: number, threes: number): SnapshotMetricRecord {
@@ -224,6 +254,339 @@ function choosePrimaryDefender(
       compatible.length > 0
         ? "Position-matched highest-minute defender"
         : "Highest-minute defender available",
+  };
+}
+
+type IntelBuildInput = {
+  dateEt: string;
+  teamCode: string;
+  opponentCode: string;
+  isHome: boolean;
+  playerProfile: PlayerProfile | null;
+  teamProfiles: PlayerProfile[];
+  opponentProfiles: PlayerProfile[];
+  primaryDefender: SnapshotPrimaryDefender | null;
+  teammateCore: SnapshotTeammateCore[];
+  last10Logs: SnapshotStatLog[];
+  last5Logs: SnapshotStatLog[];
+  seasonAverage: SnapshotMetricRecord;
+  last10Average: SnapshotMetricRecord;
+  last3Average: SnapshotMetricRecord;
+  opponentAllowance: SnapshotMetricRecord;
+  opponentAllowanceDelta: SnapshotMetricRecord;
+  teamSummary: TeamSummary;
+  opponentSummary: TeamSummary;
+};
+
+function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
+  const modules: SnapshotIntelModule[] = [];
+  const playedLast10 = input.last10Logs.filter((log) => log.played !== false).length;
+  const startsLast10 = input.last10Logs.filter((log) => log.starter === true).length;
+  const restDays = input.last10Logs[0] ? daysBetweenEt(input.last10Logs[0].gameDateEt, input.dateEt) : null;
+
+  const minutes = input.playerProfile?.minutesLast10Avg;
+  const pts = input.last10Average.PTS ?? 0;
+  const reb = input.last10Average.REB ?? 0;
+  const ast = input.last10Average.AST ?? 0;
+  const threes = input.last10Average.THREES ?? 0;
+  const usageProxy = minutes && minutes > 0 ? round(((pts + ast * 1.4) / minutes) * 36, 2) : null;
+  const assistLoadPer36 = minutes && minutes > 0 ? round((ast / minutes) * 36, 2) : null;
+  const reboundLoadPer36 = minutes && minutes > 0 ? round((reb / minutes) * 36, 2) : null;
+  const threeRatePer36 = minutes && minutes > 0 ? round((threes / minutes) * 36, 2) : null;
+
+  const rotationItems: SnapshotIntelItem[] = [];
+  addIntelItem(rotationItems, "Expected Minutes", formatNumber(input.playerProfile?.minutesLast10Avg));
+  addIntelItem(rotationItems, "Minutes Trend", formatSigned(input.playerProfile?.minutesTrend));
+  addIntelItem(rotationItems, "Minutes Volatility", formatNumber(input.playerProfile?.minutesVolatility));
+  addIntelItem(rotationItems, "Starter Rate L10", formatPercent(input.playerProfile?.starterRateLast10 ?? null));
+  addIntelItem(
+    rotationItems,
+    "Closing Role Probability",
+    minutes == null ? "-" : `${Math.max(10, Math.min(95, Math.round(((minutes - 16) / 18) * 100)))}%`,
+  );
+  addIntelItem(rotationItems, "Foul Risk Proxy", input.playerProfile?.stocksPer36Last10 != null && input.playerProfile.stocksPer36Last10 > 3.8 ? "HIGH" : "MED");
+  modules.push({
+    id: "rotation-tracker",
+    title: "1. Live Rotation Tracker",
+    description: "Minutes, starter role, and closing-time volatility.",
+    status: "DERIVED",
+    items: rotationItems,
+  });
+
+  const lineupItems: SnapshotIntelItem[] = [];
+  addIntelItem(
+    lineupItems,
+    "Top 3 Core Teammates",
+    input.teammateCore.length
+      ? input.teammateCore.map((mate) => `${mate.playerName} (${formatNumber(mate.avgMinutesLast10)}m)`).join(" | ")
+      : "-",
+  );
+  const topAstMate = input.teammateCore
+    .filter((mate) => mate.avgAST10 != null)
+    .sort((a, b) => (b.avgAST10 ?? 0) - (a.avgAST10 ?? 0))[0];
+  addIntelItem(
+    lineupItems,
+    "Primary Teammate Creator",
+    topAstMate ? `${topAstMate.playerName} (${formatNumber(topAstMate.avgAST10)} AST)` : "-",
+  );
+  addIntelItem(
+    lineupItems,
+    "Teammate Usage Pressure",
+    input.teammateCore.length > 0
+      ? formatNumber(
+          round(
+            input.teammateCore.reduce((sum, mate) => sum + (mate.avgPRA10 ?? 0), 0) /
+              input.teammateCore.length,
+            2,
+          ),
+        )
+      : "-",
+  );
+  addIntelItem(
+    lineupItems,
+    "On/Off Proxy",
+    input.teammateCore.length > 0 && (input.teammateCore[0]?.avgPRA10 ?? 0) > 35 ? "Star teammate heavy" : "Balanced",
+  );
+  modules.push({
+    id: "lineup-context",
+    title: "2. On-Court Lineup Context",
+    description: "Teammate-driven environment and role competition.",
+    status: "DERIVED",
+    items: lineupItems,
+  });
+
+  const usageItems: SnapshotIntelItem[] = [];
+  addIntelItem(usageItems, "Usage Proxy /36", formatNumber(usageProxy));
+  addIntelItem(usageItems, "Assist Load /36", formatNumber(assistLoadPer36));
+  addIntelItem(usageItems, "Rebound Load /36", formatNumber(reboundLoadPer36));
+  addIntelItem(usageItems, "3PM Rate /36", formatNumber(threeRatePer36));
+  addIntelItem(
+    usageItems,
+    "Opportunity Signal",
+    usageProxy != null && usageProxy >= 34 ? "ELITE" : usageProxy != null && usageProxy >= 26 ? "STRONG" : "NORMAL",
+  );
+  modules.push({
+    id: "usage-opportunity",
+    title: "3. Usage + Opportunity Metrics",
+    description: "Possession-level opportunity based on per-minute production proxies.",
+    status: "DERIVED",
+    items: usageItems,
+  });
+
+  const defenderItems: SnapshotIntelItem[] = [];
+  if (input.primaryDefender) {
+    addIntelItem(
+      defenderItems,
+      "Expected Primary Defender",
+      `${input.primaryDefender.playerName} (${input.primaryDefender.position ?? "N/A"})`,
+    );
+    addIntelItem(defenderItems, "Defender Minutes L10", formatNumber(input.primaryDefender.avgMinutesLast10));
+    addIntelItem(defenderItems, "Defender Stocks/36", formatNumber(input.primaryDefender.stocksPer36Last10));
+    addIntelItem(defenderItems, "Assignment Logic", input.primaryDefender.matchupReason);
+  } else {
+    addIntelItem(defenderItems, "Expected Primary Defender", "Not enough matchup data");
+  }
+  const secondaryDefenders = input.opponentProfiles
+    .filter((profile) => profile.playerId !== input.primaryDefender?.playerId)
+    .sort((a, b) => (b.minutesLast10Avg ?? 0) - (a.minutesLast10Avg ?? 0))
+    .slice(0, 2)
+    .map((profile) => profile.playerName);
+  addIntelItem(defenderItems, "Secondary Defenders", secondaryDefenders.length ? secondaryDefenders.join(", ") : "-");
+  modules.push({
+    id: "defender-timeline",
+    title: "4. Primary Defender Timeline",
+    description: "Likely direct and secondary defensive assignments.",
+    status: "DERIVED",
+    items: defenderItems,
+  });
+
+  const shotItems: SnapshotIntelItem[] = [];
+  const nonThreePoints = pts - threes * 3;
+  const threePointShare = pts > 0 ? round((threes * 3) / pts, 2) : null;
+  addIntelItem(shotItems, "3PT Share of Points", formatPercent(threePointShare));
+  addIntelItem(shotItems, "Non-3PT Scoring", formatNumber(nonThreePoints >= 0 ? nonThreePoints : null));
+  addIntelItem(
+    shotItems,
+    "Rim Pressure Proxy",
+    nonThreePoints >= 14 ? "HIGH" : nonThreePoints >= 8 ? "MED" : "LOW",
+  );
+  addIntelItem(
+    shotItems,
+    "Shot Profile",
+    threePointShare != null && threePointShare >= 0.45
+      ? "Perimeter Heavy"
+      : nonThreePoints >= 16
+        ? "Interior/Midrange Heavy"
+        : "Balanced",
+  );
+  modules.push({
+    id: "shot-quality",
+    title: "5. Shot Quality + Zone Profile",
+    description: "Scoring composition and floor profile proxies.",
+    status: "DERIVED",
+    items: shotItems,
+  });
+
+  const playTypeItems: SnapshotIntelItem[] = [];
+  addIntelItem(playTypeItems, "Creator Index", formatNumber(assistLoadPer36));
+  addIntelItem(
+    playTypeItems,
+    "Finisher Index",
+    formatNumber(minutes && minutes > 0 ? round(((pts - ast * 0.6) / minutes) * 36, 2) : null),
+  );
+  addIntelItem(playTypeItems, "Board Impact /36", formatNumber(reboundLoadPer36));
+  addIntelItem(
+    playTypeItems,
+    "Primary Play Type",
+    assistLoadPer36 != null && assistLoadPer36 >= 9
+      ? "Lead PnR Creator"
+      : reboundLoadPer36 != null && reboundLoadPer36 >= 10
+        ? "Interior Finisher"
+        : threeRatePer36 != null && threeRatePer36 >= 3
+          ? "Spot-up / Off-screen"
+          : "Hybrid",
+  );
+  modules.push({
+    id: "play-type",
+    title: "6. Play-Type Profile",
+    description: "How the player most likely generates stat volume.",
+    status: "DERIVED",
+    items: playTypeItems,
+  });
+
+  const scriptItems: SnapshotIntelItem[] = [];
+  const teamPts = input.teamSummary.last10For.PTS ?? 0;
+  const oppPts = input.opponentSummary.last10For.PTS ?? 0;
+  const impliedTotalProxy = round(teamPts + oppPts, 1);
+  const recordDiff =
+    (input.teamSummary.last10Record.wins - input.teamSummary.last10Record.losses) -
+    (input.opponentSummary.last10Record.wins - input.opponentSummary.last10Record.losses);
+  addIntelItem(scriptItems, "Implied Total Proxy", formatNumber(impliedTotalProxy));
+  addIntelItem(scriptItems, "Team Form Edge", formatSigned(recordDiff));
+  addIntelItem(
+    scriptItems,
+    "Blowout Risk",
+    Math.abs(recordDiff) >= 6 ? "HIGH" : Math.abs(recordDiff) >= 3 ? "MED" : "LOW",
+  );
+  addIntelItem(
+    scriptItems,
+    "Close-Game Minutes Boost",
+    Math.abs(recordDiff) <= 2 ? "LIKELY" : "UNLIKELY",
+  );
+  addIntelItem(
+    scriptItems,
+    "OT Risk",
+    Math.abs(recordDiff) <= 1 && impliedTotalProxy >= 225 ? "ELEVATED" : "NORMAL",
+  );
+  modules.push({
+    id: "game-script",
+    title: "7. Game Script Engine",
+    description: "Projected game environment and volatility.",
+    status: "DERIVED",
+    items: scriptItems,
+  });
+
+  const schemeItems: SnapshotIntelItem[] = [];
+  addIntelItem(schemeItems, "Opp Allow PTS", formatNumber(input.opponentAllowance.PTS));
+  addIntelItem(schemeItems, "Opp Allow REB", formatNumber(input.opponentAllowance.REB));
+  addIntelItem(schemeItems, "Opp Allow AST", formatNumber(input.opponentAllowance.AST));
+  addIntelItem(schemeItems, "Opp Delta PTS", formatSigned(input.opponentAllowanceDelta.PTS));
+  addIntelItem(schemeItems, "Opp Delta PRA", formatSigned(input.opponentAllowanceDelta.PRA));
+  modules.push({
+    id: "team-scheme",
+    title: "8. Team Scheme Dashboard",
+    description: "Opponent defensive allowance baseline by market.",
+    status: "LIVE",
+    items: schemeItems,
+  });
+
+  const microItems: SnapshotIntelItem[] = [];
+  const sortedPts = input.last10Logs.map((log) => log.points).sort((a, b) => a - b);
+  const l10MedianPtsRaw = sortedPts.length > 0 ? sortedPts[Math.floor(sortedPts.length / 2)] ?? null : null;
+  const l10MedianPts = l10MedianPtsRaw == null ? null : round(l10MedianPtsRaw, 1);
+  const ptsStd = standardDeviation(input.last10Logs.map((log) => log.points));
+  addIntelItem(microItems, "Median PTS Baseline", formatNumber(l10MedianPts));
+  addIntelItem(microItems, "Volatility Band (PTS SD)", formatNumber(ptsStd));
+  addIntelItem(
+    microItems,
+    "Line Sensitivity",
+    ptsStd != null && ptsStd >= 7 ? "HIGH" : ptsStd != null && ptsStd >= 4 ? "MED" : "LOW",
+  );
+  addIntelItem(microItems, "Cross-book Drift", "Pending sportsbook depth feed");
+  addIntelItem(microItems, "Hold/Vig Monitor", "Pending sportsbook depth feed");
+  modules.push({
+    id: "market-micro",
+    title: "9. Market Microstructure",
+    description: "Line sensitivity and market-quality diagnostics.",
+    status: "PENDING",
+    items: microItems,
+  });
+
+  const newsItems: SnapshotIntelItem[] = [];
+  addIntelItem(newsItems, "Played Last 10", `${playedLast10}/10`);
+  addIntelItem(newsItems, "Started Last 10", `${startsLast10}/10`);
+  addIntelItem(
+    newsItems,
+    "Latest Availability Signal",
+    input.last10Logs[0]?.played === false ? "Questionable" : "Available",
+  );
+  addIntelItem(newsItems, "Injury Feed", "Pending external news/injury connector");
+  addIntelItem(newsItems, "Lineup Alerts", "Pending external lineup connector");
+  modules.push({
+    id: "news-status",
+    title: "10. News/Status Event Feed",
+    description: "Availability and lineup status signals.",
+    status: "PENDING",
+    items: newsItems,
+  });
+
+  const refItems: SnapshotIntelItem[] = [];
+  addIntelItem(refItems, "Rest Days", restDays == null ? "-" : String(restDays));
+  addIntelItem(refItems, "Back-to-Back", restDays === 0 ? "YES" : "NO");
+  addIntelItem(refItems, "Tonight Venue", input.isHome ? "Home" : "Away");
+  addIntelItem(
+    refItems,
+    "Travel Load Proxy",
+    !input.isHome && input.last10Logs[0] && input.last10Logs[0].isHome === false ? "HIGH" : !input.isHome ? "MED" : "LOW",
+  );
+  addIntelItem(refItems, "Referee Tendencies", "Pending referee assignment feed");
+  modules.push({
+    id: "ref-rest-travel",
+    title: "11. Ref/Rest/Travel Layer",
+    description: "Schedule stress and officiating context.",
+    status: "PENDING",
+    items: refItems,
+  });
+
+  const feedbackItems: SnapshotIntelItem[] = [];
+  const aboveSeasonLast5 = input.last5Logs.filter((log) => log.points > (input.seasonAverage.PTS ?? 0)).length;
+  addIntelItem(feedbackItems, "Above Season Baseline (L5)", `${aboveSeasonLast5}/5`);
+  addIntelItem(
+    feedbackItems,
+    "L3 vs L10 Momentum",
+    formatSigned(
+      input.last3Average.PTS == null || input.last10Average.PTS == null
+        ? null
+        : round(input.last3Average.PTS - input.last10Average.PTS, 2),
+    ),
+  );
+  addIntelItem(
+    feedbackItems,
+    "Calibration State",
+    input.playerProfile?.minutesVolatility != null && input.playerProfile.minutesVolatility < 4 ? "STABLE" : "VOLATILE",
+  );
+  addIntelItem(feedbackItems, "Manual Bet Tracker", "Pending user bet/result logging");
+  modules.push({
+    id: "postgame-feedback",
+    title: "12. Postgame Feedback Loop",
+    description: "Performance calibration and learning loop.",
+    status: "DERIVED",
+    items: feedbackItems,
+  });
+
+  return {
+    generatedAt: new Date().toISOString(),
+    modules,
   };
 }
 
@@ -773,6 +1136,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const playerProfile = playerProfilesById.get(player.id) ?? null;
     const teamProfiles = teamProfilesByTeamId.get(player.teamId) ?? [];
     const opponentProfiles = teamProfilesByTeamId.get(matchup.opponentTeamId) ?? [];
+    const teamSummary = teamSummaryByTeamId.get(player.teamId) ?? emptyTeamSummary();
+    const opponentSummary = teamSummaryByTeamId.get(matchup.opponentTeamId) ?? emptyTeamSummary();
     const rotationRankIndex = teamProfiles.findIndex((profile) => profile.playerId === player.id);
     const rotationRank = rotationRankIndex >= 0 ? rotationRankIndex + 1 : null;
     const primaryDefender = playerProfile ? choosePrimaryDefender(playerProfile, opponentProfiles) : null;
@@ -838,6 +1203,26 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           primaryDefender,
           teammateCore,
         },
+        gameIntel: buildGameIntel({
+          dateEt,
+          teamCode: matchup.teamCode,
+          opponentCode: matchup.opponentCode,
+          isHome: matchup.isHome,
+          playerProfile,
+          teamProfiles,
+          opponentProfiles,
+          primaryDefender,
+          teammateCore,
+          last10Logs,
+          last5Logs,
+          seasonAverage,
+          last10Average,
+          last3Average,
+          opponentAllowance,
+          opponentAllowanceDelta,
+          teamSummary,
+          opponentSummary,
+        }),
       },
     });
   }

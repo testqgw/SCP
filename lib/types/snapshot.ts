@@ -17,6 +17,27 @@ export type SnapshotStatLog = {
 
 export type SnapshotMetricRecord = Record<SnapshotMarket, number | null>;
 
+export type SnapshotIntelStatus = "LIVE" | "DERIVED" | "PENDING";
+
+export type SnapshotIntelItem = {
+  label: string;
+  value: string;
+  hint?: string;
+};
+
+export type SnapshotIntelModule = {
+  id: string;
+  title: string;
+  description: string;
+  status: SnapshotIntelStatus;
+  items: SnapshotIntelItem[];
+};
+
+export type SnapshotGameIntel = {
+  generatedAt: string;
+  modules: SnapshotIntelModule[];
+};
+
 export type SnapshotTeammateCore = {
   playerId: string;
   playerName: string;
@@ -70,6 +91,7 @@ export type SnapshotRow = {
   opponentAllowanceDelta: SnapshotMetricRecord;
   recentLogs: SnapshotStatLog[];
   playerContext: SnapshotPlayerContext;
+  gameIntel: SnapshotGameIntel;
 };
 
 export type SnapshotMatchupOption = {
