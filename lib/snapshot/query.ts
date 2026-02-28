@@ -7,6 +7,8 @@ import type {
   SnapshotMetricRecord,
   SnapshotRow,
   SnapshotStatLog,
+  SnapshotTeamMatchupStats,
+  SnapshotTeamRecord,
 } from "@/lib/types/snapshot";
 import { round } from "@/lib/utils";
 
@@ -20,7 +22,43 @@ type TeamMatchup = {
   isHome: boolean;
 };
 
-const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
+type MatchupMeta = {
+  matchupKey: string;
+  awayTeamId: string;
+  homeTeamId: string;
+  awayTeamCode: string;
+  homeTeamCode: string;
+  gameTimeEt: string;
+};
+
+type TeamAllowanceAgg = {
+  count: number;
+  sums: Record<SnapshotMarket, number>;
+};
+
+type TeamGameAggregate = {
+  teamId: string;
+  opponentTeamId: string | null;
+  externalGameId: string;
+  gameDateEt: string;
+  metrics: SnapshotMetricRecord;
+};
+
+type TeamGameEnriched = TeamGameAggregate & {
+  allowedMetrics: SnapshotMetricRecord | null;
+  win: boolean | null;
+};
+
+type TeamSummary = {
+  seasonFor: SnapshotMetricRecord;
+  seasonAllowed: SnapshotMetricRecord;
+  last10For: SnapshotMetricRecord;
+  last10Allowed: SnapshotMetricRecord;
+  seasonRecord: SnapshotTeamRecord;
+  last10Record: SnapshotTeamRecord;
+};
+
+const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
 function blankMetricRecord(): SnapshotMetricRecord {
   return {
@@ -28,11 +66,39 @@ function blankMetricRecord(): SnapshotMetricRecord {
     REB: null,
     AST: null,
     THREES: null,
+    PRA: null,
+    PA: null,
+    PR: null,
+    RA: null,
   };
 }
 
 function toStat(value: number | null): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function metricsFromBase(points: number, rebounds: number, assists: number, threes: number): SnapshotMetricRecord {
+  return {
+    PTS: points,
+    REB: rebounds,
+    AST: assists,
+    THREES: threes,
+    PRA: points + rebounds + assists,
+    PA: points + assists,
+    PR: points + rebounds,
+    RA: rebounds + assists,
+  };
+}
+
+function valueByMarket(log: SnapshotStatLog, market: SnapshotMarket): number {
+  if (market === "PTS") return log.points;
+  if (market === "REB") return log.rebounds;
+  if (market === "AST") return log.assists;
+  if (market === "THREES") return log.threes;
+  if (market === "PRA") return log.points + log.rebounds + log.assists;
+  if (market === "PA") return log.points + log.assists;
+  if (market === "PR") return log.points + log.rebounds;
+  return log.rebounds + log.assists;
 }
 
 function average(values: number[]): number | null {
@@ -43,19 +109,24 @@ function average(values: number[]): number | null {
   return round(total / values.length, 2);
 }
 
-function valueByMarket(log: SnapshotStatLog, market: SnapshotMarket): number {
-  if (market === "PTS") return log.points;
-  if (market === "REB") return log.rebounds;
-  if (market === "AST") return log.assists;
-  return log.threes;
+function averagesByMarket(logs: SnapshotStatLog[]): SnapshotMetricRecord {
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    result[market] = average(logs.map((log) => valueByMarket(log, market)));
+  });
+  return result;
 }
 
-function averagesByMarket(logs: SnapshotStatLog[]): SnapshotMetricRecord {
+function arraysByMarket(logs: SnapshotStatLog[]): Record<SnapshotMarket, number[]> {
   return {
-    PTS: average(logs.map((log) => log.points)),
-    REB: average(logs.map((log) => log.rebounds)),
-    AST: average(logs.map((log) => log.assists)),
-    THREES: average(logs.map((log) => log.threes)),
+    PTS: logs.map((log) => log.points),
+    REB: logs.map((log) => log.rebounds),
+    AST: logs.map((log) => log.assists),
+    THREES: logs.map((log) => log.threes),
+    PRA: logs.map((log) => log.points + log.rebounds + log.assists),
+    PA: logs.map((log) => log.points + log.assists),
+    PR: logs.map((log) => log.points + log.rebounds),
+    RA: logs.map((log) => log.rebounds + log.assists),
   };
 }
 
@@ -69,11 +140,6 @@ function trendFrom(last3: SnapshotMetricRecord, season: SnapshotMetricRecord): S
   return result;
 }
 
-type TeamAllowanceAgg = {
-  count: number;
-  sums: Record<SnapshotMarket, number>;
-};
-
 function createAllowanceAgg(): TeamAllowanceAgg {
   return {
     count: 0,
@@ -82,20 +148,31 @@ function createAllowanceAgg(): TeamAllowanceAgg {
       REB: 0,
       AST: 0,
       THREES: 0,
+      PRA: 0,
+      PA: 0,
+      PR: 0,
+      RA: 0,
     },
   };
+}
+
+function addToAllowance(agg: TeamAllowanceAgg, points: number, rebounds: number, assists: number, threes: number): void {
+  const metrics = metricsFromBase(points, rebounds, assists, threes);
+  agg.count += 1;
+  MARKETS.forEach((market) => {
+    agg.sums[market] += metrics[market] ?? 0;
+  });
 }
 
 function averageFromAllowance(agg: TeamAllowanceAgg | null): SnapshotMetricRecord {
   if (!agg || agg.count === 0) {
     return blankMetricRecord();
   }
-  return {
-    PTS: round(agg.sums.PTS / agg.count, 2),
-    REB: round(agg.sums.REB / agg.count, 2),
-    AST: round(agg.sums.AST / agg.count, 2),
-    THREES: round(agg.sums.THREES / agg.count, 2),
-  };
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    result[market] = round(agg.sums[market] / agg.count, 2);
+  });
+  return result;
 }
 
 function deltaFromLeague(teamAverage: SnapshotMetricRecord, leagueAverage: SnapshotMetricRecord): SnapshotMetricRecord {
@@ -106,6 +183,73 @@ function deltaFromLeague(teamAverage: SnapshotMetricRecord, leagueAverage: Snaps
     result[market] = teamValue == null || leagueValue == null ? null : round(teamValue - leagueValue, 2);
   });
   return result;
+}
+
+function averageFromMetrics(metricsList: SnapshotMetricRecord[]): SnapshotMetricRecord {
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    const values = metricsList
+      .map((metric) => metric[market])
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    result[market] = average(values);
+  });
+  return result;
+}
+
+function recordFromGames(games: TeamGameEnriched[]): SnapshotTeamRecord {
+  let wins = 0;
+  let losses = 0;
+  games.forEach((game) => {
+    if (game.win === true) wins += 1;
+    if (game.win === false) losses += 1;
+  });
+  return { wins, losses };
+}
+
+function emptyTeamSummary(): TeamSummary {
+  return {
+    seasonFor: blankMetricRecord(),
+    seasonAllowed: blankMetricRecord(),
+    last10For: blankMetricRecord(),
+    last10Allowed: blankMetricRecord(),
+    seasonRecord: { wins: 0, losses: 0 },
+    last10Record: { wins: 0, losses: 0 },
+  };
+}
+
+function toTimestamp(gameDateEt: string): number {
+  return new Date(`${gameDateEt}T00:00:00Z`).getTime();
+}
+
+function teamSummaryFromGames(teamGames: TeamGameEnriched[]): TeamSummary {
+  const sorted = teamGames.slice().sort((a, b) => {
+    const dateDiff = toTimestamp(b.gameDateEt) - toTimestamp(a.gameDateEt);
+    if (dateDiff !== 0) return dateDiff;
+    return b.externalGameId.localeCompare(a.externalGameId);
+  });
+
+  const last10 = sorted.slice(0, 10);
+  const seasonFor = averageFromMetrics(sorted.map((game) => game.metrics));
+  const seasonAllowed = averageFromMetrics(
+    sorted
+      .map((game) => game.allowedMetrics)
+      .filter((metrics): metrics is SnapshotMetricRecord => metrics != null),
+  );
+  const last10For = averageFromMetrics(last10.map((game) => game.metrics));
+  const last10Allowed = averageFromMetrics(
+    last10
+      .map((game) => game.allowedMetrics)
+      .filter((metrics): metrics is SnapshotMetricRecord => metrics != null),
+  );
+
+  return {
+    seasonFor,
+    seasonAllowed,
+    last10For,
+    last10Allowed,
+    seasonRecord: recordFromGames(sorted),
+    last10Record: recordFromGames(last10),
+  };
 }
 
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
@@ -128,12 +272,14 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       dateEt,
       lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
       matchups: [],
+      teamMatchups: [],
       rows: [],
     };
   }
 
   const matchupByTeamId = new Map<string, TeamMatchup>();
   const matchupOptionsByKey = new Map<string, SnapshotMatchupOption>();
+  const matchupMetaByKey = new Map<string, MatchupMeta>();
 
   for (const game of games) {
     const homeCode = game.homeTeam.abbreviation;
@@ -147,6 +293,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       homeTeam: homeCode,
       gameTimeEt,
       label: `${awayCode} @ ${homeCode} - ${gameTimeEt}`,
+    });
+
+    matchupMetaByKey.set(matchupKey, {
+      matchupKey,
+      awayTeamId: game.awayTeamId,
+      homeTeamId: game.homeTeamId,
+      awayTeamCode: awayCode,
+      homeTeamCode: homeCode,
+      gameTimeEt,
     });
 
     if (!matchupByTeamId.has(game.homeTeamId)) {
@@ -174,6 +329,105 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     }
   }
 
+  const relevantTeamIds = Array.from(
+    new Set(
+      Array.from(matchupMetaByKey.values()).flatMap((meta) => [meta.awayTeamId, meta.homeTeamId]),
+    ),
+  );
+
+  const groupedTeamGames = await prisma.playerGameLog.groupBy({
+    by: ["teamId", "opponentTeamId", "externalGameId", "gameDateEt"],
+    where: {
+      teamId: { in: relevantTeamIds },
+      gameDateEt: { lt: dateEt },
+      minutes: { gt: 0 },
+    },
+    _sum: {
+      points: true,
+      rebounds: true,
+      assists: true,
+      threes: true,
+    },
+  });
+
+  const teamGameAggregates: TeamGameAggregate[] = groupedTeamGames
+    .map((row) => {
+      if (!row.teamId) return null;
+      const points = toStat(row._sum.points);
+      const rebounds = toStat(row._sum.rebounds);
+      const assists = toStat(row._sum.assists);
+      const threes = toStat(row._sum.threes);
+      return {
+        teamId: row.teamId,
+        opponentTeamId: row.opponentTeamId,
+        externalGameId: row.externalGameId,
+        gameDateEt: row.gameDateEt,
+        metrics: metricsFromBase(points, rebounds, assists, threes),
+      };
+    })
+    .filter((row): row is TeamGameAggregate => row != null);
+
+  const gameMetricsByGameTeam = new Map<string, SnapshotMetricRecord>();
+  const teamGamesByTeamId = new Map<string, TeamGameAggregate[]>();
+  teamGameAggregates.forEach((game) => {
+    gameMetricsByGameTeam.set(`${game.externalGameId}:${game.teamId}`, game.metrics);
+    const list = teamGamesByTeamId.get(game.teamId) ?? [];
+    list.push(game);
+    teamGamesByTeamId.set(game.teamId, list);
+  });
+
+  const teamSummaryByTeamId = new Map<string, TeamSummary>();
+  teamGamesByTeamId.forEach((gamesForTeam, teamId) => {
+    const enriched: TeamGameEnriched[] = gamesForTeam.map((game) => {
+      const allowedMetrics =
+        game.opponentTeamId != null
+          ? gameMetricsByGameTeam.get(`${game.externalGameId}:${game.opponentTeamId}`) ?? null
+          : null;
+      const teamPoints = game.metrics.PTS;
+      const opponentPoints = allowedMetrics?.PTS ?? null;
+      const win =
+        teamPoints == null || opponentPoints == null
+          ? null
+          : teamPoints > opponentPoints
+            ? true
+            : teamPoints < opponentPoints
+              ? false
+              : null;
+      return {
+        ...game,
+        allowedMetrics,
+        win,
+      };
+    });
+
+    teamSummaryByTeamId.set(teamId, teamSummaryFromGames(enriched));
+  });
+
+  const teamMatchups: SnapshotTeamMatchupStats[] = Array.from(matchupMetaByKey.values())
+    .map((meta) => {
+      const awaySummary = teamSummaryByTeamId.get(meta.awayTeamId) ?? emptyTeamSummary();
+      const homeSummary = teamSummaryByTeamId.get(meta.homeTeamId) ?? emptyTeamSummary();
+      return {
+        matchupKey: meta.matchupKey,
+        awayTeam: meta.awayTeamCode,
+        homeTeam: meta.homeTeamCode,
+        gameTimeEt: meta.gameTimeEt,
+        awaySeasonFor: awaySummary.seasonFor,
+        awaySeasonAllowed: awaySummary.seasonAllowed,
+        awayLast10For: awaySummary.last10For,
+        awayLast10Allowed: awaySummary.last10Allowed,
+        awaySeasonRecord: awaySummary.seasonRecord,
+        awayLast10Record: awaySummary.last10Record,
+        homeSeasonFor: homeSummary.seasonFor,
+        homeSeasonAllowed: homeSummary.seasonAllowed,
+        homeLast10For: homeSummary.last10For,
+        homeLast10Allowed: homeSummary.last10Allowed,
+        homeSeasonRecord: homeSummary.seasonRecord,
+        homeLast10Record: homeSummary.last10Record,
+      };
+    })
+    .sort((a, b) => a.matchupKey.localeCompare(b.matchupKey));
+
   const teamIds = Array.from(matchupByTeamId.keys());
   const players = await prisma.player.findMany({
     where: {
@@ -194,6 +448,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       dateEt,
       lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
       matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
+      teamMatchups,
       rows: [],
     };
   }
@@ -234,6 +489,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   const opponentTeamIds = Array.from(
     new Set(Array.from(matchupByTeamId.values()).map((matchup) => matchup.opponentTeamId)),
   );
+  const opponentTeamIdSet = new Set(opponentTeamIds);
 
   const opponentGameRows = await prisma.game.findMany({
     where: {
@@ -253,7 +509,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   for (const row of opponentGameRows) {
     const candidateTeamIds = [row.homeTeamId, row.awayTeamId];
     for (const teamId of candidateTeamIds) {
-      if (!opponentTeamIds.includes(teamId)) continue;
+      if (!opponentTeamIdSet.has(teamId)) continue;
       const set = gameIdsByOpponentTeamId.get(teamId) ?? new Set<string>();
       if (set.size >= 10) continue;
       set.add(row.externalId);
@@ -295,19 +551,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       continue;
     }
 
-    const teamAgg = allowanceByOpponentTeamId.get(log.opponentTeamId) ?? createAllowanceAgg();
-    teamAgg.count += 1;
-    teamAgg.sums.PTS += toStat(log.points);
-    teamAgg.sums.REB += toStat(log.rebounds);
-    teamAgg.sums.AST += toStat(log.assists);
-    teamAgg.sums.THREES += toStat(log.threes);
-    allowanceByOpponentTeamId.set(log.opponentTeamId, teamAgg);
+    const points = toStat(log.points);
+    const rebounds = toStat(log.rebounds);
+    const assists = toStat(log.assists);
+    const threes = toStat(log.threes);
 
-    leagueAgg.count += 1;
-    leagueAgg.sums.PTS += toStat(log.points);
-    leagueAgg.sums.REB += toStat(log.rebounds);
-    leagueAgg.sums.AST += toStat(log.assists);
-    leagueAgg.sums.THREES += toStat(log.threes);
+    const teamAgg = allowanceByOpponentTeamId.get(log.opponentTeamId) ?? createAllowanceAgg();
+    addToAllowance(teamAgg, points, rebounds, assists, threes);
+    allowanceByOpponentTeamId.set(log.opponentTeamId, teamAgg);
+    addToAllowance(leagueAgg, points, rebounds, assists, threes);
   }
 
   const leagueAverage = averageFromAllowance(leagueAgg.count > 0 ? leagueAgg : null);
@@ -350,18 +602,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         matchupKey: matchup.matchupKey,
         isHome: matchup.isHome,
         gameTimeEt: matchup.gameTimeEt,
-        last5: {
-          PTS: last5Logs.map((log) => log.points),
-          REB: last5Logs.map((log) => log.rebounds),
-          AST: last5Logs.map((log) => log.assists),
-          THREES: last5Logs.map((log) => log.threes),
-        },
-        last10: {
-          PTS: last10Logs.map((log) => log.points),
-          REB: last10Logs.map((log) => log.rebounds),
-          AST: last10Logs.map((log) => log.assists),
-          THREES: last10Logs.map((log) => log.threes),
-        },
+        last5: arraysByMarket(last5Logs),
+        last10: arraysByMarket(last10Logs),
         last3Average,
         last10Average,
         seasonAverage,
@@ -388,37 +630,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     dateEt,
     lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
+    teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
   };
-}
-
-export function marketValues(row: SnapshotRow, market: SnapshotMarket, span: "L5" | "L10"): number[] {
-  return span === "L5" ? row.last5[market] : row.last10[market];
-}
-
-export function metricValue(row: SnapshotRow, market: SnapshotMarket, kind: keyof Pick<
-  SnapshotRow,
-  "last3Average" | "last10Average" | "seasonAverage" | "homeAwayAverage" | "trendVsSeason" | "opponentAllowance" | "opponentAllowanceDelta"
->): number | null {
-  return row[kind][market];
-}
-
-export function hitCount(values: number[], line: number): { over: number; under: number; push: number } {
-  let over = 0;
-  let under = 0;
-  let push = 0;
-  values.forEach((value) => {
-    if (value > line) over += 1;
-    else if (value < line) under += 1;
-    else push += 1;
-  });
-  return { over, under, push };
-}
-
-export function displayHomeAway(isHome: boolean): string {
-  return isHome ? "Home" : "Away";
-}
-
-export function valuesForMarket(logs: SnapshotStatLog[], market: SnapshotMarket): number[] {
-  return logs.map((log) => valueByMarket(log, market));
 }

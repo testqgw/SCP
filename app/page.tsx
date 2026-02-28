@@ -12,7 +12,7 @@ type HomePageProps = {
   };
 };
 
-const ALLOWED_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
+const ALLOWED_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
 function isValidEtDate(value: string | undefined): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));

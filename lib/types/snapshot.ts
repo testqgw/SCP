@@ -1,4 +1,4 @@
-export type SnapshotMarket = "PTS" | "REB" | "AST" | "THREES";
+export type SnapshotMarket = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "PR" | "RA";
 
 export type SnapshotStatLog = {
   gameDateEt: string;
@@ -42,9 +42,34 @@ export type SnapshotMatchupOption = {
   label: string;
 };
 
+export type SnapshotTeamRecord = {
+  wins: number;
+  losses: number;
+};
+
+export type SnapshotTeamMatchupStats = {
+  matchupKey: string;
+  awayTeam: string;
+  homeTeam: string;
+  gameTimeEt: string;
+  awaySeasonFor: SnapshotMetricRecord;
+  awaySeasonAllowed: SnapshotMetricRecord;
+  awayLast10For: SnapshotMetricRecord;
+  awayLast10Allowed: SnapshotMetricRecord;
+  awaySeasonRecord: SnapshotTeamRecord;
+  awayLast10Record: SnapshotTeamRecord;
+  homeSeasonFor: SnapshotMetricRecord;
+  homeSeasonAllowed: SnapshotMetricRecord;
+  homeLast10For: SnapshotMetricRecord;
+  homeLast10Allowed: SnapshotMetricRecord;
+  homeSeasonRecord: SnapshotTeamRecord;
+  homeLast10Record: SnapshotTeamRecord;
+};
+
 export type SnapshotBoardData = {
   dateEt: string;
   lastUpdatedAt: string | null;
   matchups: SnapshotMatchupOption[];
+  teamMatchups: SnapshotTeamMatchupStats[];
   rows: SnapshotRow[];
 };
