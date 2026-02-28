@@ -1,19 +1,9 @@
-
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
-import { etDateShift, getTodayEtDateString, inferSeasonFromEtDate } from "@/lib/snapshot/time";
+import { etDateShift, getTodayEtDateString } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
-import { SportsDataClient } from "@/lib/sportsdata/client";
-import {
-  normalizeBoxScorePlayerLogs,
-  normalizeGames,
-  normalizeInjuries,
-  normalizeSeasonPlayers,
-} from "@/lib/sportsdata/normalize";
-import type {
-  NormalizedPlayerGameStat,
-  NormalizedPlayerSeason,
-} from "@/lib/sportsdata/types";
+import { NbaDataClient } from "@/lib/nba/client";
+import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "@/lib/sportsdata/types";
 
 type RefreshMode = "FULL" | "DELTA";
 
@@ -31,57 +21,79 @@ type RefreshResult = {
 
 const QUALITY_GATE_ENABLED = process.env.SNAPSHOT_QUALITY_GATE_ENABLED !== "false";
 
-function collectHistoricalFetchDates(mode: RefreshMode, dateEt: string): string[] {
-  const days = mode === "FULL" ? 14 : 7;
-  const result: string[] = [];
-  for (let offset = 1; offset <= days; offset += 1) {
-    result.push(etDateShift(dateEt, -offset));
-  }
-  return result;
-}
-
-function mergePlayers(
-  seasonPlayers: NormalizedPlayerSeason[],
-  gameStats: NormalizedPlayerGameStat[],
-): NormalizedPlayerSeason[] {
-  const merged = new Map<string, NormalizedPlayerSeason>();
-
-  seasonPlayers.forEach((player) => {
-    merged.set(player.externalPlayerId, player);
-  });
-
-  gameStats.forEach((log) => {
-    if (!merged.has(log.externalPlayerId)) {
-      const fallbackName =
-        log.fullName ??
-        [log.firstName, log.lastName].filter((part): part is string => Boolean(part)).join(" ").trim();
-
-      merged.set(log.externalPlayerId, {
-        externalPlayerId: log.externalPlayerId,
-        fullName: fallbackName || `Player ${log.externalPlayerId}`,
-        firstName: log.firstName,
-        lastName: log.lastName,
-        teamAbbr: log.teamAbbr,
-        position: log.position,
-        usageRate: null,
-        isActive: true,
-      });
-    }
-  });
-
-  return Array.from(merged.values());
-}
-
 function teamNameFromAbbr(abbreviation: string | null): string {
   if (!abbreviation) return "Unknown";
   return abbreviation.toUpperCase();
 }
 
+function collectDateWindow(mode: RefreshMode, dateEt: string): { from: string; to: string } {
+  if (mode === "FULL") {
+    return {
+      from: etDateShift(dateEt, -5),
+      to: dateEt,
+    };
+  }
+  return {
+    from: etDateShift(dateEt, -2),
+    to: dateEt,
+  };
+}
 
+function dedupeGames(games: NormalizedGame[]): NormalizedGame[] {
+  const map = new Map<string, NormalizedGame>();
+  games.forEach((game) => {
+    map.set(game.externalGameId, game);
+  });
+  return Array.from(map.values());
+}
 
+function mergePlayersFromLogs(players: NormalizedPlayerSeason[], logs: NormalizedPlayerGameStat[]): NormalizedPlayerSeason[] {
+  const byId = new Map<string, NormalizedPlayerSeason>();
+
+  players.forEach((player) => {
+    byId.set(player.externalPlayerId, player);
+  });
+
+  logs
+    .slice()
+    .sort((a, b) => b.gameDateEt.localeCompare(a.gameDateEt))
+    .forEach((log) => {
+      const existing = byId.get(log.externalPlayerId);
+      const fallbackName =
+        log.fullName ??
+        [log.firstName, log.lastName].filter((part): part is string => Boolean(part)).join(" ").trim();
+      if (!fallbackName) {
+        return;
+      }
+
+      if (!existing) {
+        byId.set(log.externalPlayerId, {
+          externalPlayerId: log.externalPlayerId,
+          fullName: fallbackName,
+          firstName: log.firstName,
+          lastName: log.lastName,
+          teamAbbr: log.teamAbbr,
+          position: log.position,
+          usageRate: null,
+          isActive: true,
+        });
+        return;
+      }
+
+      if (log.teamAbbr) {
+        existing.teamAbbr = log.teamAbbr;
+      }
+      if (log.position && !existing.position) {
+        existing.position = log.position;
+      }
+      existing.isActive = true;
+    });
+
+  return Array.from(byId.values());
+}
 
 async function upsertTeams(
-  games: ReturnType<typeof normalizeGames>,
+  games: NormalizedGame[],
   players: NormalizedPlayerSeason[],
   logs: NormalizedPlayerGameStat[],
 ): Promise<Map<string, string>> {
@@ -133,9 +145,8 @@ async function upsertTeams(
   return map;
 }
 
-async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<{ playerMap: Map<string, string>; playerNameMap: Map<string, string> }> {
+async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<Map<string, string>> {
   const playerMap = new Map<string, string>();
-  const playerNameMap = new Map<string, string>();
 
   for (const player of players) {
     const teamId = player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null;
@@ -160,24 +171,17 @@ async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<str
         isActive: player.isActive,
         teamId,
       },
-      select: { id: true, externalId: true, fullName: true },
+      select: { id: true, externalId: true },
     });
     if (saved.externalId) {
       playerMap.set(saved.externalId, saved.id);
     }
-    if (saved.fullName) {
-      playerNameMap.set(saved.fullName.toLowerCase().trim(), saved.id);
-    }
   }
 
-  return { playerMap, playerNameMap };
+  return playerMap;
 }
 
-async function upsertGames(
-  games: ReturnType<typeof normalizeGames>,
-  teamMap: Map<string, string>,
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>): Promise<void> {
   for (const game of games) {
     const homeTeamId = teamMap.get(game.homeTeamAbbr);
     const awayTeamId = teamMap.get(game.awayTeamAbbr);
@@ -185,7 +189,7 @@ async function upsertGames(
       continue;
     }
 
-    const saved = await prisma.game.upsert({
+    await prisma.game.upsert({
       where: { externalId: game.externalGameId },
       update: {
         gameDateEt: game.gameDateEt,
@@ -204,11 +208,8 @@ async function upsertGames(
         homeTeamId,
         awayTeamId,
       },
-      select: { id: true, externalId: true },
     });
-    map.set(saved.externalId, saved.id);
   }
-  return map;
 }
 
 async function upsertPlayerLogs(
@@ -270,94 +271,95 @@ async function upsertPlayerLogs(
         total: log.total,
       },
     });
-
     inserted += 1;
   }
 
   return inserted;
 }
 
+async function syncPlayerCurrentTeams(): Promise<void> {
+  const latestLogs = await prisma.playerGameLog.findMany({
+    where: { teamId: { not: null } },
+    distinct: ["playerId"],
+    orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
+    select: { playerId: true, teamId: true },
+  });
 
+  for (const log of latestLogs) {
+    if (!log.teamId) continue;
+    await prisma.player.update({
+      where: { id: log.playerId },
+      data: { teamId: log.teamId },
+    });
+  }
+}
 
 type FetchDataResult = {
-  games: ReturnType<typeof normalizeGames>;
+  games: NormalizedGame[];
   players: NormalizedPlayerSeason[];
   logs: NormalizedPlayerGameStat[];
-  injuriesByTeam: Map<string, string[]>;
   warnings: string[];
 };
+
 async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataResult> {
-  const client = new SportsDataClient();
+  const client = new NbaDataClient();
   const warnings: string[] = [];
-  const season = inferSeasonFromEtDate(dateEt);
+  const schedule = await client.fetchSchedule();
+  const { from, to } = collectDateWindow(mode, dateEt);
 
-  const [rawGames, rawSeasonPlayers, rawInjuries] = await Promise.all([
-    client.fetchSchedule(dateEt),
-    client.fetchSeasonStats(season).catch((error) => {
-      warnings.push(`Season stats unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-      return [];
-    }),
-    client.fetchInjuries().catch((error) => {
-      warnings.push(`Injury feed unavailable: ${error instanceof Error ? error.message : "unknown"}`);
-      return [];
-    }),
-  ]);
+  const todaysGames = schedule.filter((game) => game.gameDateEt === dateEt);
+  const windowGames = schedule.filter((game) => game.gameDateEt >= from && game.gameDateEt <= to);
+  const finalWindowGames = windowGames.filter((game) => game.statusNumber >= 3);
 
-  const games = normalizeGames(rawGames);
-  const datesToFetch = collectHistoricalFetchDates(mode, dateEt);
-  const rawLogs: unknown[] = [];
-  for (const fetchDate of datesToFetch) {
+  const players: NormalizedPlayerSeason[] = [];
+  const logs: NormalizedPlayerGameStat[] = [];
+
+  for (const game of finalWindowGames) {
     try {
-      const rows = await client.fetchBoxScoresFinalByDate(fetchDate);
-      rawLogs.push(...rows);
+      const payload = await client.fetchGameBoxScore(game);
+      players.push(...payload.players);
+      logs.push(...payload.logs);
     } catch (error) {
       warnings.push(
-        `Box scores final unavailable for ${fetchDate}: ${error instanceof Error ? error.message : "unknown"}`,
+        `Box score unavailable for ${game.externalGameId} (${game.gameDateEt}): ${
+          error instanceof Error ? error.message : "unknown"
+        }`,
       );
     }
   }
 
-  const seasonPlayers = normalizeSeasonPlayers(rawSeasonPlayers);
+  const mergedPlayers = mergePlayersFromLogs(players, logs);
+  const games = dedupeGames([...todaysGames, ...windowGames]);
 
-  const logs = normalizeBoxScorePlayerLogs(rawLogs);
-  const players = mergePlayers(seasonPlayers, logs);
-  const injuries = normalizeInjuries(rawInjuries);
-
-  logger.info("Provider payload summary", {
+  logger.info("NBA payload summary", {
     dateEt,
-    rawGames: rawGames.length,
-    normalizedGames: games.length,
-    rawSeasonPlayers: rawSeasonPlayers.length,
-    normalizedPlayers: players.length,
-    rawBoxScores: rawLogs.length,
-    normalizedLogs: logs.length,
+    windowFrom: from,
+    windowTo: to,
+    scheduleGames: schedule.length,
+    todaysGames: todaysGames.length,
+    windowGames: windowGames.length,
+    finalWindowGames: finalWindowGames.length,
+    players: mergedPlayers.length,
+    logs: logs.length,
   });
-
-  const injuriesByTeam = injuries.reduce((map, injury) => {
-    if (!injury.teamAbbr) return map;
-    const existing = map.get(injury.teamAbbr) ?? [];
-    existing.push(injury.status);
-    map.set(injury.teamAbbr, existing);
-    return map;
-  }, new Map<string, string[]>());
 
   return {
     games,
-    players,
+    players: mergedPlayers,
     logs,
-    injuriesByTeam,
     warnings,
   };
 }
 
-function evaluateQualityInput(data: {
-  logs: NormalizedPlayerGameStat[];
-}): string[] {
+function evaluateQualityInput(data: { logs: NormalizedPlayerGameStat[]; games: NormalizedGame[] }): string[] {
   const issues: string[] = [];
-
   const completedLogs = data.logs.filter((log) => (log.minutes ?? 0) > 0);
-  if (completedLogs.length < 120) {
-    issues.push(`Insufficient completed player logs (${completedLogs.length}) for stable metrics.`);
+
+  if (data.games.length === 0) {
+    issues.push("No schedule games found for refresh window.");
+  }
+  if (completedLogs.length < 40) {
+    issues.push(`Insufficient completed player logs (${completedLogs.length}) for stable board data.`);
   }
 
   return issues;
@@ -365,14 +367,13 @@ function evaluateQualityInput(data: {
 
 export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
   const startedAt = Date.now();
-  const runStartedAt = new Date();
   const dateEt = getTodayEtDateString();
 
   await prisma.refreshRun.updateMany({
     where: {
       status: "RUNNING",
       startedAt: {
-        lt: new Date(Date.now() - 5 * 60 * 1000),
+        lt: new Date(Date.now() - 10 * 60 * 1000),
       },
     },
     data: {
@@ -389,8 +390,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
     data: {
       type: mode,
       status: "RUNNING",
-      startedAt: runStartedAt,
-      notes: { dateEt, qualityGateEnabled: QUALITY_GATE_ENABLED },
+      notes: { dateEt, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
     },
     select: { id: true },
   });
@@ -402,21 +402,24 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
     warnings.push(...fetched.warnings);
 
     const teamMap = await upsertTeams(fetched.games, fetched.players, fetched.logs);
-    const { playerMap } = await upsertPlayers(fetched.players, teamMap);
+    const playerMap = await upsertPlayers(fetched.players, teamMap);
     await upsertGames(fetched.games, teamMap);
     await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
+    await syncPlayerCurrentTeams();
 
     const qualityIssues = evaluateQualityInput({
       logs: fetched.logs,
+      games: fetched.games,
     });
     const qualityPass = qualityIssues.length === 0;
     const isPublishable = QUALITY_GATE_ENABLED ? qualityPass : true;
+
     if (!qualityPass) {
       warnings.push(...qualityIssues.map((issue) => `Quality gate: ${issue}`));
     }
 
     const durationMs = Date.now() - startedAt;
-    const status = warnings.length > 0 || !qualityPass ? "PARTIAL" : "SUCCESS";
+    const status: "SUCCESS" | "PARTIAL" = warnings.length > 0 || !qualityPass ? "PARTIAL" : "SUCCESS";
 
     await prisma.refreshRun.update({
       where: { id: run.id },
@@ -429,7 +432,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable,
         qualityIssues,
-        notes: { dateEt, warnings, qualityGateEnabled: QUALITY_GATE_ENABLED },
+        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
       },
     });
 
@@ -443,6 +446,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           status,
           isPublishable,
           qualityIssues,
+          source: "nba_official",
         },
       },
       create: {
@@ -454,6 +458,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           status,
           isPublishable,
           qualityIssues,
+          source: "nba_official",
         },
       },
     });
@@ -468,6 +473,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             completedAt: new Date().toISOString(),
             status,
             qualityIssues,
+            source: "nba_official",
           },
         },
         create: {
@@ -478,6 +484,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             completedAt: new Date().toISOString(),
             status,
             qualityIssues,
+            source: "nba_official",
           },
         },
       });
@@ -507,15 +514,13 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable: false,
         qualityIssues: ["refresh_failed"],
-        notes: { dateEt, warnings, qualityGateEnabled: QUALITY_GATE_ENABLED },
+        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
       },
     });
     logger.error("Refresh failed", { runId: run.id, mode, reason });
     throw error;
   }
 }
-
-
 
 export function assertCronGuard(request: Request): void {
   const nextRequest = request as unknown as Parameters<typeof isCronAuthorized>[0];

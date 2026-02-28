@@ -1,14 +1,14 @@
 import { prisma } from "../lib/prisma";
 import { etDateShift, getTodayEtDateString, inferSeasonFromEtDate } from "../lib/snapshot/time";
-import { SportsDataClient } from "../lib/sportsdata/client";
-import { normalizeBoxScorePlayerLogs, normalizeGames, normalizeSeasonPlayers } from "../lib/sportsdata/normalize";
-import type { NormalizedPlayerGameStat, NormalizedPlayerSeason } from "../lib/sportsdata/types";
+import { NbaDataClient } from "../lib/nba/client";
+import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "../lib/sportsdata/types";
 
 type Args = {
   season: string;
   from: string;
   to: string;
   dryRun: boolean;
+  reset: boolean;
 };
 
 function parseArgs(): Args {
@@ -20,11 +20,16 @@ function parseArgs(): Args {
   let from = `${defaultSeason}-10-01`;
   let to = todayEt;
   let dryRun = false;
+  let reset = false;
 
   for (let i = 0; i < raw.length; i += 1) {
     const token = raw[i];
     if (token === "--dry-run") {
       dryRun = true;
+      continue;
+    }
+    if (token === "--reset") {
+      reset = true;
       continue;
     }
 
@@ -40,7 +45,6 @@ function parseArgs(): Args {
       from = `${season}-10-01`;
       continue;
     }
-
     if (token === "--from" && next) {
       from = next;
       i += 1;
@@ -50,7 +54,6 @@ function parseArgs(): Args {
       from = token.slice("--from=".length);
       continue;
     }
-
     if (token === "--to" && next) {
       to = next;
       i += 1;
@@ -62,7 +65,7 @@ function parseArgs(): Args {
     }
   }
 
-  return { season, from, to, dryRun };
+  return { season, from, to, dryRun, reset };
 }
 
 function isEtDate(value: string): boolean {
@@ -74,61 +77,57 @@ function toUtcDate(value: string): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-function listDatesInclusive(fromEt: string, toEt: string): string[] {
-  const start = toUtcDate(fromEt);
-  const end = toUtcDate(toEt);
-  const result: string[] = [];
-
-  const cursor = new Date(start);
-  while (cursor <= end) {
-    const year = cursor.getUTCFullYear();
-    const month = String(cursor.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(cursor.getUTCDate()).padStart(2, "0");
-    result.push(`${year}-${month}-${day}`);
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return result;
-}
-
 function teamNameFromAbbr(abbreviation: string | null): string {
   if (!abbreviation) return "Unknown";
   return abbreviation.toUpperCase();
 }
 
-function mergePlayers(
-  seasonPlayers: NormalizedPlayerSeason[],
-  gameStats: NormalizedPlayerGameStat[],
-): NormalizedPlayerSeason[] {
-  const merged = new Map<string, NormalizedPlayerSeason>();
+function mergePlayersFromLogs(players: NormalizedPlayerSeason[], logs: NormalizedPlayerGameStat[]): NormalizedPlayerSeason[] {
+  const byId = new Map<string, NormalizedPlayerSeason>();
 
-  seasonPlayers.forEach((player) => {
-    merged.set(player.externalPlayerId, player);
+  players.forEach((player) => {
+    byId.set(player.externalPlayerId, player);
   });
 
-  gameStats.forEach((log) => {
-    if (!merged.has(log.externalPlayerId)) {
+  logs
+    .slice()
+    .sort((a, b) => b.gameDateEt.localeCompare(a.gameDateEt))
+    .forEach((log) => {
+      const existing = byId.get(log.externalPlayerId);
       const fallbackName =
         log.fullName ??
         [log.firstName, log.lastName].filter((part): part is string => Boolean(part)).join(" ").trim();
+      if (!fallbackName) {
+        return;
+      }
 
-      merged.set(log.externalPlayerId, {
-        externalPlayerId: log.externalPlayerId,
-        fullName: fallbackName || `Player ${log.externalPlayerId}`,
-        firstName: log.firstName,
-        lastName: log.lastName,
-        teamAbbr: log.teamAbbr,
-        position: log.position,
-        usageRate: null,
-        isActive: true,
-      });
-    }
-  });
+      if (!existing) {
+        byId.set(log.externalPlayerId, {
+          externalPlayerId: log.externalPlayerId,
+          fullName: fallbackName,
+          firstName: log.firstName,
+          lastName: log.lastName,
+          teamAbbr: log.teamAbbr,
+          position: log.position,
+          usageRate: null,
+          isActive: true,
+        });
+        return;
+      }
 
-  return Array.from(merged.values());
+      if (log.teamAbbr && !existing.teamAbbr) {
+        existing.teamAbbr = log.teamAbbr;
+      }
+      if (log.position && !existing.position) {
+        existing.position = log.position;
+      }
+    });
+
+  return Array.from(byId.values());
 }
 
 async function upsertTeams(
-  games: ReturnType<typeof normalizeGames>,
+  games: NormalizedGame[],
   players: NormalizedPlayerSeason[],
   logs: NormalizedPlayerGameStat[],
 ): Promise<Map<string, string>> {
@@ -216,10 +215,7 @@ async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<str
   return playerMap;
 }
 
-async function upsertGames(
-  games: ReturnType<typeof normalizeGames>,
-  teamMap: Map<string, string>,
-): Promise<void> {
+async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>): Promise<void> {
   for (const game of games) {
     const homeTeamId = teamMap.get(game.homeTeamAbbr);
     const awayTeamId = teamMap.get(game.awayTeamAbbr);
@@ -262,7 +258,6 @@ async function upsertPlayerLogs(
     if (!playerId) {
       continue;
     }
-
     const externalGameId = log.externalGameId ?? `${log.gameDateEt}:${log.externalPlayerId}:${log.opponentAbbr ?? "UNK"}`;
     const teamId = log.teamAbbr ? teamMap.get(log.teamAbbr) ?? null : null;
     const opponentTeamId = log.opponentAbbr ? teamMap.get(log.opponentAbbr) ?? null : null;
@@ -309,11 +304,34 @@ async function upsertPlayerLogs(
         total: log.total,
       },
     });
-
     inserted += 1;
   }
 
   return inserted;
+}
+
+async function syncPlayerCurrentTeams(): Promise<void> {
+  const latestLogs = await prisma.playerGameLog.findMany({
+    where: { teamId: { not: null } },
+    distinct: ["playerId"],
+    orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
+    select: { playerId: true, teamId: true },
+  });
+
+  for (const log of latestLogs) {
+    if (!log.teamId) continue;
+    await prisma.player.update({
+      where: { id: log.playerId },
+      data: { teamId: log.teamId },
+    });
+  }
+}
+
+async function resetAllCoreTables(): Promise<void> {
+  await prisma.playerGameLog.deleteMany({});
+  await prisma.game.deleteMany({});
+  await prisma.player.deleteMany({});
+  await prisma.team.deleteMany({});
 }
 
 async function main(): Promise<void> {
@@ -321,60 +339,48 @@ async function main(): Promise<void> {
   if (!isEtDate(args.from) || !isEtDate(args.to)) {
     throw new Error("Dates must be YYYY-MM-DD (ET). Example: --from 2025-10-01 --to 2026-02-28");
   }
-
   if (toUtcDate(args.from) > toUtcDate(args.to)) {
     throw new Error(`Invalid range: from ${args.from} is after to ${args.to}`);
   }
 
-  const dates = listDatesInclusive(args.from, args.to);
-  const client = new SportsDataClient();
+  const client = new NbaDataClient();
+  const schedule = await client.fetchSchedule();
+  const inRangeGames = schedule
+    .filter((game) => game.gameDateEt >= args.from && game.gameDateEt <= args.to)
+    .filter((game) => inferSeasonFromEtDate(game.gameDateEt) === args.season);
+
+  const finalGames = inRangeGames.filter((game) => game.statusNumber >= 3);
 
   // eslint-disable-next-line no-console
-  console.log(`Backfill start | season=${args.season} | range=${args.from}..${args.to} | dates=${dates.length}`);
+  console.log(
+    `Backfill start | season=${args.season} | range=${args.from}..${args.to} | scheduleGames=${inRangeGames.length} | finalGames=${finalGames.length}`,
+  );
 
-  const rawSeasonPlayers = await client.fetchSeasonStats(args.season).catch((error) => {
-    // eslint-disable-next-line no-console
-    console.warn(`Season player stats unavailable for ${args.season}:`, error);
-    return [];
-  });
-
-  const seasonPlayers = normalizeSeasonPlayers(rawSeasonPlayers);
-  const rawBoxScores: unknown[] = [];
-  const rawGameRows: unknown[] = [];
+  const normalizedPlayers: NormalizedPlayerSeason[] = [];
+  const normalizedLogs: NormalizedPlayerGameStat[] = [];
   const warnings: string[] = [];
-  let successDates = 0;
 
-  for (let i = 0; i < dates.length; i += 1) {
-    const dateEt = dates[i];
+  for (let i = 0; i < finalGames.length; i += 1) {
+    const game = finalGames[i];
     try {
-      const rows = await client.fetchBoxScoresFinalByDate(dateEt);
-      if (rows.length > 0) {
-        rawBoxScores.push(...rows);
-        successDates += 1;
-
-        rows.forEach((boxScore) => {
-          if (boxScore && typeof boxScore === "object" && !Array.isArray(boxScore)) {
-            const record = boxScore as Record<string, unknown>;
-            if (record.Game) {
-              rawGameRows.push(record.Game);
-            }
-          }
-        });
-      }
+      const payload = await client.fetchGameBoxScore(game);
+      normalizedPlayers.push(...payload.players);
+      normalizedLogs.push(...payload.logs);
     } catch (error) {
-      const message = `Failed date ${dateEt}: ${error instanceof Error ? error.message : "unknown"}`;
-      warnings.push(message);
+      warnings.push(
+        `Game ${game.externalGameId} (${game.gameDateEt}) failed: ${error instanceof Error ? error.message : "unknown"}`,
+      );
     }
 
-    if ((i + 1) % 7 === 0 || i === dates.length - 1) {
+    if ((i + 1) % 25 === 0 || i === finalGames.length - 1) {
       // eslint-disable-next-line no-console
-      console.log(`Progress ${i + 1}/${dates.length} dates | boxscoreDays=${successDates} | warnings=${warnings.length}`);
+      console.log(
+        `Progress ${i + 1}/${finalGames.length} final games | logs=${normalizedLogs.length} | warnings=${warnings.length}`,
+      );
     }
   }
 
-  const normalizedGames = normalizeGames(rawGameRows);
-  const normalizedLogs = normalizeBoxScorePlayerLogs(rawBoxScores);
-  const mergedPlayers = mergePlayers(seasonPlayers, normalizedLogs);
+  const mergedPlayers = mergePlayersFromLogs(normalizedPlayers, normalizedLogs);
 
   if (args.dryRun) {
     // eslint-disable-next-line no-console
@@ -385,9 +391,9 @@ async function main(): Promise<void> {
           season: args.season,
           from: args.from,
           to: args.to,
-          seasonPlayers: seasonPlayers.length,
-          mergedPlayers: mergedPlayers.length,
-          games: normalizedGames.length,
+          scheduleGames: inRangeGames.length,
+          finalGames: finalGames.length,
+          players: mergedPlayers.length,
           logs: normalizedLogs.length,
           warningCount: warnings.length,
           warnings: warnings.slice(0, 20),
@@ -399,37 +405,48 @@ async function main(): Promise<void> {
     return;
   }
 
-  const teamMap = await upsertTeams(normalizedGames, mergedPlayers, normalizedLogs);
+  if (args.reset) {
+    // eslint-disable-next-line no-console
+    console.log("Resetting teams/players/games/logs before backfill...");
+    await resetAllCoreTables();
+  }
+
+  const teamMap = await upsertTeams(inRangeGames, mergedPlayers, normalizedLogs);
   const playerMap = await upsertPlayers(mergedPlayers, teamMap);
-  await upsertGames(normalizedGames, teamMap);
-  const writtenLogs = await upsertPlayerLogs(normalizedLogs, playerMap, teamMap);
+  await upsertGames(inRangeGames, teamMap);
+  const logsWritten = await upsertPlayerLogs(normalizedLogs, playerMap, teamMap);
+  await syncPlayerCurrentTeams();
 
   await prisma.systemSetting.upsert({
     where: { key: "snapshot_season_backfill" },
     update: {
       value: {
+        source: "nba_official",
         season: args.season,
         from: args.from,
         to: args.to,
         completedAt: new Date().toISOString(),
-        datesAttempted: dates.length,
-        datesWithBoxScores: successDates,
-        logsWritten: writtenLogs,
+        scheduleGames: inRangeGames.length,
+        finalGames: finalGames.length,
+        logsWritten,
         warningCount: warnings.length,
+        reset: args.reset,
         nextSuggestedFrom: etDateShift(args.to, 1),
       },
     },
     create: {
       key: "snapshot_season_backfill",
       value: {
+        source: "nba_official",
         season: args.season,
         from: args.from,
         to: args.to,
         completedAt: new Date().toISOString(),
-        datesAttempted: dates.length,
-        datesWithBoxScores: successDates,
-        logsWritten: writtenLogs,
+        scheduleGames: inRangeGames.length,
+        finalGames: finalGames.length,
+        logsWritten,
         warningCount: warnings.length,
+        reset: args.reset,
         nextSuggestedFrom: etDateShift(args.to, 1),
       },
     },
@@ -439,23 +456,21 @@ async function main(): Promise<void> {
   console.log(
     JSON.stringify(
       {
+        source: "nba_official",
         season: args.season,
         from: args.from,
         to: args.to,
-        datesAttempted: dates.length,
-        datesWithBoxScores: successDates,
-        seasonPlayers: seasonPlayers.length,
-        mergedPlayers: mergedPlayers.length,
-        gamesUpserted: normalizedGames.length,
-        logsUpserted: writtenLogs,
+        scheduleGames: inRangeGames.length,
+        finalGames: finalGames.length,
+        players: mergedPlayers.length,
+        logsUpserted: logsWritten,
         warningCount: warnings.length,
       },
       null,
       2,
     ),
   );
-
-  if (warnings.length > 0) {
+  if (warnings.length) {
     // eslint-disable-next-line no-console
     console.warn("Warnings (first 20):");
     warnings.slice(0, 20).forEach((warning) => {

@@ -23,7 +23,7 @@ function average(values: number[]): number | null {
 }
 
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
-  const [games, latestRun] = await Promise.all([
+  const [games, latestDataWrite] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
       include: {
@@ -32,17 +32,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       },
       orderBy: [{ commenceTimeUtc: "asc" }],
     }),
-    prisma.refreshRun.findFirst({
-      where: { completedAt: { not: null } },
-      orderBy: [{ completedAt: "desc" }],
-      select: { completedAt: true },
+    prisma.playerGameLog.aggregate({
+      _max: { updatedAt: true },
     }),
   ]);
 
   if (games.length === 0) {
     return {
       dateEt,
-      lastUpdatedAt: latestRun?.completedAt?.toISOString() ?? null,
+      lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
       teams: [],
       rows: [],
     };
@@ -97,7 +95,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   if (players.length === 0) {
     return {
       dateEt,
-      lastUpdatedAt: latestRun?.completedAt?.toISOString() ?? null,
+      lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
       teams: Array.from(teamOptionsByCode.values()).sort((a, b) => a.code.localeCompare(b.code)),
       rows: [],
     };
@@ -188,7 +186,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
 
   return {
     dateEt,
-    lastUpdatedAt: latestRun?.completedAt?.toISOString() ?? null,
+    lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
     teams: Array.from(teamOptionsByCode.values()).sort((a, b) => a.code.localeCompare(b.code)),
     rows: rowsWithSortKeys.map((item) => item.row),
   };
