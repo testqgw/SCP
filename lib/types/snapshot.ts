@@ -9,9 +9,41 @@ export type SnapshotStatLog = {
   rebounds: number;
   assists: number;
   threes: number;
+  steals: number;
+  blocks: number;
 };
 
 export type SnapshotMetricRecord = Record<SnapshotMarket, number | null>;
+
+export type SnapshotTeammateCore = {
+  playerId: string;
+  playerName: string;
+  position: string | null;
+  avgMinutesLast10: number | null;
+  avgPRA10: number | null;
+  avgAST10: number | null;
+};
+
+export type SnapshotPrimaryDefender = {
+  playerId: string;
+  playerName: string;
+  position: string | null;
+  avgMinutesLast10: number | null;
+  stocksPer36Last10: number | null;
+  matchupReason: string;
+};
+
+export type SnapshotPlayerContext = {
+  archetype: string;
+  projectedStarter: string;
+  rotationRank: number | null;
+  minutesLast3Avg: number | null;
+  minutesLast10Avg: number | null;
+  minutesTrend: number | null;
+  minutesVolatility: number | null;
+  primaryDefender: SnapshotPrimaryDefender | null;
+  teammateCore: SnapshotTeammateCore[];
+};
 
 export type SnapshotRow = {
   playerId: string;
@@ -32,6 +64,7 @@ export type SnapshotRow = {
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
   recentLogs: SnapshotStatLog[];
+  playerContext: SnapshotPlayerContext;
 };
 
 export type SnapshotMatchupOption = {

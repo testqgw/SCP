@@ -5,8 +5,10 @@ import type {
   SnapshotMarket,
   SnapshotMatchupOption,
   SnapshotMetricRecord,
+  SnapshotPrimaryDefender,
   SnapshotRow,
   SnapshotStatLog,
+  SnapshotTeammateCore,
   SnapshotTeamMatchupStats,
   SnapshotTeamRecord,
 } from "@/lib/types/snapshot";
@@ -58,6 +60,23 @@ type TeamSummary = {
   last10Record: SnapshotTeamRecord;
 };
 
+type PositionToken = "G" | "F" | "C";
+
+type PlayerProfile = {
+  playerId: string;
+  playerName: string;
+  position: string | null;
+  teamId: string | null;
+  last10Average: SnapshotMetricRecord;
+  minutesLast3Avg: number | null;
+  minutesLast10Avg: number | null;
+  minutesTrend: number | null;
+  minutesVolatility: number | null;
+  stocksPer36Last10: number | null;
+  archetype: string;
+  positionTokens: Set<PositionToken>;
+};
+
 const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -107,6 +126,87 @@ function average(values: number[]): number | null {
   }
   const total = values.reduce((sum, value) => sum + value, 0);
   return round(total / values.length, 2);
+}
+
+function standardDeviation(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const avg = average(values);
+  if (avg == null) return null;
+  const variance = values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
+  return round(Math.sqrt(variance), 2);
+}
+
+function parsePositionTokens(position: string | null): Set<PositionToken> {
+  const tokens = new Set<PositionToken>();
+  const normalized = (position ?? "").toUpperCase();
+  if (normalized.includes("G")) tokens.add("G");
+  if (normalized.includes("F")) tokens.add("F");
+  if (normalized.includes("C")) tokens.add("C");
+  return tokens;
+}
+
+function isDefenderCompatible(offense: Set<PositionToken>, defense: Set<PositionToken>): boolean {
+  if (offense.size === 0 || defense.size === 0) return true;
+  if (offense.has("G")) {
+    return defense.has("G") || defense.has("F");
+  }
+  if (offense.has("C")) {
+    return defense.has("C") || defense.has("F");
+  }
+  return defense.has("F") || defense.has("G") || defense.has("C");
+}
+
+function determineArchetype(last10Average: SnapshotMetricRecord, minutesLast10Avg: number | null): string {
+  const pts = last10Average.PTS ?? 0;
+  const reb = last10Average.REB ?? 0;
+  const ast = last10Average.AST ?? 0;
+  const threes = last10Average.THREES ?? 0;
+  const mins = minutesLast10Avg ?? 0;
+
+  if (mins < 16) return "Bench Spark";
+  if (ast >= 7 && pts >= 16) return "Primary Creator";
+  if (pts >= 24 && ast < 6) return "High-Usage Scorer";
+  if (reb >= 10 && ast < 5) return "Interior Big";
+  if (threes >= 2.5 && ast < 5 && reb < 7) return "Perimeter Spacer";
+  if (ast >= 5 && reb >= 6) return "Point Forward";
+  if (pts >= 15 && reb >= 5 && ast >= 4) return "Two-Way Wing";
+  return "Balanced Rotation";
+}
+
+function projectedStarterLabel(rotationRank: number | null, minutesLast10Avg: number | null): string {
+  if (rotationRank == null || minutesLast10Avg == null) return "Unknown";
+  if (rotationRank <= 5 && minutesLast10Avg >= 20) return "Likely Starter";
+  if (rotationRank <= 7 && minutesLast10Avg >= 16) return "Fringe Starter";
+  return "Bench / Reserve";
+}
+
+function choosePrimaryDefender(
+  player: PlayerProfile,
+  opponentProfiles: PlayerProfile[],
+): SnapshotPrimaryDefender | null {
+  if (opponentProfiles.length === 0) return null;
+
+  const compatible = opponentProfiles.filter((candidate) =>
+    isDefenderCompatible(player.positionTokens, candidate.positionTokens),
+  );
+  const ranked = (compatible.length > 0 ? compatible : opponentProfiles)
+    .filter((candidate) => (candidate.minutesLast10Avg ?? 0) > 8)
+    .sort((a, b) => (b.minutesLast10Avg ?? 0) - (a.minutesLast10Avg ?? 0));
+
+  const defender = ranked[0] ?? null;
+  if (!defender) return null;
+
+  return {
+    playerId: defender.playerId,
+    playerName: defender.playerName,
+    position: defender.position,
+    avgMinutesLast10: defender.minutesLast10Avg,
+    stocksPer36Last10: defender.stocksPer36Last10,
+    matchupReason:
+      compatible.length > 0
+        ? "Position-matched highest-minute defender"
+        : "Highest-minute defender available",
+  };
 }
 
 function averagesByMarket(logs: SnapshotStatLog[]): SnapshotMetricRecord {
@@ -482,6 +582,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       rebounds: toStat(log.rebounds),
       assists: toStat(log.assists),
       threes: toStat(log.threes),
+      steals: toStat(log.steals),
+      blocks: toStat(log.blocks),
     });
     logsByPlayerId.set(log.playerId, existing);
   }
@@ -564,6 +666,58 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
 
   const leagueAverage = averageFromAllowance(leagueAgg.count > 0 ? leagueAgg : null);
 
+  const playerProfilesById = new Map<string, PlayerProfile>();
+  const teamProfilesByTeamId = new Map<string, PlayerProfile[]>();
+
+  for (const player of players) {
+    const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
+    const last10Logs = logsForPlayer.slice(0, 10);
+    const last3Logs = logsForPlayer.slice(0, 3);
+    const last10Average = averagesByMarket(last10Logs);
+    const minutesLast10Avg = average(last10Logs.map((log) => log.minutes));
+    const minutesLast3Avg = average(last3Logs.map((log) => log.minutes));
+    const minutesTrend =
+      minutesLast3Avg == null || minutesLast10Avg == null ? null : round(minutesLast3Avg - minutesLast10Avg, 2);
+    const minutesVolatility = standardDeviation(last10Logs.map((log) => log.minutes));
+    const stealsLast10Avg = average(last10Logs.map((log) => log.steals));
+    const blocksLast10Avg = average(last10Logs.map((log) => log.blocks));
+    const stocksPer36Last10 =
+      minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
+        ? null
+        : round(((stealsLast10Avg + blocksLast10Avg) / minutesLast10Avg) * 36, 2);
+
+    const profile: PlayerProfile = {
+      playerId: player.id,
+      playerName: player.fullName,
+      position: player.position,
+      teamId: player.teamId,
+      last10Average,
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesTrend,
+      minutesVolatility,
+      stocksPer36Last10,
+      archetype: determineArchetype(last10Average, minutesLast10Avg),
+      positionTokens: parsePositionTokens(player.position),
+    };
+
+    playerProfilesById.set(player.id, profile);
+    if (player.teamId) {
+      const existing = teamProfilesByTeamId.get(player.teamId) ?? [];
+      existing.push(profile);
+      teamProfilesByTeamId.set(player.teamId, existing);
+    }
+  }
+
+  teamProfilesByTeamId.forEach((profiles, teamId) => {
+    profiles.sort((a, b) => {
+      const minDiff = (b.minutesLast10Avg ?? 0) - (a.minutesLast10Avg ?? 0);
+      if (minDiff !== 0) return minDiff;
+      return (b.last10Average.PTS ?? 0) - (a.last10Average.PTS ?? 0);
+    });
+    teamProfilesByTeamId.set(teamId, profiles);
+  });
+
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
 
   for (const player of players) {
@@ -590,6 +744,23 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const opponentAgg = allowanceByOpponentTeamId.get(matchup.opponentTeamId) ?? null;
     const opponentAllowance = averageFromAllowance(opponentAgg);
     const opponentAllowanceDelta = deltaFromLeague(opponentAllowance, leagueAverage);
+    const playerProfile = playerProfilesById.get(player.id) ?? null;
+    const teamProfiles = teamProfilesByTeamId.get(player.teamId) ?? [];
+    const opponentProfiles = teamProfilesByTeamId.get(matchup.opponentTeamId) ?? [];
+    const rotationRankIndex = teamProfiles.findIndex((profile) => profile.playerId === player.id);
+    const rotationRank = rotationRankIndex >= 0 ? rotationRankIndex + 1 : null;
+    const primaryDefender = playerProfile ? choosePrimaryDefender(playerProfile, opponentProfiles) : null;
+    const teammateCore: SnapshotTeammateCore[] = teamProfiles
+      .filter((profile) => profile.playerId !== player.id)
+      .slice(0, 3)
+      .map((profile) => ({
+        playerId: profile.playerId,
+        playerName: profile.playerName,
+        position: profile.position,
+        avgMinutesLast10: profile.minutesLast10Avg,
+        avgPRA10: profile.last10Average.PRA,
+        avgAST10: profile.last10Average.AST,
+      }));
 
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
@@ -612,6 +783,17 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         opponentAllowance,
         opponentAllowanceDelta,
         recentLogs: last10Logs,
+        playerContext: {
+          archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
+          projectedStarter: projectedStarterLabel(rotationRank, playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes))),
+          rotationRank,
+          minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
+          minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
+          minutesTrend: playerProfile?.minutesTrend ?? null,
+          minutesVolatility: playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes)),
+          primaryDefender,
+          teammateCore,
+        },
       },
     });
   }

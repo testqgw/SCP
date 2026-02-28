@@ -335,11 +335,35 @@ export function SnapshotDashboard({
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0f1734]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1540px] text-left text-sm">
+              <table className="w-full min-w-[1840px] text-left text-sm">
                 <thead className="bg-[#162249] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
                     <th className="px-4 py-3">Matchup</th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Type"
+                        definition="Player archetype from recent production profile (creator, scorer, big, spacer, etc.)."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Starter"
+                        definition="Projected starter status inferred from team rotation rank and last-10 average minutes."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Min L3/L10"
+                        definition="Average minutes over last 3 and last 10 games."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Min Trend"
+                        definition="Last-3 minutes average minus last-10 minutes average."
+                      />
+                    </th>
                     <th className="px-4 py-3">L5 {market}</th>
                     <th className="px-4 py-3">
                       <HeaderWithTip
@@ -422,6 +446,17 @@ export function SnapshotDashboard({
                           </div>
                           <div className="text-slate-400">{row.gameTimeEt}</div>
                         </td>
+                        <td className="px-4 py-3 text-xs">{row.playerContext.archetype}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <div>{row.playerContext.projectedStarter}</div>
+                          <div className="text-slate-400">
+                            Rank {row.playerContext.rotationRank != null ? row.playerContext.rotationRank : "-"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
+                        </td>
+                        <td className="px-4 py-3">{formatAverage(row.playerContext.minutesTrend, true)}</td>
                         <td className="px-4 py-3 text-xs">
                           {l5Values.length ? l5Values.map((value) => formatStat(value)).join(", ") : "No logs"}
                         </td>
@@ -482,6 +517,113 @@ export function SnapshotDashboard({
                 Close
               </button>
             </div>
+
+            <section className="mt-4">
+              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">Player Context</h3>
+              <div className="mt-2 grid gap-3 md:grid-cols-2">
+                <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                  <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+                    <p className="inline-flex items-center gap-1">
+                      Type
+                      <InfoTip
+                        label="Type"
+                        definition="Archetype from recent stat shape and minutes role."
+                      />
+                    </p>
+                    <p className="text-right">{selectedPlayer.playerContext.archetype}</p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Starter
+                      <InfoTip
+                        label="Starter"
+                        definition="Projected starter status inferred from team minutes hierarchy."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {selectedPlayer.playerContext.projectedStarter}
+                      {selectedPlayer.playerContext.rotationRank != null
+                        ? ` (Rank ${selectedPlayer.playerContext.rotationRank})`
+                        : ""}
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Minutes L3 / L10
+                      <InfoTip
+                        label="Minutes L3 / L10"
+                        definition="Average minutes over last 3 games compared to last 10 games."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {formatAverage(selectedPlayer.playerContext.minutesLast3Avg)} /{" "}
+                      {formatAverage(selectedPlayer.playerContext.minutesLast10Avg)}
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Minutes Trend
+                      <InfoTip
+                        label="Minutes Trend"
+                        definition="L3 minutes minus L10 minutes. Positive means role growing."
+                      />
+                    </p>
+                    <p className="text-right">{formatAverage(selectedPlayer.playerContext.minutesTrend, true)}</p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Minutes Volatility
+                      <InfoTip
+                        label="Minutes Volatility"
+                        definition="Standard deviation of last-10 minutes. Lower is more stable workload."
+                      />
+                    </p>
+                    <p className="text-right">{formatAverage(selectedPlayer.playerContext.minutesVolatility)}</p>
+                  </div>
+                </article>
+
+                <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                  <p className="inline-flex items-center gap-1 font-semibold text-white">
+                    Expected Primary Defender
+                    <InfoTip
+                      label="Expected Primary Defender"
+                      definition="Estimated by opponent position match and highest recent minutes."
+                    />
+                  </p>
+                  {selectedPlayer.playerContext.primaryDefender ? (
+                    <div className="mt-2 space-y-1 text-slate-300">
+                      <p>
+                        {selectedPlayer.playerContext.primaryDefender.playerName} (
+                        {selectedPlayer.playerContext.primaryDefender.position ?? "N/A"})
+                      </p>
+                      <p>
+                        Min L10: {formatAverage(selectedPlayer.playerContext.primaryDefender.avgMinutesLast10)} | Stocks/36:{" "}
+                        {formatAverage(selectedPlayer.playerContext.primaryDefender.stocksPer36Last10)}
+                      </p>
+                      <p>{selectedPlayer.playerContext.primaryDefender.matchupReason}</p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-slate-300">No defender projection available yet.</p>
+                  )}
+
+                  <p className="mt-3 inline-flex items-center gap-1 font-semibold text-white">
+                    Top Teammates (By Minutes)
+                    <InfoTip
+                      label="Top Teammates"
+                      definition="Most active teammates by last-10 minutes, with PRA and assists context."
+                    />
+                  </p>
+                  {selectedPlayer.playerContext.teammateCore.length === 0 ? (
+                    <p className="mt-2 text-slate-300">No teammate context available.</p>
+                  ) : (
+                    <div className="mt-2 space-y-1 text-slate-300">
+                      {selectedPlayer.playerContext.teammateCore.map((mate) => (
+                        <p key={mate.playerId}>
+                          {mate.playerName} ({mate.position ?? "N/A"}) | Min L10 {formatAverage(mate.avgMinutesLast10)} | PRA{" "}
+                          {formatAverage(mate.avgPRA10)} | AST {formatAverage(mate.avgAST10)}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              </div>
+            </section>
 
             <section className="mt-5">
               <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">All Markets Detail</h3>
@@ -810,6 +952,8 @@ export function SnapshotDashboard({
                         <th className="px-2 py-2 text-left">REB</th>
                         <th className="px-2 py-2 text-left">AST</th>
                         <th className="px-2 py-2 text-left">3PM</th>
+                        <th className="px-2 py-2 text-left">STL</th>
+                        <th className="px-2 py-2 text-left">BLK</th>
                         <th className="px-2 py-2 text-left">PRA</th>
                         <th className="px-2 py-2 text-left">PA</th>
                         <th className="px-2 py-2 text-left">PR</th>
@@ -832,6 +976,8 @@ export function SnapshotDashboard({
                             <td className="px-2 py-2">{formatStat(log.rebounds)}</td>
                             <td className="px-2 py-2">{formatStat(log.assists)}</td>
                             <td className="px-2 py-2">{formatStat(log.threes)}</td>
+                            <td className="px-2 py-2">{formatStat(log.steals)}</td>
+                            <td className="px-2 py-2">{formatStat(log.blocks)}</td>
                             <td className="px-2 py-2">{formatStat(pra)}</td>
                             <td className="px-2 py-2">{formatStat(pa)}</td>
                             <td className="px-2 py-2">{formatStat(pr)}</td>
