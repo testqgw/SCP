@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
+import type { SnapshotBoardData, SnapshotLean, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
   data: SnapshotBoardData;
@@ -173,6 +173,12 @@ function completenessTierClass(tier: "HIGH" | "MEDIUM" | "LOW"): string {
   if (tier === "HIGH") return "bg-emerald-400/20 text-emerald-200";
   if (tier === "MEDIUM") return "bg-amber-400/20 text-amber-200";
   return "bg-rose-400/20 text-rose-200";
+}
+
+function leanClass(lean: SnapshotLean): string {
+  if (lean === "OVER") return "bg-emerald-400/20 text-emerald-200";
+  if (lean === "UNDER") return "bg-amber-400/20 text-amber-200";
+  return "bg-slate-500/25 text-slate-200";
 }
 
 export function SnapshotDashboard({
@@ -388,7 +394,7 @@ export function SnapshotDashboard({
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0f1734]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1980px] text-left text-sm">
+              <table className="w-full min-w-[2200px] text-left text-sm">
                 <thead className="bg-[#162249] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
@@ -466,6 +472,18 @@ export function SnapshotDashboard({
                         definition="Opponent allowance vs league average for this market. Positive means softer matchup."
                       />
                     </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Proj Tonight"
+                        definition="Model projection for this market tonight from recent form, season baseline, home/away split, matchup allowance, and minutes trend."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Lean"
+                        definition="Projection tendency vs season baseline: OVER, UNDER, or NEUTRAL."
+                      />
+                    </th>
                     <th className="px-4 py-3">Your Line</th>
                     <th className="px-4 py-3">
                       <HeaderWithTip
@@ -539,6 +557,16 @@ export function SnapshotDashboard({
                         </td>
                         <td className="px-4 py-3">{formatAverage(row.trendVsSeason[market], true)}</td>
                         <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[market], true)}</td>
+                        <td className="px-4 py-3">{formatAverage(row.projectedTonight[market])}</td>
+                        <td className="px-4 py-3 text-xs">
+                          <span
+                            className={`rounded-full px-2 py-0.5 font-semibold ${leanClass(
+                              row.projectionLeanVsSeason[market],
+                            )}`}
+                          >
+                            {row.projectionLeanVsSeason[market]}
+                          </span>
+                        </td>
                         <td className="px-4 py-3">
                           <input
                             value={lineMap[lineKey(row.playerId, market)] ?? ""}
@@ -844,6 +872,14 @@ export function SnapshotDashboard({
                         <p className="text-right">{formatAverage(selectedPlayer.trendVsSeason[m], true)}</p>
                         <p>Opp +/-</p>
                         <p className="text-right">{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</p>
+                        <p>Proj Tonight</p>
+                        <p className="text-right">{formatAverage(selectedPlayer.projectedTonight[m])}</p>
+                        <p>Lean</p>
+                        <p className="text-right">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leanClass(selectedPlayer.projectionLeanVsSeason[m])}`}>
+                            {selectedPlayer.projectionLeanVsSeason[m]}
+                          </span>
+                        </p>
                       </div>
 
                       <p className="mt-2 text-[11px] text-slate-300">
@@ -912,6 +948,8 @@ export function SnapshotDashboard({
                     : (selectedPlayer.last10Average[m] - selectedLine) / l10StdDev;
                 const oneSdBandLow = selectedLine == null || l10StdDev == null ? null : selectedLine - l10StdDev;
                 const oneSdBandHigh = selectedLine == null || l10StdDev == null ? null : selectedLine + l10StdDev;
+                const projectionValue = selectedPlayer.projectedTonight[m];
+                const projectionVsLine = selectedLine == null || projectionValue == null ? null : projectionValue - selectedLine;
 
                 return (
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
@@ -962,6 +1000,20 @@ export function SnapshotDashboard({
                           <p className="flex items-center justify-between">
                             <span>Opp +/-</span>
                             <span>{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Proj Tonight</span>
+                            <span>{formatAverage(projectionValue)}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Projection Lean</span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${leanClass(
+                                selectedPlayer.projectionLeanVsSeason[m],
+                              )}`}
+                            >
+                              {selectedPlayer.projectionLeanVsSeason[m]}
+                            </span>
                           </p>
                         </div>
 
@@ -1036,6 +1088,7 @@ export function SnapshotDashboard({
                             <p>L3 Avg vs line: {formatAverage(l3VsLine, true)}</p>
                             <p>L10 Avg vs line: {formatAverage(l10VsLine, true)}</p>
                             <p>Season Avg vs line: {formatAverage(seasonVsLine, true)}</p>
+                            <p>Projection vs line: {formatAverage(projectionVsLine, true)}</p>
                             <p>
                               1 SD line band:{" "}
                               {oneSdBandLow == null || oneSdBandHigh == null
@@ -1168,7 +1221,8 @@ export function SnapshotDashboard({
             <section className="mt-4 text-xs text-slate-300">
               <p>
                 Quick read ({market}): L5 avg {formatAverage(average(selectedPlayer.last5[market]))} | L10 avg{" "}
-                {formatAverage(selectedPlayer.last10Average[market])} | Trend {formatAverage(selectedPlayer.trendVsSeason[market], true)} | Opp +/-{" "}
+                {formatAverage(selectedPlayer.last10Average[market])} | Projection {formatAverage(selectedPlayer.projectedTonight[market])} | Lean{" "}
+                {selectedPlayer.projectionLeanVsSeason[market]} | Trend {formatAverage(selectedPlayer.trendVsSeason[market], true)} | Opp +/-{" "}
                 {formatAverage(selectedPlayer.opponentAllowanceDelta[market], true)}
               </p>
             </section>

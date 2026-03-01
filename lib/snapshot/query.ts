@@ -5,6 +5,7 @@ import type {
   SnapshotDataCompleteness,
   SnapshotGameIntel,
   SnapshotIntelItem,
+  SnapshotLean,
   SnapshotIntelModule,
   SnapshotMarket,
   SnapshotMatchupOption,
@@ -776,6 +777,112 @@ function trendFrom(last3: SnapshotMetricRecord, season: SnapshotMetricRecord): S
   return result;
 }
 
+function weightedBlend(parts: Array<{ value: number | null; weight: number }>): number | null {
+  let weightedTotal = 0;
+  let totalWeight = 0;
+  parts.forEach((part) => {
+    if (part.value == null || !Number.isFinite(part.value) || part.weight <= 0) return;
+    weightedTotal += part.value * part.weight;
+    totalWeight += part.weight;
+  });
+  if (totalWeight <= 0) return null;
+  return round(weightedTotal / totalWeight, 2);
+}
+
+function projectMarket(input: {
+  market: SnapshotMarket;
+  last3Average: SnapshotMetricRecord;
+  last10Average: SnapshotMetricRecord;
+  seasonAverage: SnapshotMetricRecord;
+  homeAwayAverage: SnapshotMetricRecord;
+  opponentAllowance: SnapshotMetricRecord;
+  opponentAllowanceDelta: SnapshotMetricRecord;
+  minutesTrend: number | null;
+  minutesLast10Avg: number | null;
+}): number | null {
+  const baseline = weightedBlend([
+    { value: input.last10Average[input.market], weight: 0.38 },
+    { value: input.last3Average[input.market], weight: 0.27 },
+    { value: input.seasonAverage[input.market], weight: 0.2 },
+    { value: input.homeAwayAverage[input.market], weight: 0.08 },
+    { value: input.opponentAllowance[input.market], weight: 0.07 },
+  ]);
+  if (baseline == null) return null;
+
+  const perMinuteRate =
+    input.minutesLast10Avg == null || input.minutesLast10Avg <= 0 ? null : baseline / input.minutesLast10Avg;
+  const minutesAdjustment =
+    perMinuteRate == null || input.minutesTrend == null
+      ? 0
+      : Math.max(-2.5, Math.min(2.5, perMinuteRate * input.minutesTrend * 0.6));
+  const opponentDeltaRaw = input.opponentAllowanceDelta[input.market];
+  const opponentAdjustment =
+    opponentDeltaRaw == null ? 0 : Math.max(-3, Math.min(3, opponentDeltaRaw * 0.2));
+  return round(Math.max(0, baseline + minutesAdjustment + opponentAdjustment), 2);
+}
+
+function projectedTonightFrom(input: {
+  last3Average: SnapshotMetricRecord;
+  last10Average: SnapshotMetricRecord;
+  seasonAverage: SnapshotMetricRecord;
+  homeAwayAverage: SnapshotMetricRecord;
+  opponentAllowance: SnapshotMetricRecord;
+  opponentAllowanceDelta: SnapshotMetricRecord;
+  minutesTrend: number | null;
+  minutesLast10Avg: number | null;
+}): SnapshotMetricRecord {
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    result[market] = projectMarket({
+      market,
+      last3Average: input.last3Average,
+      last10Average: input.last10Average,
+      seasonAverage: input.seasonAverage,
+      homeAwayAverage: input.homeAwayAverage,
+      opponentAllowance: input.opponentAllowance,
+      opponentAllowanceDelta: input.opponentAllowanceDelta,
+      minutesTrend: input.minutesTrend,
+      minutesLast10Avg: input.minutesLast10Avg,
+    });
+  });
+  return result;
+}
+
+function leanVsSeasonFrom(
+  projectedTonight: SnapshotMetricRecord,
+  seasonAverage: SnapshotMetricRecord,
+  last10ByMarket: Record<SnapshotMarket, number[]>,
+): Record<SnapshotMarket, SnapshotLean> {
+  const result: Record<SnapshotMarket, SnapshotLean> = {
+    PTS: "NEUTRAL",
+    REB: "NEUTRAL",
+    AST: "NEUTRAL",
+    THREES: "NEUTRAL",
+    PRA: "NEUTRAL",
+    PA: "NEUTRAL",
+    PR: "NEUTRAL",
+    RA: "NEUTRAL",
+  };
+
+  MARKETS.forEach((market) => {
+    const projected = projectedTonight[market];
+    const season = seasonAverage[market];
+    if (projected == null || season == null) return;
+    const volatility = standardDeviation(last10ByMarket[market]) ?? 0;
+    const threshold = Math.max(0.75, volatility * 0.25);
+    const diff = projected - season;
+    if (diff >= threshold) {
+      result[market] = "OVER";
+    } else if (diff <= -threshold) {
+      result[market] = "UNDER";
+    } else {
+      result[market] = "NEUTRAL";
+    }
+  });
+
+  return result;
+}
+
 function createAllowanceAgg(): TeamAllowanceAgg {
   return {
     count: 0,
@@ -1321,6 +1428,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const last3Average = averagesByMarket(last3Logs);
     const last10Average = averagesByMarket(last10Logs);
     const homeAwayAverage = averagesByMarket(homeAwayLogs);
+    const last5ByMarket = arraysByMarket(last5Logs);
+    const last10ByMarket = arraysByMarket(last10Logs);
     const trendVsSeason = trendFrom(last3Average, seasonAverage);
 
     const opponentAgg = allowanceByOpponentTeamId.get(matchup.opponentTeamId) ?? null;
@@ -1365,6 +1474,18 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const computedStarterRateLast10 =
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
+    const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
+    const projectedTonight = projectedTonightFrom({
+      last3Average,
+      last10Average,
+      seasonAverage,
+      homeAwayAverage,
+      opponentAllowance,
+      opponentAllowanceDelta,
+      minutesTrend: playerProfile?.minutesTrend ?? null,
+      minutesLast10Avg,
+    });
+    const projectionLeanVsSeason = leanVsSeasonFrom(projectedTonight, seasonAverage, last10ByMarket);
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
       statusLast10,
@@ -1385,8 +1506,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         matchupKey: matchup.matchupKey,
         isHome: matchup.isHome,
         gameTimeEt: matchup.gameTimeEt,
-        last5: arraysByMarket(last5Logs),
-        last10: arraysByMarket(last10Logs),
+        last5: last5ByMarket,
+        last10: last10ByMarket,
         last3Average,
         last10Average,
         seasonAverage,
@@ -1394,6 +1515,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         trendVsSeason,
         opponentAllowance,
         opponentAllowanceDelta,
+        projectedTonight,
+        projectionLeanVsSeason,
         recentLogs: last10Logs,
         dataCompleteness,
         playerContext: {
@@ -1402,14 +1525,14 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
             startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
             starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
             rotationRank,
-            minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
+            minutesLast10Avg,
           }),
           startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
           startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
           starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
           rotationRank,
           minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
-          minutesLast10Avg: playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes)),
+          minutesLast10Avg,
           minutesTrend: playerProfile?.minutesTrend ?? null,
           minutesVolatility: playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes)),
           primaryDefender,

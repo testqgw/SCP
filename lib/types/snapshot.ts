@@ -16,6 +16,7 @@ export type SnapshotStatLog = {
 };
 
 export type SnapshotMetricRecord = Record<SnapshotMarket, number | null>;
+export type SnapshotLean = "OVER" | "UNDER" | "NEUTRAL";
 
 export type SnapshotCompletenessTier = "HIGH" | "MEDIUM" | "LOW";
 
@@ -103,6 +104,8 @@ export type SnapshotRow = {
   trendVsSeason: SnapshotMetricRecord;
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
+  projectedTonight: SnapshotMetricRecord;
+  projectionLeanVsSeason: Record<SnapshotMarket, SnapshotLean>;
   recentLogs: SnapshotStatLog[];
   dataCompleteness: SnapshotDataCompleteness;
   playerContext: SnapshotPlayerContext;
