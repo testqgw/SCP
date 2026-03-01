@@ -169,6 +169,12 @@ function intelStatusClass(status: "LIVE" | "DERIVED" | "PENDING"): string {
   return "bg-amber-400/20 text-amber-200";
 }
 
+function completenessTierClass(tier: "HIGH" | "MEDIUM" | "LOW"): string {
+  if (tier === "HIGH") return "bg-emerald-400/20 text-emerald-200";
+  if (tier === "MEDIUM") return "bg-amber-400/20 text-amber-200";
+  return "bg-rose-400/20 text-rose-200";
+}
+
 export function SnapshotDashboard({
   data,
   initialMarket,
@@ -382,7 +388,7 @@ export function SnapshotDashboard({
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0f1734]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1840px] text-left text-sm">
+              <table className="w-full min-w-[1980px] text-left text-sm">
                 <thead className="bg-[#162249] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
@@ -397,6 +403,12 @@ export function SnapshotDashboard({
                       <HeaderWithTip
                         label="Starter"
                         definition="Starter status from actual game logs: last-game starter flag and starts in last 10."
+                      />
+                    </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Data Q"
+                        definition="Data completeness score for this player row: logs, status coverage, context, and stability."
                       />
                     </th>
                     <th className="px-4 py-3">
@@ -501,6 +513,15 @@ export function SnapshotDashboard({
                               row.playerContext.starterRateLast10 == null ? null : row.playerContext.starterRateLast10 * 100,
                             )})
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${completenessTierClass(
+                              row.dataCompleteness.tier,
+                            )}`}
+                          >
+                            {row.dataCompleteness.score} {row.dataCompleteness.tier}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-xs">
                           {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
@@ -624,6 +645,37 @@ export function SnapshotDashboard({
                     </p>
 
                     <p className="inline-flex items-center gap-1">
+                      Data Completeness
+                      <InfoTip
+                        label="Data Completeness"
+                        definition="Quality score for this row based on sample size, status coverage, context availability, and stability metrics."
+                      />
+                    </p>
+                    <p className="text-right">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${completenessTierClass(
+                          selectedPlayer.dataCompleteness.tier,
+                        )}`}
+                      >
+                        {selectedPlayer.dataCompleteness.score} {selectedPlayer.dataCompleteness.tier}
+                      </span>
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Coverage Split
+                      <InfoTip
+                        label="Coverage Split"
+                        definition="Component scores feeding Data Completeness: sample, status, context, and stability."
+                      />
+                    </p>
+                    <p className="text-right">
+                      Smp {formatPercentValue(selectedPlayer.dataCompleteness.components.sampleCoverage)} | Sts{" "}
+                      {formatPercentValue(selectedPlayer.dataCompleteness.components.statusCoverage)} | Ctx{" "}
+                      {formatPercentValue(selectedPlayer.dataCompleteness.components.contextCoverage)} | Stb{" "}
+                      {formatPercentValue(selectedPlayer.dataCompleteness.components.stabilityCoverage)}
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
                       Minutes L3 / L10
                       <InfoTip
                         label="Minutes L3 / L10"
@@ -653,6 +705,18 @@ export function SnapshotDashboard({
                     </p>
                     <p className="text-right">{formatAverage(selectedPlayer.playerContext.minutesVolatility)}</p>
                   </div>
+                  {selectedPlayer.dataCompleteness.issues.length > 0 ? (
+                    <div className="mt-2 rounded-lg bg-[#0d1630] p-2 text-[11px] text-amber-200">
+                      <p className="font-semibold">Data Gaps</p>
+                      {selectedPlayer.dataCompleteness.issues.map((issue, index) => (
+                        <p key={`${issue}-${index}`}>- {issue}</p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 rounded-lg bg-[#0d1630] p-2 text-[11px] text-emerald-200">
+                      All key data inputs are present for this player snapshot.
+                    </div>
+                  )}
                 </article>
 
                 <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">

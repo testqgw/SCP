@@ -17,6 +17,20 @@ export type SnapshotStatLog = {
 
 export type SnapshotMetricRecord = Record<SnapshotMarket, number | null>;
 
+export type SnapshotCompletenessTier = "HIGH" | "MEDIUM" | "LOW";
+
+export type SnapshotDataCompleteness = {
+  score: number;
+  tier: SnapshotCompletenessTier;
+  issues: string[];
+  components: {
+    sampleCoverage: number;
+    statusCoverage: number;
+    contextCoverage: number;
+    stabilityCoverage: number;
+  };
+};
+
 export type SnapshotIntelStatus = "LIVE" | "DERIVED" | "PENDING";
 
 export type SnapshotIntelItem = {
@@ -90,6 +104,7 @@ export type SnapshotRow = {
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
   recentLogs: SnapshotStatLog[];
+  dataCompleteness: SnapshotDataCompleteness;
   playerContext: SnapshotPlayerContext;
   gameIntel: SnapshotGameIntel;
 };

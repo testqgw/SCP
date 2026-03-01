@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { formatUtcToEt } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
+  SnapshotDataCompleteness,
   SnapshotGameIntel,
   SnapshotIntelItem,
   SnapshotIntelModule,
@@ -105,6 +106,89 @@ function blankMetricRecord(): SnapshotMetricRecord {
     PA: null,
     PR: null,
     RA: null,
+  };
+}
+
+type CompletenessInput = {
+  last10Logs: SnapshotStatLog[];
+  statusLast10: PlayerStatusLog[];
+  opponentAllowance: SnapshotMetricRecord;
+  primaryDefender: SnapshotPrimaryDefender | null;
+  teammateCore: SnapshotTeammateCore[];
+  playerProfile: PlayerProfile | null;
+};
+
+function computeDataCompleteness(input: CompletenessInput): SnapshotDataCompleteness {
+  const issues: string[] = [];
+
+  const sampleCoverageRaw = Math.min(input.last10Logs.length / 10, 1);
+  const sampleCoverage = round(sampleCoverageRaw * 100, 1);
+  if (input.last10Logs.length < 8) {
+    issues.push(`Only ${input.last10Logs.length} completed logs (need 10 for full confidence).`);
+  }
+
+  const statusDenominator = Math.max(1, input.statusLast10.length);
+  const starterKnown = input.statusLast10.filter((log) => log.starter != null).length;
+  const playedKnown = input.statusLast10.filter((log) => log.played != null).length;
+  const statusCoverageRaw =
+    input.statusLast10.length === 0 ? 0 : (starterKnown + playedKnown) / (2 * statusDenominator);
+  const statusCoverage = round(statusCoverageRaw * 100, 1);
+  if (input.statusLast10.length < 8) {
+    issues.push(`Starter/availability logs only found for ${input.statusLast10.length} recent games.`);
+  }
+  if (statusCoverageRaw < 0.7) {
+    issues.push("Starter/played status has partial null coverage.");
+  }
+
+  const contextSignals = [
+    input.opponentAllowance.PTS != null,
+    input.opponentAllowance.REB != null,
+    input.opponentAllowance.AST != null,
+    input.primaryDefender != null,
+    input.teammateCore.length >= 2,
+  ];
+  const contextCoverageRaw = contextSignals.filter(Boolean).length / contextSignals.length;
+  const contextCoverage = round(contextCoverageRaw * 100, 1);
+  if (input.primaryDefender == null) {
+    issues.push("Primary defender projection missing.");
+  }
+  if (input.teammateCore.length < 2) {
+    issues.push("Limited teammate context.");
+  }
+
+  const stabilitySignals = [
+    input.playerProfile?.minutesLast10Avg != null,
+    input.playerProfile?.minutesVolatility != null,
+    input.playerProfile?.starterRateLast10 != null,
+    input.playerProfile?.stocksPer36Last10 != null,
+  ];
+  const stabilityCoverageRaw = stabilitySignals.filter(Boolean).length / stabilitySignals.length;
+  const stabilityCoverage = round(stabilityCoverageRaw * 100, 1);
+  if (input.playerProfile?.minutesLast10Avg == null) {
+    issues.push("No minutes baseline.");
+  }
+  if (input.playerProfile?.minutesVolatility == null) {
+    issues.push("No minutes volatility sample.");
+  }
+
+  const scoreRaw =
+    sampleCoverageRaw * 0.35 +
+    statusCoverageRaw * 0.25 +
+    contextCoverageRaw * 0.25 +
+    stabilityCoverageRaw * 0.15;
+  const score = Math.max(0, Math.min(100, Math.round(scoreRaw * 100)));
+  const tier: SnapshotDataCompleteness["tier"] = score >= 80 ? "HIGH" : score >= 60 ? "MEDIUM" : "LOW";
+
+  return {
+    score,
+    tier,
+    issues,
+    components: {
+      sampleCoverage,
+      statusCoverage,
+      contextCoverage,
+      stabilityCoverage,
+    },
   };
 }
 
@@ -1281,6 +1365,14 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const computedStarterRateLast10 =
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
+    const dataCompleteness = computeDataCompleteness({
+      last10Logs,
+      statusLast10,
+      opponentAllowance,
+      primaryDefender,
+      teammateCore,
+      playerProfile,
+    });
 
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
@@ -1303,6 +1395,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         opponentAllowance,
         opponentAllowanceDelta,
         recentLogs: last10Logs,
+        dataCompleteness,
         playerContext: {
           archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
           projectedStarter: starterStatusLabel({
