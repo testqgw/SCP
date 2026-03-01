@@ -855,9 +855,12 @@ export function SnapshotDashboard({
                         <p className="text-right">{formatAverage(selectedPlayer.projectedTonight[m])}</p>
                       </div>
 
-                      <p className="mt-2 text-[11px] text-slate-300">
-                        L5 Values: {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}
-                      </p>
+                      <div className="mt-2">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">L5 Game Log</p>
+                        <p className="mt-1 rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1 font-mono text-[11px] text-slate-200">
+                          {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}
+                        </p>
+                      </div>
 
                       <input
                         value={lineMap[key] ?? ""}
@@ -874,17 +877,52 @@ export function SnapshotDashboard({
                         className="mt-2 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
                       />
 
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-[11px]">
-                        <p className="rounded-md bg-[#0d1630] px-2 py-1 text-slate-300">
-                          L5 O/U:{" "}
-                          {selectedLine == null || !l5Hit ? "-" : `${l5Hit.over}/${l5.length} O | ${l5Hit.under}/${l5.length} U`}
-                        </p>
-                        <p className="rounded-md bg-[#0d1630] px-2 py-1 text-slate-300">
-                          L10 O/U:{" "}
-                          {selectedLine == null || !l10Hit
-                            ? "-"
-                            : `${l10Hit.over}/${l10.length} O | ${l10Hit.under}/${l10.length} U`}
-                        </p>
+                      <div className="mt-2 space-y-2 text-[11px]">
+                        {selectedLine == null || !l5Hit || !l10Hit ? (
+                          <p className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5 text-slate-300">
+                            Enter a line to see L5/L10 over-under breakdown.
+                          </p>
+                        ) : (
+                          <>
+                            <div className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5">
+                              <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">Last 5 vs Line</p>
+                              <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+                                <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-center text-emerald-200">
+                                  O {l5Hit.over}/{l5.length}
+                                </span>
+                                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-center text-amber-200">
+                                  U {l5Hit.under}/{l5.length}
+                                </span>
+                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-slate-200">
+                                  P {l5Hit.push}/{l5.length}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[10px] text-slate-300">
+                                O {formatPercent(l5Hit.over, l5.length)} | U {formatPercent(l5Hit.under, l5.length)} | P{" "}
+                                {formatPercent(l5Hit.push, l5.length)}
+                              </p>
+                            </div>
+
+                            <div className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5">
+                              <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">Last 10 vs Line</p>
+                              <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
+                                <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-center text-emerald-200">
+                                  O {l10Hit.over}/{l10.length}
+                                </span>
+                                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-center text-amber-200">
+                                  U {l10Hit.under}/{l10.length}
+                                </span>
+                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-slate-200">
+                                  P {l10Hit.push}/{l10.length}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[10px] text-slate-300">
+                                O {formatPercent(l10Hit.over, l10.length)} | U {formatPercent(l10Hit.under, l10.length)} | P{" "}
+                                {formatPercent(l10Hit.push, l10.length)}
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </article>
                   );
