@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "../lib/prisma";
 import { getTodayEtDateString, inferSeasonFromEtDate } from "../lib/snapshot/time";
+import { SNAPSHOT_MARKETS, projectTonightMetrics } from "../lib/snapshot/projection";
 import { round } from "../lib/utils";
 import type { SnapshotMarket, SnapshotMetricRecord } from "../lib/types/snapshot";
 
@@ -32,7 +33,7 @@ type MarketErrorStats = {
   within2: number;
 };
 
-const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
+const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
 
 function parseArgs(): Args {
   const todayEt = getTodayEtDateString();
@@ -123,18 +124,6 @@ function average(values: number[]): number | null {
   return round(total / values.length, 2);
 }
 
-function weightedBlend(parts: Array<{ value: number | null; weight: number }>): number | null {
-  let weightedTotal = 0;
-  let totalWeight = 0;
-  parts.forEach((part) => {
-    if (part.value == null || !Number.isFinite(part.value) || part.weight <= 0) return;
-    weightedTotal += part.value * part.weight;
-    totalWeight += part.weight;
-  });
-  if (totalWeight <= 0) return null;
-  return round(weightedTotal / totalWeight, 2);
-}
-
 function metricsFromBase(points: number, rebounds: number, assists: number, threes: number): SnapshotMetricRecord {
   return {
     PTS: points,
@@ -202,62 +191,17 @@ function deltaFromLeague(teamAverage: SnapshotMetricRecord, leagueAverage: Snaps
   return result;
 }
 
-function projectMarket(input: {
-  market: SnapshotMarket;
-  last3Average: SnapshotMetricRecord;
-  last10Average: SnapshotMetricRecord;
-  seasonAverage: SnapshotMetricRecord;
-  homeAwayAverage: SnapshotMetricRecord;
-  opponentAllowance: SnapshotMetricRecord;
-  opponentAllowanceDelta: SnapshotMetricRecord;
-  minutesTrend: number | null;
-  minutesLast10Avg: number | null;
-}): number | null {
-  const baseline = weightedBlend([
-    { value: input.last10Average[input.market], weight: 0.38 },
-    { value: input.last3Average[input.market], weight: 0.27 },
-    { value: input.seasonAverage[input.market], weight: 0.2 },
-    { value: input.homeAwayAverage[input.market], weight: 0.08 },
-    { value: input.opponentAllowance[input.market], weight: 0.07 },
-  ]);
-  if (baseline == null) return null;
-
-  const perMinuteRate =
-    input.minutesLast10Avg == null || input.minutesLast10Avg <= 0 ? null : baseline / input.minutesLast10Avg;
-  const minutesAdjustment =
-    perMinuteRate == null || input.minutesTrend == null
-      ? 0
-      : Math.max(-2.5, Math.min(2.5, perMinuteRate * input.minutesTrend * 0.6));
-  const opponentDeltaRaw = input.opponentAllowanceDelta[input.market];
-  const opponentAdjustment = opponentDeltaRaw == null ? 0 : Math.max(-3, Math.min(3, opponentDeltaRaw * 0.2));
-  return round(Math.max(0, baseline + minutesAdjustment + opponentAdjustment), 2);
-}
-
-function projectedTonightFrom(input: {
-  last3Average: SnapshotMetricRecord;
-  last10Average: SnapshotMetricRecord;
-  seasonAverage: SnapshotMetricRecord;
-  homeAwayAverage: SnapshotMetricRecord;
-  opponentAllowance: SnapshotMetricRecord;
-  opponentAllowanceDelta: SnapshotMetricRecord;
-  minutesTrend: number | null;
-  minutesLast10Avg: number | null;
-}): SnapshotMetricRecord {
-  const result = blankMetricRecord();
-  MARKETS.forEach((market) => {
-    result[market] = projectMarket({
-      market,
-      last3Average: input.last3Average,
-      last10Average: input.last10Average,
-      seasonAverage: input.seasonAverage,
-      homeAwayAverage: input.homeAwayAverage,
-      opponentAllowance: input.opponentAllowance,
-      opponentAllowanceDelta: input.opponentAllowanceDelta,
-      minutesTrend: input.minutesTrend,
-      minutesLast10Avg: input.minutesLast10Avg,
-    });
-  });
-  return result;
+function arraysByMarket(logs: HistoryLog[]): Record<SnapshotMarket, number[]> {
+  return {
+    PTS: logs.map((log) => log.metrics.PTS ?? 0),
+    REB: logs.map((log) => log.metrics.REB ?? 0),
+    AST: logs.map((log) => log.metrics.AST ?? 0),
+    THREES: logs.map((log) => log.metrics.THREES ?? 0),
+    PRA: logs.map((log) => log.metrics.PRA ?? 0),
+    PA: logs.map((log) => log.metrics.PA ?? 0),
+    PR: logs.map((log) => log.metrics.PR ?? 0),
+    RA: logs.map((log) => log.metrics.RA ?? 0),
+  };
 }
 
 function createMarketStats(): Record<SnapshotMarket, MarketErrorStats> {
@@ -366,6 +310,7 @@ async function main(): Promise<void> {
       const last10Average = averagesByMarket(last10);
       const last3Average = averagesByMarket(last3);
       const homeAwayAverage = averagesByMarket(homeAway);
+      const last10ByMarket = arraysByMarket(last10);
 
       const opponentAllowance = averageFromAgg(
         log.opponentTeamId ? (opponentAggByTeamId.get(log.opponentTeamId) ?? null) : null,
@@ -375,18 +320,18 @@ async function main(): Promise<void> {
 
       const minutesLast10Avg = average(last10.map((item) => item.minutes));
       const minutesLast3Avg = average(last3.map((item) => item.minutes));
-      const minutesTrend =
-        minutesLast10Avg == null || minutesLast3Avg == null ? null : round(minutesLast3Avg - minutesLast10Avg, 2);
-
-      const projected = projectedTonightFrom({
+      const projected = projectTonightMetrics({
         last3Average,
         last10Average,
         seasonAverage,
         homeAwayAverage,
         opponentAllowance,
         opponentAllowanceDelta,
-        minutesTrend,
+        last10ByMarket,
+        sampleSize: history.length,
+        minutesLast3Avg,
         minutesLast10Avg,
+        minutesHomeAwayAvg: average(homeAway.map((item) => item.minutes)),
       });
       const actual = metricsFromBase(
         toStat(log.points),
@@ -462,7 +407,7 @@ async function main(): Promise<void> {
   );
 
   const result = {
-    model: "snapshot_projection_v1_numeric_only",
+    model: "snapshot_projection_v2_numeric_only",
     season: args.season,
     from: args.from,
     to: args.to,

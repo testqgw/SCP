@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SNAPSHOT_MARKETS, projectTonightMetrics } from "@/lib/snapshot/projection";
 import { formatUtcToEt } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -94,7 +95,7 @@ type PlayerProfile = {
   positionTokens: Set<PositionToken>;
 };
 
-const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
+const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
 
 function blankMetricRecord(): SnapshotMetricRecord {
   return {
@@ -776,77 +777,6 @@ function trendFrom(last3: SnapshotMetricRecord, season: SnapshotMetricRecord): S
   return result;
 }
 
-function weightedBlend(parts: Array<{ value: number | null; weight: number }>): number | null {
-  let weightedTotal = 0;
-  let totalWeight = 0;
-  parts.forEach((part) => {
-    if (part.value == null || !Number.isFinite(part.value) || part.weight <= 0) return;
-    weightedTotal += part.value * part.weight;
-    totalWeight += part.weight;
-  });
-  if (totalWeight <= 0) return null;
-  return round(weightedTotal / totalWeight, 2);
-}
-
-function projectMarket(input: {
-  market: SnapshotMarket;
-  last3Average: SnapshotMetricRecord;
-  last10Average: SnapshotMetricRecord;
-  seasonAverage: SnapshotMetricRecord;
-  homeAwayAverage: SnapshotMetricRecord;
-  opponentAllowance: SnapshotMetricRecord;
-  opponentAllowanceDelta: SnapshotMetricRecord;
-  minutesTrend: number | null;
-  minutesLast10Avg: number | null;
-}): number | null {
-  const baseline = weightedBlend([
-    { value: input.last10Average[input.market], weight: 0.38 },
-    { value: input.last3Average[input.market], weight: 0.27 },
-    { value: input.seasonAverage[input.market], weight: 0.2 },
-    { value: input.homeAwayAverage[input.market], weight: 0.08 },
-    { value: input.opponentAllowance[input.market], weight: 0.07 },
-  ]);
-  if (baseline == null) return null;
-
-  const perMinuteRate =
-    input.minutesLast10Avg == null || input.minutesLast10Avg <= 0 ? null : baseline / input.minutesLast10Avg;
-  const minutesAdjustment =
-    perMinuteRate == null || input.minutesTrend == null
-      ? 0
-      : Math.max(-2.5, Math.min(2.5, perMinuteRate * input.minutesTrend * 0.6));
-  const opponentDeltaRaw = input.opponentAllowanceDelta[input.market];
-  const opponentAdjustment =
-    opponentDeltaRaw == null ? 0 : Math.max(-3, Math.min(3, opponentDeltaRaw * 0.2));
-  return round(Math.max(0, baseline + minutesAdjustment + opponentAdjustment), 2);
-}
-
-function projectedTonightFrom(input: {
-  last3Average: SnapshotMetricRecord;
-  last10Average: SnapshotMetricRecord;
-  seasonAverage: SnapshotMetricRecord;
-  homeAwayAverage: SnapshotMetricRecord;
-  opponentAllowance: SnapshotMetricRecord;
-  opponentAllowanceDelta: SnapshotMetricRecord;
-  minutesTrend: number | null;
-  minutesLast10Avg: number | null;
-}): SnapshotMetricRecord {
-  const result = blankMetricRecord();
-  MARKETS.forEach((market) => {
-    result[market] = projectMarket({
-      market,
-      last3Average: input.last3Average,
-      last10Average: input.last10Average,
-      seasonAverage: input.seasonAverage,
-      homeAwayAverage: input.homeAwayAverage,
-      opponentAllowance: input.opponentAllowance,
-      opponentAllowanceDelta: input.opponentAllowanceDelta,
-      minutesTrend: input.minutesTrend,
-      minutesLast10Avg: input.minutesLast10Avg,
-    });
-  });
-  return result;
-}
-
 function createAllowanceAgg(): TeamAllowanceAgg {
   return {
     count: 0,
@@ -1439,15 +1369,18 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
-    const projectedTonight = projectedTonightFrom({
+    const projectedTonight = projectTonightMetrics({
       last3Average,
       last10Average,
       seasonAverage,
       homeAwayAverage,
       opponentAllowance,
       opponentAllowanceDelta,
-      minutesTrend: playerProfile?.minutesTrend ?? null,
+      last10ByMarket,
+      sampleSize: logsForPlayer.length,
+      minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
+      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
     });
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
