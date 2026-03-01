@@ -254,9 +254,9 @@ export function SnapshotDashboard({
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
-  const [compactDetail, setCompactDetail] = useState(false);
+  const [compactDetail, setCompactDetail] = useState(true);
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
-    defaultCollapsedSections(false),
+    defaultCollapsedSections(true),
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
@@ -277,6 +277,37 @@ export function SnapshotDashboard({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedPlayer]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousStyles = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflowY: body.style.overflowY,
+    };
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflowY = "scroll";
+
+    return () => {
+      body.style.position = previousStyles.position;
+      body.style.top = previousStyles.top;
+      body.style.left = previousStyles.left;
+      body.style.right = previousStyles.right;
+      body.style.width = previousStyles.width;
+      body.style.overflowY = previousStyles.overflowY;
+      window.scrollTo(0, scrollY);
+    };
   }, [selectedPlayer]);
 
   useEffect(() => {
