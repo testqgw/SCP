@@ -21,6 +21,34 @@ const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "RA", label: "RA" },
 ];
 
+type DetailSectionKey = "context" | "intel" | "markets" | "logs" | "summary" | "team";
+
+type DetailSectionMeta = {
+  key: DetailSectionKey;
+  id: string;
+  title: string;
+};
+
+const DETAIL_SECTIONS: DetailSectionMeta[] = [
+  { key: "context", id: "detail-context", title: "Player Context" },
+  { key: "intel", id: "detail-intel", title: "Game Intelligence" },
+  { key: "markets", id: "detail-markets", title: "All Markets Detail" },
+  { key: "logs", id: "detail-logs", title: "Last 10 Completed Games" },
+  { key: "summary", id: "detail-summary", title: "Quick Read" },
+  { key: "team", id: "detail-team", title: "Team Context" },
+];
+
+function defaultCollapsedSections(compact = false): Record<DetailSectionKey, boolean> {
+  return {
+    context: false,
+    intel: compact,
+    markets: false,
+    logs: compact,
+    summary: compact,
+    team: compact,
+  };
+}
+
 function formatStat(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
@@ -175,6 +203,43 @@ function completenessTierClass(tier: "HIGH" | "MEDIUM" | "LOW"): string {
   return "bg-rose-400/20 text-rose-200";
 }
 
+type CollapsibleSectionProps = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+};
+
+function CollapsibleSection({
+  id,
+  title,
+  subtitle,
+  collapsed,
+  onToggle,
+  children,
+}: CollapsibleSectionProps): React.ReactElement {
+  return (
+    <section id={id} className="mt-4 rounded-xl border border-slate-300/20 bg-[#0c1533]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left"
+      >
+        <div>
+          <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">{title}</h3>
+          {subtitle ? <p className="mt-0.5 text-[11px] text-slate-400">{subtitle}</p> : null}
+        </div>
+        <span className="rounded-md border border-slate-300/25 bg-[#101938] px-2 py-1 text-[10px] uppercase tracking-[0.12em] text-slate-200">
+          {collapsed ? "Expand" : "Collapse"}
+        </span>
+      </button>
+      {collapsed ? null : <div className="px-3 pb-3">{children}</div>}
+    </section>
+  );
+}
+
 export function SnapshotDashboard({
   data,
   initialMarket,
@@ -189,6 +254,10 @@ export function SnapshotDashboard({
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
+  const [compactDetail, setCompactDetail] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
+    defaultCollapsedSections(false),
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -198,6 +267,40 @@ export function SnapshotDashboard({
       setFocusedMarket(market);
     }
   }, [selectedPlayer, market]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setSelectedPlayer(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedPlayer]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    setCollapsedSections(defaultCollapsedSections(compactDetail));
+  }, [compactDetail, selectedPlayer]);
+
+  function closePlayerDetail(): void {
+    setSelectedPlayer(null);
+  }
+
+  function toggleSection(key: DetailSectionKey): void {
+    setCollapsedSections((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
+
+  function jumpToDetailSection(sectionId: string): void {
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   async function handleRefresh(): Promise<void> {
     if (isRefreshing) return;
@@ -577,27 +680,75 @@ export function SnapshotDashboard({
       </section>
 
       {selectedPlayer ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center">
-          <div className="glass max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl p-6">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="title-font text-2xl uppercase text-white">{selectedPlayer.playerName}</h2>
-                <p className="text-sm text-slate-300">
-                  {selectedPlayer.teamCode} vs {selectedPlayer.opponentCode} ({selectedPlayer.isHome ? "Home" : "Away"})
-                </p>
-                <p className="text-xs text-slate-400">{selectedPlayer.gameTimeEt}</p>
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closePlayerDetail();
+            }
+          }}
+        >
+          <div
+            className="glass max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="sticky top-0 z-20 border-b border-slate-300/20 bg-[#0b122a]/95 px-4 py-3 backdrop-blur sm:px-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="title-font text-2xl uppercase text-white">{selectedPlayer.playerName}</h2>
+                  <p className="text-sm text-slate-300">
+                    {selectedPlayer.teamCode} vs {selectedPlayer.opponentCode} ({selectedPlayer.isHome ? "Home" : "Away"})
+                  </p>
+                  <p className="text-xs text-slate-400">{selectedPlayer.gameTimeEt}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCompactDetail((current) => !current)}
+                    className="rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-100 hover:bg-cyan-500/25"
+                  >
+                    Compact: {compactDetail ? "On" : "Off"}
+                  </button>
+                  <select
+                    defaultValue=""
+                    onChange={(event) => {
+                      const targetId = event.target.value;
+                      if (targetId) {
+                        jumpToDetailSection(targetId);
+                        event.currentTarget.value = "";
+                      }
+                    }}
+                    className="rounded-lg border border-slate-300/30 bg-[#0d1630] px-2 py-1 text-xs text-slate-100 outline-none focus:border-cyan-300/60"
+                  >
+                    <option value="">Jump to section</option>
+                    {DETAIL_SECTIONS.map((section) => (
+                      <option key={section.key} value={section.id}>
+                        {section.title}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={closePlayerDetail}
+                    className="rounded-lg border border-slate-300/30 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800/40"
+                    title="Close details (Esc)"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setSelectedPlayer(null)}
-                className="rounded-lg border border-slate-300/30 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800/40"
-              >
-                Close
-              </button>
+              <p className="mt-2 text-[11px] text-slate-400">Tip: press Esc or click outside this panel to close.</p>
             </div>
 
-            <section className="mt-4">
-              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">Player Context</h3>
-              <div className="mt-2 grid gap-3 md:grid-cols-2">
+            <div className="px-4 py-4 sm:px-6">
+            <CollapsibleSection
+              id="detail-context"
+              title="Player Context"
+              subtitle="Role, starter status, data quality, defender, and teammate context."
+              collapsed={collapsedSections.context}
+              onToggle={() => toggleSection("context")}
+            >
+              <div className="grid gap-3 md:grid-cols-2">
                 <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
                   <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
                     <p className="inline-flex items-center gap-1">
@@ -771,15 +922,15 @@ export function SnapshotDashboard({
                   )}
                 </article>
               </div>
-            </section>
+            </CollapsibleSection>
 
-            <section className="mt-5">
-              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">
-                Game Intelligence ({selectedPlayer.gameIntel.modules.length} Modules)
-              </h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Full game context stack: live signals + derived models + pending feed connectors.
-              </p>
+            <CollapsibleSection
+              id="detail-intel"
+              title={`Game Intelligence (${selectedPlayer.gameIntel.modules.length} Modules)`}
+              subtitle="Full game context stack: live signals + derived models + pending feed connectors."
+              collapsed={collapsedSections.intel}
+              onToggle={() => toggleSection("intel")}
+            >
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {selectedPlayer.gameIntel.modules.map((module) => (
                   <article key={module.id} className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
@@ -800,13 +951,15 @@ export function SnapshotDashboard({
                   </article>
                 ))}
               </div>
-            </section>
+            </CollapsibleSection>
 
-            <section className="mt-5">
-              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">All Markets Detail</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Click any market card to open a full breakdown against your typed line.
-              </p>
+            <CollapsibleSection
+              id="detail-markets"
+              title="All Markets Detail"
+              subtitle="Click any market card to open a full breakdown against your typed line."
+              collapsed={collapsedSections.markets}
+              onToggle={() => toggleSection("markets")}
+            >
               <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {MARKET_OPTIONS.map((option) => {
                   const m = option.value;
@@ -1159,10 +1312,14 @@ export function SnapshotDashboard({
                   </article>
                 );
               })()}
-            </section>
+            </CollapsibleSection>
 
-            <section className="mt-5">
-              <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-200">Last 10 Completed Games</h3>
+            <CollapsibleSection
+              id="detail-logs"
+              title="Last 10 Completed Games"
+              collapsed={collapsedSections.logs}
+              onToggle={() => toggleSection("logs")}
+            >
               {selectedPlayer.recentLogs.length === 0 ? (
                 <p className="mt-3 text-sm text-slate-300">No completed-game logs available yet.</p>
               ) : (
@@ -1217,9 +1374,15 @@ export function SnapshotDashboard({
                   </table>
                 </div>
               )}
-            </section>
+            </CollapsibleSection>
 
-            <section className="mt-4 text-xs text-slate-300">
+            <CollapsibleSection
+              id="detail-summary"
+              title="Quick Read"
+              collapsed={collapsedSections.summary}
+              onToggle={() => toggleSection("summary")}
+            >
+              <section className="text-xs text-slate-300">
               <p>
                 Quick read ({market}): L5 avg {formatAverage(average(selectedPlayer.last5[market]))} | L10 avg{" "}
                 {formatAverage(selectedPlayer.last10Average[market])} | Projection {formatAverage(selectedPlayer.projectedTonight[market])} | Trend{" "}
@@ -1227,9 +1390,16 @@ export function SnapshotDashboard({
                 {formatAverage(selectedPlayer.opponentAllowanceDelta[market], true)}
               </p>
             </section>
+            </CollapsibleSection>
 
             {matchupStatsByKey.has(selectedPlayer.matchupKey) ? (
-              <section className="mt-4 rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
+              <CollapsibleSection
+                id="detail-team"
+                title="Team Context"
+                collapsed={collapsedSections.team}
+                onToggle={() => toggleSection("team")}
+              >
+              <section className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
                 {(() => {
                   const item = matchupStatsByKey.get(selectedPlayer.matchupKey)!;
                   const teamIsAway = selectedPlayer.teamCode === item.awayTeam;
@@ -1243,7 +1413,9 @@ export function SnapshotDashboard({
                   );
                 })()}
               </section>
+              </CollapsibleSection>
             ) : null}
+            </div>
           </div>
         </div>
       ) : null}
