@@ -5,7 +5,6 @@ import type {
   SnapshotDataCompleteness,
   SnapshotGameIntel,
   SnapshotIntelItem,
-  SnapshotLean,
   SnapshotIntelModule,
   SnapshotMarket,
   SnapshotMatchupOption,
@@ -848,41 +847,6 @@ function projectedTonightFrom(input: {
   return result;
 }
 
-function leanVsSeasonFrom(
-  projectedTonight: SnapshotMetricRecord,
-  seasonAverage: SnapshotMetricRecord,
-  last10ByMarket: Record<SnapshotMarket, number[]>,
-): Record<SnapshotMarket, SnapshotLean> {
-  const result: Record<SnapshotMarket, SnapshotLean> = {
-    PTS: "NEUTRAL",
-    REB: "NEUTRAL",
-    AST: "NEUTRAL",
-    THREES: "NEUTRAL",
-    PRA: "NEUTRAL",
-    PA: "NEUTRAL",
-    PR: "NEUTRAL",
-    RA: "NEUTRAL",
-  };
-
-  MARKETS.forEach((market) => {
-    const projected = projectedTonight[market];
-    const season = seasonAverage[market];
-    if (projected == null || season == null) return;
-    const volatility = standardDeviation(last10ByMarket[market]) ?? 0;
-    const threshold = Math.max(0.75, volatility * 0.25);
-    const diff = projected - season;
-    if (diff >= threshold) {
-      result[market] = "OVER";
-    } else if (diff <= -threshold) {
-      result[market] = "UNDER";
-    } else {
-      result[market] = "NEUTRAL";
-    }
-  });
-
-  return result;
-}
-
 function createAllowanceAgg(): TeamAllowanceAgg {
   return {
     count: 0,
@@ -1485,7 +1449,6 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       minutesTrend: playerProfile?.minutesTrend ?? null,
       minutesLast10Avg,
     });
-    const projectionLeanVsSeason = leanVsSeasonFrom(projectedTonight, seasonAverage, last10ByMarket);
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
       statusLast10,
@@ -1516,7 +1479,6 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         opponentAllowance,
         opponentAllowanceDelta,
         projectedTonight,
-        projectionLeanVsSeason,
         recentLogs: last10Logs,
         dataCompleteness,
         playerContext: {
