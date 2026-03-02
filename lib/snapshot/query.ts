@@ -6,7 +6,7 @@ import {
   type RotowireLineupSnapshot,
   type RotowireTeamLineup,
 } from "@/lib/lineups/rotowire";
-import { SNAPSHOT_MARKETS, projectTonightMetrics } from "@/lib/snapshot/projection";
+import { SNAPSHOT_MARKETS, projectMinutesProfile, projectTonightMetrics } from "@/lib/snapshot/projection";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -1203,6 +1203,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       minutes: { gt: 0 },
     },
     include: {
+      team: { select: { abbreviation: true } },
       opponentTeam: { select: { abbreviation: true } },
     },
     orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
@@ -1229,12 +1230,13 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   const logsByPlayerId = new Map<string, SnapshotStatLog[]>();
   for (const log of logs) {
     const existing = logsByPlayerId.get(log.playerId) ?? [];
-    if (existing.length >= 80) {
+    if (existing.length >= 140) {
       continue;
     }
 
     existing.push({
       gameDateEt: log.gameDateEt,
+      teamCode: log.team?.abbreviation ?? null,
       opponent: log.opponentTeam?.abbreviation ?? null,
       isHome: log.isHome,
       starter: log.starter,
@@ -1421,6 +1423,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const last5Logs = logsForPlayer.slice(0, 5);
     const last10Logs = logsForPlayer.slice(0, 10);
     const last3Logs = logsForPlayer.slice(0, 3);
+    const sameTeamLogs = logsForPlayer.filter((log) => log.teamCode === matchup.teamCode);
+    const minutesCurrentTeamLast5Avg = average(sameTeamLogs.slice(0, 5).map((log) => log.minutes));
     const homeAwayLogs = logsForPlayer.filter((log) => log.isHome === matchup.isHome);
 
     const seasonAverage = averagesByMarket(logsForPlayer);
@@ -1475,6 +1479,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
     const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
+    const minutesProfile = projectMinutesProfile({
+      minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
+      minutesLast10Avg,
+      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+    });
     const projectedTonight = projectTonightMetrics({
       last3Average,
       last10Average,
@@ -1487,6 +1500,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
       minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
     });
@@ -1521,6 +1536,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         opponentAllowanceDelta,
         projectedTonight,
         recentLogs: last10Logs,
+        analysisLogs: logsForPlayer,
         dataCompleteness,
         playerContext: {
           archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
@@ -1539,8 +1555,13 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           rotationRank,
           minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
           minutesLast10Avg,
+          minutesCurrentTeamAvg: minutesCurrentTeamLast5Avg,
+          minutesCurrentTeamGames: sameTeamLogs.length,
           minutesTrend: playerProfile?.minutesTrend ?? null,
           minutesVolatility: playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes)),
+          projectedMinutes: minutesProfile.expected,
+          projectedMinutesFloor: minutesProfile.floor,
+          projectedMinutesCeiling: minutesProfile.ceiling,
           primaryDefender,
           teammateCore,
         },

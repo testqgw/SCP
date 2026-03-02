@@ -2,6 +2,7 @@ export type SnapshotMarket = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "
 
 export type SnapshotStatLog = {
   gameDateEt: string;
+  teamCode: string | null;
   opponent: string | null;
   isHome: boolean | null;
   starter: boolean | null;
@@ -79,8 +80,13 @@ export type SnapshotPlayerContext = {
   rotationRank: number | null;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
+  minutesCurrentTeamAvg: number | null;
+  minutesCurrentTeamGames: number;
   minutesTrend: number | null;
   minutesVolatility: number | null;
+  projectedMinutes: number | null;
+  projectedMinutesFloor: number | null;
+  projectedMinutesCeiling: number | null;
   primaryDefender: SnapshotPrimaryDefender | null;
   teammateCore: SnapshotTeammateCore[];
 };
@@ -105,6 +111,7 @@ export type SnapshotRow = {
   opponentAllowanceDelta: SnapshotMetricRecord;
   projectedTonight: SnapshotMetricRecord;
   recentLogs: SnapshotStatLog[];
+  analysisLogs: SnapshotStatLog[];
   dataCompleteness: SnapshotDataCompleteness;
   playerContext: SnapshotPlayerContext;
   gameIntel: SnapshotGameIntel;

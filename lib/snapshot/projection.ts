@@ -99,6 +99,8 @@ type ProjectMarketInput = {
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesHomeAwayAvg: number | null;
+  minutesCurrentTeamLast5Avg: number | null;
+  minutesCurrentTeamGames: number;
   lineupStarter: boolean | null;
   starterRateLast10: number | null;
 };
@@ -115,8 +117,26 @@ export type ProjectTonightInput = {
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesHomeAwayAvg: number | null;
+  minutesCurrentTeamLast5Avg: number | null;
+  minutesCurrentTeamGames: number;
   lineupStarter: boolean | null;
   starterRateLast10: number | null;
+};
+
+export type MinutesProjectionInput = {
+  minutesLast3Avg: number | null;
+  minutesLast10Avg: number | null;
+  minutesHomeAwayAvg: number | null;
+  minutesCurrentTeamLast5Avg: number | null;
+  minutesCurrentTeamGames: number;
+  lineupStarter: boolean | null;
+  starterRateLast10: number | null;
+};
+
+export type MinutesProjectionProfile = {
+  expected: number | null;
+  floor: number | null;
+  ceiling: number | null;
 };
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -162,6 +182,55 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function lineupMinutesDelta(lineupStarter: boolean | null, starterRateLast10: number | null): number {
+  if (lineupStarter == null) {
+    return 0;
+  }
+  if (lineupStarter) {
+    return clamp((1 - (starterRateLast10 ?? 0.5)) * 2.4 + 0.35, 0.7, 2.8);
+  }
+  return -clamp((starterRateLast10 ?? 0.5) * 2.2 + 0.35, 0.7, 2.8);
+}
+
+export function projectMinutesProfile(input: MinutesProjectionInput): MinutesProjectionProfile {
+  const baseline = weightedBlend([
+    { value: input.minutesLast3Avg, weight: 0.52 },
+    { value: input.minutesLast10Avg, weight: 0.38 },
+    { value: input.minutesHomeAwayAvg, weight: 0.1 },
+  ]);
+
+  let roleAdjusted = baseline;
+  if (baseline != null && input.minutesCurrentTeamLast5Avg != null && input.minutesCurrentTeamGames >= 2) {
+    const teamWeight = clamp(0.22 + input.minutesCurrentTeamGames * 0.09, 0.28, 0.78);
+    roleAdjusted =
+      weightedBlend([
+        { value: baseline, weight: 1 - teamWeight },
+        { value: input.minutesCurrentTeamLast5Avg, weight: teamWeight },
+      ]) ?? baseline;
+  }
+
+  const withLineup =
+    roleAdjusted == null
+      ? null
+      : round(Math.max(0, roleAdjusted + lineupMinutesDelta(input.lineupStarter, input.starterRateLast10)), 2);
+
+  const referenceValues = [
+    input.minutesLast3Avg,
+    input.minutesLast10Avg,
+    input.minutesHomeAwayAvg,
+    input.minutesCurrentTeamLast5Avg,
+  ].filter((value): value is number => value != null && Number.isFinite(value));
+  const spread = standardDeviation(referenceValues) ?? 2.4;
+  const floorBuffer = clamp(spread * 1.15 + 1.1, 2.2, 8.2);
+  const ceilingBuffer = clamp(spread * 1.2 + 1.7, 2.8, 9.4);
+
+  return {
+    expected: withLineup,
+    floor: withLineup == null ? null : round(Math.max(0, withLineup - floorBuffer), 2),
+    ceiling: withLineup == null ? null : round(withLineup + ceilingBuffer, 2),
+  };
+}
+
 function ewmaRecentFirst(valuesRecentFirst: number[], alpha: number): number | null {
   if (valuesRecentFirst.length === 0) return null;
   const ordered = valuesRecentFirst.slice().reverse();
@@ -190,23 +259,17 @@ function projectMarket(input: ProjectMarketInput): number | null {
   const volatilityDenom = Math.max(1, Math.abs(input.last10Average ?? seasonAnchor) + 1.5);
   const volatilityShrink = clamp(1 - (last10Volatility / volatilityDenom) * 0.34, 0.56, 0.98);
 
-  const projectedMinutes = weightedBlend([
-    { value: input.minutesLast3Avg, weight: 0.52 },
-    { value: input.minutesLast10Avg, weight: 0.38 },
-    { value: input.minutesHomeAwayAvg, weight: 0.1 },
-  ]);
-  const lineupMinuteDelta =
-    input.lineupStarter == null
-      ? 0
-      : input.lineupStarter
-        ? clamp((1 - (input.starterRateLast10 ?? 0.5)) * 2.4 + 0.35, 0.7, 2.8)
-        : -clamp((input.starterRateLast10 ?? 0.5) * 2.2 + 0.35, 0.7, 2.8);
-  const projectedMinutesWithLineup =
-    projectedMinutes == null ? null : round(projectedMinutes + lineupMinuteDelta, 2);
+  const minutesProfile = projectMinutesProfile({
+    minutesLast3Avg: input.minutesLast3Avg,
+    minutesLast10Avg: input.minutesLast10Avg,
+    minutesHomeAwayAvg: input.minutesHomeAwayAvg,
+    minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
+    minutesCurrentTeamGames: input.minutesCurrentTeamGames,
+    lineupStarter: input.lineupStarter,
+    starterRateLast10: input.starterRateLast10,
+  });
   const minuteDelta =
-    projectedMinutesWithLineup == null || input.minutesLast10Avg == null
-      ? 0
-      : projectedMinutesWithLineup - input.minutesLast10Avg;
+    minutesProfile.expected == null || input.minutesLast10Avg == null ? 0 : minutesProfile.expected - input.minutesLast10Avg;
   const perMinuteRate =
     input.minutesLast10Avg == null || input.minutesLast10Avg <= 0
       ? null
@@ -254,6 +317,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
       minutesLast3Avg: input.minutesLast3Avg,
       minutesLast10Avg: input.minutesLast10Avg,
       minutesHomeAwayAvg: input.minutesHomeAwayAvg,
+      minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: input.minutesCurrentTeamGames,
       lineupStarter: input.lineupStarter,
       starterRateLast10: input.starterRateLast10,
     });

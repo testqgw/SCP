@@ -87,6 +87,17 @@ function lineKey(playerId: string, market: SnapshotMarket): string {
   return `${playerId}:${market}`;
 }
 
+function minuteFloorKey(playerId: string, market: SnapshotMarket): string {
+  return `${playerId}:${market}:minutes-floor`;
+}
+
+function parseMinutesFloor(value: string): number | null {
+  const parsed = parseLine(value);
+  if (parsed == null) return null;
+  const clamped = Math.min(48, Math.max(0, parsed));
+  return Math.round(clamped * 10) / 10;
+}
+
 function edge(offense: number | null, defenseAllowed: number | null): number | null {
   if (offense == null || defenseAllowed == null) return null;
   return offense - defenseAllowed;
@@ -158,6 +169,17 @@ function consistencyPct(values: number[]): number | null {
 function formatPercentValue(value: number | null): string {
   if (value == null) return "-";
   return `${value.toFixed(0)}%`;
+}
+
+function percentile(values: number[], p: number): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = (sorted.length - 1) * p;
+  const low = Math.floor(index);
+  const high = Math.ceil(index);
+  if (low === high) return sorted[low];
+  const weight = index - low;
+  return sorted[low] * (1 - weight) + sorted[high] * weight;
 }
 
 type InfoTipProps = {
@@ -252,6 +274,7 @@ export function SnapshotDashboard({
   const [market, setMarket] = useState<SnapshotMarket>(initialMarket);
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
+  const [minutesFloorMap, setMinutesFloorMap] = useState<Record<string, string>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
@@ -664,7 +687,18 @@ export function SnapshotDashboard({
                           </span>
                         </td>
                         <td className="px-4 py-3 text-xs">
-                          {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
+                          <div>
+                            {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
+                          </div>
+                          <div className="text-slate-400">
+                            Proj{" "}
+                            {row.playerContext.projectedMinutesFloor == null ||
+                            row.playerContext.projectedMinutesCeiling == null
+                              ? formatAverage(row.playerContext.projectedMinutes)
+                              : `${formatAverage(row.playerContext.projectedMinutes)} (${formatAverage(
+                                  row.playerContext.projectedMinutesFloor,
+                                )}-${formatAverage(row.playerContext.projectedMinutesCeiling)})`}
+                          </div>
                         </td>
                         <td className="px-4 py-3">{formatAverage(row.playerContext.minutesTrend, true)}</td>
                         <td className="px-4 py-3 text-xs">
@@ -874,6 +908,36 @@ export function SnapshotDashboard({
                     <p className="text-right">
                       {formatAverage(selectedPlayer.playerContext.minutesLast3Avg)} /{" "}
                       {formatAverage(selectedPlayer.playerContext.minutesLast10Avg)}
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Current Team Min
+                      <InfoTip
+                        label="Current Team Min"
+                        definition="Average minutes in games played for current team (last up to 5 current-team games)."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {formatAverage(selectedPlayer.playerContext.minutesCurrentTeamAvg)} (
+                      {selectedPlayer.playerContext.minutesCurrentTeamGames} g)
+                    </p>
+
+                    <p className="inline-flex items-center gap-1">
+                      Projected Minutes Band
+                      <InfoTip
+                        label="Projected Minutes Band"
+                        definition="Expected playing time with a floor/ceiling range used to sanity-check role-based projections."
+                      />
+                    </p>
+                    <p className="text-right">
+                      {selectedPlayer.playerContext.projectedMinutes == null
+                        ? "-"
+                        : selectedPlayer.playerContext.projectedMinutesFloor == null ||
+                            selectedPlayer.playerContext.projectedMinutesCeiling == null
+                          ? formatAverage(selectedPlayer.playerContext.projectedMinutes)
+                          : `${formatAverage(selectedPlayer.playerContext.projectedMinutes)} (${formatAverage(
+                              selectedPlayer.playerContext.projectedMinutesFloor,
+                            )}-${formatAverage(selectedPlayer.playerContext.projectedMinutesCeiling)})`}
                     </p>
 
                     <p className="inline-flex items-center gap-1">
@@ -1145,6 +1209,24 @@ export function SnapshotDashboard({
                 const oneSdBandHigh = selectedLine == null || l10StdDev == null ? null : selectedLine + l10StdDev;
                 const projectionValue = selectedPlayer.projectedTonight[m];
                 const projectionVsLine = selectedLine == null || projectionValue == null ? null : projectionValue - selectedLine;
+                const minutesKey = minuteFloorKey(selectedPlayer.playerId, m);
+                const projectedFloorDefault =
+                  selectedPlayer.playerContext.projectedMinutesFloor == null
+                    ? 22
+                    : Math.max(0, Math.floor(selectedPlayer.playerContext.projectedMinutesFloor));
+                const minutesFloor = parseMinutesFloor(minutesFloorMap[minutesKey] ?? "") ?? projectedFloorDefault;
+                const analysisLogs = selectedPlayer.analysisLogs.length > 0 ? selectedPlayer.analysisLogs : selectedPlayer.recentLogs;
+                const minuteFilteredLogs = analysisLogs.filter((log) => log.minutes >= minutesFloor);
+                const minuteFilteredValues = minuteFilteredLogs.map((log) => marketValueFromLog(log, m));
+                const minuteFilteredHit = selectedLine == null ? null : hitCounts(minuteFilteredValues, selectedLine);
+                const minuteFilteredAvg = average(minuteFilteredValues);
+                const minuteFilteredMedian = median(minuteFilteredValues);
+                const minuteFilteredP25 = percentile(minuteFilteredValues, 0.25);
+                const minuteFilteredP75 = percentile(minuteFilteredValues, 0.75);
+                const analysisWindowLabel =
+                  analysisLogs.length === 0
+                    ? "-"
+                    : `${analysisLogs[analysisLogs.length - 1]?.gameDateEt ?? "-"} to ${analysisLogs[0]?.gameDateEt ?? "-"}`;
 
                 return (
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
@@ -1170,6 +1252,74 @@ export function SnapshotDashboard({
                             className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
                         </label>
+
+                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-cyan-100">
+                              Minutes Scenario
+                              <InfoTip
+                                label="Minutes Scenario"
+                                definition="Filters game history by minimum minutes played so you can test role-based assumptions like 22+ minutes."
+                              />
+                            </p>
+                            <p className="text-[10px] text-slate-400">Window: {analysisWindowLabel}</p>
+                          </div>
+                          <label className="mt-2 block text-[10px] uppercase tracking-[0.1em] text-slate-400">
+                            Min minutes (&gt;=)
+                            <input
+                              value={minutesFloorMap[minutesKey] ?? ""}
+                              onChange={(event) =>
+                                setMinutesFloorMap((current) => ({
+                                  ...current,
+                                  [minutesKey]: event.target.value,
+                                }))
+                              }
+                              inputMode="decimal"
+                              placeholder={String(projectedFloorDefault)}
+                              className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#101938] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                            />
+                          </label>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {[20, 22, 24, 26, 28].map((value) => (
+                              <button
+                                key={`${m}-minutes-${value}`}
+                                type="button"
+                                onClick={() =>
+                                  setMinutesFloorMap((current) => ({
+                                    ...current,
+                                    [minutesKey]: String(value),
+                                  }))
+                                }
+                                className={`rounded px-2 py-0.5 text-[10px] ${
+                                  minutesFloor === value
+                                    ? "border border-cyan-300/70 bg-cyan-400/20 text-cyan-100"
+                                    : "border border-slate-400/30 bg-[#101938] text-slate-300"
+                                }`}
+                              >
+                                {value}+
+                              </button>
+                            ))}
+                          </div>
+                          <div className="mt-2 space-y-1 text-[11px]">
+                            <p>
+                              Sample: {minuteFilteredValues.length}/{analysisLogs.length} games | Avg:{" "}
+                              {formatAverage(minuteFilteredAvg)} | Med: {formatAverage(minuteFilteredMedian)}
+                            </p>
+                            <p>
+                              IQR: {formatAverage(minuteFilteredP25)} to {formatAverage(minuteFilteredP75)}
+                            </p>
+                            {selectedLine == null || !minuteFilteredHit ? (
+                              <p className="text-slate-400">Set a line to get minute-filtered O/U hit rate.</p>
+                            ) : (
+                              <p className="text-cyan-100">
+                                Vs {formatStat(selectedLine)} at {formatStat(minutesFloor)}+ min: OVER {minuteFilteredHit.over}/
+                                {minuteFilteredValues.length} ({formatPercent(minuteFilteredHit.over, minuteFilteredValues.length)}) |
+                                UNDER {minuteFilteredHit.under}/{minuteFilteredValues.length} (
+                                {formatPercent(minuteFilteredHit.under, minuteFilteredValues.length)}) | PUSH {minuteFilteredHit.push}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
                         <div className="mt-3 space-y-1 text-xs text-slate-300">
                           <p className="flex items-center justify-between">
@@ -1274,6 +1424,10 @@ export function SnapshotDashboard({
                             <p>L10 Avg vs line: {formatAverage(l10VsLine, true)}</p>
                             <p>Season Avg vs line: {formatAverage(seasonVsLine, true)}</p>
                             <p>Projection vs line: {formatAverage(projectionVsLine, true)}</p>
+                            <p>
+                              {formatStat(minutesFloor)}+ min sample: {minuteFilteredHit?.over ?? 0}/{minuteFilteredValues.length} OVER (
+                              {formatPercent(minuteFilteredHit?.over ?? 0, minuteFilteredValues.length)})
+                            </p>
                             <p>
                               1 SD line band:{" "}
                               {oneSdBandLow == null || oneSdBandHigh == null

@@ -332,6 +332,8 @@ async function main(): Promise<void> {
         minutesLast3Avg,
         minutesLast10Avg,
         minutesHomeAwayAvg: average(homeAway.map((item) => item.minutes)),
+        minutesCurrentTeamLast5Avg: average(last10.slice(0, 5).map((item) => item.minutes)),
+        minutesCurrentTeamGames: Math.min(last10.length, 10),
         lineupStarter: null,
         starterRateLast10: null,
       });
