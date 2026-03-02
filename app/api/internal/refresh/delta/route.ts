@@ -5,7 +5,7 @@ import { runRefresh } from "@/lib/snapshot/refresh";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+async function handle(request: NextRequest): Promise<NextResponse> {
   if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -17,4 +17,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const message = error instanceof Error ? error.message : "Refresh failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  return handle(request);
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  return handle(request);
 }

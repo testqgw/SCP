@@ -6,11 +6,7 @@
     },
     {
       "path": "/api/internal/refresh/delta",
-      "schedule": "0 20 * * *"
-    },
-    {
-      "path": "/api/internal/cleanup/lines",
-      "schedule": "0 8 * * *"
+      "schedule": "*/30 * * * *"
     }
   ]
 }
