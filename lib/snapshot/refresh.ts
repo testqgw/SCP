@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
+import { fetchRotowireLineups } from "@/lib/lineups/rotowire";
 import { etDateShift, getTodayEtDateString } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
 import { NbaDataClient } from "@/lib/nba/client";
@@ -18,6 +19,30 @@ type RefreshResult = {
     players: number;
   };
 };
+
+async function storeLineupsSnapshot(dateEt: string): Promise<{ teamCount: number; source: string }> {
+  const snapshot = await fetchRotowireLineups();
+  await prisma.systemSetting.upsert({
+    where: { key: "snapshot_lineups_today" },
+    update: {
+      value: {
+        dateEt,
+        ...snapshot,
+      },
+    },
+    create: {
+      key: "snapshot_lineups_today",
+      value: {
+        dateEt,
+        ...snapshot,
+      },
+    },
+  });
+  return {
+    teamCount: snapshot.teams.length,
+    source: snapshot.sourceUrl,
+  };
+}
 
 const QUALITY_GATE_ENABLED = process.env.SNAPSHOT_QUALITY_GATE_ENABLED !== "false";
 
@@ -405,6 +430,15 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
     const fetched = await fetchData(mode, dateEt);
     warnings.push(...fetched.warnings);
 
+    let lineupMeta: { teamCount: number; source: string } | null = null;
+    try {
+      lineupMeta = await storeLineupsSnapshot(dateEt);
+    } catch (error) {
+      warnings.push(
+        `Lineup feed unavailable: ${error instanceof Error ? error.message : "unknown lineup fetch error"}`,
+      );
+    }
+
     const teamMap = await upsertTeams(fetched.games, fetched.players, fetched.logs);
     const playerMap = await upsertPlayers(fetched.players, teamMap);
     await upsertGames(fetched.games, teamMap);
@@ -436,7 +470,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable,
         qualityIssues,
-        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
+        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, lineupMeta },
       },
     });
 
@@ -451,6 +485,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           isPublishable,
           qualityIssues,
           source: "nba_official",
+          lineupMeta,
         },
       },
       create: {
@@ -463,6 +498,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           isPublishable,
           qualityIssues,
           source: "nba_official",
+          lineupMeta,
         },
       },
     });
@@ -478,6 +514,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             status,
             qualityIssues,
             source: "nba_official",
+            lineupMeta,
           },
         },
         create: {
@@ -489,6 +526,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             status,
             qualityIssues,
             source: "nba_official",
+            lineupMeta,
           },
         },
       });

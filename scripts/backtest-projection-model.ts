@@ -332,6 +332,8 @@ async function main(): Promise<void> {
         minutesLast3Avg,
         minutesLast10Avg,
         minutesHomeAwayAvg: average(homeAway.map((item) => item.minutes)),
+        lineupStarter: null,
+        starterRateLast10: null,
       });
       const actual = metricsFromBase(
         toStat(log.points),

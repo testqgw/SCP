@@ -1,6 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import {
+  canonicalTeamCode,
+  normalizePlayerName,
+  type LineupStatus,
+  type RotowireLineupSnapshot,
+  type RotowireTeamLineup,
+} from "@/lib/lineups/rotowire";
 import { SNAPSHOT_MARKETS, projectTonightMetrics } from "@/lib/snapshot/projection";
-import { formatUtcToEt } from "@/lib/snapshot/time";
+import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
   SnapshotDataCompleteness,
@@ -95,6 +102,16 @@ type PlayerProfile = {
   positionTokens: Set<PositionToken>;
 };
 
+type LineupTeamSignal = {
+  status: LineupStatus;
+  starterNames: Set<string>;
+};
+
+type LineupPlayerSignal = {
+  lineupStarter: boolean | null;
+  status: LineupStatus;
+};
+
 const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -108,6 +125,84 @@ function blankMetricRecord(): SnapshotMetricRecord {
     PR: null,
     RA: null,
   };
+}
+
+function isLineupStatus(value: string): value is LineupStatus {
+  return value === "CONFIRMED" || value === "EXPECTED" || value === "UNKNOWN";
+}
+
+function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.dateEt === "string" && record.dateEt !== dateEt) return null;
+  if (!Array.isArray(record.teams)) return null;
+
+  const teams: RotowireTeamLineup[] = [];
+  record.teams.forEach((team) => {
+    if (!team || typeof team !== "object" || Array.isArray(team)) return;
+    const row = team as Record<string, unknown>;
+    const teamCode = typeof row.teamCode === "string" ? canonicalTeamCode(row.teamCode) : null;
+    if (!teamCode) return;
+    const status = typeof row.status === "string" && isLineupStatus(row.status) ? row.status : "UNKNOWN";
+    const starters = Array.isArray(row.starters)
+      ? row.starters
+          .filter((name): name is string => typeof name === "string")
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : [];
+    if (starters.length === 0) return;
+    teams.push({ teamCode, status, starters });
+  });
+
+  if (teams.length === 0) return null;
+
+  return {
+    source: "rotowire",
+    sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl : "",
+    fetchedAt: typeof record.fetchedAt === "string" ? record.fetchedAt : "",
+    pageDateLabel: typeof record.pageDateLabel === "string" ? record.pageDateLabel : null,
+    teams,
+  };
+}
+
+function buildLineupSignalMap(snapshot: RotowireLineupSnapshot | null): Map<string, LineupTeamSignal> {
+  const map = new Map<string, LineupTeamSignal>();
+  if (!snapshot) return map;
+
+  snapshot.teams.forEach((team) => {
+    const code = canonicalTeamCode(team.teamCode);
+    map.set(code, {
+      status: team.status,
+      starterNames: new Set(team.starters.map((name) => normalizePlayerName(name))),
+    });
+  });
+
+  return map;
+}
+
+function readLineupSignal(
+  lineupMap: Map<string, LineupTeamSignal>,
+  teamCode: string,
+  playerName: string,
+): LineupPlayerSignal | null {
+  const teamSignal = lineupMap.get(canonicalTeamCode(teamCode));
+  if (!teamSignal) return null;
+  const normalized = normalizePlayerName(playerName);
+  return {
+    lineupStarter: teamSignal.starterNames.has(normalized),
+    status: teamSignal.status,
+  };
+}
+
+function applyLineupStarterLabel(baseLabel: string, signal: LineupPlayerSignal | null): string {
+  if (!signal) return baseLabel;
+  if (signal.lineupStarter === true) {
+    return signal.status === "CONFIRMED" ? "Confirmed Starter (Lineup Feed)" : "Expected Starter (Lineup Feed)";
+  }
+  if (signal.lineupStarter === false) {
+    return signal.status === "CONFIRMED" ? "Confirmed Bench (Lineup Feed)" : "Projected Bench (Lineup Feed)";
+  }
+  return baseLabel;
 }
 
 type CompletenessInput = {
@@ -890,7 +985,8 @@ function teamSummaryFromGames(teamGames: TeamGameEnriched[]): TeamSummary {
 }
 
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
-  const [games, latestDataWrite] = await Promise.all([
+  const isTodayEt = dateEt === getTodayEtDateString();
+  const [games, latestDataWrite, lineupSetting] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
       include: {
@@ -902,7 +998,16 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     prisma.playerGameLog.aggregate({
       _max: { updatedAt: true },
     }),
+    isTodayEt
+      ? prisma.systemSetting.findUnique({
+          where: { key: "snapshot_lineups_today" },
+          select: { value: true },
+        })
+      : Promise.resolve(null),
   ]);
+
+  const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
+  const lineupMap = buildLineupSignalMap(lineupSnapshot);
 
   if (games.length === 0) {
     return {
@@ -1368,6 +1473,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const computedStarterRateLast10 =
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
+    const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
     const projectedTonight = projectTonightMetrics({
       last3Average,
@@ -1381,6 +1487,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
       minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
     });
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
@@ -1416,12 +1524,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         dataCompleteness,
         playerContext: {
           archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
-          projectedStarter: starterStatusLabel({
-            startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
-            starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
-            rotationRank,
-            minutesLast10Avg,
-          }),
+          projectedStarter: applyLineupStarterLabel(
+            starterStatusLabel({
+              startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
+              starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+              rotationRank,
+              minutesLast10Avg,
+            }),
+            lineupSignal,
+          ),
           startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
           startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
           starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,

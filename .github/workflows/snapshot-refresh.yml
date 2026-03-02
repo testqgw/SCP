@@ -1,0 +1,60 @@
+name: Snapshot Refresh
+
+on:
+  schedule:
+    - cron: "10 14 * * *"
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Refresh mode"
+        required: true
+        default: "DELTA"
+        type: choice
+        options:
+          - DELTA
+          - FULL
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve mode
+        id: mode
+        shell: bash
+        run: |
+          MODE="DELTA"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            MODE="${{ github.event.inputs.mode }}"
+          elif [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "10 14 * * *" ]]; then
+            MODE="FULL"
+          fi
+          echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
+
+      - name: Call refresh endpoint
+        shell: bash
+        env:
+          SNAPSHOT_BASE_URL: ${{ secrets.SNAPSHOT_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: |
+          if [[ -z "${SNAPSHOT_BASE_URL}" ]]; then
+            echo "Missing SNAPSHOT_BASE_URL secret"
+            exit 1
+          fi
+          if [[ -z "${CRON_SECRET}" ]]; then
+            echo "Missing CRON_SECRET secret"
+            exit 1
+          fi
+
+          BASE_URL="${SNAPSHOT_BASE_URL%/}"
+          PATH_SUFFIX="/api/internal/refresh/delta"
+          if [[ "${MODE}" == "FULL" ]]; then
+            PATH_SUFFIX="/api/internal/refresh/full"
+          fi
+
+          echo "Triggering ${MODE} refresh at ${BASE_URL}${PATH_SUFFIX}"
+          curl --fail --show-error --silent \
+            --request GET \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            "${BASE_URL}${PATH_SUFFIX}"

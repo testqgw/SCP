@@ -99,6 +99,8 @@ type ProjectMarketInput = {
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesHomeAwayAvg: number | null;
+  lineupStarter: boolean | null;
+  starterRateLast10: number | null;
 };
 
 export type ProjectTonightInput = {
@@ -113,6 +115,8 @@ export type ProjectTonightInput = {
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesHomeAwayAvg: number | null;
+  lineupStarter: boolean | null;
+  starterRateLast10: number | null;
 };
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -191,8 +195,18 @@ function projectMarket(input: ProjectMarketInput): number | null {
     { value: input.minutesLast10Avg, weight: 0.38 },
     { value: input.minutesHomeAwayAvg, weight: 0.1 },
   ]);
+  const lineupMinuteDelta =
+    input.lineupStarter == null
+      ? 0
+      : input.lineupStarter
+        ? clamp((1 - (input.starterRateLast10 ?? 0.5)) * 2.4 + 0.35, 0.7, 2.8)
+        : -clamp((input.starterRateLast10 ?? 0.5) * 2.2 + 0.35, 0.7, 2.8);
+  const projectedMinutesWithLineup =
+    projectedMinutes == null ? null : round(projectedMinutes + lineupMinuteDelta, 2);
   const minuteDelta =
-    projectedMinutes == null || input.minutesLast10Avg == null ? 0 : projectedMinutes - input.minutesLast10Avg;
+    projectedMinutesWithLineup == null || input.minutesLast10Avg == null
+      ? 0
+      : projectedMinutesWithLineup - input.minutesLast10Avg;
   const perMinuteRate =
     input.minutesLast10Avg == null || input.minutesLast10Avg <= 0
       ? null
@@ -240,6 +254,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
       minutesLast3Avg: input.minutesLast3Avg,
       minutesLast10Avg: input.minutesLast10Avg,
       minutesHomeAwayAvg: input.minutesHomeAwayAvg,
+      lineupStarter: input.lineupStarter,
+      starterRateLast10: input.starterRateLast10,
     });
   });
   return result;
