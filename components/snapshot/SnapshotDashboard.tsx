@@ -273,6 +273,8 @@ export function SnapshotDashboard({
   );
   const [market, setMarket] = useState<SnapshotMarket>(initialMarket);
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
+  const [playerSuggestOpen, setPlayerSuggestOpen] = useState(false);
+  const [playerSuggestIndex, setPlayerSuggestIndex] = useState(-1);
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [minutesFloorMap, setMinutesFloorMap] = useState<Record<string, string>>({});
   const [guideOpen, setGuideOpen] = useState(false);
@@ -401,6 +403,29 @@ export function SnapshotDashboard({
     });
   }, [data.rows, matchup, playerSearch]);
 
+  const playerSuggestionPool = useMemo(() => {
+    const rows = matchup ? data.rows.filter((row) => row.matchupKey === matchup) : data.rows;
+    const deduped = new Map<string, SnapshotRow>();
+    rows.forEach((row) => {
+      if (!deduped.has(row.playerId)) {
+        deduped.set(row.playerId, row);
+      }
+    });
+    return Array.from(deduped.values()).sort((a, b) => a.playerName.localeCompare(b.playerName));
+  }, [data.rows, matchup]);
+
+  const playerSuggestions = useMemo(() => {
+    const query = playerSearch.trim().toLowerCase();
+    if (!query) {
+      return playerSuggestionPool.slice(0, 10);
+    }
+    const starts = playerSuggestionPool.filter((row) => row.playerName.toLowerCase().startsWith(query));
+    const contains = playerSuggestionPool.filter(
+      (row) => row.playerName.toLowerCase().includes(query) && !row.playerName.toLowerCase().startsWith(query),
+    );
+    return [...starts, ...contains].slice(0, 10);
+  }, [playerSuggestionPool, playerSearch]);
+
   const filteredTeamMatchups = useMemo(() => {
     if (!matchup) return data.teamMatchups;
     return data.teamMatchups.filter((item) => item.matchupKey === matchup);
@@ -415,6 +440,22 @@ export function SnapshotDashboard({
     () => filteredRows.filter((row) => row.dataCompleteness.tier === "HIGH").length,
     [filteredRows],
   );
+
+  useEffect(() => {
+    if (playerSuggestions.length === 0) {
+      setPlayerSuggestIndex(-1);
+      return;
+    }
+    if (playerSuggestIndex >= playerSuggestions.length) {
+      setPlayerSuggestIndex(0);
+    }
+  }, [playerSuggestions, playerSuggestIndex]);
+
+  function applyPlayerSuggestion(row: SnapshotRow): void {
+    setPlayerSearch(row.playerName);
+    setPlayerSuggestOpen(false);
+    setPlayerSuggestIndex(-1);
+  }
 
   return (
     <main className="mx-auto max-w-[1750px] px-4 pb-8 pt-6 sm:px-6 lg:px-10">
@@ -524,12 +565,84 @@ export function SnapshotDashboard({
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_230px]">
           <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
             Player Search
-            <input
-              value={playerSearch}
-              onChange={(event) => setPlayerSearch(event.target.value)}
-              placeholder="Type player name..."
-              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
-            />
+            <div className="relative">
+              <input
+                value={playerSearch}
+                onFocus={() => {
+                  setPlayerSuggestOpen(true);
+                  setPlayerSuggestIndex(-1);
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setPlayerSuggestOpen(false);
+                    setPlayerSuggestIndex(-1);
+                  }, 120);
+                }}
+                onChange={(event) => {
+                  setPlayerSearch(event.target.value);
+                  setPlayerSuggestOpen(true);
+                  setPlayerSuggestIndex(-1);
+                }}
+                onKeyDown={(event) => {
+                  if (!playerSuggestOpen && event.key === "ArrowDown" && playerSuggestions.length > 0) {
+                    event.preventDefault();
+                    setPlayerSuggestOpen(true);
+                    setPlayerSuggestIndex(0);
+                    return;
+                  }
+                  if (!playerSuggestOpen) return;
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setPlayerSuggestIndex((current) => {
+                      const next = current + 1;
+                      return next >= playerSuggestions.length ? 0 : next;
+                    });
+                    return;
+                  }
+                  if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setPlayerSuggestIndex((current) => {
+                      if (current <= 0) return playerSuggestions.length - 1;
+                      return current - 1;
+                    });
+                    return;
+                  }
+                  if (event.key === "Enter" && playerSuggestIndex >= 0 && playerSuggestIndex < playerSuggestions.length) {
+                    event.preventDefault();
+                    applyPlayerSuggestion(playerSuggestions[playerSuggestIndex]);
+                    return;
+                  }
+                  if (event.key === "Escape") {
+                    setPlayerSuggestOpen(false);
+                    setPlayerSuggestIndex(-1);
+                  }
+                }}
+                placeholder="Type player name..."
+                className="w-full rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+              />
+              {playerSuggestOpen && playerSuggestions.length > 0 ? (
+                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-slate-300/25 bg-[#0a1630] shadow-[0_18px_45px_-20px_rgba(15,23,42,0.95)]">
+                  {playerSuggestions.map((row, index) => (
+                    <button
+                      key={`suggest-${row.playerId}`}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        applyPlayerSuggestion(row);
+                      }}
+                      className={`flex w-full items-center justify-between gap-2 border-b border-slate-300/10 px-3 py-2 text-left text-xs last:border-b-0 ${
+                        index === playerSuggestIndex ? "bg-amber-400/20 text-amber-100" : "text-slate-200 hover:bg-slate-700/30"
+                      }`}
+                    >
+                      <span className="font-medium">{row.playerName}</span>
+                      <span className="text-[11px] text-slate-400">
+                        {row.teamCode} vs {row.opponentCode}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </label>
           <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
             Badge Minutes Floor
