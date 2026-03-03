@@ -10,6 +10,8 @@
     "refresh:full": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts full",
     "refresh:delta": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts delta",
     "season:backfill": "tsx --env-file=.env.local --env-file=.env scripts/backfill-season-stats.ts",
+    "season:last3": "tsx --env-file=.env.local --env-file=.env scripts/backfill-last3-seasons-nbastats.ts",
+    "season:scrape3": "tsx --env-file=.env.local --env-file=.env scripts/backfill-three-season-scrape.ts",
     "season:export": "tsx --env-file=.env.local --env-file=.env scripts/export-season-stats.ts",
     "projection:backtest": "tsx --env-file=.env.local --env-file=.env scripts/backtest-projection-model.ts"
   },

@@ -1230,7 +1230,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   const logsByPlayerId = new Map<string, SnapshotStatLog[]>();
   for (const log of logs) {
     const existing = logsByPlayerId.get(log.playerId) ?? [];
-    if (existing.length >= 140) {
+    if (existing.length >= 280) {
       continue;
     }
 
