@@ -17,6 +17,8 @@ type MarketProjectionConfig = {
   minuteCap: number;
   opponentDeltaImpact: number;
   opponentCap: number;
+  trendImpact: number;
+  trendCap: number;
 };
 
 const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
@@ -27,6 +29,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 3.6,
     opponentDeltaImpact: 0.2,
     opponentCap: 2.8,
+    trendImpact: 0.24,
+    trendCap: 2.6,
   },
   REB: {
     alpha: 0.39,
@@ -35,6 +39,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 2.4,
     opponentDeltaImpact: 0.17,
     opponentCap: 1.8,
+    trendImpact: 0.2,
+    trendCap: 1.8,
   },
   AST: {
     alpha: 0.42,
@@ -43,6 +49,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 2.3,
     opponentDeltaImpact: 0.17,
     opponentCap: 1.9,
+    trendImpact: 0.21,
+    trendCap: 1.9,
   },
   THREES: {
     alpha: 0.5,
@@ -51,6 +59,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 1.4,
     opponentDeltaImpact: 0.12,
     opponentCap: 1.0,
+    trendImpact: 0.19,
+    trendCap: 1.1,
   },
   PRA: {
     alpha: 0.43,
@@ -59,6 +69,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 4.8,
     opponentDeltaImpact: 0.2,
     opponentCap: 3.4,
+    trendImpact: 0.24,
+    trendCap: 3.4,
   },
   PA: {
     alpha: 0.44,
@@ -67,6 +79,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 4.2,
     opponentDeltaImpact: 0.2,
     opponentCap: 3.0,
+    trendImpact: 0.24,
+    trendCap: 3.0,
   },
   PR: {
     alpha: 0.42,
@@ -75,6 +89,8 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 4.4,
     opponentDeltaImpact: 0.19,
     opponentCap: 3.1,
+    trendImpact: 0.23,
+    trendCap: 3.2,
   },
   RA: {
     alpha: 0.4,
@@ -83,8 +99,16 @@ const CONFIG_BY_MARKET: Record<SnapshotMarket, MarketProjectionConfig> = {
     minuteCap: 2.9,
     opponentDeltaImpact: 0.16,
     opponentCap: 2.0,
+    trendImpact: 0.2,
+    trendCap: 2.1,
   },
 };
+
+const PLAYER_SPECIFIC_MINUTES_THRESHOLD = (() => {
+  const parsed = Number(process.env.SNAPSHOT_PLAYER_SPECIFIC_MINUTES_MIN);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 15;
+  return clamp(Math.floor(parsed), 8, 24);
+})();
 
 type ProjectMarketInput = {
   market: SnapshotMarket;
@@ -96,8 +120,10 @@ type ProjectMarketInput = {
   opponentAllowanceDelta: number | null;
   last10Values: number[];
   sampleSize: number;
+  minutesProfile: MinutesProjectionProfile;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
+  minutesVolatility: number | null;
   minutesHomeAwayAvg: number | null;
   minutesCurrentTeamLast5Avg: number | null;
   minutesCurrentTeamGames: number;
@@ -116,6 +142,7 @@ export type ProjectTonightInput = {
   sampleSize: number;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
+  minutesVolatility: number | null;
   minutesHomeAwayAvg: number | null;
   minutesCurrentTeamLast5Avg: number | null;
   minutesCurrentTeamGames: number;
@@ -164,6 +191,16 @@ function standardDeviation(values: number[]): number | null {
   if (avg == null) return null;
   const variance = values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
   return round(Math.sqrt(variance), 2);
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return round((sorted[middle - 1] + sorted[middle]) / 2, 2);
+  }
+  return round(sorted[middle], 2);
 }
 
 function weightedBlend(parts: Array<{ value: number | null; weight: number }>): number | null {
@@ -258,22 +295,15 @@ function projectMarket(input: ProjectMarketInput): number | null {
   const last10Volatility = standardDeviation(input.last10Values) ?? 0;
   const volatilityDenom = Math.max(1, Math.abs(input.last10Average ?? seasonAnchor) + 1.5);
   const volatilityShrink = clamp(1 - (last10Volatility / volatilityDenom) * 0.34, 0.56, 0.98);
-
-  const minutesProfile = projectMinutesProfile({
-    minutesLast3Avg: input.minutesLast3Avg,
-    minutesLast10Avg: input.minutesLast10Avg,
-    minutesHomeAwayAvg: input.minutesHomeAwayAvg,
-    minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
-    minutesCurrentTeamGames: input.minutesCurrentTeamGames,
-    lineupStarter: input.lineupStarter,
-    starterRateLast10: input.starterRateLast10,
-  });
+  const minutesProfile = input.minutesProfile;
   const minuteDelta =
     minutesProfile.expected == null || input.minutesLast10Avg == null ? 0 : minutesProfile.expected - input.minutesLast10Avg;
+  const expectedMinutes = minutesProfile.expected ?? input.minutesLast10Avg ?? input.minutesLast3Avg ?? 0;
   const perMinuteRate =
     input.minutesLast10Avg == null || input.minutesLast10Avg <= 0
       ? null
       : (input.last10Average ?? seasonAnchor) / input.minutesLast10Avg;
+  const perMinuteProjection = perMinuteRate == null ? null : round(Math.max(0, perMinuteRate * expectedMinutes), 2);
   const minutesAdjustment =
     perMinuteRate == null
       ? 0
@@ -283,15 +313,84 @@ function projectMarket(input: ProjectMarketInput): number | null {
     -config.opponentCap,
     config.opponentCap,
   );
+  const trendDelta = (input.last3Average ?? input.last10Average ?? seasonAnchor) - (input.last10Average ?? seasonAnchor);
+  const trendAdjustment = clamp(trendDelta * config.trendImpact, -config.trendCap, config.trendCap);
+  const median10 = median(input.last10Values);
+  const relativeVolatility = clamp(last10Volatility / Math.max(1.2, Math.abs(input.last10Average ?? seasonAnchor)), 0, 2);
+  const minutesVolatilityRatio = clamp((input.minutesVolatility ?? 0) / Math.max(8, expectedMinutes || 8), 0, 1.8);
+  const minutesStability = clamp(1 - minutesVolatilityRatio * 0.55, 0.2, 1);
+  const sampleConfidence = clamp((input.sampleSize - 8) / 24, 0, 1);
+  const consistencyScore = clamp(1 - relativeVolatility * 0.5, 0.18, 1);
+  const playerSpecificTier = expectedMinutes >= PLAYER_SPECIFIC_MINUTES_THRESHOLD;
 
-  let projected = seasonAnchor + (base - seasonAnchor) * volatilityShrink + minutesAdjustment + opponentAdjustment;
-  if (input.sampleSize < 10) {
+  const globalProjection =
+    seasonAnchor + (base - seasonAnchor) * volatilityShrink + minutesAdjustment + opponentAdjustment + trendAdjustment;
+  let projected = globalProjection;
+
+  if (playerSpecificTier) {
+    // Personalized model for stable rotation players (>=15 mpg): trust player-specific rate + robust median.
+    const personalizedBlend = weightedBlend([
+      { value: globalProjection, weight: 0.36 },
+      { value: perMinuteProjection, weight: 0.26 },
+      { value: input.last10Average, weight: 0.2 },
+      { value: median10, weight: 0.11 },
+      { value: input.seasonAverage, weight: 0.07 },
+    ]);
+    projected = personalizedBlend ?? globalProjection;
+    const personalizedTrust = clamp(
+      0.3 + sampleConfidence * 0.34 + minutesStability * 0.2 + consistencyScore * 0.16,
+      0.3,
+      0.92,
+    );
+    projected =
+      weightedBlend([
+        { value: projected, weight: personalizedTrust },
+        { value: seasonAnchor, weight: 1 - personalizedTrust },
+      ]) ?? projected;
+  } else {
+    // Conservative fallback for low-minute players: stronger shrinkage and a bench-minute penalty.
+    const conservativeBlend = weightedBlend([
+      { value: input.seasonAverage, weight: 0.42 },
+      { value: input.last10Average, weight: 0.24 },
+      { value: median10, weight: 0.16 },
+      { value: perMinuteProjection, weight: 0.12 },
+      { value: globalProjection, weight: 0.06 },
+    ]);
+    projected = conservativeBlend ?? globalProjection;
+    const benchPenalty = clamp((PLAYER_SPECIFIC_MINUTES_THRESHOLD - expectedMinutes) * 0.22, 0, 3.0);
+    projected = projected - benchPenalty;
+    if (input.sampleSize < 18) {
+      projected =
+        weightedBlend([
+          { value: projected, weight: 0.58 },
+          { value: seasonAnchor, weight: 0.42 },
+        ]) ?? projected;
+    }
+    if (input.sampleSize < 8) {
+      projected =
+        weightedBlend([
+          { value: projected, weight: 0.4 },
+          { value: seasonAnchor, weight: 0.6 },
+        ]) ?? projected;
+    }
+    const upperCap = seasonAnchor + clamp((input.minutesLast10Avg ?? expectedMinutes) * 0.22, 1.5, config.minuteCap + 1.2);
+    projected = clamp(projected, 0, Math.max(upperCap, 0));
+  }
+
+  const outlierGuardWeight = clamp(relativeVolatility * 0.14 + minutesVolatilityRatio * 0.11, 0, 0.24);
+  projected =
+    weightedBlend([
+      { value: projected, weight: 1 - outlierGuardWeight },
+      { value: seasonAnchor, weight: outlierGuardWeight },
+    ]) ?? projected;
+
+  if (input.sampleSize < 10 && playerSpecificTier) {
     projected = weightedBlend([
       { value: projected, weight: 0.72 },
       { value: seasonAnchor, weight: 0.28 },
     ]) ?? projected;
   }
-  if (input.sampleSize < 6) {
+  if (input.sampleSize < 6 && playerSpecificTier) {
     projected = weightedBlend([
       { value: projected, weight: 0.58 },
       { value: seasonAnchor, weight: 0.42 },
@@ -302,6 +401,16 @@ function projectMarket(input: ProjectMarketInput): number | null {
 }
 
 export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetricRecord {
+  const minutesProfile = projectMinutesProfile({
+    minutesLast3Avg: input.minutesLast3Avg,
+    minutesLast10Avg: input.minutesLast10Avg,
+    minutesHomeAwayAvg: input.minutesHomeAwayAvg,
+    minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
+    minutesCurrentTeamGames: input.minutesCurrentTeamGames,
+    lineupStarter: input.lineupStarter,
+    starterRateLast10: input.starterRateLast10,
+  });
+
   const result = blankMetricRecord();
   SNAPSHOT_MARKETS.forEach((market) => {
     result[market] = projectMarket({
@@ -314,8 +423,10 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
       opponentAllowanceDelta: input.opponentAllowanceDelta[market],
       last10Values: input.last10ByMarket[market],
       sampleSize: input.sampleSize,
+      minutesProfile,
       minutesLast3Avg: input.minutesLast3Avg,
       minutesLast10Avg: input.minutesLast10Avg,
+      minutesVolatility: input.minutesVolatility,
       minutesHomeAwayAvg: input.minutesHomeAwayAvg,
       minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
       minutesCurrentTeamGames: input.minutesCurrentTeamGames,

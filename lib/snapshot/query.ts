@@ -1513,6 +1513,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
     const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
+    const minutesVolatility =
+      playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes));
     const minutesProfile = projectMinutesProfile({
       minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
@@ -1533,6 +1535,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       sampleSize: logsForPlayer.length,
       minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
+      minutesVolatility,
       minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
       minutesCurrentTeamLast5Avg,
       minutesCurrentTeamGames: sameTeamLogs.length,
@@ -1592,7 +1595,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           minutesCurrentTeamAvg: minutesCurrentTeamLast5Avg,
           minutesCurrentTeamGames: sameTeamLogs.length,
           minutesTrend: playerProfile?.minutesTrend ?? null,
-          minutesVolatility: playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes)),
+          minutesVolatility,
           projectedMinutes: minutesProfile.expected,
           projectedMinutesFloor: minutesProfile.floor,
           projectedMinutesCeiling: minutesProfile.ceiling,

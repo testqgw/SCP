@@ -124,6 +124,14 @@ function average(values: number[]): number | null {
   return round(total / values.length, 2);
 }
 
+function standardDeviation(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const avg = average(values);
+  if (avg == null) return null;
+  const variance = values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
+  return round(Math.sqrt(variance), 2);
+}
+
 function metricsFromBase(points: number, rebounds: number, assists: number, threes: number): SnapshotMetricRecord {
   return {
     PTS: points,
@@ -320,6 +328,7 @@ async function main(): Promise<void> {
 
       const minutesLast10Avg = average(last10.map((item) => item.minutes));
       const minutesLast3Avg = average(last3.map((item) => item.minutes));
+      const minutesVolatility = standardDeviation(last10.map((item) => item.minutes));
       const projected = projectTonightMetrics({
         last3Average,
         last10Average,
@@ -331,8 +340,9 @@ async function main(): Promise<void> {
         sampleSize: history.length,
         minutesLast3Avg,
         minutesLast10Avg,
+        minutesVolatility,
         minutesHomeAwayAvg: average(homeAway.map((item) => item.minutes)),
-        minutesCurrentTeamLast5Avg: average(last10.slice(0, 5).map((item) => item.minutes)),
+        minutesCurrentTeamLast5Avg: average(last10.slice(-5).map((item) => item.minutes)),
         minutesCurrentTeamGames: Math.min(last10.length, 10),
         lineupStarter: null,
         starterRateLast10: null,
@@ -411,7 +421,7 @@ async function main(): Promise<void> {
   );
 
   const result = {
-    model: "snapshot_projection_v2_numeric_only",
+    model: "snapshot_projection_v3_role_split",
     season: args.season,
     from: args.from,
     to: args.to,
