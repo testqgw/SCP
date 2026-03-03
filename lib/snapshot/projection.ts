@@ -3,6 +3,16 @@ import type { SnapshotMarket, SnapshotMetricRecord } from "@/lib/types/snapshot"
 
 export const SNAPSHOT_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
+type PersonalMarketModel = {
+  slope: number;
+  intercept: number;
+  confidence: number;
+  samples: number;
+  mae: number;
+};
+
+export type PlayerPersonalModels = Record<SnapshotMarket, PersonalMarketModel | null>;
+
 type MarketProjectionConfig = {
   alpha: number;
   weights: {
@@ -121,6 +131,8 @@ type ProjectMarketInput = {
   last10Values: number[];
   sampleSize: number;
   minutesProfile: MinutesProjectionProfile;
+  personalModel: PersonalMarketModel | null;
+  minutesSeasonAvg: number | null;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesVolatility: number | null;
@@ -140,6 +152,8 @@ export type ProjectTonightInput = {
   opponentAllowanceDelta: SnapshotMetricRecord;
   last10ByMarket: Record<SnapshotMarket, number[]>;
   sampleSize: number;
+  personalModels?: PlayerPersonalModels | null;
+  minutesSeasonAvg?: number | null;
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesVolatility: number | null;
@@ -164,6 +178,12 @@ export type MinutesProjectionProfile = {
   expected: number | null;
   floor: number | null;
   ceiling: number | null;
+};
+
+export type BuildPlayerPersonalModelsInput = {
+  historyByMarket: Record<SnapshotMarket, number[]>;
+  minutesSeasonAvg: number | null;
+  minSamples?: number;
 };
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -201,6 +221,108 @@ function median(values: number[]): number | null {
     return round((sorted[middle - 1] + sorted[middle]) / 2, 2);
   }
   return round(sorted[middle], 2);
+}
+
+function createEmptyPlayerPersonalModels(): PlayerPersonalModels {
+  return {
+    PTS: null,
+    REB: null,
+    AST: null,
+    THREES: null,
+    PRA: null,
+    PA: null,
+    PR: null,
+    RA: null,
+  };
+}
+
+function buildPersonalSignal(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const last3 = average(values.slice(-3));
+  const last10 = average(values.slice(-10));
+  const season = average(values);
+  return weightedBlend([
+    { value: last3, weight: 0.4 },
+    { value: last10, weight: 0.4 },
+    { value: season, weight: 0.2 },
+  ]);
+}
+
+function buildPersonalMarketModel(valuesChronological: number[], minSamples: number): PersonalMarketModel | null {
+  if (valuesChronological.length < Math.max(14, minSamples)) return null;
+
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let index = 10; index < valuesChronological.length; index += 1) {
+    const history = valuesChronological.slice(0, index);
+    const signal = buildPersonalSignal(history);
+    const actual = valuesChronological[index];
+    if (signal == null || !Number.isFinite(actual)) continue;
+    xs.push(signal);
+    ys.push(actual);
+  }
+
+  if (xs.length < minSamples) return null;
+  const meanX = average(xs);
+  const meanY = average(ys);
+  if (meanX == null || meanY == null) return null;
+
+  let sumCov = 0;
+  let sumVarX = 0;
+  for (let i = 0; i < xs.length; i += 1) {
+    const dx = xs[i] - meanX;
+    const dy = ys[i] - meanY;
+    sumCov += dx * dy;
+    sumVarX += dx * dx;
+  }
+
+  const ridge = 0.8;
+  const rawSlope = sumCov / Math.max(0.0001, sumVarX + ridge);
+  const slope = clamp(rawSlope, 0.25, 1.75);
+  const rawIntercept = meanY - slope * meanX;
+  const interceptCap = Math.max(2.5, Math.abs(meanY) * 0.75 + 3);
+  const intercept = clamp(rawIntercept, -interceptCap, interceptCap);
+
+  let maeAcc = 0;
+  let sst = 0;
+  let sse = 0;
+  for (let i = 0; i < xs.length; i += 1) {
+    const predicted = intercept + slope * xs[i];
+    const error = predicted - ys[i];
+    maeAcc += Math.abs(error);
+    sse += error * error;
+    const centered = ys[i] - meanY;
+    sst += centered * centered;
+  }
+
+  const mae = maeAcc / xs.length;
+  const r2 = sst <= 0 ? 0 : clamp(1 - sse / sst, -1, 1);
+  const sampleScore = clamp((xs.length - minSamples) / 42, 0, 1);
+  const fitScore = clamp(1 - mae / (Math.abs(meanY) + 1.25), 0, 1);
+  const r2Score = clamp((r2 + 1) / 2, 0, 1);
+  const confidence = clamp(0.18 + sampleScore * 0.42 + fitScore * 0.25 + r2Score * 0.15, 0.18, 0.95);
+
+  return {
+    slope: round(slope, 4),
+    intercept: round(intercept, 3),
+    confidence: round(confidence, 3),
+    samples: xs.length,
+    mae: round(mae, 3),
+  };
+}
+
+export function buildPlayerPersonalModels(input: BuildPlayerPersonalModelsInput): PlayerPersonalModels {
+  const result = createEmptyPlayerPersonalModels();
+  if (input.minutesSeasonAvg == null || input.minutesSeasonAvg < PLAYER_SPECIFIC_MINUTES_THRESHOLD) {
+    return result;
+  }
+
+  const minSamples = clamp(Math.floor(input.minSamples ?? 18), 10, 40);
+  SNAPSHOT_MARKETS.forEach((market) => {
+    const series = input.historyByMarket[market] ?? [];
+    result[market] = buildPersonalMarketModel(series, minSamples);
+  });
+  return result;
 }
 
 function weightedBlend(parts: Array<{ value: number | null; weight: number }>): number | null {
@@ -321,7 +443,8 @@ function projectMarket(input: ProjectMarketInput): number | null {
   const minutesStability = clamp(1 - minutesVolatilityRatio * 0.55, 0.2, 1);
   const sampleConfidence = clamp((input.sampleSize - 8) / 24, 0, 1);
   const consistencyScore = clamp(1 - relativeVolatility * 0.5, 0.18, 1);
-  const playerSpecificTier = expectedMinutes >= PLAYER_SPECIFIC_MINUTES_THRESHOLD;
+  const seasonMinutes = input.minutesSeasonAvg ?? input.minutesLast10Avg ?? expectedMinutes;
+  const playerSpecificTier = seasonMinutes >= PLAYER_SPECIFIC_MINUTES_THRESHOLD;
 
   const globalProjection =
     seasonAnchor + (base - seasonAnchor) * volatilityShrink + minutesAdjustment + opponentAdjustment + trendAdjustment;
@@ -347,6 +470,24 @@ function projectMarket(input: ProjectMarketInput): number | null {
         { value: projected, weight: personalizedTrust },
         { value: seasonAnchor, weight: 1 - personalizedTrust },
       ]) ?? projected;
+
+    const personalSignal = weightedBlend([
+      { value: input.last3Average, weight: 0.4 },
+      { value: input.last10Average, weight: 0.4 },
+      { value: input.seasonAverage, weight: 0.2 },
+    ]);
+    const personalProjection =
+      input.personalModel && personalSignal != null
+        ? round(Math.max(0, input.personalModel.intercept + input.personalModel.slope * personalSignal), 2)
+        : null;
+    if (personalProjection != null && input.personalModel) {
+      const personalWeight = clamp(0.15 + input.personalModel.confidence * 0.55, 0.15, 0.72);
+      projected =
+        weightedBlend([
+          { value: projected, weight: 1 - personalWeight },
+          { value: personalProjection, weight: personalWeight },
+        ]) ?? projected;
+    }
   } else {
     // Conservative fallback for low-minute players: stronger shrinkage and a bench-minute penalty.
     const conservativeBlend = weightedBlend([
@@ -424,6 +565,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
       last10Values: input.last10ByMarket[market],
       sampleSize: input.sampleSize,
       minutesProfile,
+      personalModel: input.personalModels?.[market] ?? null,
+      minutesSeasonAvg: input.minutesSeasonAvg ?? null,
       minutesLast3Avg: input.minutesLast3Avg,
       minutesLast10Avg: input.minutesLast10Avg,
       minutesVolatility: input.minutesVolatility,

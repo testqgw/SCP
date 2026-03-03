@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "../lib/prisma";
 import { getTodayEtDateString, inferSeasonFromEtDate } from "../lib/snapshot/time";
-import { SNAPSHOT_MARKETS, projectTonightMetrics } from "../lib/snapshot/projection";
+import { SNAPSHOT_MARKETS, buildPlayerPersonalModels, projectTonightMetrics } from "../lib/snapshot/projection";
 import { round } from "../lib/utils";
 import type { SnapshotMarket, SnapshotMetricRecord } from "../lib/types/snapshot";
 
@@ -319,6 +319,12 @@ async function main(): Promise<void> {
       const last3Average = averagesByMarket(last3);
       const homeAwayAverage = averagesByMarket(homeAway);
       const last10ByMarket = arraysByMarket(last10);
+      const historyByMarket = arraysByMarket(history);
+      const minutesSeasonAvg = average(history.map((item) => item.minutes));
+      const personalModels = buildPlayerPersonalModels({
+        historyByMarket,
+        minutesSeasonAvg,
+      });
 
       const opponentAllowance = averageFromAgg(
         log.opponentTeamId ? (opponentAggByTeamId.get(log.opponentTeamId) ?? null) : null,
@@ -338,6 +344,8 @@ async function main(): Promise<void> {
         opponentAllowanceDelta,
         last10ByMarket,
         sampleSize: history.length,
+        personalModels,
+        minutesSeasonAvg,
         minutesLast3Avg,
         minutesLast10Avg,
         minutesVolatility,
@@ -421,7 +429,7 @@ async function main(): Promise<void> {
   );
 
   const result = {
-    model: "snapshot_projection_v3_role_split",
+    model: "snapshot_projection_v4_player_specific_15mpg",
     season: args.season,
     from: args.from,
     to: args.to,

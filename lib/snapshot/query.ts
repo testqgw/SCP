@@ -6,7 +6,12 @@ import {
   type RotowireLineupSnapshot,
   type RotowireTeamLineup,
 } from "@/lib/lineups/rotowire";
-import { SNAPSHOT_MARKETS, projectMinutesProfile, projectTonightMetrics } from "@/lib/snapshot/projection";
+import {
+  SNAPSHOT_MARKETS,
+  buildPlayerPersonalModels,
+  projectMinutesProfile,
+  projectTonightMetrics,
+} from "@/lib/snapshot/projection";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -1452,6 +1457,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     }
 
     const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
+    const logsChronological = logsForPlayer.slice().reverse();
     const statusForPlayer = statusLogsByPlayerId.get(player.id) ?? [];
     const statusLast10 = statusForPlayer.slice(0, 10);
     const last5Logs = logsForPlayer.slice(0, 5);
@@ -1462,6 +1468,12 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const homeAwayLogs = logsForPlayer.filter((log) => log.isHome === matchup.isHome);
 
     const seasonAverage = averagesByMarket(logsForPlayer);
+    const seasonByMarketChronological = arraysByMarket(logsChronological);
+    const minutesSeasonAvg = average(logsChronological.map((log) => log.minutes));
+    const personalModels = buildPlayerPersonalModels({
+      historyByMarket: seasonByMarketChronological,
+      minutesSeasonAvg,
+    });
     const last3Average = averagesByMarket(last3Logs);
     const last10Average = averagesByMarket(last10Logs);
     const homeAwayAverage = averagesByMarket(homeAwayLogs);
@@ -1533,6 +1545,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       opponentAllowanceDelta,
       last10ByMarket,
       sampleSize: logsForPlayer.length,
+      personalModels,
+      minutesSeasonAvg,
       minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
       minutesLast10Avg,
       minutesVolatility,
