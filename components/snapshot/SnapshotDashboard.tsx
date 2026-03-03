@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
@@ -269,7 +268,6 @@ export function SnapshotDashboard({
   initialMatchup,
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
-  const router = useRouter();
   const [matchup, setMatchup] = useState(
     initialMatchup && data.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
   );
@@ -380,12 +378,27 @@ export function SnapshotDashboard({
   function handleLoadData(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const params = new URLSearchParams();
-    params.set("date", dateInput || data.dateEt);
+    const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : data.dateEt;
+    params.set("date", normalizedDate);
     params.set("market", market);
     if (matchup) params.set("matchup", matchup);
     const player = playerSearch.trim();
     if (player) params.set("player", player);
-    router.push(`/?${params.toString()}`);
+    params.sort();
+
+    const targetQuery = params.toString();
+    const targetUrl = targetQuery ? `/?${targetQuery}` : "/";
+
+    if (typeof window !== "undefined") {
+      const current = new URLSearchParams(window.location.search);
+      current.sort();
+      if (current.toString() === targetQuery) {
+        window.location.reload();
+      } else {
+        window.location.assign(targetUrl);
+      }
+      return;
+    }
   }
 
   async function handleRefresh(): Promise<void> {
