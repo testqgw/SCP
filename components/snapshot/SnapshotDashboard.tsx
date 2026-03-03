@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
@@ -270,7 +270,6 @@ export function SnapshotDashboard({
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
   const router = useRouter();
-  const autoOpenedPlayerTokenRef = useRef<string | null>(null);
   const [matchup, setMatchup] = useState(
     initialMatchup && data.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
   );
@@ -450,9 +449,6 @@ export function SnapshotDashboard({
   useEffect(() => {
     const query = initialPlayerSearch.trim();
     if (!query) return;
-    const token = `${data.dateEt}|${initialMarket}|${initialMatchup}|${query.toLowerCase()}`;
-    if (autoOpenedPlayerTokenRef.current === token) return;
-    autoOpenedPlayerTokenRef.current = token;
     if (filteredRows.length === 0) return;
 
     const queryLower = query.toLowerCase();
