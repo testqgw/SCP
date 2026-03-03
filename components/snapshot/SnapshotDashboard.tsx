@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
@@ -268,6 +269,7 @@ export function SnapshotDashboard({
   initialMatchup,
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
+  const router = useRouter();
   const autoOpenedPlayerTokenRef = useRef<string | null>(null);
   const [matchup, setMatchup] = useState(
     initialMatchup && data.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
@@ -389,16 +391,13 @@ export function SnapshotDashboard({
     const targetQuery = params.toString();
     const targetUrl = targetQuery ? `/?${targetQuery}` : "/";
 
-    if (typeof window !== "undefined") {
-      const current = new URLSearchParams(window.location.search);
-      current.sort();
-      if (current.toString() === targetQuery) {
-        window.location.reload();
-      } else {
-        window.location.assign(targetUrl);
-      }
+    const current = new URLSearchParams(window.location.search);
+    current.sort();
+    if (current.toString() === targetQuery) {
+      router.refresh();
       return;
     }
+    router.push(targetUrl);
   }
 
   async function handleRefresh(): Promise<void> {
@@ -412,12 +411,20 @@ export function SnapshotDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode: "DELTA" }),
       });
-      const payload = (await response.json()) as { result?: { status?: string }; error?: string };
+      const payload = (await response.json()) as {
+        result?: { status?: string; warnings?: string[] };
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(payload.error ?? "Refresh failed");
       }
-      setRefreshMessage(`Refresh complete (${payload.result?.status ?? "SUCCESS"}). Reloading board...`);
-      window.location.reload();
+      const warnings = payload.result?.warnings ?? [];
+      if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
+        setRefreshMessage("Refresh is already running. Please wait 1-2 minutes, then click Load Data.");
+        return;
+      }
+      setRefreshMessage(`Refresh complete (${payload.result?.status ?? "SUCCESS"}). Updating board...`);
+      router.refresh();
     } catch (error) {
       setRefreshError(error instanceof Error ? error.message : "Refresh failed");
     } finally {

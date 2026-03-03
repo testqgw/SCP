@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { runRefresh } from "@/lib/snapshot/refresh";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 type RefreshRequestBody = {
   mode?: "DELTA" | "FULL" | "delta" | "full";
@@ -18,4 +19,3 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-

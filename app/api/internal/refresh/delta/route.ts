@@ -4,6 +4,7 @@ import { isCronAuthorized } from "@/lib/auth/guard";
 import { runRefresh } from "@/lib/snapshot/refresh";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 async function handle(request: NextRequest): Promise<NextResponse> {
   if (!isCronAuthorized(request)) {

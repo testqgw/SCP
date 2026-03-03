@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/internal/refresh/delta",
-      "schedule": "15 9 * * *"
+      "schedule": "*/5 * * * *"
     }
   ]
 }

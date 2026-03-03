@@ -113,6 +113,19 @@ type LineupPlayerSignal = {
 };
 
 const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
+const SNAPSHOT_BOARD_CACHE_TTL_MS = (() => {
+  const parsed = Number(process.env.SNAPSHOT_BOARD_CACHE_TTL_MS);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 60_000;
+  return Math.min(Math.max(5_000, Math.floor(parsed)), 10 * 60_000);
+})();
+
+type SnapshotBoardCacheEntry = {
+  data: SnapshotBoardData;
+  sourceSignal: string;
+  expiresAt: number;
+};
+
+const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 
 function blankMetricRecord(): SnapshotMetricRecord {
   return {
@@ -1001,22 +1014,37 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     isTodayEt
       ? prisma.systemSetting.findUnique({
           where: { key: "snapshot_lineups_today" },
-          select: { value: true },
+          select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
   ]);
+
+  const sourceUpdatedAtIso = latestDataWrite._max.updatedAt?.toISOString() ?? null;
+  const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
+  const sourceSignal = `${sourceUpdatedAtIso ?? "none"}|${lineupUpdatedAtIso ?? "none"}`;
+  const cacheKey = dateEt;
+  const cached = snapshotBoardCache.get(cacheKey);
+  if (cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
+    return cached.data;
+  }
 
   const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
   const lineupMap = buildLineupSignalMap(lineupSnapshot);
 
   if (games.length === 0) {
-    return {
+    const emptyData = {
       dateEt,
-      lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
+      lastUpdatedAt: sourceUpdatedAtIso,
       matchups: [],
       teamMatchups: [],
       rows: [],
     };
+    snapshotBoardCache.set(cacheKey, {
+      data: emptyData,
+      sourceSignal,
+      expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
+    });
+    return emptyData;
   }
 
   const matchupByTeamId = new Map<string, TeamMatchup>();
@@ -1186,13 +1214,19 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   });
 
   if (players.length === 0) {
-    return {
+    const emptyData = {
       dateEt,
-      lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
+      lastUpdatedAt: sourceUpdatedAtIso,
       matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
       teamMatchups,
       rows: [],
     };
+    snapshotBoardCache.set(cacheKey, {
+      data: emptyData,
+      sourceSignal,
+      expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
+    });
+    return emptyData;
   }
 
   const playerIds = players.map((player) => player.id);
@@ -1603,11 +1637,17 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     return a.row.playerName.localeCompare(b.row.playerName);
   });
 
-  return {
+  const result = {
     dateEt,
-    lastUpdatedAt: latestDataWrite._max.updatedAt?.toISOString() ?? null,
+    lastUpdatedAt: sourceUpdatedAtIso,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
   };
+  snapshotBoardCache.set(cacheKey, {
+    data: result,
+    sourceSignal,
+    expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
+  });
+  return result;
 }

@@ -5,6 +5,11 @@ import { toNumber } from "@/lib/utils";
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const NBA_SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
 const NBA_BOXSCORE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{gameId}.json";
+const NBA_HTTP_TIMEOUT_MS = (() => {
+  const parsed = Number(process.env.NBA_HTTP_TIMEOUT_MS);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 12000;
+  return Math.min(Math.max(3000, Math.floor(parsed)), 60000);
+})();
 
 export type NormalizedNbaScheduleGame = NormalizedGame & {
   statusNumber: number;
@@ -164,15 +169,6 @@ function playerFromBoxScore(
 
 export class NbaDataClient {
   private async fetchJson(url: string): Promise<unknown> {
-    const requestInit: RequestInit = {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "Mozilla/5.0",
-      },
-      cache: "no-store",
-    };
-
     const retryDelaysMs = [0, 400, 1200];
     let lastError: Error | null = null;
 
@@ -182,7 +178,21 @@ export class NbaDataClient {
       }
 
       try {
-        const response = await fetch(url, requestInit);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+          controller.abort();
+        }, NBA_HTTP_TIMEOUT_MS);
+
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            "User-Agent": "Mozilla/5.0",
+          },
+          cache: "no-store",
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeout));
+
         if (!response.ok) {
           if (RETRYABLE_STATUS.has(response.status)) {
             lastError = new Error(`Retryable NBA endpoint status ${response.status}: ${url}`);
@@ -192,7 +202,11 @@ export class NbaDataClient {
         }
         return (await response.json()) as unknown;
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error("Unknown network error");
+        if (error instanceof Error && error.name === "AbortError") {
+          lastError = new Error(`NBA endpoint timed out after ${NBA_HTTP_TIMEOUT_MS}ms: ${url}`);
+        } else {
+          lastError = error instanceof Error ? error : new Error("Unknown network error");
+        }
       }
     }
 

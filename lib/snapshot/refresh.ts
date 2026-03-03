@@ -20,6 +20,57 @@ type RefreshResult = {
   };
 };
 
+function parsePositiveInt(value: string | undefined, fallback: number, max: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  const whole = Math.floor(parsed);
+  return Math.min(Math.max(1, whole), max);
+}
+
+const BOX_SCORE_CONCURRENCY = parsePositiveInt(process.env.SNAPSHOT_BOX_SCORE_CONCURRENCY, 8, 24);
+const UPSERT_TEAM_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_TEAM_BATCH, 10, 50);
+const UPSERT_PLAYER_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_PLAYER_BATCH, 25, 100);
+const UPSERT_GAME_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_GAME_BATCH, 20, 100);
+const UPSERT_LOG_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_LOG_BATCH, 50, 200);
+const SYNC_TEAM_BATCH = parsePositiveInt(process.env.SNAPSHOT_SYNC_TEAM_BATCH, 50, 200);
+
+async function runInBatches<T>(
+  items: T[],
+  batchSize: number,
+  worker: (item: T, index: number) => Promise<void>,
+): Promise<void> {
+  for (let index = 0; index < items.length; index += batchSize) {
+    const batch = items.slice(index, index + batchSize);
+    await Promise.all(batch.map((item, batchIndex) => worker(item, index + batchIndex)));
+  }
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+
+  await Promise.all(
+    Array.from({ length: limit }, async () => {
+      while (true) {
+        const currentIndex = cursor;
+        cursor += 1;
+        if (currentIndex >= items.length) {
+          return;
+        }
+        results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      }
+    }),
+  );
+
+  return results;
+}
+
 async function storeLineupsSnapshot(dateEt: string): Promise<{ teamCount: number; source: string }> {
   const snapshot = await fetchRotowireLineups();
   await prisma.systemSetting.upsert({
@@ -154,7 +205,8 @@ async function upsertTeams(
   });
 
   const map = new Map<string, string>();
-  for (const team of teams.values()) {
+  const uniqueTeams = Array.from(teams.values());
+  await runInBatches(uniqueTeams, UPSERT_TEAM_BATCH, async (team) => {
     const saved = await prisma.team.upsert({
       where: { abbreviation: team.abbreviation },
       update: { name: team.name },
@@ -165,7 +217,7 @@ async function upsertTeams(
       select: { id: true, abbreviation: true },
     });
     map.set(saved.abbreviation, saved.id);
-  }
+  });
 
   return map;
 }
@@ -173,7 +225,7 @@ async function upsertTeams(
 async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<Map<string, string>> {
   const playerMap = new Map<string, string>();
 
-  for (const player of players) {
+  await runInBatches(players, UPSERT_PLAYER_BATCH, async (player) => {
     const teamId = player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null;
     const saved = await prisma.player.upsert({
       where: { externalId: player.externalPlayerId },
@@ -201,17 +253,17 @@ async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<str
     if (saved.externalId) {
       playerMap.set(saved.externalId, saved.id);
     }
-  }
+  });
 
   return playerMap;
 }
 
 async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>): Promise<void> {
-  for (const game of games) {
+  await runInBatches(games, UPSERT_GAME_BATCH, async (game) => {
     const homeTeamId = teamMap.get(game.homeTeamAbbr);
     const awayTeamId = teamMap.get(game.awayTeamAbbr);
     if (!homeTeamId || !awayTeamId) {
-      continue;
+      return;
     }
 
     await prisma.game.upsert({
@@ -234,7 +286,7 @@ async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>
         awayTeamId,
       },
     });
-  }
+  });
 }
 
 async function upsertPlayerLogs(
@@ -244,10 +296,10 @@ async function upsertPlayerLogs(
 ): Promise<number> {
   let inserted = 0;
 
-  for (const log of logs) {
+  await runInBatches(logs, UPSERT_LOG_BATCH, async (log) => {
     const playerId = playerMap.get(log.externalPlayerId);
     if (!playerId) {
-      continue;
+      return;
     }
 
     const externalGameId = log.externalGameId ?? `${log.gameDateEt}:${log.externalPlayerId}:${log.opponentAbbr ?? "UNK"}`;
@@ -301,7 +353,7 @@ async function upsertPlayerLogs(
       },
     });
     inserted += 1;
-  }
+  });
 
   return inserted;
 }
@@ -314,13 +366,13 @@ async function syncPlayerCurrentTeams(): Promise<void> {
     select: { playerId: true, teamId: true },
   });
 
-  for (const log of latestLogs) {
-    if (!log.teamId) continue;
+  await runInBatches(latestLogs, SYNC_TEAM_BATCH, async (log) => {
+    if (!log.teamId) return;
     await prisma.player.update({
       where: { id: log.playerId },
       data: { teamId: log.teamId },
     });
-  }
+  });
 }
 
 type FetchDataResult = {
@@ -343,19 +395,24 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const players: NormalizedPlayerSeason[] = [];
   const logs: NormalizedPlayerGameStat[] = [];
 
-  for (const game of finalWindowGames) {
+  const boxScores = await mapWithConcurrency(finalWindowGames, BOX_SCORE_CONCURRENCY, async (game) => {
     try {
       const payload = await client.fetchGameBoxScore(game);
-      players.push(...payload.players);
-      logs.push(...payload.logs);
+      return { game, payload, error: null as string | null };
     } catch (error) {
-      warnings.push(
-        `Box score unavailable for ${game.externalGameId} (${game.gameDateEt}): ${
-          error instanceof Error ? error.message : "unknown"
-        }`,
-      );
+      const message = error instanceof Error ? error.message : "unknown";
+      return { game, payload: null, error: message };
     }
-  }
+  });
+
+  boxScores.forEach(({ game, payload, error }) => {
+    if (error || !payload) {
+      warnings.push(`Box score unavailable for ${game.externalGameId} (${game.gameDateEt}): ${error ?? "unknown"}`);
+      return;
+    }
+    players.push(...payload.players);
+    logs.push(...payload.logs);
+  });
 
   const mergedPlayers = mergePlayersFromLogs(players, logs);
   const games = dedupeGames([...todaysGames, ...windowGames]);
@@ -397,13 +454,40 @@ function evaluateQualityInput(data: { logs: NormalizedPlayerGameStat[]; games: N
 export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
   const startedAt = Date.now();
   const dateEt = getTodayEtDateString();
+  const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+
+  const activeRun = await prisma.refreshRun.findFirst({
+    where: {
+      status: "RUNNING",
+      startedAt: { gte: staleThreshold },
+    },
+    orderBy: [{ startedAt: "desc" }],
+    select: { id: true, totalGames: true, totalPlayers: true, startedAt: true },
+  });
+
+  if (activeRun) {
+    logger.info("Refresh skipped because another run is active", {
+      activeRunId: activeRun.id,
+      mode,
+      startedAt: activeRun.startedAt.toISOString(),
+    });
+    return {
+      runId: activeRun.id,
+      status: "PARTIAL",
+      warnings: ["Refresh already running. Please wait for completion."],
+      isPublishable: false,
+      qualityIssues: ["refresh_running"],
+      totals: {
+        games: activeRun.totalGames,
+        players: activeRun.totalPlayers,
+      },
+    };
+  }
 
   await prisma.refreshRun.updateMany({
     where: {
       status: "RUNNING",
-      startedAt: {
-        lt: new Date(Date.now() - 10 * 60 * 1000),
-      },
+      startedAt: { lt: staleThreshold },
     },
     data: {
       status: "FAILED",
