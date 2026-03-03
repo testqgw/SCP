@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
@@ -268,9 +269,11 @@ export function SnapshotDashboard({
   initialMatchup,
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
+  const router = useRouter();
   const [matchup, setMatchup] = useState(
     initialMatchup && data.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
   );
+  const [dateInput, setDateInput] = useState(data.dateEt);
   const [market, setMarket] = useState<SnapshotMarket>(initialMarket);
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
   const [playerSuggestOpen, setPlayerSuggestOpen] = useState(false);
@@ -294,6 +297,16 @@ export function SnapshotDashboard({
       setFocusedMarket(market);
     }
   }, [selectedPlayer, market]);
+
+  useEffect(() => {
+    setDateInput(data.dateEt);
+  }, [data.dateEt]);
+
+  useEffect(() => {
+    if (matchup && !data.matchups.some((option) => option.key === matchup)) {
+      setMatchup("");
+    }
+  }, [data.matchups, matchup]);
 
   useEffect(() => {
     if (!selectedPlayer && !guideOpen) return;
@@ -362,6 +375,17 @@ export function SnapshotDashboard({
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  }
+
+  function handleLoadData(event: React.FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const params = new URLSearchParams();
+    params.set("date", dateInput || data.dateEt);
+    params.set("market", market);
+    if (matchup) params.set("matchup", matchup);
+    const player = playerSearch.trim();
+    if (player) params.set("player", player);
+    router.push(`/?${params.toString()}`);
   }
 
   async function handleRefresh(): Promise<void> {
@@ -512,13 +536,13 @@ export function SnapshotDashboard({
           </article>
         </div>
 
-        <form method="GET" className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[190px_1fr_220px_150px]">
+        <form onSubmit={handleLoadData} className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[190px_1fr_220px_150px]">
           <label className="flex min-w-[170px] flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
             Date (ET)
             <input
-              name="date"
               type="date"
-              defaultValue={data.dateEt}
+              value={dateInput}
+              onChange={(event) => setDateInput(event.target.value)}
               className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
             />
           </label>
@@ -558,7 +582,7 @@ export function SnapshotDashboard({
             type="submit"
             className="h-[42px] self-end rounded-xl border border-amber-300/45 bg-amber-500/20 px-4 text-sm font-semibold text-amber-100 hover:bg-amber-500/30"
           >
-            Load Date
+            Load Data
           </button>
         </form>
 
