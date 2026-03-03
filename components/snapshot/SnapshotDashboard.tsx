@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SnapshotBoardData, SnapshotMarket, SnapshotRow } from "@/lib/types/snapshot";
 
 type SnapshotDashboardProps = {
@@ -268,6 +268,7 @@ export function SnapshotDashboard({
   initialMatchup,
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
+  const autoOpenedPlayerTokenRef = useRef<string | null>(null);
   const [matchup, setMatchup] = useState(
     initialMatchup && data.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
   );
@@ -279,7 +280,6 @@ export function SnapshotDashboard({
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [minutesFloorMap, setMinutesFloorMap] = useState<Record<string, string>>({});
   const [guideOpen, setGuideOpen] = useState(false);
-  const [defaultMinutesFloor, setDefaultMinutesFloor] = useState("22");
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
@@ -440,6 +440,22 @@ export function SnapshotDashboard({
     });
   }, [data.rows, matchup, playerSearch]);
 
+  useEffect(() => {
+    const query = initialPlayerSearch.trim();
+    if (!query) return;
+    const token = `${data.dateEt}|${initialMarket}|${initialMatchup}|${query.toLowerCase()}`;
+    if (autoOpenedPlayerTokenRef.current === token) return;
+    autoOpenedPlayerTokenRef.current = token;
+    if (filteredRows.length === 0) return;
+
+    const queryLower = query.toLowerCase();
+    const exact = filteredRows.find((row) => row.playerName.toLowerCase() === queryLower);
+    const startsWith = filteredRows.find((row) => row.playerName.toLowerCase().startsWith(queryLower));
+    const bestMatch = exact ?? startsWith ?? filteredRows[0];
+    setFocusedMarket(market);
+    setSelectedPlayer(bestMatch);
+  }, [initialPlayerSearch, data.dateEt, initialMarket, initialMatchup, filteredRows, market]);
+
   const playerSuggestionPool = useMemo(() => {
     const rows = matchup ? data.rows.filter((row) => row.matchupKey === matchup) : data.rows;
     const deduped = new Map<string, SnapshotRow>();
@@ -468,7 +484,7 @@ export function SnapshotDashboard({
     return data.teamMatchups.filter((item) => item.matchupKey === matchup);
   }, [data.teamMatchups, matchup]);
 
-  const selectedMinutesFloor = parseMinutesFloor(defaultMinutesFloor) ?? 22;
+  const selectedMinutesFloor = 22;
   const activeLineCount = useMemo(
     () => Object.keys(lineMap).filter((key) => Boolean(parseLine(lineMap[key]))).length,
     [lineMap],
@@ -599,7 +615,7 @@ export function SnapshotDashboard({
           </button>
         </form>
 
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_230px]">
+        <div className="mt-3 grid grid-cols-1 gap-3">
           <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
             Player Search
             <div className="relative">
@@ -681,20 +697,10 @@ export function SnapshotDashboard({
               ) : null}
             </div>
           </label>
-          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-            Badge Minutes Floor
-            <input
-              value={defaultMinutesFloor}
-              onChange={(event) => setDefaultMinutesFloor(event.target.value)}
-              inputMode="decimal"
-              placeholder="22"
-              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
-            />
-          </label>
         </div>
 
         <p className="mt-3 text-xs text-slate-300/80">
-          Tip: enter your line in the table, then use the new <span className="text-amber-200">Minute Badge</span> and player analyzer to validate workload assumptions.
+          Tip: enter your line in the table, then use the <span className="text-amber-200">Minute Badge (22+ min)</span> and player analyzer to validate workload assumptions.
         </p>
 
         {refreshMessage ? <p className="mt-2 text-xs text-emerald-200">{refreshMessage}</p> : null}
@@ -1029,11 +1035,11 @@ export function SnapshotDashboard({
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Minute Badge</p>
                 <p className="mt-2 text-xs text-slate-300">
-                  `Minute Badge` shows hit rate only in games above your selected minutes floor. Example:
+                  `Minute Badge` shows hit rate only in games with 22+ minutes. Example:
                   `22+m: 85/104 (82%)` means 85 overs in 104 games with 22+ minutes.
                 </p>
                 <p className="mt-2 text-xs text-slate-300">
-                  Use `Badge Minutes Floor` in the header to change the floor globally (20, 22, 24, etc.).
+                  For custom minute scenarios, use the player detail view where each market card supports a manual minutes floor input.
                 </p>
               </article>
 
