@@ -553,29 +553,63 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   });
 
   const result = blankMetricRecord();
-  SNAPSHOT_MARKETS.forEach((market) => {
-    result[market] = projectMarket({
-      market,
-      last3Average: input.last3Average[market],
-      last10Average: input.last10Average[market],
-      seasonAverage: input.seasonAverage[market],
-      homeAwayAverage: input.homeAwayAverage[market],
-      opponentAllowance: input.opponentAllowance[market],
-      opponentAllowanceDelta: input.opponentAllowanceDelta[market],
-      last10Values: input.last10ByMarket[market],
-      sampleSize: input.sampleSize,
-      minutesProfile,
-      personalModel: input.personalModels?.[market] ?? null,
-      minutesSeasonAvg: input.minutesSeasonAvg ?? null,
-      minutesLast3Avg: input.minutesLast3Avg,
-      minutesLast10Avg: input.minutesLast10Avg,
-      minutesVolatility: input.minutesVolatility,
-      minutesHomeAwayAvg: input.minutesHomeAwayAvg,
-      minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
-      minutesCurrentTeamGames: input.minutesCurrentTeamGames,
-      lineupStarter: input.lineupStarter,
-      starterRateLast10: input.starterRateLast10,
-    });
+  const baseMarkets: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
+  const comboMarkets: SnapshotMarket[] = ["PRA", "PA", "PR", "RA"];
+  const directComboProjection = blankMetricRecord();
+
+  const projectionInputFor = (market: SnapshotMarket): ProjectMarketInput => ({
+    market,
+    last3Average: input.last3Average[market],
+    last10Average: input.last10Average[market],
+    seasonAverage: input.seasonAverage[market],
+    homeAwayAverage: input.homeAwayAverage[market],
+    opponentAllowance: input.opponentAllowance[market],
+    opponentAllowanceDelta: input.opponentAllowanceDelta[market],
+    last10Values: input.last10ByMarket[market],
+    sampleSize: input.sampleSize,
+    minutesProfile,
+    personalModel: input.personalModels?.[market] ?? null,
+    minutesSeasonAvg: input.minutesSeasonAvg ?? null,
+    minutesLast3Avg: input.minutesLast3Avg,
+    minutesLast10Avg: input.minutesLast10Avg,
+    minutesVolatility: input.minutesVolatility,
+    minutesHomeAwayAvg: input.minutesHomeAwayAvg,
+    minutesCurrentTeamLast5Avg: input.minutesCurrentTeamLast5Avg,
+    minutesCurrentTeamGames: input.minutesCurrentTeamGames,
+    lineupStarter: input.lineupStarter,
+    starterRateLast10: input.starterRateLast10,
   });
+
+  baseMarkets.forEach((market) => {
+    result[market] = projectMarket(projectionInputFor(market));
+  });
+
+  comboMarkets.forEach((market) => {
+    directComboProjection[market] = projectMarket(projectionInputFor(market));
+  });
+
+  const sumOrNull = (...values: Array<number | null>): number | null => {
+    if (values.some((value) => value == null)) return null;
+    const numericValues = values as number[];
+    return round(numericValues.reduce((total, value) => total + value, 0), 2);
+  };
+
+  const summedCombo: Partial<Record<SnapshotMarket, number | null>> = {
+    PRA: sumOrNull(result.PTS, result.REB, result.AST),
+    PA: sumOrNull(result.PTS, result.AST),
+    PR: sumOrNull(result.PTS, result.REB),
+    RA: sumOrNull(result.REB, result.AST),
+  };
+
+  comboMarkets.forEach((market) => {
+    result[market] =
+      weightedBlend([
+        { value: summedCombo[market] ?? null, weight: 0.88 },
+        { value: directComboProjection[market], weight: 0.12 },
+      ]) ??
+      summedCombo[market] ??
+      directComboProjection[market];
+  });
+
   return result;
 }
