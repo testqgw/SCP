@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg-deep: #0b1020;
-  --bg-surface: #121a33;
-  --bg-card: #1b2551;
-  --text-primary: #eff4ff;
-  --text-muted: #9fb2dc;
+  --bg-deep: #08101f;
+  --bg-surface: #0e1932;
+  --bg-card: #162542;
+  --text-primary: #eef5ff;
+  --text-muted: #9bb0d3;
   --accent: #f59e0b;
-  --accent-2: #22d3ee;
-  --danger: #f97316;
+  --accent-2: #34d399;
+  --danger: #fb7185;
 }
 
 * {
@@ -25,9 +25,22 @@ body {
   color: var(--text-primary);
   font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
   background:
-    radial-gradient(1200px 600px at 0% 0%, rgba(34, 211, 238, 0.15) 0%, transparent 65%),
-    radial-gradient(900px 700px at 100% 0%, rgba(245, 158, 11, 0.2) 0%, transparent 70%),
-    linear-gradient(160deg, var(--bg-deep), #0f1730 45%, #0e1326 100%);
+    radial-gradient(1200px 600px at 0% 0%, rgba(56, 189, 248, 0.12) 0%, transparent 65%),
+    radial-gradient(900px 700px at 100% 0%, rgba(245, 158, 11, 0.16) 0%, transparent 70%),
+    linear-gradient(155deg, #06101e, #0a1730 38%, #091324 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at 55% 12%, black 8%, transparent 70%);
+  z-index: -1;
 }
 
 .title-font {
@@ -36,7 +49,21 @@ body {
 }
 
 .glass {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(159, 178, 220, 0.18);
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(159, 178, 220, 0.2);
+}
+
+input,
+select,
+button {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 120ms ease;
+}
+
+button:active {
+  transform: translateY(1px);
 }

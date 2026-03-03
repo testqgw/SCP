@@ -275,6 +275,8 @@ export function SnapshotDashboard({
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
   const [lineMap, setLineMap] = useState<Record<string, string>>({});
   const [minutesFloorMap, setMinutesFloorMap] = useState<Record<string, string>>({});
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [defaultMinutesFloor, setDefaultMinutesFloor] = useState("22");
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
@@ -292,15 +294,19 @@ export function SnapshotDashboard({
   }, [selectedPlayer, market]);
 
   useEffect(() => {
-    if (!selectedPlayer) return;
+    if (!selectedPlayer && !guideOpen) return;
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === "Escape") {
-        setSelectedPlayer(null);
+        if (selectedPlayer) {
+          setSelectedPlayer(null);
+          return;
+        }
+        setGuideOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedPlayer]);
+  }, [selectedPlayer, guideOpen]);
 
   useEffect(() => {
     if (!selectedPlayer) return;
@@ -400,104 +406,167 @@ export function SnapshotDashboard({
     return data.teamMatchups.filter((item) => item.matchupKey === matchup);
   }, [data.teamMatchups, matchup]);
 
+  const selectedMinutesFloor = parseMinutesFloor(defaultMinutesFloor) ?? 22;
+  const activeLineCount = useMemo(
+    () => Object.keys(lineMap).filter((key) => Boolean(parseLine(lineMap[key]))).length,
+    [lineMap],
+  );
+  const highQualityCount = useMemo(
+    () => filteredRows.filter((row) => row.dataCompleteness.tier === "HIGH").length,
+    [filteredRows],
+  );
+
   return (
-    <main className="mx-auto max-w-[1680px] px-4 py-6 sm:px-6 lg:px-10">
-      <section className="glass rounded-2xl p-5 sm:p-7">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/80">NBA Data Snapshot</p>
-          <h1 className="title-font text-3xl uppercase text-white sm:text-4xl">Today&apos;s Player Data Board</h1>
-          <p className="text-sm text-slate-300">
-            Manual betting board: composite markets + full player detail + team matchup context.
-          </p>
-          <p className="text-xs text-slate-400">Hover any small ? icon for term definitions and metric formulas.</p>
-          <p className="text-sm text-slate-300">
-            Last refresh: {data.lastUpdatedAt ? new Date(data.lastUpdatedAt).toLocaleString() : "No refresh yet"}
-          </p>
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+    <main className="mx-auto max-w-[1750px] px-4 pb-8 pt-6 sm:px-6 lg:px-10">
+      <section className="rounded-[26px] border border-[#d5e2ff33] bg-[radial-gradient(1200px_420px_at_8%_0%,#1f5f6f66_0%,transparent_58%),radial-gradient(900px_500px_at_100%_0%,#d9770655_0%,transparent_64%),linear-gradient(150deg,#0e1a35_0%,#121c33_52%,#0b1528_100%)] px-5 py-5 shadow-[0_20px_80px_-45px_rgba(245,158,11,0.65)] sm:px-7 sm:py-7">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.28em] text-amber-200/85">NBA Snapshot Terminal</p>
+            <h1 className="title-font mt-1 text-3xl uppercase text-white sm:text-[2.35rem]">Player Prop Command Center</h1>
+            <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
+              Faster reads, cleaner card flow, and minute-aware market context. Use your own lines and inspect every player through the detail console.
+            </p>
+            <p className="mt-1 text-xs text-slate-300/80">
+              Last refresh: {data.lastUpdatedAt ? new Date(data.lastUpdatedAt).toLocaleString() : "No refresh yet"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => {
                 void handleRefresh();
               }}
               disabled={isRefreshing}
-              className="rounded-xl border border-cyan-300/40 bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-emerald-300/45 bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isRefreshing ? "Refreshing..." : "Refresh Snapshot"}
+              {isRefreshing ? "Refreshing..." : "Refresh Data"}
             </button>
-            {refreshMessage ? <p className="text-xs text-emerald-200">{refreshMessage}</p> : null}
-            {refreshError ? <p className="text-xs text-rose-200">{refreshError}</p> : null}
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              className="rounded-xl border border-amber-300/45 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/30"
+            >
+              Open Guide
+            </button>
           </div>
         </div>
 
-        <form method="GET" className="mt-5 flex flex-wrap items-end gap-3">
-          <label className="flex min-w-[220px] flex-col gap-1 text-xs uppercase tracking-[0.12em] text-slate-300/80">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Players Showing</p>
+            <p className="mt-1 text-xl font-semibold text-white">{filteredRows.length}</p>
+          </article>
+          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Matchups</p>
+            <p className="mt-1 text-xl font-semibold text-white">{filteredTeamMatchups.length}</p>
+          </article>
+          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">High Data Quality</p>
+            <p className="mt-1 text-xl font-semibold text-white">{highQualityCount}</p>
+          </article>
+          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Lines Entered</p>
+            <p className="mt-1 text-xl font-semibold text-white">{activeLineCount}</p>
+          </article>
+        </div>
+
+        <form method="GET" className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[190px_1fr_220px_150px]">
+          <label className="flex min-w-[170px] flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
             Date (ET)
             <input
               name="date"
               type="date"
               defaultValue={data.dateEt}
-              className="rounded-xl border border-slate-300/20 bg-[#0d1630] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
+              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
             />
           </label>
+
+          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+            Matchup
+            <select
+              value={matchup}
+              onChange={(event) => setMatchup(event.target.value)}
+              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+            >
+              <option value="">All Matchups</option>
+              {data.matchups.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+            Market
+            <select
+              value={market}
+              onChange={(event) => setMarket(event.target.value as SnapshotMarket)}
+              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+            >
+              {MARKET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <button
             type="submit"
-            className="h-[42px] rounded-xl border border-cyan-300/40 bg-cyan-500/20 px-4 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/30"
+            className="h-[42px] self-end rounded-xl border border-amber-300/45 bg-amber-500/20 px-4 text-sm font-semibold text-amber-100 hover:bg-amber-500/30"
           >
             Load Date
           </button>
         </form>
 
-        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <select
-            value={matchup}
-            onChange={(event) => setMatchup(event.target.value)}
-            className="rounded-xl border border-slate-300/20 bg-[#0d1630] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-          >
-            <option value="">All Matchups</option>
-            {data.matchups.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={market}
-            onChange={(event) => setMarket(event.target.value as SnapshotMarket)}
-            className="rounded-xl border border-slate-300/20 bg-[#0d1630] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-          >
-            {MARKET_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <input
-            value={playerSearch}
-            onChange={(event) => setPlayerSearch(event.target.value)}
-            placeholder="Search player"
-            className="rounded-xl border border-slate-300/20 bg-[#0d1630] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-          />
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_230px]">
+          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+            Player Search
+            <input
+              value={playerSearch}
+              onChange={(event) => setPlayerSearch(event.target.value)}
+              placeholder="Type player name..."
+              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+            Badge Minutes Floor
+            <input
+              value={defaultMinutesFloor}
+              onChange={(event) => setDefaultMinutesFloor(event.target.value)}
+              inputMode="decimal"
+              placeholder="22"
+              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+            />
+          </label>
         </div>
+
+        <p className="mt-3 text-xs text-slate-300/80">
+          Tip: enter your line in the table, then use the new <span className="text-amber-200">Minute Badge</span> and player analyzer to validate workload assumptions.
+        </p>
+
+        {refreshMessage ? <p className="mt-2 text-xs text-emerald-200">{refreshMessage}</p> : null}
+        {refreshError ? <p className="mt-2 text-xs text-rose-200">{refreshError}</p> : null}
       </section>
 
-      <section className="mt-5">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-cyan-200">Team Matchup Stats</h2>
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Team Matchup Stats</h2>
         {filteredTeamMatchups.length === 0 ? (
-          <div className="glass rounded-2xl p-5 text-sm text-slate-300">No matchup stats available.</div>
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">No matchup stats available.</div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {filteredTeamMatchups.map((item) => {
               const awayEdge = edge(item.awayLast10For[market], item.homeLast10Allowed[market]);
               const homeEdge = edge(item.homeLast10For[market], item.awayLast10Allowed[market]);
               return (
-                <article key={item.matchupKey} className="glass rounded-2xl p-4">
-                  <p className="text-xs uppercase tracking-[0.12em] text-cyan-200">{item.matchupKey}</p>
+                <article key={item.matchupKey} className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-4 shadow-[0_16px_40px_-30px_rgba(245,158,11,0.45)]">
+                  <p className="text-xs uppercase tracking-[0.12em] text-amber-200">{item.matchupKey}</p>
                   <p className="text-xs text-slate-400">{item.gameTimeEt}</p>
 
                   <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3">
+                    <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.awayTeam}</p>
                       <p className="text-slate-300">
                         Record: {item.awaySeasonRecord.wins}-{item.awaySeasonRecord.losses} (L10 {item.awayLast10Record.wins}-{item.awayLast10Record.losses})
@@ -513,7 +582,7 @@ export function SnapshotDashboard({
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3">
+                    <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.homeTeam}</p>
                       <p className="text-slate-300">
                         Record: {item.homeSeasonRecord.wins}-{item.homeSeasonRecord.losses} (L10 {item.homeLast10Record.wins}-{item.homeLast10Record.losses})
@@ -536,17 +605,17 @@ export function SnapshotDashboard({
         )}
       </section>
 
-      <section className="mt-5">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.14em] text-cyan-200">Player Snapshot</h2>
+      <section className="mt-6">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Player Snapshot</h2>
         {filteredRows.length === 0 ? (
-          <div className="glass rounded-2xl p-6 text-sm text-slate-300">
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-slate-300">
             No players found for selected filters.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0f1734]">
+          <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0d162d] shadow-[0_16px_60px_-35px_rgba(245,158,11,0.55)]">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[2100px] text-left text-sm">
-                <thead className="bg-[#162249] text-xs uppercase tracking-[0.12em] text-slate-200/80">
+              <table className="w-full min-w-[2350px] text-left text-sm">
+                <thead className="bg-[#1a2a51] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
                     <th className="px-4 py-3">Matchup</th>
@@ -636,6 +705,12 @@ export function SnapshotDashboard({
                         definition="Over/under count versus your line using the player's last 10 completed games."
                       />
                     </th>
+                    <th className="px-4 py-3">
+                      <HeaderWithTip
+                        label="Minute Badge"
+                        definition="Hit rate versus your line when filtering to games above the selected minutes floor."
+                      />
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -648,6 +723,9 @@ export function SnapshotDashboard({
                     const ceiling = maxValue(l10Values);
                     const currentLine = parseLine(lineMap[lineKey(row.playerId, market)] ?? "");
                     const l10Hit = currentLine == null ? null : hitCounts(l10Values, currentLine);
+                    const minuteFloorLogs = row.analysisLogs.filter((log) => log.minutes >= selectedMinutesFloor);
+                    const minuteFloorValues = minuteFloorLogs.map((log) => marketValueFromLog(log, market));
+                    const minuteFloorHit = currentLine == null ? null : hitCounts(minuteFloorValues, currentLine);
 
                     return (
                       <tr
@@ -734,6 +812,22 @@ export function SnapshotDashboard({
                             ? "-"
                             : `${l10Hit.over}/${l10Values.length} O | ${l10Hit.under}/${l10Values.length} U`}
                         </td>
+                        <td className="px-4 py-3 text-xs">
+                          {currentLine == null || !minuteFloorHit ? (
+                            <span className="text-slate-400">Set line</span>
+                          ) : minuteFloorValues.length === 0 ? (
+                            <span className="text-slate-400">No {formatStat(selectedMinutesFloor)}+ min sample</span>
+                          ) : (
+                            <div className="inline-flex min-w-[175px] items-center justify-between rounded-lg border border-amber-300/35 bg-amber-500/10 px-2 py-1">
+                              <span className="font-semibold text-amber-100">
+                                {formatStat(selectedMinutesFloor)}+m: {minuteFloorHit.over}/{minuteFloorValues.length}
+                              </span>
+                              <span className="text-amber-200">
+                                {formatPercent(minuteFloorHit.over, minuteFloorValues.length)}
+                              </span>
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -743,6 +837,78 @@ export function SnapshotDashboard({
           </div>
         )}
       </section>
+
+      {guideOpen ? (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setGuideOpen(false);
+            }
+          }}
+        >
+          <section
+            className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200/20 bg-[#0e1932] p-5 shadow-[0_30px_90px_-40px_rgba(245,158,11,0.65)]"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/20 pb-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200">Navigation Guide</p>
+                <h3 className="title-font mt-1 text-2xl uppercase text-white">How To Use The Snapshot</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGuideOpen(false)}
+                className="rounded-lg border border-slate-300/30 bg-[#0c1428] px-3 py-1.5 text-xs text-slate-100 hover:bg-slate-800/40"
+              >
+                Close Guide
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
+                <ol className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>1. Pick a date, matchup, and market from the top filters.</li>
+                  <li>2. Enter your line in the table row for each player.</li>
+                  <li>3. Read `L10 O/U` plus the new `Minute Badge` before opening detail.</li>
+                  <li>4. Click a player row to open full analyzer + context sections.</li>
+                </ol>
+              </article>
+
+              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Minute Badge</p>
+                <p className="mt-2 text-xs text-slate-300">
+                  `Minute Badge` shows hit rate only in games above your selected minutes floor. Example:
+                  `22+m: 85/104 (82%)` means 85 overs in 104 games with 22+ minutes.
+                </p>
+                <p className="mt-2 text-xs text-slate-300">
+                  Use `Badge Minutes Floor` in the header to change the floor globally (20, 22, 24, etc.).
+                </p>
+              </article>
+
+              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Player Detail Workflow</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>- Start compact mode on.</li>
+                  <li>- Open `All Markets Detail` to set line + minutes scenario.</li>
+                  <li>- Compare projection vs line, then check minute-scenario sample and volatility.</li>
+                  <li>- Validate with `Player Context` and `Team Context` before final decision.</li>
+                </ul>
+              </article>
+
+              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Controls</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>- `Esc` closes guide or player detail modal.</li>
+                  <li>- `Refresh Data` pulls latest logs/lineup changes.</li>
+                  <li>- Hover `?` icons for formulas and term definitions.</li>
+                </ul>
+              </article>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {selectedPlayer ? (
         <div
