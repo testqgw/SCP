@@ -1,0 +1,646 @@
+{
+  "comparedPlayerMarketCombos": 3050,
+  "comparedPlayers": 439,
+  "totalRowsCompared": 76475,
+  "overall": {
+    "playerAccuracy": 91.2,
+    "universalAccuracy": 55.93,
+    "delta": 35.27,
+    "playerBetterMarketCombos": 2849,
+    "universalBetterMarketCombos": 1,
+    "tiedMarketCombos": 200
+  },
+  "byMarket": {
+    "PTS": {
+      "playerAccuracy": 91.21,
+      "universalAccuracy": 54.41,
+      "delta": 36.8,
+      "playerBetter": 396,
+      "universalBetter": 0,
+      "ties": 22,
+      "samples": 13145
+    },
+    "REB": {
+      "playerAccuracy": 90.03,
+      "universalAccuracy": 55.14,
+      "delta": 34.89,
+      "playerBetter": 392,
+      "universalBetter": 0,
+      "ties": 21,
+      "samples": 12940
+    },
+    "AST": {
+      "playerAccuracy": 90.07,
+      "universalAccuracy": 55.81,
+      "delta": 34.26,
+      "playerBetter": 381,
+      "universalBetter": 0,
+      "ties": 26,
+      "samples": 12780
+    },
+    "THREES": {
+      "playerAccuracy": 89.43,
+      "universalAccuracy": 57.36,
+      "delta": 32.07,
+      "playerBetter": 310,
+      "universalBetter": 0,
+      "ties": 31,
+      "samples": 9240
+    },
+    "PRA": {
+      "playerAccuracy": 92.46,
+      "universalAccuracy": 57.18,
+      "delta": 35.28,
+      "playerBetter": 343,
+      "universalBetter": 0,
+      "ties": 28,
+      "samples": 7146
+    },
+    "PA": {
+      "playerAccuracy": 92.87,
+      "universalAccuracy": 55.46,
+      "delta": 37.41,
+      "playerBetter": 340,
+      "universalBetter": 1,
+      "ties": 26,
+      "samples": 7079
+    },
+    "PR": {
+      "playerAccuracy": 93.25,
+      "universalAccuracy": 56.92,
+      "delta": 36.33,
+      "playerBetter": 343,
+      "universalBetter": 0,
+      "ties": 25,
+      "samples": 7124
+    },
+    "RA": {
+      "playerAccuracy": 92.64,
+      "universalAccuracy": 56.72,
+      "delta": 35.92,
+      "playerBetter": 344,
+      "universalBetter": 0,
+      "ties": 21,
+      "samples": 7021
+    }
+  },
+  "players": {
+    "playerBetterOverall": 430,
+    "universalBetterOverall": 0,
+    "tiedOverall": 9,
+    "topPlayerModelEdges": [
+      {
+        "playerId": "cmm6n0ye700abdx10uljqie4t",
+        "playerName": "Keshad Johnson",
+        "totalMarkets": 2,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 0,
+        "weightedDelta": 100
+      },
+      {
+        "playerId": "cmm6n17hr00gtdx10azo1cf4n",
+        "playerName": "Gary Payton II",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 0,
+        "weightedDelta": 100
+      },
+      {
+        "playerId": "cmm6n14xz00ezdx102apb8102",
+        "playerName": "Mason Plumlee",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 25,
+        "weightedDelta": 75
+      },
+      {
+        "playerId": "cmm6n0pxz004bdx10dllnbzje",
+        "playerName": "Maxi Kleber",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 6,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 27.27,
+        "weightedDelta": 72.73
+      },
+      {
+        "playerId": "cmm6n237w013hdx10kjrtnqea",
+        "playerName": "Monte Morris",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 5,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 28.57,
+        "weightedDelta": 71.43
+      },
+      {
+        "playerId": "cmm6n1vq500y3dx10p5osc0jd",
+        "playerName": "Chris Boucher",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 33.33,
+        "weightedDelta": 66.67
+      },
+      {
+        "playerId": "cmm6n1qb600u9dx10j8m560oe",
+        "playerName": "James Wiseman",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 33.33,
+        "weightedDelta": 66.67
+      },
+      {
+        "playerId": "cmm6n1qgt00uddx10q314lwln",
+        "playerName": "RayJ Dennis",
+        "totalMarkets": 6,
+        "playerBetterMarkets": 5,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 33.33,
+        "weightedDelta": 66.67
+      },
+      {
+        "playerId": "cmm6n14hd00epdx10fwh2a1h7",
+        "playerName": "Pat Connaughton",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 33.33,
+        "weightedDelta": 66.67
+      },
+      {
+        "playerId": "cmm6n1dzu00lhdx10agtkrgav",
+        "playerName": "Brandon Clarke",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 33.33,
+        "weightedDelta": 66.67
+      },
+      {
+        "playerId": "cmm6n0wz2009bdx10j2hq9xkk",
+        "playerName": "Jalen Wilson",
+        "totalMarkets": 4,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 37.5,
+        "weightedDelta": 62.5
+      },
+      {
+        "playerId": "cmm6n0wcv008vdx10dv33rdh4",
+        "playerName": "Ben Saraf",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 7,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 97.06,
+        "weightedUniversalAccuracy": 35.29,
+        "weightedDelta": 61.76
+      },
+      {
+        "playerId": "cmm6n1xwd00zndx10ukba2c8c",
+        "playerName": "Chris Paul",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 40,
+        "weightedDelta": 60
+      },
+      {
+        "playerId": "cmm6n0yh100addx10p7cppprm",
+        "playerName": "Ethan Thompson",
+        "totalMarkets": 2,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 40,
+        "weightedDelta": 60
+      },
+      {
+        "playerId": "cmm6n20qy011pdx106gz5im29",
+        "playerName": "Sharife Cooper",
+        "totalMarkets": 6,
+        "playerBetterMarkets": 6,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 40,
+        "weightedDelta": 60
+      },
+      {
+        "playerId": "cmm6n0pmu0043dx10458pvxeh",
+        "playerName": "Christian Koloko",
+        "totalMarkets": 6,
+        "playerBetterMarkets": 5,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 41.67,
+        "weightedDelta": 58.33
+      },
+      {
+        "playerId": "cmm6n1tew00wfdx101hhyw529",
+        "playerName": "Daeqwon Plowden",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 7,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 42.86,
+        "weightedDelta": 57.14
+      },
+      {
+        "playerId": "cmm6n17n700gxdx10ld2yeq47",
+        "playerName": "Pat Spencer",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 8,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 43.42,
+        "weightedDelta": 56.58
+      },
+      {
+        "playerId": "cmm6n14sf00evdx10r69yk3mw",
+        "playerName": "KJ Simpson",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 44.44,
+        "weightedDelta": 55.56
+      },
+      {
+        "playerId": "cmm6n0ymh00ahdx1056azfl21",
+        "playerName": "Myron Gardner",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 7,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 46.15,
+        "weightedDelta": 53.85
+      },
+      {
+        "playerId": "cmm6n0njk002ldx10lbzk41uw",
+        "playerName": "Justin Edwards",
+        "totalMarkets": 4,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 48.72,
+        "weightedDelta": 51.28
+      },
+      {
+        "playerId": "cmm6n16vo00gddx105bl2fcfq",
+        "playerName": "Kenrich Williams",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 8,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 98.08,
+        "weightedUniversalAccuracy": 47.12,
+        "weightedDelta": 50.96
+      },
+      {
+        "playerId": "cmm6n1pdg00tldx10g7zgo3xx",
+        "playerName": "Isaiah Jackson",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 7,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 97.03,
+        "weightedUniversalAccuracy": 46.53,
+        "weightedDelta": 50.5
+      },
+      {
+        "playerId": "cmm6n194100hzdx109xh8p25f",
+        "playerName": "Taurean Prince",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 50,
+        "weightedDelta": 50
+      },
+      {
+        "playerId": "cmm6n1v6q00xpdx10grr6qunb",
+        "playerName": "Walker Kessler",
+        "totalMarkets": 4,
+        "playerBetterMarkets": 4,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 50,
+        "weightedDelta": 50
+      }
+    ],
+    "topUniversalEdges": [
+      {
+        "playerId": "cmm6n1mo300rndx10u9v4i7c2",
+        "playerName": "Larry Nance Jr.",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n1jqi00pjdx10ywuds2b6",
+        "playerName": "Moussa Cisse",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n1hk200nzdx10aqtstevs",
+        "playerName": "Kelly Olynyk",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 3,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n20ai011ddx10f5y0hrqm",
+        "playerName": "Marvin Bagley III",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n1wni00yrdx10b3k846lt",
+        "playerName": "Amari Williams",
+        "totalMarkets": 2,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n1exf00m5dx10wsc8yizc",
+        "playerName": "Ronald Holland II",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n0wth0097dx101hsbpded",
+        "playerName": "Kobe Bufkin",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 7,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n23u8013vdx10947th76q",
+        "playerName": "Blake Hinson",
+        "totalMarkets": 2,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n20lh011ldx1076e09b37",
+        "playerName": "Leaky Black",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 0,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 3,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 100,
+        "weightedDelta": 0
+      },
+      {
+        "playerId": "cmm6n1poq00ttdx10xr9dfmfw",
+        "playerName": "Obi Toppin",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 7,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 87.5,
+        "weightedDelta": 12.5
+      },
+      {
+        "playerId": "cmm6n1ddj00l1dx10184ctcao",
+        "playerName": "Scotty Pippen Jr.",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 87.5,
+        "weightedDelta": 12.5
+      },
+      {
+        "playerId": "cmm6n20d9011fdx10ik3bpk5k",
+        "playerName": "Jamir Watkins",
+        "totalMarkets": 6,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 3,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 86.36,
+        "weightedDelta": 13.64
+      },
+      {
+        "playerId": "cmm6n18vm00htdx10co32nw79",
+        "playerName": "Kevin Porter Jr.",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 93.75,
+        "weightedUniversalAccuracy": 78.13,
+        "weightedDelta": 15.63
+      },
+      {
+        "playerId": "cmm6n1seq00vpdx10i2euaukf",
+        "playerName": "Matisse Thybulle",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 83.33,
+        "weightedDelta": 16.67
+      },
+      {
+        "playerId": "cmm6n17vk00h3dx10pst5n1o8",
+        "playerName": "Trayce Jackson-Davis",
+        "totalMarkets": 3,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 83.33,
+        "weightedDelta": 16.67
+      },
+      {
+        "playerId": "cmm6n1rgt00v3dx101ektg2t9",
+        "playerName": "Yang Hansen",
+        "totalMarkets": 4,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 3,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 83.33,
+        "weightedDelta": 16.67
+      },
+      {
+        "playerId": "cmm6n1rmh00v7dx10mygmw9t0",
+        "playerName": "Blake Wesley",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 5,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 81.82,
+        "weightedDelta": 18.18
+      },
+      {
+        "playerId": "cmm6n15pu00fjdx103b3bs65u",
+        "playerName": "Branden Carlson",
+        "totalMarkets": 6,
+        "playerBetterMarkets": 2,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 4,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 81.82,
+        "weightedDelta": 18.18
+      },
+      {
+        "playerId": "cmm6n20ts011rdx10jeepqhb3",
+        "playerName": "Anthony Gill",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 6,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 93.75,
+        "weightedUniversalAccuracy": 75,
+        "weightedDelta": 18.75
+      },
+      {
+        "playerId": "cmm6n1akw00j1dx10qr0dw753",
+        "playerName": "Aaron Holiday",
+        "totalMarkets": 4,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 1,
+        "weightedPlayerAccuracy": 96.67,
+        "weightedUniversalAccuracy": 76.67,
+        "weightedDelta": 20
+      },
+      {
+        "playerId": "cmm6n1mz500rvdx10nk4v0zcv",
+        "playerName": "Thomas Bryant",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 4,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 3,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 79.17,
+        "weightedDelta": 20.83
+      },
+      {
+        "playerId": "cmm6n22zj013bdx10wi9zuioh",
+        "playerName": "DeAndre Jordan",
+        "totalMarkets": 7,
+        "playerBetterMarkets": 3,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 4,
+        "weightedPlayerAccuracy": 100,
+        "weightedUniversalAccuracy": 78.95,
+        "weightedDelta": 21.05
+      },
+      {
+        "playerId": "cmm6n0zxo00bfdx103c74th36",
+        "playerName": "Noah Penda",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 5,
+        "universalBetterMarkets": 1,
+        "tiedMarkets": 2,
+        "weightedPlayerAccuracy": 84.85,
+        "weightedUniversalAccuracy": 63.64,
+        "weightedDelta": 21.21
+      },
+      {
+        "playerId": "cmm6n1xfo00zbdx10zegcq8xk",
+        "playerName": "Derrick Jones Jr.",
+        "totalMarkets": 1,
+        "playerBetterMarkets": 1,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 88.89,
+        "weightedUniversalAccuracy": 66.67,
+        "weightedDelta": 22.22
+      },
+      {
+        "playerId": "cmm6n1anp00j3dx10o6du03yu",
+        "playerName": "Josh Okogie",
+        "totalMarkets": 8,
+        "playerBetterMarkets": 8,
+        "universalBetterMarkets": 0,
+        "tiedMarkets": 0,
+        "weightedPlayerAccuracy": 93.82,
+        "weightedUniversalAccuracy": 71.35,
+        "weightedDelta": 22.47
+      }
+    ]
+  }
+}

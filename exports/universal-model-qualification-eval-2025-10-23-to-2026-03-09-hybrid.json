@@ -1,0 +1,139 @@
+{
+  "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live.json",
+  "from": "2025-10-23",
+  "to": "2026-03-09",
+  "filters": {
+    "minActualMinutes": 15
+  },
+  "settings": {
+    "minBucketLateAccuracy": 56,
+    "minBucketSamples": 0,
+    "minLeafAccuracy": 67,
+    "minLeafCount": 0,
+    "marketOverrides": {
+      "PTS": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0
+      },
+      "REB": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0
+      },
+      "AST": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0
+      },
+      "THREES": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0
+      },
+      "PRA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0
+      },
+      "PA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 61,
+        "minLeafCount": 0
+      },
+      "PR": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0
+      },
+      "RA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 62,
+        "minLeafCount": 0
+      }
+    }
+  },
+  "overall": {
+    "samples": 76475,
+    "rawAccuracy": 67.93,
+    "qualifiedAccuracy": 70.26,
+    "qualifiedPicks": 62985,
+    "coveragePct": 82.36,
+    "blendedAccuracy": 67.16
+  },
+  "byMarket": {
+    "PTS": {
+      "samples": 13145,
+      "rawAccuracy": 66.31,
+      "qualifiedAccuracy": 67.29,
+      "qualifiedPicks": 12127,
+      "coveragePct": 92.26,
+      "blendedAccuracy": 65.61
+    },
+    "REB": {
+      "samples": 12940,
+      "rawAccuracy": 66.14,
+      "qualifiedAccuracy": 69.63,
+      "qualifiedPicks": 9130,
+      "coveragePct": 70.56,
+      "blendedAccuracy": 65.06
+    },
+    "AST": {
+      "samples": 12780,
+      "rawAccuracy": 65.34,
+      "qualifiedAccuracy": 68.06,
+      "qualifiedPicks": 9779,
+      "coveragePct": 76.52,
+      "blendedAccuracy": 64.73
+    },
+    "THREES": {
+      "samples": 9240,
+      "rawAccuracy": 68.55,
+      "qualifiedAccuracy": 69.96,
+      "qualifiedPicks": 8207,
+      "coveragePct": 88.82,
+      "blendedAccuracy": 68.03
+    },
+    "PRA": {
+      "samples": 7146,
+      "rawAccuracy": 70.96,
+      "qualifiedAccuracy": 72,
+      "qualifiedPicks": 6707,
+      "coveragePct": 93.86,
+      "blendedAccuracy": 70.75
+    },
+    "PA": {
+      "samples": 7079,
+      "rawAccuracy": 70.24,
+      "qualifiedAccuracy": 75.02,
+      "qualifiedPicks": 5232,
+      "coveragePct": 73.91,
+      "blendedAccuracy": 68.96
+    },
+    "PR": {
+      "samples": 7124,
+      "rawAccuracy": 70.31,
+      "qualifiedAccuracy": 71.99,
+      "qualifiedPicks": 6380,
+      "coveragePct": 89.56,
+      "blendedAccuracy": 69.68
+    },
+    "RA": {
+      "samples": 7021,
+      "rawAccuracy": 70.39,
+      "qualifiedAccuracy": 73.56,
+      "qualifiedPicks": 5423,
+      "coveragePct": 77.24,
+      "blendedAccuracy": 69.15
+    }
+  },
+  "sweepTopResults": []
+}

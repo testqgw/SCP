@@ -25,6 +25,12 @@ type Archetype =
   | "BENCH_GUARD"
   | "BENCH_WING"
   | "BENCH_SCORING_WING"
+  | "BENCH_LOW_USAGE_WING"
+  | "BENCH_MIDRANGE_SCORER"
+  | "BENCH_VOLUME_SCORER"
+  | "BENCH_CREATOR_SCORER"
+  | "BENCH_REBOUNDING_SCORER"
+  | "BENCH_SPACER_SCORER"
   | "BENCH_BIG"
   | "TWO_WAY_MARKET_WING"
   | "SCORER_CREATOR_WING"
@@ -108,6 +114,8 @@ type EnrichedRow = TrainingRow & {
   rimPressureStarFlag: number | null;
   lowThreeVolumeStarFlag: number | null;
   comboGapPressure: number | null;
+  assistRate: number | null;
+  astToLineRatio: number | null;
 };
 
 type FeatureName =
@@ -146,7 +154,9 @@ type FeatureName =
   | "overPrice"
   | "underPrice"
   | "overProbability"
-  | "underProbability";
+  | "underProbability"
+  | "assistRate"
+  | "astToLineRatio";
 
 type LeafNode = {
   kind: "leaf";
@@ -327,15 +337,34 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
     (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") &&
     (pts >= 16 || threes >= 1.8)
   ) {
-    return "BENCH_SCORING_WING";
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
   }
   if (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") {
     return "BENCH_WING";
   }
-  if (pts >= 15 || threes >= 1.8) return "BENCH_SCORING_WING";
+  if (pts >= 15 || threes >= 1.8) {
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
+  }
   if (ast >= reb && ast >= 3.5) return "BENCH_GUARD";
   if (reb >= pts && reb >= ast) return "BENCH_BIG";
-  if (pts >= reb && pts >= ast) return "BENCH_SCORING_WING";
+  if (pts >= reb && pts >= ast) {
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
+  }
   return "LOW_MINUTE_BENCH";
 }
 
@@ -540,6 +569,10 @@ function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
       return impliedProbability(row.overPrice);
     case "underProbability":
       return impliedProbability(row.underPrice);
+    case "assistRate":
+      return row.assistRate;
+    case "astToLineRatio":
+      return row.astToLineRatio;
     default:
       return null;
   }
@@ -595,6 +628,69 @@ function leafFromRows(rows: EnrichedRow[]): LeafNode {
 }
 
 function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] {
+  if (archetype === "BENCH_CREATOR_SCORER") {
+    if (market === "PTS") {
+      return ["priceLean", "underPrice", "expectedMinutes", "lineGap", "absLineGap", "minutesVolatility", "projectedValue", "overProbability"];
+    }
+    if (market === "REB") {
+      return ["lineGap", "expectedMinutes", "priceAbsLean", "line", "minutesVolatility", "underProbability", "overPrice"];
+    }
+    if (market === "AST") {
+      return ["projectedValue", "lineGap", "absLineGap", "minutesVolatility", "expectedMinutes", "underProbability", "overPrice", "priceLean"];
+    }
+    if (market === "THREES") {
+      return ["lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "overPrice", "line", "lineTier"];
+    }
+    if (market === "PRA" || market === "PA" || market === "PR") {
+      return ["lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap", "comboGapPressure"];
+    }
+    if (market === "RA") {
+      return ["overProbability", "lineGap", "expectedMinutes", "minutesVolatility", "absLineGap", "priceLean", "projectedValue"];
+    }
+  }
+  if (archetype === "BENCH_REBOUNDING_SCORER") {
+    if (market === "PTS") {
+      return ["expectedMinutes", "lineGap", "absLineGap", "projectedValue", "priceLean", "minutesVolatility", "underProbability"];
+    }
+    if (market === "REB") {
+      return ["lineGap", "expectedMinutes", "line", "projectedValue", "priceAbsLean", "minutesVolatility", "overPrice", "underProbability"];
+    }
+    if (market === "AST") {
+      return ["underProbability", "lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap"];
+    }
+    if (market === "THREES") {
+      return ["absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "lineGap", "line", "lineTier"];
+    }
+    if (market === "PRA" || market === "PR") {
+      return ["lineGap", "expectedMinutes", "projectedValue", "priceLean", "absLineGap", "minutesVolatility", "comboGapPressure"];
+    }
+    if (market === "PA") {
+      return ["lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "absLineGap", "priceLean", "comboGapPressure"];
+    }
+    if (market === "RA") {
+      return ["lineGap", "expectedMinutes", "projectedValue", "absLineGap", "minutesVolatility", "priceLean", "comboGapPressure"];
+    }
+  }
+  if (archetype === "BENCH_SPACER_SCORER") {
+    if (market === "PTS") {
+      return ["priceLean", "expectedMinutes", "projectedValue", "lineGap", "absLineGap", "underPrice", "priceAbsLean", "overProbability"];
+    }
+    if (market === "REB") {
+      return ["underProbability", "lineGap", "expectedMinutes", "line", "priceAbsLean", "minutesVolatility", "overPrice"];
+    }
+    if (market === "AST") {
+      return ["lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "absLineGap", "underProbability", "priceLean"];
+    }
+    if (market === "THREES") {
+      return ["priceLean", "overPrice", "lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "line", "lineTier", "projectionToLineRatio"];
+    }
+    if (market === "PRA" || market === "PA" || market === "PR") {
+      return ["lineGap", "expectedMinutes", "priceLean", "absLineGap", "projectedValue", "minutesVolatility", "comboGapPressure"];
+    }
+    if (market === "RA") {
+      return ["lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "overProbability", "projectedValue"];
+    }
+  }
   if (archetype === "TWO_WAY_MARKET_WING") {
     if (market === "PTS") {
       return ["priceLean", "expectedMinutes", "projectedValue", "lineGap", "absLineGap", "underProbability", "overPrice", "priceAbsLean"];
@@ -756,6 +852,8 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
         "priceLean",
         "underProbability",
         "overPrice",
+        "assistRate",
+        "astToLineRatio",
       ];
     }
     if (market === "THREES") {
@@ -833,6 +931,8 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
         "underProbability",
         "overPrice",
         "priceLean",
+        "assistRate",
+        "astToLineRatio",
       ];
     }
     if (market === "THREES") {
@@ -1149,6 +1249,8 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       "underProbability",
       "overPrice",
       "underPrice",
+      "assistRate",
+      "astToLineRatio",
     ];
   }
   return [
@@ -1635,6 +1737,14 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
               4,
             )
           : null,
+      assistRate:
+        summaryAssists != null && summaryMinutes != null && summaryMinutes > 0
+          ? round(summaryAssists / Math.max(summaryMinutes, 1), 4)
+          : null,
+      astToLineRatio:
+        row.market === "AST" && row.line > 0
+          ? round(row.projectedValue / row.line, 4)
+          : null,
     };
   });
 }
@@ -1666,6 +1776,12 @@ async function main(): Promise<void> {
     "BENCH_GUARD",
     "BENCH_WING",
     "BENCH_SCORING_WING",
+    "BENCH_LOW_USAGE_WING",
+    "BENCH_MIDRANGE_SCORER",
+    "BENCH_VOLUME_SCORER",
+    "BENCH_CREATOR_SCORER",
+    "BENCH_REBOUNDING_SCORER",
+    "BENCH_SPACER_SCORER",
     "BENCH_BIG",
     "TWO_WAY_MARKET_WING",
     "SCORER_CREATOR_WING",
@@ -1770,6 +1886,9 @@ async function main(): Promise<void> {
       BENCH_GUARD: "Low-minute or low-start-rate reserve guard with assist-driven secondary creation.",
       BENCH_WING: "Low-minute or low-start-rate reserve wing with balanced non-primary scoring profile.",
       BENCH_SCORING_WING: "Low-minute or low-start-rate scoring reserve wing driven by points and 3PM volume.",
+      BENCH_CREATOR_SCORER: "Reserve scorer with secondary creation juice, stronger assist pressure than pure shooting specialists.",
+      BENCH_REBOUNDING_SCORER: "Reserve scorer with stronger rebounding involvement and forward-style combo-market shape.",
+      BENCH_SPACER_SCORER: "Reserve scorer leaning toward spacing, catch-and-shoot threes, and points-driven line shape.",
       BENCH_BIG: "Low-minute or low-start-rate reserve big with rebound-centric frontcourt profile.",
       TWO_WAY_MARKET_WING:
         "High-minute balanced wing with two-way box score output and market-shaped prop behavior across assists, threes, and combos.",

@@ -1,0 +1,1083 @@
+{
+  "generatedFrom": "exports\\player-backtests\\anthony-edwards-2025-10-23-to-2026-03-09-final-model-report.json",
+  "playerSummary": {
+    "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+    "playerName": "Anthony Edwards",
+    "marketCount": 8,
+    "targetHitCount": 8,
+    "allEightHit": true,
+    "markets": {
+      "PTS": {
+        "samples": 52,
+        "modelAccuracy": 94.23,
+        "holdoutAccuracy": 93.75,
+        "targetHit": true
+      },
+      "REB": {
+        "samples": 52,
+        "modelAccuracy": 88.46,
+        "holdoutAccuracy": 81.25,
+        "targetHit": true
+      },
+      "AST": {
+        "samples": 52,
+        "modelAccuracy": 88.46,
+        "holdoutAccuracy": 87.5,
+        "targetHit": true
+      },
+      "THREES": {
+        "samples": 47,
+        "modelAccuracy": 91.49,
+        "holdoutAccuracy": 80,
+        "targetHit": true
+      },
+      "PRA": {
+        "samples": 31,
+        "modelAccuracy": 83.87,
+        "holdoutAccuracy": 100,
+        "targetHit": true
+      },
+      "PA": {
+        "samples": 31,
+        "modelAccuracy": 90.32,
+        "holdoutAccuracy": 90,
+        "targetHit": true
+      },
+      "PR": {
+        "samples": 31,
+        "modelAccuracy": 96.77,
+        "holdoutAccuracy": 100,
+        "targetHit": true
+      },
+      "RA": {
+        "samples": 31,
+        "modelAccuracy": 93.55,
+        "holdoutAccuracy": 100,
+        "targetHit": true
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "AST",
+      "samples": 52,
+      "projectionBaselineAccuracy": 53.85,
+      "finalBaselineAccuracy": 55.77,
+      "modelAccuracy": 88.46,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "projectedValue",
+          "threshold": 3.845,
+          "count": 52,
+          "accuracy": 71.15,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 36.33,
+            "count": 5,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 4,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "underProbability",
+            "threshold": 0.4773,
+            "count": 47,
+            "accuracy": 74.47,
+            "left": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -156,
+              "count": 14,
+              "accuracy": 85.71,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.91,
+                "count": 10,
+                "accuracy": 90,
+                "left": {
+                  "kind": "split",
+                  "feature": "underPrice",
+                  "threshold": -19.25,
+                  "count": 9,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 8,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 33,
+              "accuracy": 81.82
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "PA",
+      "samples": 31,
+      "projectionBaselineAccuracy": 61.29,
+      "finalBaselineAccuracy": 51.61,
+      "modelAccuracy": 90.32,
+      "holdoutAccuracy": 70,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": -0.06,
+          "count": 31,
+          "accuracy": 64.52,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 28.16,
+            "count": 12,
+            "accuracy": 75,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 3.385,
+              "count": 11,
+              "accuracy": 81.82,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "overPrice",
+                "threshold": -114.25,
+                "count": 10,
+                "accuracy": 90,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 9,
+                  "accuracy": 88.89
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 2.39,
+            "count": 19,
+            "accuracy": 78.95,
+            "left": {
+              "kind": "split",
+              "feature": "line",
+              "threshold": 34,
+              "count": 14,
+              "accuracy": 85.72,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 13,
+                "accuracy": 84.62
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 4.385,
+              "count": 5,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "PR",
+      "samples": 31,
+      "projectionBaselineAccuracy": 67.74,
+      "finalBaselineAccuracy": 54.84,
+      "modelAccuracy": 96.77,
+      "holdoutAccuracy": 60,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 36.345,
+          "count": 31,
+          "accuracy": 67.74,
+          "left": {
+            "kind": "split",
+            "feature": "priceAbsLean",
+            "threshold": 0.0144,
+            "count": 18,
+            "accuracy": 77.78,
+            "left": {
+              "kind": "split",
+              "feature": "line",
+              "threshold": 33,
+              "count": 13,
+              "accuracy": 84.62,
+              "left": {
+                "kind": "split",
+                "feature": "minutesVolatility",
+                "threshold": 3.79,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 10,
+                "accuracy": 90
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -4.68,
+              "count": 5,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 4,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 4.135,
+            "count": 13,
+            "accuracy": 84.62,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 4.115,
+              "count": 10,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 9,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.605,
+              "count": 3,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "PRA",
+      "samples": 31,
+      "projectionBaselineAccuracy": 61.29,
+      "finalBaselineAccuracy": 58.06,
+      "modelAccuracy": 83.87,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 33.625,
+          "count": 31,
+          "accuracy": 64.52,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 9,
+            "accuracy": 66.67
+          },
+          "right": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": 0.0022,
+            "count": 22,
+            "accuracy": 72.73,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.38,
+              "count": 16,
+              "accuracy": 81.25,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -1.005,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 13,
+                "accuracy": 84.62
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 40.135,
+              "count": 6,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "PTS",
+      "samples": 52,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 46.15,
+      "modelAccuracy": 94.23,
+      "holdoutAccuracy": 62.5,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "overProbability",
+          "threshold": 0.547,
+          "count": 52,
+          "accuracy": 61.54,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -1.015,
+            "count": 41,
+            "accuracy": 63.42,
+            "left": {
+              "kind": "split",
+              "feature": "underPrice",
+              "threshold": -120.25,
+              "count": 8,
+              "accuracy": 87.5,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceAbsLean",
+                "threshold": 0.0032,
+                "count": 6,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 5,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "underPrice",
+              "threshold": -119.25,
+              "count": 33,
+              "accuracy": 69.7,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.83,
+                "count": 19,
+                "accuracy": 84.21,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "expectedMinutes",
+                  "threshold": 38.69,
+                  "count": 18,
+                  "accuracy": 88.89,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 17,
+                    "accuracy": 88.24
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 35.99,
+                "count": 14,
+                "accuracy": 78.57,
+                "left": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": 1.48,
+                  "count": 7,
+                  "accuracy": 85.72,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 4,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  }
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "priceAbsLean",
+                  "threshold": 0.0111,
+                  "count": 7,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 5,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 2,
+                    "accuracy": 100
+                  }
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 0.145,
+            "count": 11,
+            "accuracy": 72.73,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 28.26,
+              "count": 5,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 32.055,
+              "count": 6,
+              "accuracy": 83.33,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "minutesVolatility",
+                "threshold": 2.42,
+                "count": 5,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 4,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "RA",
+      "samples": 31,
+      "projectionBaselineAccuracy": 70.97,
+      "finalBaselineAccuracy": 74.19,
+      "modelAccuracy": 93.55,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "priceLean",
+          "threshold": 0.0736,
+          "count": 31,
+          "accuracy": 80.65,
+          "left": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 2.03,
+            "count": 27,
+            "accuracy": 85.19,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.865,
+              "count": 25,
+              "accuracy": 88,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 22,
+                "accuracy": 90.91
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 1.375,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 4,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "REB",
+      "samples": 52,
+      "projectionBaselineAccuracy": 51.92,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 88.46,
+      "holdoutAccuracy": 56.25,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "overPrice",
+          "threshold": -135.5,
+          "count": 52,
+          "accuracy": 65.38,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.61,
+            "count": 15,
+            "accuracy": 86.67,
+            "left": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": 0.0847,
+              "count": 6,
+              "accuracy": 83.34,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 30.125,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 9,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 36.885,
+            "count": 37,
+            "accuracy": 67.57,
+            "left": {
+              "kind": "split",
+              "feature": "line",
+              "threshold": 5.375,
+              "count": 25,
+              "accuracy": 76,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.41,
+                "count": 5,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 3,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 20,
+                "accuracy": 80
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.115,
+              "count": 12,
+              "accuracy": 75,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 8,
+                "accuracy": 75
+              },
+              "right": {
+                "kind": "split",
+                "feature": "underPrice",
+                "threshold": -143.5,
+                "count": 4,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 3,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n13ek00dxdx10a85oxmw7",
+      "playerName": "Anthony Edwards",
+      "market": "THREES",
+      "samples": 47,
+      "projectionBaselineAccuracy": 46.81,
+      "finalBaselineAccuracy": 40.43,
+      "modelAccuracy": 91.49,
+      "holdoutAccuracy": 33.33,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 36.76,
+          "count": 47,
+          "accuracy": 61.71,
+          "left": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": -121,
+            "count": 32,
+            "accuracy": 65.62,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.365,
+              "count": 6,
+              "accuracy": 83.34,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 35.035,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.235,
+              "count": 26,
+              "accuracy": 69.23,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 30.125,
+                "count": 7,
+                "accuracy": 85.71,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 5,
+                  "accuracy": 80
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "minutesVolatility",
+                "threshold": 3.235,
+                "count": 19,
+                "accuracy": 78.95,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "priceLean",
+                  "threshold": -0.1957,
+                  "count": 18,
+                  "accuracy": 83.33,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 17,
+                    "accuracy": 82.35
+                  }
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.3,
+            "count": 15,
+            "accuracy": 86.66,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 3,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.06,
+              "count": 12,
+              "accuracy": 83.34,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 37.36,
+                "count": 9,
+                "accuracy": 88.89,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "projectedValue",
+                  "threshold": 3.56,
+                  "count": 8,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 7,
+                    "accuracy": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    }
+  ]
+}

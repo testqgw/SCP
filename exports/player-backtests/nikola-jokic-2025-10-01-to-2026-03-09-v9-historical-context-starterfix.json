@@ -1,0 +1,3817 @@
+{
+  "player": {
+    "id": "cmm6n10pc00bzdx10pvcq9zq9",
+    "name": "Nikola Jokić",
+    "position": "C"
+  },
+  "range": {
+    "from": "2025-10-01",
+    "to": "2026-03-09",
+    "seasonStartDateEt": "2025-10-01"
+  },
+  "gameCount": 48,
+  "overall": {
+    "samples": 384,
+    "blendedMae": 5.517,
+    "correctSide": 204,
+    "wrongSide": 178,
+    "pushes": 2,
+    "sideAccuracyPct": 53.4
+  },
+  "perMarket": {
+    "PTS": {
+      "samples": 48,
+      "mae": 6.995,
+      "rmse": 9.403,
+      "bias": -0.604,
+      "correctSide": 18,
+      "wrongSide": 30,
+      "pushes": 0,
+      "sideAccuracyPct": 37.5,
+      "overCalls": 23,
+      "underCalls": 25
+    },
+    "REB": {
+      "samples": 48,
+      "mae": 3.284,
+      "rmse": 3.945,
+      "bias": 0.056,
+      "correctSide": 24,
+      "wrongSide": 23,
+      "pushes": 1,
+      "sideAccuracyPct": 51.06,
+      "overCalls": 20,
+      "underCalls": 27
+    },
+    "AST": {
+      "samples": 48,
+      "mae": 3.03,
+      "rmse": 3.526,
+      "bias": 0.416,
+      "correctSide": 31,
+      "wrongSide": 17,
+      "pushes": 0,
+      "sideAccuracyPct": 64.58,
+      "overCalls": 27,
+      "underCalls": 21
+    },
+    "THREES": {
+      "samples": 48,
+      "mae": 1.304,
+      "rmse": 1.549,
+      "bias": 0.006,
+      "correctSide": 32,
+      "wrongSide": 16,
+      "pushes": 0,
+      "sideAccuracyPct": 66.67,
+      "overCalls": 23,
+      "underCalls": 25
+    },
+    "PRA": {
+      "samples": 48,
+      "mae": 8.947,
+      "rmse": 11.479,
+      "bias": -0.132,
+      "correctSide": 29,
+      "wrongSide": 19,
+      "pushes": 0,
+      "sideAccuracyPct": 60.42,
+      "overCalls": 17,
+      "underCalls": 31
+    },
+    "PA": {
+      "samples": 48,
+      "mae": 7.256,
+      "rmse": 9.695,
+      "bias": -0.188,
+      "correctSide": 28,
+      "wrongSide": 19,
+      "pushes": 1,
+      "sideAccuracyPct": 59.57,
+      "overCalls": 24,
+      "underCalls": 23
+    },
+    "PR": {
+      "samples": 48,
+      "mae": 8.286,
+      "rmse": 10.941,
+      "bias": -0.548,
+      "correctSide": 21,
+      "wrongSide": 27,
+      "pushes": 0,
+      "sideAccuracyPct": 43.75,
+      "overCalls": 19,
+      "underCalls": 29
+    },
+    "RA": {
+      "samples": 48,
+      "mae": 5.039,
+      "rmse": 5.874,
+      "bias": 0.469,
+      "correctSide": 21,
+      "wrongSide": 27,
+      "pushes": 0,
+      "sideAccuracyPct": 43.75,
+      "overCalls": 21,
+      "underCalls": 27
+    }
+  },
+  "games": [
+    {
+      "gameDateEt": "2025-10-25",
+      "matchupKey": "PHX@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "PHX",
+      "projectedMinutes": 40.83,
+      "actualMinutes": 32.03333333333333,
+      "completenessScore": 44,
+      "projections": {
+        "PTS": 20.41,
+        "REB": 12.95,
+        "AST": 9.97,
+        "THREES": 1.99,
+        "PRA": 43.33,
+        "PA": 30.38,
+        "PR": 33.36,
+        "RA": 22.92
+      },
+      "fairLines": {
+        "PTS": 20.5,
+        "REB": 12.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 43.5,
+        "PA": 30.5,
+        "PR": 33.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 14,
+        "REB": 14,
+        "AST": 15,
+        "THREES": 0,
+        "PRA": 43,
+        "PA": 29,
+        "PR": 28,
+        "RA": 29
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -12.5,
+        "openingTotal": 234.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.68
+      }
+    },
+    {
+      "gameDateEt": "2025-10-27",
+      "matchupKey": "DEN@MIN",
+      "teamCode": "DEN",
+      "opponentCode": "MIN",
+      "projectedMinutes": 36.69,
+      "actualMinutes": 36.13,
+      "completenessScore": 43,
+      "projections": {
+        "PTS": 14.2,
+        "REB": 13.48,
+        "AST": 12.45,
+        "THREES": 1.01,
+        "PRA": 40.13,
+        "PA": 26.65,
+        "PR": 27.68,
+        "RA": 25.93
+      },
+      "fairLines": {
+        "PTS": 14.5,
+        "REB": 13.5,
+        "AST": 12.5,
+        "THREES": 1.5,
+        "PRA": 40.5,
+        "PA": 26.5,
+        "PR": 27.5,
+        "RA": 25.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 25,
+        "REB": 19,
+        "AST": 10,
+        "THREES": 0,
+        "PRA": 54,
+        "PA": 35,
+        "PR": 44,
+        "RA": 29
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": 1.5,
+        "openingTotal": 221.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.36
+      }
+    },
+    {
+      "gameDateEt": "2025-10-29",
+      "matchupKey": "NOP@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "NOP",
+      "projectedMinutes": 38.86,
+      "actualMinutes": 27.55,
+      "completenessScore": 50,
+      "projections": {
+        "PTS": 20.08,
+        "REB": 15.39,
+        "AST": 11.64,
+        "THREES": 0.67,
+        "PRA": 47.11,
+        "PA": 31.72,
+        "PR": 35.47,
+        "RA": 27.05
+      },
+      "fairLines": {
+        "PTS": 20.5,
+        "REB": 15.5,
+        "AST": 11.5,
+        "THREES": 0.5,
+        "PRA": 47.5,
+        "PA": 31.5,
+        "PR": 35.5,
+        "RA": 27.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 21,
+        "REB": 12,
+        "AST": 10,
+        "THREES": 1,
+        "PRA": 43,
+        "PA": 31,
+        "PR": 33,
+        "RA": 22
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -10.5,
+        "openingTotal": 237.5,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 4.09
+      }
+    },
+    {
+      "gameDateEt": "2025-10-31",
+      "matchupKey": "DEN@POR",
+      "teamCode": "DEN",
+      "opponentCode": "POR",
+      "projectedMinutes": 33.83,
+      "actualMinutes": 37.05,
+      "completenessScore": 54,
+      "projections": {
+        "PTS": 20.18,
+        "REB": 14.51,
+        "AST": 11.23,
+        "THREES": 0.72,
+        "PRA": 45.92,
+        "PA": 31.41,
+        "PR": 34.69,
+        "RA": 25.74
+      },
+      "fairLines": {
+        "PTS": 20.5,
+        "REB": 14.5,
+        "AST": 11.5,
+        "THREES": 0.5,
+        "PRA": 45.5,
+        "PA": 31.5,
+        "PR": 34.5,
+        "RA": 25.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 21,
+        "REB": 14,
+        "AST": 9,
+        "THREES": 2,
+        "PRA": 44,
+        "PA": 30,
+        "PR": 35,
+        "RA": 23
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.5,
+        "openingTotal": 235.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.55
+      }
+    },
+    {
+      "gameDateEt": "2025-11-03",
+      "matchupKey": "SAC@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "SAC",
+      "projectedMinutes": 34.36,
+      "actualMinutes": 36.015,
+      "completenessScore": 61,
+      "projections": {
+        "PTS": 20.43,
+        "REB": 14.41,
+        "AST": 10.73,
+        "THREES": 0.99,
+        "PRA": 45.57,
+        "PA": 31.16,
+        "PR": 34.84,
+        "RA": 25.14
+      },
+      "fairLines": {
+        "PTS": 20.5,
+        "REB": 14.5,
+        "AST": 10.5,
+        "THREES": 0.5,
+        "PRA": 45.5,
+        "PA": 31.5,
+        "PR": 34.5,
+        "RA": 25.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 34,
+        "REB": 7,
+        "AST": 14,
+        "THREES": 4,
+        "PRA": 55,
+        "PA": 48,
+        "PR": 41,
+        "RA": 21
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -11.5,
+        "openingTotal": 237,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.29
+      }
+    },
+    {
+      "gameDateEt": "2025-11-05",
+      "matchupKey": "MIA@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "MIA",
+      "projectedMinutes": 33.79,
+      "actualMinutes": 36.57833333333333,
+      "completenessScore": 67,
+      "projections": {
+        "PTS": 23.37,
+        "REB": 12.94,
+        "AST": 11.24,
+        "THREES": 1.55,
+        "PRA": 47.55,
+        "PA": 34.61,
+        "PR": 36.31,
+        "RA": 24.17
+      },
+      "fairLines": {
+        "PTS": 23.5,
+        "REB": 12.5,
+        "AST": 11.5,
+        "THREES": 1.5,
+        "PRA": 47.5,
+        "PA": 34.5,
+        "PR": 36.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 33,
+        "REB": 15,
+        "AST": 16,
+        "THREES": 2,
+        "PRA": 64,
+        "PA": 49,
+        "PR": 48,
+        "RA": 31
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -9,
+        "openingTotal": 241.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.53
+      }
+    },
+    {
+      "gameDateEt": "2025-11-07",
+      "matchupKey": "GSW@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "GSW",
+      "projectedMinutes": 34.88,
+      "actualMinutes": 28.26666666666667,
+      "completenessScore": 74,
+      "projections": {
+        "PTS": 25.02,
+        "REB": 13.31,
+        "AST": 12,
+        "THREES": 1.66,
+        "PRA": 50.33,
+        "PA": 37.02,
+        "PR": 38.33,
+        "RA": 25.3
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 13.5,
+        "AST": 12.5,
+        "THREES": 1.5,
+        "PRA": 50.5,
+        "PA": 37.5,
+        "PR": 38.5,
+        "RA": 25.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 26,
+        "REB": 9,
+        "AST": 9,
+        "THREES": 2,
+        "PRA": 44,
+        "PA": 35,
+        "PR": 35,
+        "RA": 18
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -5.5,
+        "openingTotal": 234.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.46
+      }
+    },
+    {
+      "gameDateEt": "2025-11-08",
+      "matchupKey": "IND@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "IND",
+      "projectedMinutes": 33.23,
+      "actualMinutes": 31.72333333333333,
+      "completenessScore": 79,
+      "projections": {
+        "PTS": 27.19,
+        "REB": 12.67,
+        "AST": 11.59,
+        "THREES": 1.67,
+        "PRA": 51.45,
+        "PA": 38.78,
+        "PR": 39.86,
+        "RA": 24.26
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 12.5,
+        "AST": 11.5,
+        "THREES": 1.5,
+        "PRA": 51.5,
+        "PA": 38.5,
+        "PR": 39.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 32,
+        "REB": 14,
+        "AST": 14,
+        "THREES": 1,
+        "PRA": 60,
+        "PA": 46,
+        "PR": 46,
+        "RA": 28
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": false,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -11.5,
+        "openingTotal": 233.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 33.45,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 0
+      }
+    },
+    {
+      "gameDateEt": "2025-11-11",
+      "matchupKey": "DEN@SAC",
+      "teamCode": "DEN",
+      "opponentCode": "SAC",
+      "projectedMinutes": 33.83,
+      "actualMinutes": 32.78333333333333,
+      "completenessScore": 85,
+      "projections": {
+        "PTS": 27.7,
+        "REB": 13.02,
+        "AST": 11.9,
+        "THREES": 1.57,
+        "PRA": 52.62,
+        "PA": 39.6,
+        "PR": 40.72,
+        "RA": 24.91
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 13.5,
+        "AST": 11.5,
+        "THREES": 1.5,
+        "PRA": 52.5,
+        "PA": 39.5,
+        "PR": 40.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 35,
+        "REB": 15,
+        "AST": 7,
+        "THREES": 1,
+        "PRA": 57,
+        "PA": 42,
+        "PR": 50,
+        "RA": 22
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": false,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -6.5,
+        "openingTotal": 237.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 0.68
+      }
+    },
+    {
+      "gameDateEt": "2025-11-12",
+      "matchupKey": "DEN@LAC",
+      "teamCode": "DEN",
+      "opponentCode": "LAC",
+      "projectedMinutes": 32.97,
+      "actualMinutes": 33.56666666666667,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 27.97,
+        "REB": 13.14,
+        "AST": 11.05,
+        "THREES": 1.43,
+        "PRA": 52.16,
+        "PA": 39.02,
+        "PR": 41.11,
+        "RA": 24.18
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 13.5,
+        "AST": 11.5,
+        "THREES": 1.5,
+        "PRA": 52.5,
+        "PA": 39.5,
+        "PR": 41.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 55,
+        "REB": 12,
+        "AST": 6,
+        "THREES": 5,
+        "PRA": 73,
+        "PA": 61,
+        "PR": 67,
+        "RA": 18
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -2.5,
+        "openingTotal": 226.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 0,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.4
+      }
+    },
+    {
+      "gameDateEt": "2025-11-15",
+      "matchupKey": "DEN@MIN",
+      "teamCode": "DEN",
+      "opponentCode": "MIN",
+      "projectedMinutes": 32.72,
+      "actualMinutes": 37.16833333333334,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 33.53,
+        "REB": 13.15,
+        "AST": 10.51,
+        "THREES": 1.87,
+        "PRA": 57.19,
+        "PA": 44.04,
+        "PR": 46.68,
+        "RA": 23.65
+      },
+      "fairLines": {
+        "PTS": 33.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 57.5,
+        "PA": 44.5,
+        "PR": 46.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 27,
+        "REB": 12,
+        "AST": 11,
+        "THREES": 3,
+        "PRA": 50,
+        "PA": 38,
+        "PR": 39,
+        "RA": 23
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 1.5,
+        "openingTotal": 234.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 15.05,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.63
+      }
+    },
+    {
+      "gameDateEt": "2025-11-17",
+      "matchupKey": "CHI@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "CHI",
+      "projectedMinutes": 32.98,
+      "actualMinutes": 38.625,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 33.22,
+        "REB": 12.89,
+        "AST": 10.4,
+        "THREES": 2.08,
+        "PRA": 56.51,
+        "PA": 43.62,
+        "PR": 46.11,
+        "RA": 23.29
+      },
+      "fairLines": {
+        "PTS": 33.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 56.5,
+        "PA": 43.5,
+        "PR": 46.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 36,
+        "REB": 18,
+        "AST": 13,
+        "THREES": 1,
+        "PRA": 67,
+        "PA": 49,
+        "PR": 54,
+        "RA": 31
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -10.5,
+        "openingTotal": 242.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.37
+      }
+    },
+    {
+      "gameDateEt": "2025-11-19",
+      "matchupKey": "DEN@NOP",
+      "teamCode": "DEN",
+      "opponentCode": "NOP",
+      "projectedMinutes": 34.92,
+      "actualMinutes": 34.43333333333333,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 34.63,
+        "REB": 13.31,
+        "AST": 10.9,
+        "THREES": 2.13,
+        "PRA": 58.84,
+        "PA": 45.53,
+        "PR": 47.94,
+        "RA": 24.2
+      },
+      "fairLines": {
+        "PTS": 34.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 58.5,
+        "PA": 45.5,
+        "PR": 47.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 28,
+        "REB": 11,
+        "AST": 12,
+        "THREES": 2,
+        "PRA": 51,
+        "PA": 40,
+        "PR": 39,
+        "RA": 23
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -13.5,
+        "openingTotal": 233,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 23.01,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.94
+      }
+    },
+    {
+      "gameDateEt": "2025-11-21",
+      "matchupKey": "DEN@HOU",
+      "teamCode": "DEN",
+      "opponentCode": "HOU",
+      "projectedMinutes": 35.44,
+      "actualMinutes": 39.33333333333334,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 32.99,
+        "REB": 13.03,
+        "AST": 11.22,
+        "THREES": 2.09,
+        "PRA": 57.24,
+        "PA": 44.21,
+        "PR": 46.02,
+        "RA": 24.24
+      },
+      "fairLines": {
+        "PTS": 32.5,
+        "REB": 13.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 57.5,
+        "PA": 44.5,
+        "PR": 46.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 34,
+        "REB": 10,
+        "AST": 9,
+        "THREES": 4,
+        "PRA": 53,
+        "PA": 43,
+        "PR": 44,
+        "RA": 19
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": 2.5,
+        "openingTotal": 233.75,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.18
+      }
+    },
+    {
+      "gameDateEt": "2025-11-22",
+      "matchupKey": "SAC@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "SAC",
+      "projectedMinutes": 36.5,
+      "actualMinutes": 36.59,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 35.27,
+        "REB": 12.86,
+        "AST": 11.32,
+        "THREES": 2.28,
+        "PRA": 59.45,
+        "PA": 46.59,
+        "PR": 48.13,
+        "RA": 24.17
+      },
+      "fairLines": {
+        "PTS": 35.5,
+        "REB": 12.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 59.5,
+        "PA": 46.5,
+        "PR": 48.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 44,
+        "REB": 13,
+        "AST": 7,
+        "THREES": 3,
+        "PRA": 64,
+        "PA": 51,
+        "PR": 57,
+        "RA": 20
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -13.25,
+        "openingTotal": 237,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 22.39,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.64
+      }
+    },
+    {
+      "gameDateEt": "2025-11-24",
+      "matchupKey": "DEN@MEM",
+      "teamCode": "DEN",
+      "opponentCode": "MEM",
+      "projectedMinutes": 36.97,
+      "actualMinutes": 33.71666666666667,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 36.66,
+        "REB": 13.03,
+        "AST": 10.6,
+        "THREES": 2.34,
+        "PRA": 60.29,
+        "PA": 47.26,
+        "PR": 49.69,
+        "RA": 23.63
+      },
+      "fairLines": {
+        "PTS": 36.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 60.5,
+        "PA": 47.5,
+        "PR": 49.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 17,
+        "REB": 10,
+        "AST": 16,
+        "THREES": 3,
+        "PRA": 43,
+        "PA": 33,
+        "PR": 27,
+        "RA": 26
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -7.5,
+        "openingTotal": 233.25,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.56
+      }
+    },
+    {
+      "gameDateEt": "2025-11-28",
+      "matchupKey": "SAS@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "SAS",
+      "projectedMinutes": 36.31,
+      "actualMinutes": 36.01666666666667,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 29.82,
+        "REB": 12.65,
+        "AST": 10.98,
+        "THREES": 2.45,
+        "PRA": 53.45,
+        "PA": 40.8,
+        "PR": 42.47,
+        "RA": 23.63
+      },
+      "fairLines": {
+        "PTS": 29.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 53.5,
+        "PA": 40.5,
+        "PR": 42.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 21,
+        "REB": 9,
+        "AST": 10,
+        "THREES": 1,
+        "PRA": 40,
+        "PA": 31,
+        "PR": 30,
+        "RA": 19
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -10.5,
+        "openingTotal": 236.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 4.27
+      }
+    },
+    {
+      "gameDateEt": "2025-11-29",
+      "matchupKey": "DEN@PHX",
+      "teamCode": "DEN",
+      "opponentCode": "PHX",
+      "projectedMinutes": 35.9,
+      "actualMinutes": 31.4,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 28.52,
+        "REB": 12.23,
+        "AST": 10.84,
+        "THREES": 2.22,
+        "PRA": 51.59,
+        "PA": 39.36,
+        "PR": 40.75,
+        "RA": 23.07
+      },
+      "fairLines": {
+        "PTS": 28.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 51.5,
+        "PA": 39.5,
+        "PR": 40.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 26,
+        "REB": 9,
+        "AST": 10,
+        "THREES": 2,
+        "PRA": 45,
+        "PA": 36,
+        "PR": 35,
+        "RA": 19
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -5.5,
+        "openingTotal": 233.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.68
+      }
+    },
+    {
+      "gameDateEt": "2025-12-01",
+      "matchupKey": "DAL@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "DAL",
+      "projectedMinutes": 35.17,
+      "actualMinutes": 37,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 26.42,
+        "REB": 11.79,
+        "AST": 10.65,
+        "THREES": 2.23,
+        "PRA": 48.86,
+        "PA": 37.07,
+        "PR": 38.21,
+        "RA": 22.43
+      },
+      "fairLines": {
+        "PTS": 26.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 48.5,
+        "PA": 37.5,
+        "PR": 38.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 29,
+        "REB": 20,
+        "AST": 13,
+        "THREES": 3,
+        "PRA": 62,
+        "PA": 42,
+        "PR": 49,
+        "RA": 33
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -10.5,
+        "openingTotal": 234.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.52
+      }
+    },
+    {
+      "gameDateEt": "2025-12-03",
+      "matchupKey": "DEN@IND",
+      "teamCode": "DEN",
+      "opponentCode": "IND",
+      "projectedMinutes": 35.01,
+      "actualMinutes": 35.28333333333333,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 27.39,
+        "REB": 12.5,
+        "AST": 10.86,
+        "THREES": 2.34,
+        "PRA": 50.75,
+        "PA": 38.25,
+        "PR": 39.89,
+        "RA": 23.35
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 50.5,
+        "PA": 38.5,
+        "PR": 39.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "PUSH",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 24,
+        "REB": 8,
+        "AST": 13,
+        "THREES": 1,
+        "PRA": 45,
+        "PA": 37,
+        "PR": 32,
+        "RA": 21
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": null,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -7.5,
+        "openingTotal": 235.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.16
+      }
+    },
+    {
+      "gameDateEt": "2025-12-05",
+      "matchupKey": "DEN@ATL",
+      "teamCode": "DEN",
+      "opponentCode": "ATL",
+      "projectedMinutes": 34.79,
+      "actualMinutes": 35.605,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 26.03,
+        "REB": 11.98,
+        "AST": 11.26,
+        "THREES": 2.13,
+        "PRA": 49.27,
+        "PA": 37.29,
+        "PR": 38.01,
+        "RA": 23.24
+      },
+      "fairLines": {
+        "PTS": 26.5,
+        "REB": 11.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 49.5,
+        "PA": 37.5,
+        "PR": 38.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 40,
+        "REB": 9,
+        "AST": 8,
+        "THREES": 1,
+        "PRA": 57,
+        "PA": 48,
+        "PR": 49,
+        "RA": 17
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -8.5,
+        "openingTotal": 236.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.16
+      }
+    },
+    {
+      "gameDateEt": "2025-12-07",
+      "matchupKey": "DEN@CHA",
+      "teamCode": "DEN",
+      "opponentCode": "CHA",
+      "projectedMinutes": 35.24,
+      "actualMinutes": 34.83333333333334,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 28.77,
+        "REB": 11.71,
+        "AST": 10.92,
+        "THREES": 1.98,
+        "PRA": 51.4,
+        "PA": 39.69,
+        "PR": 40.48,
+        "RA": 22.63
+      },
+      "fairLines": {
+        "PTS": 28.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 51.5,
+        "PA": 39.5,
+        "PR": 40.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 28,
+        "REB": 9,
+        "AST": 11,
+        "THREES": 4,
+        "PRA": 48,
+        "PA": 39,
+        "PR": 37,
+        "RA": 20
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -10.5,
+        "openingTotal": 234.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.04
+      }
+    },
+    {
+      "gameDateEt": "2025-12-11",
+      "matchupKey": "DEN@SAC",
+      "teamCode": "DEN",
+      "opponentCode": "SAC",
+      "projectedMinutes": 34.93,
+      "actualMinutes": 29.05,
+      "completenessScore": 95,
+      "projections": {
+        "PTS": 30.39,
+        "REB": 11.07,
+        "AST": 10.83,
+        "THREES": 2.25,
+        "PRA": 52.29,
+        "PA": 41.22,
+        "PR": 41.46,
+        "RA": 21.89
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 52.5,
+        "PA": 41.5,
+        "PR": 41.5,
+        "RA": 21.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 36,
+        "REB": 12,
+        "AST": 8,
+        "THREES": 2,
+        "PRA": 56,
+        "PA": 44,
+        "PR": 48,
+        "RA": 20
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -9,
+        "openingTotal": 239.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.96
+      }
+    },
+    {
+      "gameDateEt": "2025-12-15",
+      "matchupKey": "HOU@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "HOU",
+      "projectedMinutes": 34.25,
+      "actualMinutes": 42.4,
+      "completenessScore": 94,
+      "projections": {
+        "PTS": 33.4,
+        "REB": 11.18,
+        "AST": 10.49,
+        "THREES": 2.25,
+        "PRA": 55.07,
+        "PA": 43.89,
+        "PR": 44.58,
+        "RA": 21.67
+      },
+      "fairLines": {
+        "PTS": 33.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 55.5,
+        "PA": 43.5,
+        "PR": 44.5,
+        "RA": 21.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 39,
+        "REB": 15,
+        "AST": 10,
+        "THREES": 5,
+        "PRA": 64,
+        "PA": 49,
+        "PR": 54,
+        "RA": 25
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": false,
+        "PRA": false,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -1.5,
+        "openingTotal": 233.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.93
+      }
+    },
+    {
+      "gameDateEt": "2025-12-18",
+      "matchupKey": "ORL@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "ORL",
+      "projectedMinutes": 35.4,
+      "actualMinutes": 37.78333333333333,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 34.14,
+        "REB": 11.64,
+        "AST": 10.59,
+        "THREES": 2.48,
+        "PRA": 56.37,
+        "PA": 44.73,
+        "PR": 45.78,
+        "RA": 22.23
+      },
+      "fairLines": {
+        "PTS": 34.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 56.5,
+        "PA": 44.5,
+        "PR": 45.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 23,
+        "REB": 11,
+        "AST": 13,
+        "THREES": 0,
+        "PRA": 47,
+        "PA": 36,
+        "PR": 34,
+        "RA": 24
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -7.5,
+        "openingTotal": 232.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 20.12,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.32
+      }
+    },
+    {
+      "gameDateEt": "2025-12-20",
+      "matchupKey": "HOU@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "HOU",
+      "projectedMinutes": 35.91,
+      "actualMinutes": 29.13833333333333,
+      "completenessScore": 93,
+      "projections": {
+        "PTS": 31.38,
+        "REB": 11.71,
+        "AST": 11.03,
+        "THREES": 2.12,
+        "PRA": 54.12,
+        "PA": 42.41,
+        "PR": 43.09,
+        "RA": 22.74
+      },
+      "fairLines": {
+        "PTS": 31.5,
+        "REB": 11.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 54.5,
+        "PA": 42.5,
+        "PR": 43.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 25,
+        "REB": 7,
+        "AST": 5,
+        "THREES": 1,
+        "PRA": 37,
+        "PA": 30,
+        "PR": 32,
+        "RA": 12
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -1.5,
+        "openingTotal": 237,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.29
+      }
+    },
+    {
+      "gameDateEt": "2025-12-22",
+      "matchupKey": "UTA@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "UTA",
+      "projectedMinutes": 34.86,
+      "actualMinutes": 28.65,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 30.71,
+        "REB": 11.21,
+        "AST": 10.38,
+        "THREES": 2.02,
+        "PRA": 52.3,
+        "PA": 41.09,
+        "PR": 41.92,
+        "RA": 21.6
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 52.5,
+        "PA": 41.5,
+        "PR": 41.5,
+        "RA": 21.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 14,
+        "REB": 13,
+        "AST": 13,
+        "THREES": 1,
+        "PRA": 40,
+        "PA": 27,
+        "PR": 27,
+        "RA": 26
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -15.5,
+        "openingTotal": 245.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.25
+      }
+    },
+    {
+      "gameDateEt": "2025-12-23",
+      "matchupKey": "DEN@DAL",
+      "teamCode": "DEN",
+      "opponentCode": "DAL",
+      "projectedMinutes": 33.32,
+      "actualMinutes": 36.41666666666666,
+      "completenessScore": 91,
+      "projections": {
+        "PTS": 25.02,
+        "REB": 11.31,
+        "AST": 10.59,
+        "THREES": 1.98,
+        "PRA": 46.92,
+        "PA": 35.61,
+        "PR": 36.33,
+        "RA": 21.9
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 46.5,
+        "PA": 35.5,
+        "PR": 36.5,
+        "RA": 21.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 29,
+        "REB": 7,
+        "AST": 14,
+        "THREES": 5,
+        "PRA": 50,
+        "PA": 43,
+        "PR": 36,
+        "RA": 21
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -6.5,
+        "openingTotal": 237.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.28,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.12
+      }
+    },
+    {
+      "gameDateEt": "2025-12-25",
+      "matchupKey": "MIN@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "MIN",
+      "projectedMinutes": 34.44,
+      "actualMinutes": 42.6,
+      "completenessScore": 91,
+      "projections": {
+        "PTS": 27.37,
+        "REB": 11.11,
+        "AST": 10.98,
+        "THREES": 2.33,
+        "PRA": 49.46,
+        "PA": 38.35,
+        "PR": 38.48,
+        "RA": 22.08
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 49.5,
+        "PA": 38.5,
+        "PR": 38.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 56,
+        "REB": 16,
+        "AST": 15,
+        "THREES": 4,
+        "PRA": 87,
+        "PA": 71,
+        "PR": 72,
+        "RA": 31
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": false,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.75,
+        "openingTotal": 230.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 19.03,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 0.95
+      }
+    },
+    {
+      "gameDateEt": "2025-12-27",
+      "matchupKey": "DEN@ORL",
+      "teamCode": "DEN",
+      "opponentCode": "ORL",
+      "projectedMinutes": 35.06,
+      "actualMinutes": 38.01666666666667,
+      "completenessScore": 90,
+      "projections": {
+        "PTS": 30.77,
+        "REB": 11.29,
+        "AST": 11.33,
+        "THREES": 2.45,
+        "PRA": 53.39,
+        "PA": 42.1,
+        "PR": 42.06,
+        "RA": 22.61
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 11.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 53.5,
+        "PA": 42.5,
+        "PR": 42.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 34,
+        "REB": 21,
+        "AST": 12,
+        "THREES": 0,
+        "PRA": 67,
+        "PA": 46,
+        "PR": 55,
+        "RA": 33
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.5,
+        "openingTotal": 236.75,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 19.03,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.71
+      }
+    },
+    {
+      "gameDateEt": "2025-12-29",
+      "matchupKey": "DEN@MIA",
+      "teamCode": "DEN",
+      "opponentCode": "MIA",
+      "projectedMinutes": 35.47,
+      "actualMinutes": 19.35,
+      "completenessScore": 90,
+      "projections": {
+        "PTS": 32.16,
+        "REB": 12.16,
+        "AST": 11.29,
+        "THREES": 2.28,
+        "PRA": 55.61,
+        "PA": 43.45,
+        "PR": 44.32,
+        "RA": 23.45
+      },
+      "fairLines": {
+        "PTS": 32.5,
+        "REB": 12.5,
+        "AST": 11.5,
+        "THREES": 2.5,
+        "PRA": 55.5,
+        "PA": 43.5,
+        "PR": 44.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 21,
+        "REB": 5,
+        "AST": 8,
+        "THREES": 1,
+        "PRA": 34,
+        "PA": 29,
+        "PR": 26,
+        "RA": 13
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.25,
+        "openingTotal": 244.75,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.75,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.31
+      }
+    },
+    {
+      "gameDateEt": "2026-01-30",
+      "matchupKey": "LAC@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "LAC",
+      "projectedMinutes": 33.15,
+      "actualMinutes": 24.53333333333333,
+      "completenessScore": 87,
+      "projections": {
+        "PTS": 30.69,
+        "REB": 11.74,
+        "AST": 10.95,
+        "THREES": 2.1,
+        "PRA": 53.38,
+        "PA": 41.64,
+        "PR": 42.43,
+        "RA": 22.69
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 53.5,
+        "PA": 41.5,
+        "PR": 42.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 31,
+        "REB": 12,
+        "AST": 5,
+        "THREES": 2,
+        "PRA": 48,
+        "PA": 36,
+        "PR": 43,
+        "RA": 17
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 5.5,
+        "openingTotal": 210.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.75,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.04
+      }
+    },
+    {
+      "gameDateEt": "2026-02-01",
+      "matchupKey": "OKC@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "OKC",
+      "projectedMinutes": 31.72,
+      "actualMinutes": 29.36666666666667,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 31.88,
+        "REB": 11.87,
+        "AST": 10.34,
+        "THREES": 1.9,
+        "PRA": 54.09,
+        "PA": 42.22,
+        "PR": 43.75,
+        "RA": 22.21
+      },
+      "fairLines": {
+        "PTS": 31.5,
+        "REB": 11.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 54.5,
+        "PA": 42.5,
+        "PR": 43.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 16,
+        "REB": 7,
+        "AST": 8,
+        "THREES": 1,
+        "PRA": 31,
+        "PA": 24,
+        "PR": 23,
+        "RA": 15
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": 4.5,
+        "openingTotal": 228.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.75,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 4.02
+      }
+    },
+    {
+      "gameDateEt": "2026-02-03",
+      "matchupKey": "DEN@DET",
+      "teamCode": "DEN",
+      "opponentCode": "DET",
+      "projectedMinutes": 30.29,
+      "actualMinutes": 32.91666666666666,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 29.36,
+        "REB": 10.88,
+        "AST": 9.76,
+        "THREES": 1.74,
+        "PRA": 50,
+        "PA": 39.12,
+        "PR": 40.24,
+        "RA": 20.64
+      },
+      "fairLines": {
+        "PTS": 29.5,
+        "REB": 10.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 50.5,
+        "PA": 39.5,
+        "PR": 40.5,
+        "RA": 20.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 24,
+        "REB": 15,
+        "AST": 4,
+        "THREES": 3,
+        "PRA": 43,
+        "PA": 28,
+        "PR": 39,
+        "RA": 19
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 6.25,
+        "openingTotal": 224.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 14.82,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.21
+      }
+    },
+    {
+      "gameDateEt": "2026-02-04",
+      "matchupKey": "DEN@NYK",
+      "teamCode": "DEN",
+      "opponentCode": "NYK",
+      "projectedMinutes": 29.23,
+      "actualMinutes": 44.61333333333333,
+      "completenessScore": 87,
+      "projections": {
+        "PTS": 25.52,
+        "REB": 11.02,
+        "AST": 9.23,
+        "THREES": 1.81,
+        "PRA": 45.77,
+        "PA": 34.75,
+        "PR": 36.54,
+        "RA": 20.24
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 11.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 45.5,
+        "PA": 34.5,
+        "PR": 36.5,
+        "RA": 20.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 30,
+        "REB": 14,
+        "AST": 10,
+        "THREES": 1,
+        "PRA": 54,
+        "PA": 40,
+        "PR": 44,
+        "RA": 24
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": false,
+        "THREES": false,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 4.5,
+        "openingTotal": 226.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 9.75,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.93
+      }
+    },
+    {
+      "gameDateEt": "2026-02-07",
+      "matchupKey": "DEN@CHI",
+      "teamCode": "DEN",
+      "opponentCode": "CHI",
+      "projectedMinutes": 31.09,
+      "actualMinutes": 33.4,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 24.86,
+        "REB": 11.66,
+        "AST": 9.59,
+        "THREES": 1.85,
+        "PRA": 46.11,
+        "PA": 34.45,
+        "PR": 36.52,
+        "RA": 21.24
+      },
+      "fairLines": {
+        "PTS": 24.5,
+        "REB": 11.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 46.5,
+        "PA": 34.5,
+        "PR": 36.5,
+        "RA": 21.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 22,
+        "REB": 14,
+        "AST": 17,
+        "THREES": 2,
+        "PRA": 53,
+        "PA": 39,
+        "PR": 36,
+        "RA": 31
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.5,
+        "openingTotal": 229,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.17
+      }
+    },
+    {
+      "gameDateEt": "2026-02-09",
+      "matchupKey": "CLE@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "CLE",
+      "projectedMinutes": 33.45,
+      "actualMinutes": 32.98333333333333,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 25.9,
+        "REB": 12.22,
+        "AST": 10.77,
+        "THREES": 2.15,
+        "PRA": 48.89,
+        "PA": 36.67,
+        "PR": 38.12,
+        "RA": 22.98
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 48.5,
+        "PA": 36.5,
+        "PR": 38.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 22,
+        "REB": 14,
+        "AST": 11,
+        "THREES": 0,
+        "PRA": 47,
+        "PA": 33,
+        "PR": 36,
+        "RA": 25
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": false,
+        "PR": true,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": 1.5,
+        "openingTotal": 233.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 19.42,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.24
+      }
+    },
+    {
+      "gameDateEt": "2026-02-11",
+      "matchupKey": "MEM@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "MEM",
+      "projectedMinutes": 34.81,
+      "actualMinutes": 33.9,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 25.86,
+        "REB": 12.29,
+        "AST": 10.97,
+        "THREES": 2.01,
+        "PRA": 49.12,
+        "PA": 36.83,
+        "PR": 38.15,
+        "RA": 23.25
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 49.5,
+        "PA": 36.5,
+        "PR": 38.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 26,
+        "REB": 15,
+        "AST": 11,
+        "THREES": 0,
+        "PRA": 52,
+        "PA": 37,
+        "PR": 41,
+        "RA": 26
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -13.5,
+        "openingTotal": 236,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 19.42,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.61
+      }
+    },
+    {
+      "gameDateEt": "2026-02-19",
+      "matchupKey": "DEN@LAC",
+      "teamCode": "DEN",
+      "opponentCode": "LAC",
+      "projectedMinutes": 35.1,
+      "actualMinutes": 36.11666666666667,
+      "completenessScore": 86,
+      "projections": {
+        "PTS": 25.58,
+        "REB": 12.63,
+        "AST": 10.92,
+        "THREES": 1.8,
+        "PRA": 49.13,
+        "PA": 36.5,
+        "PR": 38.21,
+        "RA": 23.55
+      },
+      "fairLines": {
+        "PTS": 25.5,
+        "REB": 12.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 49.5,
+        "PA": 36.5,
+        "PR": 38.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "PUSH",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 22,
+        "REB": 17,
+        "AST": 6,
+        "THREES": 0,
+        "PRA": 45,
+        "PA": 28,
+        "PR": 39,
+        "RA": 23
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": false,
+        "THREES": false,
+        "PRA": true,
+        "PA": null,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -3.5,
+        "openingTotal": 225.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.36
+      }
+    },
+    {
+      "gameDateEt": "2026-02-20",
+      "matchupKey": "DEN@POR",
+      "teamCode": "DEN",
+      "opponentCode": "POR",
+      "projectedMinutes": 35.65,
+      "actualMinutes": 29.34166666666667,
+      "completenessScore": 87,
+      "projections": {
+        "PTS": 27.3,
+        "REB": 13.03,
+        "AST": 10.32,
+        "THREES": 1.6,
+        "PRA": 50.65,
+        "PA": 37.62,
+        "PR": 40.33,
+        "RA": 23.35
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 50.5,
+        "PA": 37.5,
+        "PR": 40.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 32,
+        "REB": 9,
+        "AST": 7,
+        "THREES": 3,
+        "PRA": 48,
+        "PA": 39,
+        "PR": 41,
+        "RA": 16
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -3.5,
+        "openingTotal": 238.25,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.6
+      }
+    },
+    {
+      "gameDateEt": "2026-02-22",
+      "matchupKey": "DEN@GSW",
+      "teamCode": "DEN",
+      "opponentCode": "GSW",
+      "projectedMinutes": 33.05,
+      "actualMinutes": 35.9,
+      "completenessScore": 88,
+      "projections": {
+        "PTS": 27.77,
+        "REB": 12.47,
+        "AST": 9.96,
+        "THREES": 1.74,
+        "PRA": 50.2,
+        "PA": 37.73,
+        "PR": 40.24,
+        "RA": 22.43
+      },
+      "fairLines": {
+        "PTS": 27.5,
+        "REB": 12.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 50.5,
+        "PA": 37.5,
+        "PR": 40.5,
+        "RA": 22.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 35,
+        "REB": 20,
+        "AST": 12,
+        "THREES": 3,
+        "PRA": 67,
+        "PA": 47,
+        "PR": 55,
+        "RA": 32
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": false,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -5,
+        "openingTotal": 231.5,
+        "playerStarted": null,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.06
+      }
+    },
+    {
+      "gameDateEt": "2026-02-25",
+      "matchupKey": "BOS@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "BOS",
+      "projectedMinutes": 36.39,
+      "actualMinutes": 32.95666666666666,
+      "completenessScore": 90,
+      "projections": {
+        "PTS": 30.73,
+        "REB": 13.36,
+        "AST": 10.31,
+        "THREES": 1.97,
+        "PRA": 54.4,
+        "PA": 41.04,
+        "PR": 44.09,
+        "RA": 23.67
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 54.5,
+        "PA": 41.5,
+        "PR": 44.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 30,
+        "REB": 12,
+        "AST": 6,
+        "THREES": 4,
+        "PRA": 48,
+        "PA": 36,
+        "PR": 42,
+        "RA": 18
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": true,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -3.75,
+        "openingTotal": 229,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.03
+      }
+    },
+    {
+      "gameDateEt": "2026-02-27",
+      "matchupKey": "DEN@OKC",
+      "teamCode": "DEN",
+      "opponentCode": "OKC",
+      "projectedMinutes": 36.11,
+      "actualMinutes": 44.56666666666667,
+      "completenessScore": 91,
+      "projections": {
+        "PTS": 30.52,
+        "REB": 13.14,
+        "AST": 10.2,
+        "THREES": 2.12,
+        "PRA": 53.86,
+        "PA": 40.72,
+        "PR": 43.66,
+        "RA": 23.34
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 53.5,
+        "PA": 40.5,
+        "PR": 43.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 23,
+        "REB": 17,
+        "AST": 14,
+        "THREES": 2,
+        "PRA": 54,
+        "PA": 37,
+        "PR": 40,
+        "RA": 31
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 8.5,
+        "openingTotal": 230.5,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3.06
+      }
+    },
+    {
+      "gameDateEt": "2026-03-01",
+      "matchupKey": "MIN@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "MIN",
+      "projectedMinutes": 38.23,
+      "actualMinutes": 37.11666666666667,
+      "completenessScore": 90,
+      "projections": {
+        "PTS": 31.06,
+        "REB": 13.97,
+        "AST": 10.66,
+        "THREES": 2.05,
+        "PRA": 55.69,
+        "PA": 41.72,
+        "PR": 45.03,
+        "RA": 24.63
+      },
+      "fairLines": {
+        "PTS": 31.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 2.5,
+        "PRA": 55.5,
+        "PA": 41.5,
+        "PR": 45.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 35,
+        "REB": 13,
+        "AST": 9,
+        "THREES": 1,
+        "PRA": 57,
+        "PA": 44,
+        "PR": 48,
+        "RA": 22
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": false,
+        "REB": false,
+        "AST": false,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -2.25,
+        "openingTotal": 238.5,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.06
+      }
+    },
+    {
+      "gameDateEt": "2026-03-02",
+      "matchupKey": "DEN@UTA",
+      "teamCode": "DEN",
+      "opponentCode": "UTA",
+      "projectedMinutes": 38.25,
+      "actualMinutes": 36.39166666666667,
+      "completenessScore": 90,
+      "projections": {
+        "PTS": 32.03,
+        "REB": 13.68,
+        "AST": 10.59,
+        "THREES": 1.9,
+        "PRA": 56.3,
+        "PA": 42.62,
+        "PR": 45.71,
+        "RA": 24.27
+      },
+      "fairLines": {
+        "PTS": 32.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 56.5,
+        "PA": 42.5,
+        "PR": 45.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 22,
+        "REB": 12,
+        "AST": 5,
+        "THREES": 0,
+        "PRA": 39,
+        "PA": 27,
+        "PR": 34,
+        "RA": 17
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": false,
+        "THREES": false,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": true
+      },
+      "historicalContext": {
+        "openingTeamSpread": -11,
+        "openingTotal": 243,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 22.7,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.17
+      }
+    },
+    {
+      "gameDateEt": "2026-03-05",
+      "matchupKey": "LAL@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "LAL",
+      "projectedMinutes": 39.15,
+      "actualMinutes": 37.75,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 31.41,
+        "REB": 13.69,
+        "AST": 10.35,
+        "THREES": 1.81,
+        "PRA": 55.45,
+        "PA": 41.76,
+        "PR": 45.1,
+        "RA": 24.04
+      },
+      "fairLines": {
+        "PTS": 31.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 55.5,
+        "PA": 41.5,
+        "PR": 45.5,
+        "RA": 24.5
+      },
+      "predictedSides": {
+        "PTS": "UNDER",
+        "REB": "OVER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "UNDER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 28,
+        "REB": 12,
+        "AST": 13,
+        "THREES": 0,
+        "PRA": 53,
+        "PA": 41,
+        "PR": 40,
+        "RA": 25
+      },
+      "actualSides": {
+        "PTS": "UNDER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": false,
+        "THREES": false,
+        "PRA": true,
+        "PA": false,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -4.5,
+        "openingTotal": 238.5,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 22.7,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 1.75
+      }
+    },
+    {
+      "gameDateEt": "2026-03-06",
+      "matchupKey": "NYK@DEN",
+      "teamCode": "DEN",
+      "opponentCode": "NYK",
+      "projectedMinutes": 38.98,
+      "actualMinutes": 30.85,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 29.73,
+        "REB": 13.39,
+        "AST": 10.31,
+        "THREES": 1.6,
+        "PRA": 53.43,
+        "PA": 40.04,
+        "PR": 43.12,
+        "RA": 23.7
+      },
+      "fairLines": {
+        "PTS": 29.5,
+        "REB": 13.5,
+        "AST": 10.5,
+        "THREES": 1.5,
+        "PRA": 53.5,
+        "PA": 40.5,
+        "PR": 43.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "OVER",
+        "PRA": "UNDER",
+        "PA": "UNDER",
+        "PR": "UNDER",
+        "RA": "OVER"
+      },
+      "actuals": {
+        "PTS": 38,
+        "REB": 8,
+        "AST": 5,
+        "THREES": 1,
+        "PRA": 51,
+        "PA": 43,
+        "PR": 46,
+        "RA": 13
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "UNDER",
+        "THREES": "UNDER",
+        "PRA": "UNDER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": true,
+        "AST": true,
+        "THREES": false,
+        "PRA": true,
+        "PA": false,
+        "PR": false,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": -1,
+        "openingTotal": 231.25,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 2.42
+      }
+    },
+    {
+      "gameDateEt": "2026-03-09",
+      "matchupKey": "DEN@OKC",
+      "teamCode": "DEN",
+      "opponentCode": "OKC",
+      "projectedMinutes": 38.18,
+      "actualMinutes": 40.29166666666666,
+      "completenessScore": 92,
+      "projections": {
+        "PTS": 30.67,
+        "REB": 13.03,
+        "AST": 9.96,
+        "THREES": 1.58,
+        "PRA": 53.66,
+        "PA": 40.63,
+        "PR": 43.7,
+        "RA": 23
+      },
+      "fairLines": {
+        "PTS": 30.5,
+        "REB": 13.5,
+        "AST": 9.5,
+        "THREES": 1.5,
+        "PRA": 53.5,
+        "PA": 40.5,
+        "PR": 43.5,
+        "RA": 23.5
+      },
+      "predictedSides": {
+        "PTS": "OVER",
+        "REB": "UNDER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "UNDER"
+      },
+      "actuals": {
+        "PTS": 32,
+        "REB": 14,
+        "AST": 13,
+        "THREES": 3,
+        "PRA": 59,
+        "PA": 45,
+        "PR": 46,
+        "RA": 27
+      },
+      "actualSides": {
+        "PTS": "OVER",
+        "REB": "OVER",
+        "AST": "OVER",
+        "THREES": "OVER",
+        "PRA": "OVER",
+        "PA": "OVER",
+        "PR": "OVER",
+        "RA": "OVER"
+      },
+      "sideCorrect": {
+        "PTS": true,
+        "REB": false,
+        "AST": true,
+        "THREES": true,
+        "PRA": true,
+        "PA": true,
+        "PR": true,
+        "RA": false
+      },
+      "historicalContext": {
+        "openingTeamSpread": 7.5,
+        "openingTotal": 231.5,
+        "playerStarted": true,
+        "missingKeyTeammatePts": 15.13,
+        "benchedKeyTeammatePts": 0,
+        "defenderStocksPer36": 3
+      }
+    }
+  ]
+}

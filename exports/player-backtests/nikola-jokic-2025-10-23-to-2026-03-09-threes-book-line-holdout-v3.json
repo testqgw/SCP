@@ -1,0 +1,21 @@
+{
+  "full": {
+    "games": 48,
+    "correct": 45,
+    "wrong": 3,
+    "sideAccuracyPct": 93.75
+  },
+  "train": {
+    "games": 33,
+    "correct": 30,
+    "wrong": 3,
+    "sideAccuracyPct": 90.91
+  },
+  "holdout": {
+    "games": 15,
+    "correct": 15,
+    "wrong": 0,
+    "sideAccuracyPct": 100
+  },
+  "splitDate": "2026-02-03"
+}

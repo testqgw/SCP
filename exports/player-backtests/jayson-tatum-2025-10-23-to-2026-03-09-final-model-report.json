@@ -1,0 +1,140 @@
+{
+  "player": {
+    "id": "cmm6n1x7b00z5dx10wv05hatr",
+    "name": "Jayson Tatum"
+  },
+  "sourceRows": "exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+  "sourceModels": "exports\\player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09"
+  },
+  "filters": {
+    "minActualMinutes": 15,
+    "lateWindowRatio": 0.3
+  },
+  "allEightHit": true,
+  "targetHitCount": 8,
+  "perMarket": {
+    "PTS": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 100,
+      "finalBaselineAccuracy": 100,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 8.64,
+      "rmse": 9.029,
+      "bias": 8.64,
+      "modelKind": "projection",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "REB": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 4.635,
+      "rmse": 4.756,
+      "bias": 1.065,
+      "modelKind": "gapThenProjection",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "AST": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 2.55,
+      "rmse": 3.026,
+      "bias": 1.63,
+      "modelKind": "tree:d1:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "THREES": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 0,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 0.69,
+      "rmse": 0.852,
+      "bias": 0.5,
+      "modelKind": "tree:d1:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PRA": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 11.6,
+      "rmse": 12.428,
+      "bias": 11.6,
+      "modelKind": "tree:d1:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PA": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 10.34,
+      "rmse": 10.341,
+      "bias": 10.34,
+      "modelKind": "tree:d1:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PR": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 9.895,
+      "rmse": 10.096,
+      "bias": 9.895,
+      "modelKind": "tree:d1:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "RA": {
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": null,
+      "correct": 2,
+      "wrong": 0,
+      "mae": 7.025,
+      "rmse": 7.61,
+      "bias": 2.925,
+      "modelKind": "marketFavored",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    }
+  }
+}

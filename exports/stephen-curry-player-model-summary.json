@@ -1,0 +1,818 @@
+{
+  "generatedFrom": "exports\\player-backtests\\stephen-curry-2025-10-23-to-2026-03-09-final-model-report.json",
+  "playerSummary": {
+    "playerId": "cmm6n179i00gndx10ms0rlam0",
+    "playerName": "Stephen Curry",
+    "marketCount": 8,
+    "targetHitCount": 8,
+    "allEightHit": true,
+    "markets": {
+      "PTS": {
+        "samples": 38,
+        "modelAccuracy": 97.37,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "REB": {
+        "samples": 38,
+        "modelAccuracy": 92.11,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "AST": {
+        "samples": 38,
+        "modelAccuracy": 94.74,
+        "holdoutAccuracy": 91.67,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "THREES": {
+        "samples": 38,
+        "modelAccuracy": 89.47,
+        "holdoutAccuracy": 83.33,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PRA": {
+        "samples": 14,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PA": {
+        "samples": 14,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PR": {
+        "samples": 14,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "RA": {
+        "samples": 14,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "PTS",
+      "samples": 38,
+      "projectionBaselineAccuracy": 52.63,
+      "finalBaselineAccuracy": 63.16,
+      "modelAccuracy": 97.37,
+      "holdoutAccuracy": 33.33,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "priceLean",
+          "threshold": 0.0083,
+          "count": 38,
+          "accuracy": 65.79,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.445,
+            "count": 27,
+            "accuracy": 70.37,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 4.61,
+              "count": 21,
+              "accuracy": 80.95,
+              "left": {
+                "kind": "split",
+                "feature": "projectedValue",
+                "threshold": 22.905,
+                "count": 13,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 12,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 27.89,
+                "count": 8,
+                "accuracy": 75,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "priceLean",
+                  "threshold": -0.001,
+                  "count": 7,
+                  "accuracy": 85.72,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 4,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 27.33,
+              "count": 6,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 4,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 28.045,
+            "count": 11,
+            "accuracy": 90.91,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 27.485,
+              "count": 9,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 8,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "REB",
+      "samples": 38,
+      "projectionBaselineAccuracy": 65.79,
+      "finalBaselineAccuracy": 63.16,
+      "modelAccuracy": 92.11,
+      "holdoutAccuracy": 25,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.41,
+          "count": 38,
+          "accuracy": 76.31,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.215,
+            "count": 26,
+            "accuracy": 76.93,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 27.715,
+              "count": 13,
+              "accuracy": 76.92,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "minutesVolatility",
+                "threshold": 2.69,
+                "count": 12,
+                "accuracy": 83.34,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 11,
+                  "accuracy": 81.82
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.38,
+              "count": 13,
+              "accuracy": 92.31,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 33.705,
+                "count": 12,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 11,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 4.21,
+            "count": 12,
+            "accuracy": 91.67,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 10,
+              "accuracy": 90
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "AST",
+      "samples": 38,
+      "projectionBaselineAccuracy": 55.26,
+      "finalBaselineAccuracy": 55.26,
+      "modelAccuracy": 94.74,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.245,
+          "count": 38,
+          "accuracy": 68.42,
+          "left": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 4.345,
+            "count": 15,
+            "accuracy": 86.67,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.65,
+              "count": 13,
+              "accuracy": 92.31,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 12,
+                "accuracy": 91.67
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 30.84,
+            "count": 23,
+            "accuracy": 78.26,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 28.09,
+              "count": 5,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 2.355,
+              "count": 18,
+              "accuracy": 88.89,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "projectedValue",
+                "threshold": 6.14,
+                "count": 16,
+                "accuracy": 93.75,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 15,
+                  "accuracy": 93.33
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "THREES",
+      "samples": 38,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 47.37,
+      "modelAccuracy": 89.47,
+      "holdoutAccuracy": 16.67,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": -0.535,
+          "count": 38,
+          "accuracy": 65.79,
+          "left": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 3,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.355,
+            "count": 35,
+            "accuracy": 65.72,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 4.15,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 4,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "absLineGap",
+              "threshold": 0.145,
+              "count": 28,
+              "accuracy": 75,
+              "left": {
+                "kind": "split",
+                "feature": "absLineGap",
+                "threshold": 0.03,
+                "count": 8,
+                "accuracy": 75,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "minutesVolatility",
+                  "threshold": 3.075,
+                  "count": 7,
+                  "accuracy": 85.72,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 4,
+                    "accuracy": 100
+                  }
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 1.005,
+                "count": 20,
+                "accuracy": 85,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 19,
+                  "accuracy": 84.21
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "PRA",
+      "samples": 14,
+      "projectionBaselineAccuracy": 42.86,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 60,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 31.415,
+          "count": 14,
+          "accuracy": 71.43,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 28.015,
+            "count": 6,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 4,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.59,
+            "count": 8,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 2.14,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 6,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "PA",
+      "samples": 14,
+      "projectionBaselineAccuracy": 42.86,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 20,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 31.415,
+          "count": 14,
+          "accuracy": 71.43,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 28.015,
+            "count": 6,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 4,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.59,
+            "count": 8,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 2.14,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 6,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "PR",
+      "samples": 14,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 20,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 31.415,
+          "count": 14,
+          "accuracy": 78.57,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -1.295,
+            "count": 6,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 5,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.59,
+            "count": 8,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 2.14,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 6,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n179i00gndx10ms0rlam0",
+      "playerName": "Stephen Curry",
+      "market": "RA",
+      "samples": 14,
+      "projectionBaselineAccuracy": 57.14,
+      "finalBaselineAccuracy": 57.14,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 60,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.7,
+          "count": 14,
+          "accuracy": 85.72,
+          "left": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": 0.0338,
+            "count": 9,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 7,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 5,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 2,
+        "minLeaf": 1
+      }
+    }
+  ]
+}

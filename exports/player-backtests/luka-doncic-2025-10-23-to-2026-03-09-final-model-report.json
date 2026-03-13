@@ -1,0 +1,132 @@
+{
+  "player": {
+    "id": "cmm6n0psd0047dx10gd2j56s3",
+    "name": "Luka Dončić"
+  },
+  "sourceRows": "exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+  "sourceModels": "exports\\player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09"
+  },
+  "filters": {
+    "minActualMinutes": 15,
+    "lateWindowRatio": 0.3
+  },
+  "allEightHit": false,
+  "targetHitCount": 7,
+  "perMarket": {
+    "PTS": {
+      "samples": 51,
+      "projectionBaselineAccuracy": 54.9,
+      "finalBaselineAccuracy": 47.06,
+      "modelAccuracy": 86.27,
+      "lateWindowAccuracy": 87.5,
+      "correct": 44,
+      "wrong": 7,
+      "mae": 6.714,
+      "rmse": 8.389,
+      "bias": 0.075,
+      "modelKind": "tree:d3:l1",
+      "targetHit": true
+    },
+    "REB": {
+      "samples": 51,
+      "projectionBaselineAccuracy": 37.25,
+      "finalBaselineAccuracy": 45.1,
+      "modelAccuracy": 90.2,
+      "lateWindowAccuracy": 100,
+      "correct": 46,
+      "wrong": 5,
+      "mae": 2.833,
+      "rmse": 3.305,
+      "bias": 0.171,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true
+    },
+    "AST": {
+      "samples": 51,
+      "projectionBaselineAccuracy": 45.1,
+      "finalBaselineAccuracy": 47.06,
+      "modelAccuracy": 78.43,
+      "lateWindowAccuracy": 87.5,
+      "correct": 40,
+      "wrong": 11,
+      "mae": 2.524,
+      "rmse": 3.145,
+      "bias": -0.155,
+      "modelKind": "tree:d4:l1",
+      "targetHit": false
+    },
+    "THREES": {
+      "samples": 45,
+      "projectionBaselineAccuracy": 48.89,
+      "finalBaselineAccuracy": 48.89,
+      "modelAccuracy": 88.89,
+      "lateWindowAccuracy": 78.57,
+      "correct": 40,
+      "wrong": 5,
+      "mae": 1.422,
+      "rmse": 1.87,
+      "bias": 0.048,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "PRA": {
+      "samples": 30,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 96.67,
+      "lateWindowAccuracy": 100,
+      "correct": 29,
+      "wrong": 1,
+      "mae": 8.872,
+      "rmse": 11.958,
+      "bias": 0.795,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true
+    },
+    "PA": {
+      "samples": 30,
+      "projectionBaselineAccuracy": 60,
+      "finalBaselineAccuracy": 70,
+      "modelAccuracy": 93.33,
+      "lateWindowAccuracy": 88.89,
+      "correct": 28,
+      "wrong": 2,
+      "mae": 7.17,
+      "rmse": 10.19,
+      "bias": 0.436,
+      "modelKind": "tree:d3:l1",
+      "targetHit": true
+    },
+    "PR": {
+      "samples": 30,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "lateWindowAccuracy": 100,
+      "correct": 30,
+      "wrong": 0,
+      "mae": 8.244,
+      "rmse": 10.676,
+      "bias": 0.575,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "RA": {
+      "samples": 30,
+      "projectionBaselineAccuracy": 40,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 93.33,
+      "lateWindowAccuracy": 100,
+      "correct": 28,
+      "wrong": 2,
+      "mae": 4.248,
+      "rmse": 5.09,
+      "bias": 0.453,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    }
+  }
+}

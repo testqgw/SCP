@@ -1,0 +1,98 @@
+{
+  "model": "snapshot_projection_v2_numeric_only",
+  "season": "2025",
+  "from": "2025-10-01",
+  "to": "2026-02-28",
+  "evaluatedDates": 141,
+  "logsInRange": 21472,
+  "rowsWithHistory": 20810,
+  "rowsWithoutHistory": 662,
+  "rowsWithoutProjection": 0,
+  "byMarket": [
+    {
+      "market": "PTS",
+      "samples": 20810,
+      "mae": 4.634,
+      "rmse": 6.109,
+      "bias": -0.15,
+      "within1Pct": 14.91,
+      "within2Pct": 28.78
+    },
+    {
+      "market": "REB",
+      "samples": 20810,
+      "mae": 1.932,
+      "rmse": 2.544,
+      "bias": -0.08,
+      "within1Pct": 34.27,
+      "within2Pct": 62.38
+    },
+    {
+      "market": "AST",
+      "samples": 20810,
+      "mae": 1.352,
+      "rmse": 1.843,
+      "bias": -0.05,
+      "within1Pct": 49.93,
+      "within2Pct": 78.98
+    },
+    {
+      "market": "THREES",
+      "samples": 20810,
+      "mae": 0.898,
+      "rmse": 1.256,
+      "bias": -0.017,
+      "within1Pct": 66.5,
+      "within2Pct": 90.24
+    },
+    {
+      "market": "PRA",
+      "samples": 20810,
+      "mae": 6.138,
+      "rmse": 7.973,
+      "bias": -0.273,
+      "within1Pct": 10.64,
+      "within2Pct": 21.3
+    },
+    {
+      "market": "PA",
+      "samples": 20810,
+      "mae": 5.12,
+      "rmse": 6.719,
+      "bias": -0.197,
+      "within1Pct": 13.05,
+      "within2Pct": 26.03
+    },
+    {
+      "market": "PR",
+      "samples": 20810,
+      "mae": 5.617,
+      "rmse": 7.316,
+      "bias": -0.229,
+      "within1Pct": 12.08,
+      "within2Pct": 23.4
+    },
+    {
+      "market": "RA",
+      "samples": 20810,
+      "mae": 2.666,
+      "rmse": 3.473,
+      "bias": -0.129,
+      "within1Pct": 24.68,
+      "within2Pct": 46.94
+    }
+  ],
+  "overall": {
+    "samples": 166480,
+    "mae": 3.545,
+    "rmse": 5.281,
+    "bias": -0.141,
+    "within1Pct": 28.26,
+    "within2Pct": 47.25
+  },
+  "notes": [
+    "Backtest uses strictly historical data before each game date (no same-day leakage).",
+    "Opponent allowance is rolling by opponent team from prior logs in the selected window.",
+    "Only completed logs with minutes > 0 are evaluated."
+  ]
+}

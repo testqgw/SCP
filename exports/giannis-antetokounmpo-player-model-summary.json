@@ -1,0 +1,680 @@
+{
+  "generatedFrom": "c:/Users/quinc/Desktop/Sports Betting Snapshot/compliance-reminder-saas/exports/player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "playerSummary": {
+    "playerId": "cmm6n1xa400z7dx10frn8g28m",
+    "playerName": "Giannis Antetokounmpo",
+    "marketCount": 8,
+    "targetHitCount": 8,
+    "allEightHit": true,
+    "markets": {
+      "AST": {
+        "samples": 30,
+        "modelAccuracy": 93.33,
+        "holdoutAccuracy": 33.33,
+        "targetHit": true
+      },
+      "PA": {
+        "samples": 12,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true
+      },
+      "PR": {
+        "samples": 12,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 75,
+        "targetHit": true
+      },
+      "PRA": {
+        "samples": 12,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 75,
+        "targetHit": true
+      },
+      "PTS": {
+        "samples": 30,
+        "modelAccuracy": 93.33,
+        "holdoutAccuracy": 66.67,
+        "targetHit": true
+      },
+      "RA": {
+        "samples": 12,
+        "modelAccuracy": 91.67,
+        "holdoutAccuracy": 50,
+        "targetHit": true
+      },
+      "REB": {
+        "samples": 30,
+        "modelAccuracy": 90,
+        "holdoutAccuracy": 44.44,
+        "targetHit": true
+      },
+      "THREES": {
+        "samples": 27,
+        "modelAccuracy": 92.59,
+        "holdoutAccuracy": 66.67,
+        "targetHit": true
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "AST",
+      "samples": 30,
+      "projectionBaselineAccuracy": 66.67,
+      "finalBaselineAccuracy": 73.33,
+      "modelAccuracy": 93.33,
+      "holdoutAccuracy": 33.33,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "priceLean",
+          "threshold": 0.0161,
+          "count": 30,
+          "accuracy": 76.67,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 15,
+            "accuracy": 86.67
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 9.41,
+            "count": 15,
+            "accuracy": 80,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 1.61,
+              "count": 11,
+              "accuracy": 90.91,
+              "left": {
+                "kind": "split",
+                "feature": "projectedValue",
+                "threshold": 7.04,
+                "count": 10,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 9,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "absLineGap",
+              "threshold": 0.365,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "PA",
+      "samples": 12,
+      "projectionBaselineAccuracy": 66.67,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 100,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 1.84,
+          "count": 12,
+          "accuracy": 75,
+          "left": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.3,
+            "count": 5,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 4,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -4.115,
+            "count": 7,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 5,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 2,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "PR",
+      "samples": 12,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 58.33,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 75,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 24.87,
+          "count": 12,
+          "accuracy": 91.67,
+          "left": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 3,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 33.56,
+            "count": 9,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 8,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 2,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "PRA",
+      "samples": 12,
+      "projectionBaselineAccuracy": 58.33,
+      "finalBaselineAccuracy": 75,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 75,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 2.505,
+          "count": 12,
+          "accuracy": 75,
+          "left": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.355,
+            "count": 5,
+            "accuracy": 100,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 4,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -4.83,
+            "count": 7,
+            "accuracy": 85.71,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 3.635,
+              "count": 6,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 5,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "PTS",
+      "samples": 30,
+      "projectionBaselineAccuracy": 46.67,
+      "finalBaselineAccuracy": 53.33,
+      "modelAccuracy": 93.33,
+      "holdoutAccuracy": 66.67,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 4.965,
+          "count": 30,
+          "accuracy": 70,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 0.71,
+            "count": 9,
+            "accuracy": 88.89,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 6,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 3.89,
+              "count": 3,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 1.365,
+            "count": 21,
+            "accuracy": 71.43,
+            "left": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": -0.0318,
+              "count": 20,
+              "accuracy": 75,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "overPrice",
+                "threshold": -122.25,
+                "count": 19,
+                "accuracy": 78.95,
+                "left": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": -0.46,
+                  "count": 3,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 2,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "absLineGap",
+                  "threshold": 0.225,
+                  "count": 16,
+                  "accuracy": 87.5,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 15,
+                    "accuracy": 86.67
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "RA",
+      "samples": 12,
+      "projectionBaselineAccuracy": 75,
+      "finalBaselineAccuracy": 66.67,
+      "modelAccuracy": 91.67,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 4.395,
+          "count": 12,
+          "accuracy": 83.33,
+          "left": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 2,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 2.905,
+            "count": 10,
+            "accuracy": 90,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 9,
+              "accuracy": 88.89
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 2,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "REB",
+      "samples": 30,
+      "projectionBaselineAccuracy": 46.67,
+      "finalBaselineAccuracy": 53.33,
+      "modelAccuracy": 90,
+      "holdoutAccuracy": 44.44,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": -0.685,
+          "count": 30,
+          "accuracy": 70,
+          "left": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 3,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 3.015,
+            "count": 27,
+            "accuracy": 74.07,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "priceAbsLean",
+              "threshold": 0.0099,
+              "count": 25,
+              "accuracy": 76,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.305,
+                "count": 5,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 3,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceAbsLean",
+                "threshold": 0.0106,
+                "count": 20,
+                "accuracy": 85,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 19,
+                  "accuracy": 84.21
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1xa400z7dx10frn8g28m",
+      "playerName": "Giannis Antetokounmpo",
+      "market": "THREES",
+      "samples": 27,
+      "projectionBaselineAccuracy": 55.56,
+      "finalBaselineAccuracy": 55.56,
+      "modelAccuracy": 92.59,
+      "holdoutAccuracy": 66.67,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 30.245,
+          "count": 27,
+          "accuracy": 74.08,
+          "left": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": 168.75,
+            "count": 16,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.355,
+              "count": 14,
+              "accuracy": 85.72,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 13,
+                "accuracy": 84.62
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.205,
+            "count": 11,
+            "accuracy": 90.91,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 7,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 32.975,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 3,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    }
+  ]
+}

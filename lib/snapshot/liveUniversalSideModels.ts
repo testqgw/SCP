@@ -30,6 +30,12 @@ export type Archetype =
   | "BENCH_GUARD"
   | "BENCH_WING"
   | "BENCH_SCORING_WING"
+  | "BENCH_LOW_USAGE_WING"
+  | "BENCH_MIDRANGE_SCORER"
+  | "BENCH_VOLUME_SCORER"
+  | "BENCH_CREATOR_SCORER"
+  | "BENCH_REBOUNDING_SCORER"
+  | "BENCH_SPACER_SCORER"
   | "BENCH_BIG"
   | "TWO_WAY_MARKET_WING"
   | "SCORER_CREATOR_WING"
@@ -76,7 +82,9 @@ type FeatureName =
   | "overPrice"
   | "underPrice"
   | "overProbability"
-  | "underProbability";
+  | "underProbability"
+  | "assistRate"
+  | "astToLineRatio";
 
 type LeafNode = {
   kind: "leaf";
@@ -201,6 +209,8 @@ type LiveUniversalModelRow = {
   rimPressureStarFlag: number | null;
   lowThreeVolumeStarFlag: number | null;
   comboGapPressure: number | null;
+  assistRate: number | null;
+  astToLineRatio: number | null;
 };
 
 type PredictLiveUniversalSideInput = {
@@ -414,15 +424,34 @@ function classifyBenchArchetype(input: {
     (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") &&
     (pts >= 16 || threes >= 1.8)
   ) {
-    return "BENCH_SCORING_WING";
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
   }
   if (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") {
     return "BENCH_WING";
   }
-  if (pts >= 15 || threes >= 1.8) return "BENCH_SCORING_WING";
+  if (pts >= 15 || threes >= 1.8) {
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
+  }
   if (ast >= reb && ast >= 3.5) return "BENCH_GUARD";
   if (reb >= pts && reb >= ast) return "BENCH_BIG";
-  if (pts >= reb && pts >= ast) return "BENCH_SCORING_WING";
+  if (pts >= reb && pts >= ast) {
+    if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
+    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
+    if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
+    if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
+    return "BENCH_VOLUME_SCORER";
+  }
   return "LOW_MINUTE_BENCH";
 }
 
@@ -646,6 +675,10 @@ function getFeature(row: LiveUniversalModelRow, feature: FeatureName): number | 
       return impliedProbability(row.overPrice);
     case "underProbability":
       return impliedProbability(row.underPrice);
+    case "assistRate":
+      return row.assistRate;
+    case "astToLineRatio":
+      return row.astToLineRatio;
     default:
       return null;
   }
@@ -893,6 +926,14 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
                 Math.max(0, ((input.assistProjection ?? 0) || 0) - 5) * 0.008),
             4,
           )
+        : null,
+    assistRate:
+      input.assistProjection != null && (input.expectedMinutes ?? 0) > 0
+        ? round(input.assistProjection / Math.max(input.expectedMinutes!, 1), 4)
+        : null,
+    astToLineRatio:
+      input.market === "AST" && input.line > 0
+        ? round(input.projectedValue / input.line, 4)
         : null,
   };
 

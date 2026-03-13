@@ -1,0 +1,101 @@
+{
+  "model": "snapshot_projection_v5_player_hybrid_online",
+  "season": "2025",
+  "from": "2025-12-15",
+  "to": "2026-03-02",
+  "evaluatedDates": 73,
+  "logsInRange": 11507,
+  "rowsWithHistory": 11500,
+  "rowsWithoutHistory": 7,
+  "rowsWithoutProjection": 0,
+  "byMarket": [
+    {
+      "market": "PTS",
+      "samples": 11500,
+      "mae": 4.608,
+      "rmse": 6.029,
+      "bias": -0.011,
+      "within1Pct": 14.3,
+      "within2Pct": 29.21
+    },
+    {
+      "market": "REB",
+      "samples": 11500,
+      "mae": 1.932,
+      "rmse": 2.546,
+      "bias": -0.048,
+      "within1Pct": 34.47,
+      "within2Pct": 61.77
+    },
+    {
+      "market": "AST",
+      "samples": 11500,
+      "mae": 1.344,
+      "rmse": 1.837,
+      "bias": -0.062,
+      "within1Pct": 49.69,
+      "within2Pct": 79.17
+    },
+    {
+      "market": "THREES",
+      "samples": 11500,
+      "mae": 0.89,
+      "rmse": 1.243,
+      "bias": -0.026,
+      "within1Pct": 66.6,
+      "within2Pct": 90.42
+    },
+    {
+      "market": "PRA",
+      "samples": 11500,
+      "mae": 6.127,
+      "rmse": 7.935,
+      "bias": -0.136,
+      "within1Pct": 10.85,
+      "within2Pct": 21.77
+    },
+    {
+      "market": "PA",
+      "samples": 11500,
+      "mae": 5.099,
+      "rmse": 6.676,
+      "bias": -0.077,
+      "within1Pct": 13.41,
+      "within2Pct": 26.55
+    },
+    {
+      "market": "PR",
+      "samples": 11500,
+      "mae": 5.607,
+      "rmse": 7.251,
+      "bias": -0.068,
+      "within1Pct": 11.66,
+      "within2Pct": 23.5
+    },
+    {
+      "market": "RA",
+      "samples": 11500,
+      "mae": 2.662,
+      "rmse": 3.471,
+      "bias": -0.116,
+      "within1Pct": 24.47,
+      "within2Pct": 47.23
+    }
+  ],
+  "overall": {
+    "samples": 92000,
+    "mae": 3.534,
+    "rmse": 5.243,
+    "bias": -0.068,
+    "within1Pct": 28.18,
+    "within2Pct": 47.45
+  },
+  "notes": [
+    "Backtest uses strictly historical data before each game date (no same-day leakage).",
+    "Opponent allowance is rolling by opponent team/archetype from prior logs in the selected window.",
+    "Only completed logs with minutes > 0 are evaluated.",
+    "Opponent allowance window: last 20 opponent games.",
+    "Player hybrid correction enabled (threshold=15 mpg, playerMinSamples=24, lr=0.015, l2=0.002).",
+    "Hybrid blends: player=0.65, global=0.45."
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "player": {
+    "id": "cmm6n10pc00bzdx10pvcq9zq9",
+    "name": "Nikola Jokić",
+    "position": "C"
+  },
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09",
+    "seasonStartDateEt": "2025-10-01"
+  },
+  "holdoutRatio": 0.3,
+  "splitIndex": 33,
+  "fullSample": {
+    "games": 48,
+    "correct": 40,
+    "wrong": 8,
+    "accuracyPct": 83.33,
+    "averageLine": 27.78,
+    "averageProjection": 27.21,
+    "from": "2025-10-25",
+    "to": "2026-03-09"
+  },
+  "trainingSample": {
+    "games": 33,
+    "correct": 27,
+    "wrong": 6,
+    "accuracyPct": 81.82,
+    "averageLine": 28.05,
+    "averageProjection": 27.41,
+    "from": "2025-10-25",
+    "to": "2026-02-01"
+  },
+  "holdoutSample": {
+    "games": 15,
+    "correct": 13,
+    "wrong": 2,
+    "accuracyPct": 86.67,
+    "averageLine": 27.17,
+    "averageProjection": 26.79,
+    "from": "2026-02-03",
+    "to": "2026-03-09"
+  }
+}

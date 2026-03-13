@@ -1,0 +1,98 @@
+{
+  "model": "snapshot_projection_v4_player_specific_15mpg",
+  "season": "2025",
+  "from": "2025-10-01",
+  "to": "2026-03-02",
+  "evaluatedDates": 143,
+  "logsInRange": 21850,
+  "rowsWithHistory": 21187,
+  "rowsWithoutHistory": 663,
+  "rowsWithoutProjection": 0,
+  "byMarket": [
+    {
+      "market": "PTS",
+      "samples": 21187,
+      "mae": 4.602,
+      "rmse": 6.092,
+      "bias": -0.161,
+      "within1Pct": 15.29,
+      "within2Pct": 30.12
+    },
+    {
+      "market": "REB",
+      "samples": 21187,
+      "mae": 1.926,
+      "rmse": 2.554,
+      "bias": -0.151,
+      "within1Pct": 35.74,
+      "within2Pct": 62.38
+    },
+    {
+      "market": "AST",
+      "samples": 21187,
+      "mae": 1.337,
+      "rmse": 1.844,
+      "bias": -0.095,
+      "within1Pct": 51.24,
+      "within2Pct": 78.9
+    },
+    {
+      "market": "THREES",
+      "samples": 21187,
+      "mae": 0.877,
+      "rmse": 1.25,
+      "bias": -0.049,
+      "within1Pct": 67.06,
+      "within2Pct": 90.13
+    },
+    {
+      "market": "PRA",
+      "samples": 21187,
+      "mae": 6.094,
+      "rmse": 7.959,
+      "bias": -0.254,
+      "within1Pct": 11.09,
+      "within2Pct": 22.12
+    },
+    {
+      "market": "PA",
+      "samples": 21187,
+      "mae": 5.079,
+      "rmse": 6.703,
+      "bias": -0.195,
+      "within1Pct": 13.83,
+      "within2Pct": 26.97
+    },
+    {
+      "market": "PR",
+      "samples": 21187,
+      "mae": 5.583,
+      "rmse": 7.305,
+      "bias": -0.224,
+      "within1Pct": 12.49,
+      "within2Pct": 24.25
+    },
+    {
+      "market": "RA",
+      "samples": 21187,
+      "mae": 2.655,
+      "rmse": 3.48,
+      "bias": -0.193,
+      "within1Pct": 25.77,
+      "within2Pct": 47.91
+    }
+  ],
+  "overall": {
+    "samples": 169496,
+    "mae": 3.519,
+    "rmse": 5.272,
+    "bias": -0.165,
+    "within1Pct": 29.06,
+    "within2Pct": 47.85
+  },
+  "notes": [
+    "Backtest uses strictly historical data before each game date (no same-day leakage).",
+    "Opponent allowance is rolling by opponent team from prior logs in the selected window.",
+    "Only completed logs with minutes > 0 are evaluated."
+  ]
+}

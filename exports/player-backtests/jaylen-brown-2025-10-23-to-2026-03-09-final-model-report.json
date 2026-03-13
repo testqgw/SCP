@@ -1,0 +1,140 @@
+{
+  "player": {
+    "id": "cmm6n1vvo00y7dx10xbda1m6i",
+    "name": "Jaylen Brown"
+  },
+  "sourceRows": "exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+  "sourceModels": "exports\\player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09"
+  },
+  "filters": {
+    "minActualMinutes": 15,
+    "lateWindowRatio": 0.3
+  },
+  "allEightHit": true,
+  "targetHitCount": 8,
+  "perMarket": {
+    "PTS": {
+      "samples": 56,
+      "projectionBaselineAccuracy": 46.43,
+      "finalBaselineAccuracy": 44.64,
+      "modelAccuracy": 94.64,
+      "lateWindowAccuracy": 100,
+      "correct": 53,
+      "wrong": 3,
+      "mae": 5.891,
+      "rmse": 7.864,
+      "bias": -2.21,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "REB": {
+      "samples": 56,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 39.29,
+      "modelAccuracy": 82.14,
+      "lateWindowAccuracy": 82.35,
+      "correct": 46,
+      "wrong": 10,
+      "mae": 2.388,
+      "rmse": 3.057,
+      "bias": -0.959,
+      "modelKind": "tree:d3:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "AST": {
+      "samples": 56,
+      "projectionBaselineAccuracy": 58.93,
+      "finalBaselineAccuracy": 60.71,
+      "modelAccuracy": 91.07,
+      "lateWindowAccuracy": 82.35,
+      "correct": 51,
+      "wrong": 5,
+      "mae": 1.958,
+      "rmse": 2.704,
+      "bias": -0.548,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "THREES": {
+      "samples": 53,
+      "projectionBaselineAccuracy": 64.15,
+      "finalBaselineAccuracy": 66.04,
+      "modelAccuracy": 90.57,
+      "lateWindowAccuracy": 87.5,
+      "correct": 48,
+      "wrong": 5,
+      "mae": 1.102,
+      "rmse": 1.455,
+      "bias": -0.068,
+      "modelKind": "tree:d3:l2",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PRA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 60,
+      "finalBaselineAccuracy": 60,
+      "modelAccuracy": 91.43,
+      "lateWindowAccuracy": 81.82,
+      "correct": 32,
+      "wrong": 3,
+      "mae": 7.039,
+      "rmse": 8.931,
+      "bias": -3.896,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 48.57,
+      "finalBaselineAccuracy": 51.43,
+      "modelAccuracy": 85.71,
+      "lateWindowAccuracy": 81.82,
+      "correct": 30,
+      "wrong": 5,
+      "mae": 6.195,
+      "rmse": 8.471,
+      "bias": -2.988,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PR": {
+      "samples": 34,
+      "projectionBaselineAccuracy": 52.94,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 85.29,
+      "lateWindowAccuracy": 81.82,
+      "correct": 29,
+      "wrong": 5,
+      "mae": 6.798,
+      "rmse": 8.832,
+      "bias": -3.199,
+      "modelKind": "tree:d5:l4+jaylen-pr-v1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "RA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 60,
+      "finalBaselineAccuracy": 54.29,
+      "modelAccuracy": 91.43,
+      "lateWindowAccuracy": 100,
+      "correct": 32,
+      "wrong": 3,
+      "mae": 3.113,
+      "rmse": 4.055,
+      "bias": -1.86,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    }
+  }
+}

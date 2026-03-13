@@ -1,0 +1,140 @@
+{
+  "player": {
+    "id": "cmm6n13ek00dxdx10a85oxmw7",
+    "name": "Anthony Edwards"
+  },
+  "sourceRows": "exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+  "sourceModels": "exports\\player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09"
+  },
+  "filters": {
+    "minActualMinutes": 15,
+    "lateWindowRatio": 0.3
+  },
+  "allEightHit": true,
+  "targetHitCount": 8,
+  "perMarket": {
+    "PTS": {
+      "samples": 52,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 46.15,
+      "modelAccuracy": 94.23,
+      "lateWindowAccuracy": 93.75,
+      "correct": 49,
+      "wrong": 3,
+      "mae": 7.625,
+      "rmse": 9.52,
+      "bias": -1.112,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "REB": {
+      "samples": 52,
+      "projectionBaselineAccuracy": 51.92,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 88.46,
+      "lateWindowAccuracy": 81.25,
+      "correct": 46,
+      "wrong": 6,
+      "mae": 1.881,
+      "rmse": 2.341,
+      "bias": 0.001,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "AST": {
+      "samples": 52,
+      "projectionBaselineAccuracy": 53.85,
+      "finalBaselineAccuracy": 55.77,
+      "modelAccuracy": 88.46,
+      "lateWindowAccuracy": 87.5,
+      "correct": 46,
+      "wrong": 6,
+      "mae": 1.429,
+      "rmse": 1.68,
+      "bias": 0.413,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "THREES": {
+      "samples": 47,
+      "projectionBaselineAccuracy": 46.81,
+      "finalBaselineAccuracy": 40.43,
+      "modelAccuracy": 91.49,
+      "lateWindowAccuracy": 80,
+      "correct": 43,
+      "wrong": 4,
+      "mae": 1.717,
+      "rmse": 2.08,
+      "bias": -0.015,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PRA": {
+      "samples": 31,
+      "projectionBaselineAccuracy": 61.29,
+      "finalBaselineAccuracy": 58.06,
+      "modelAccuracy": 83.87,
+      "lateWindowAccuracy": 100,
+      "correct": 26,
+      "wrong": 5,
+      "mae": 7.506,
+      "rmse": 9.374,
+      "bias": 0.19,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PA": {
+      "samples": 31,
+      "projectionBaselineAccuracy": 61.29,
+      "finalBaselineAccuracy": 51.61,
+      "modelAccuracy": 90.32,
+      "lateWindowAccuracy": 90,
+      "correct": 28,
+      "wrong": 3,
+      "mae": 7.104,
+      "rmse": 8.821,
+      "bias": -0.424,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "PR": {
+      "samples": 31,
+      "projectionBaselineAccuracy": 67.74,
+      "finalBaselineAccuracy": 54.84,
+      "modelAccuracy": 96.77,
+      "lateWindowAccuracy": 100,
+      "correct": 30,
+      "wrong": 1,
+      "mae": 7.203,
+      "rmse": 9.377,
+      "bias": -0.091,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    },
+    "RA": {
+      "samples": 31,
+      "projectionBaselineAccuracy": 70.97,
+      "finalBaselineAccuracy": 74.19,
+      "modelAccuracy": 93.55,
+      "lateWindowAccuracy": 100,
+      "correct": 29,
+      "wrong": 2,
+      "mae": 2.181,
+      "rmse": 2.886,
+      "bias": 0.803,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true,
+      "chosenSource": "PLAYER"
+    }
+  }
+}

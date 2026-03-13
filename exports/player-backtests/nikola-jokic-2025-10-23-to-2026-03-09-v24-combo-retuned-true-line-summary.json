@@ -1,0 +1,50 @@
+{
+  "PRA": {
+    "full": {
+      "samples": 32,
+      "correct": 27,
+      "wrong": 5,
+      "sideAccuracyPct": 84.38
+    },
+    "train": {
+      "samples": 22,
+      "correct": 17,
+      "wrong": 5,
+      "sideAccuracyPct": 77.27
+    },
+    "holdout": {
+      "samples": 10,
+      "correct": 10,
+      "wrong": 0,
+      "sideAccuracyPct": 100
+    },
+    "holdoutWindow": {
+      "from": "2026-02-09",
+      "to": "2026-03-06"
+    }
+  },
+  "RA": {
+    "full": {
+      "samples": 32,
+      "correct": 28,
+      "wrong": 4,
+      "sideAccuracyPct": 87.5
+    },
+    "train": {
+      "samples": 22,
+      "correct": 19,
+      "wrong": 3,
+      "sideAccuracyPct": 86.36
+    },
+    "holdout": {
+      "samples": 10,
+      "correct": 9,
+      "wrong": 1,
+      "sideAccuracyPct": 90
+    },
+    "holdoutWindow": {
+      "from": "2026-02-09",
+      "to": "2026-03-06"
+    }
+  }
+}

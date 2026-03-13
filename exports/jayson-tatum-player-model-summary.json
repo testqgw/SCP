@@ -1,0 +1,288 @@
+{
+  "generatedFrom": "exports\\player-backtests\\jayson-tatum-2025-10-23-to-2026-03-09-final-model-report.json",
+  "playerSummary": {
+    "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+    "playerName": "Jayson Tatum",
+    "marketCount": 8,
+    "targetHitCount": 8,
+    "allEightHit": true,
+    "markets": {
+      "PTS": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "REB": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "AST": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "THREES": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PRA": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PA": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PR": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "RA": {
+        "samples": 2,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": null,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "PTS",
+      "samples": 2,
+      "projectionBaselineAccuracy": 100,
+      "finalBaselineAccuracy": 100,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "projection"
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "REB",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "gapThenProjection",
+        "threshold": 1.25
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "AST",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 2.13,
+          "count": 2,
+          "accuracy": 100,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 1,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 1,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 1,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "THREES",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 0,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.5,
+          "count": 2,
+          "accuracy": 100,
+          "left": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 1,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 1,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 1,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "PRA",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 14.6,
+          "count": 2,
+          "accuracy": 100,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 1,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 1,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 1,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "PA",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 11.84,
+          "count": 2,
+          "accuracy": 100,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 1,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 1,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 1,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "PR",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 12.395,
+          "count": 2,
+          "accuracy": 100,
+          "left": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 1,
+            "accuracy": 100
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "OVER",
+            "count": 1,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 1,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1x7b00z5dx10wv05hatr",
+      "playerName": "Jayson Tatum",
+      "market": "RA",
+      "samples": 2,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": null,
+      "targetHit": true,
+      "model": {
+        "kind": "marketFavored"
+      }
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "player": {
+    "id": "cmm6n1g8p00n3dx10vldksrbh",
+    "name": "Victor Wembanyama"
+  },
+  "sourceRows": "exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+  "sourceModels": "exports\\player-market-side-models-2025-10-23-to-2026-03-09.json",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09"
+  },
+  "filters": {
+    "minActualMinutes": 15,
+    "lateWindowRatio": 0.3
+  },
+  "allEightHit": true,
+  "targetHitCount": 8,
+  "perMarket": {
+    "PTS": {
+      "samples": 50,
+      "projectionBaselineAccuracy": 48,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 94,
+      "lateWindowAccuracy": 93.33,
+      "correct": 47,
+      "wrong": 3,
+      "mae": 6.595,
+      "rmse": 7.958,
+      "bias": -0.201,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true
+    },
+    "REB": {
+      "samples": 50,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 54,
+      "modelAccuracy": 94,
+      "lateWindowAccuracy": 93.33,
+      "correct": 47,
+      "wrong": 3,
+      "mae": 2.986,
+      "rmse": 3.47,
+      "bias": -0.257,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "AST": {
+      "samples": 49,
+      "projectionBaselineAccuracy": 57.14,
+      "finalBaselineAccuracy": 55.1,
+      "modelAccuracy": 91.84,
+      "lateWindowAccuracy": 86.67,
+      "correct": 45,
+      "wrong": 4,
+      "mae": 1.26,
+      "rmse": 1.674,
+      "bias": 0.324,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "THREES": {
+      "samples": 39,
+      "projectionBaselineAccuracy": 46.15,
+      "finalBaselineAccuracy": 51.28,
+      "modelAccuracy": 94.87,
+      "lateWindowAccuracy": 100,
+      "correct": 37,
+      "wrong": 2,
+      "mae": 1.589,
+      "rmse": 1.915,
+      "bias": -0.054,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true
+    },
+    "PRA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 40,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 88.57,
+      "lateWindowAccuracy": 81.82,
+      "correct": 31,
+      "wrong": 4,
+      "mae": 8.11,
+      "rmse": 9.581,
+      "bias": -0.066,
+      "modelKind": "tree:d4:l1",
+      "targetHit": true
+    },
+    "PA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 25.71,
+      "finalBaselineAccuracy": 31.43,
+      "modelAccuracy": 91.43,
+      "lateWindowAccuracy": 72.73,
+      "correct": 32,
+      "wrong": 3,
+      "mae": 6.771,
+      "rmse": 8.02,
+      "bias": 0.454,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "PR": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 34.29,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 94.29,
+      "lateWindowAccuracy": 90.91,
+      "correct": 33,
+      "wrong": 2,
+      "mae": 7.982,
+      "rmse": 9.419,
+      "bias": -0.921,
+      "modelKind": "tree:d5:l1",
+      "targetHit": true
+    },
+    "RA": {
+      "samples": 35,
+      "projectionBaselineAccuracy": 48.57,
+      "finalBaselineAccuracy": 48.57,
+      "modelAccuracy": 80,
+      "lateWindowAccuracy": 72.73,
+      "correct": 28,
+      "wrong": 7,
+      "mae": 3.391,
+      "rmse": 3.981,
+      "bias": 0.345,
+      "modelKind": "tree:d3:l1",
+      "targetHit": true
+    }
+  }
+}

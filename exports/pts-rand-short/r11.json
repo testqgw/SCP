@@ -1,0 +1,107 @@
+{
+  "model": "snapshot_projection_v4_player_specific_15mpg",
+  "season": "2025",
+  "from": "2025-12-15",
+  "to": "2026-03-02",
+  "evaluatedDates": 73,
+  "logsInRange": 11507,
+  "rowsWithHistory": 11500,
+  "rowsWithoutHistory": 7,
+  "rowsWithoutProjection": 0,
+  "byMarket": [
+    {
+      "market": "PTS",
+      "samples": 11500,
+      "mae": 4.552,
+      "rmse": 6.016,
+      "bias": -0.298,
+      "within1Pct": 14.93,
+      "within2Pct": 30.37
+    },
+    {
+      "market": "REB",
+      "samples": 11500,
+      "mae": 1.914,
+      "rmse": 2.549,
+      "bias": -0.182,
+      "within1Pct": 36.31,
+      "within2Pct": 62.86
+    },
+    {
+      "market": "AST",
+      "samples": 11500,
+      "mae": 1.325,
+      "rmse": 1.838,
+      "bias": -0.156,
+      "within1Pct": 51.42,
+      "within2Pct": 79.07
+    },
+    {
+      "market": "THREES",
+      "samples": 11500,
+      "mae": 0.866,
+      "rmse": 1.251,
+      "bias": -0.129,
+      "within1Pct": 67.52,
+      "within2Pct": 90.17
+    },
+    {
+      "market": "PRA",
+      "samples": 11500,
+      "mae": 6.054,
+      "rmse": 7.93,
+      "bias": -0.284,
+      "within1Pct": 11.16,
+      "within2Pct": 22.44
+    },
+    {
+      "market": "PA",
+      "samples": 11500,
+      "mae": 5.03,
+      "rmse": 6.66,
+      "bias": -0.255,
+      "within1Pct": 14.08,
+      "within2Pct": 27.43
+    },
+    {
+      "market": "PR",
+      "samples": 11500,
+      "mae": 5.54,
+      "rmse": 7.248,
+      "bias": -0.321,
+      "within1Pct": 12.26,
+      "within2Pct": 24.33
+    },
+    {
+      "market": "RA",
+      "samples": 11500,
+      "mae": 2.631,
+      "rmse": 3.474,
+      "bias": -0.229,
+      "within1Pct": 26.2,
+      "within2Pct": 48.43
+    }
+  ],
+  "overall": {
+    "samples": 92000,
+    "mae": 3.489,
+    "rmse": 5.238,
+    "bias": -0.232,
+    "within1Pct": 29.23,
+    "within2Pct": 48.14
+  },
+  "notes": [
+    "Backtest uses strictly historical data before each game date (no same-day leakage).",
+    "Opponent allowance is rolling by opponent team/archetype from prior logs in the selected window.",
+    "Only completed logs with minutes > 0 are evaluated.",
+    "Opponent allowance window: last 20 opponent games.",
+    "Player residual correction enabled (weight=0.18, window=34).",
+    "Global bin residual correction enabled (weight=1.15, minSamples=17).",
+    "Rest context correction enabled (weight=0.07, minSamples=6).",
+    "Player quantile clamp enabled (weight=0.08, minSamples=14).",
+    "Conditional median blend enabled (weight=0.08, take=39).",
+    "PTS volatility dampening enabled (weight=0.01, threshold=8.93).",
+    "PTS trend reversion enabled (weight=-0.051, cap=1.32).",
+    "PTS bounce-back correction enabled after bad games (weight=0.16, playerMin=3, globalMin=24, cap=2, threshold=max(3.5 pts, 18%))."
+  ]
+}

@@ -1,0 +1,1130 @@
+{
+  "generatedFrom": "exports\\player-backtests\\kevin-durant-2025-10-23-to-2026-03-09-final-model-report.json",
+  "playerSummary": {
+    "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+    "playerName": "Kevin Durant",
+    "marketCount": 8,
+    "targetHitCount": 8,
+    "allEightHit": true,
+    "markets": {
+      "PTS": {
+        "samples": 59,
+        "modelAccuracy": 89.83,
+        "holdoutAccuracy": 83.33,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "REB": {
+        "samples": 59,
+        "modelAccuracy": 86.44,
+        "holdoutAccuracy": 88.89,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "AST": {
+        "samples": 59,
+        "modelAccuracy": 88.14,
+        "holdoutAccuracy": 77.78,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "THREES": {
+        "samples": 58,
+        "modelAccuracy": 91.38,
+        "holdoutAccuracy": 88.89,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PRA": {
+        "samples": 40,
+        "modelAccuracy": 92.5,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PA": {
+        "samples": 40,
+        "modelAccuracy": 87.5,
+        "holdoutAccuracy": 91.67,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PR": {
+        "samples": 40,
+        "modelAccuracy": 90,
+        "holdoutAccuracy": 91.67,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "RA": {
+        "samples": 40,
+        "modelAccuracy": 90,
+        "holdoutAccuracy": 83.33,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "PTS",
+      "samples": 59,
+      "projectionBaselineAccuracy": 42.37,
+      "finalBaselineAccuracy": 59.32,
+      "modelAccuracy": 89.83,
+      "holdoutAccuracy": 38.89,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "priceLean",
+          "threshold": -0.0072,
+          "count": 59,
+          "accuracy": 62.71,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.23,
+            "count": 23,
+            "accuracy": 86.96,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 4.25,
+              "count": 11,
+              "accuracy": 90.91,
+              "left": {
+                "kind": "split",
+                "feature": "minutesVolatility",
+                "threshold": 3.995,
+                "count": 4,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 3,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 7,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 12,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 31.87,
+            "count": 36,
+            "accuracy": 63.89,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.085,
+              "count": 3,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 2.09,
+              "count": 33,
+              "accuracy": 66.67,
+              "left": {
+                "kind": "split",
+                "feature": "absLineGap",
+                "threshold": 2.08,
+                "count": 26,
+                "accuracy": 69.24,
+                "left": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": -1.98,
+                  "count": 23,
+                  "accuracy": 73.92,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 22,
+                    "accuracy": 72.73
+                  }
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": -2.125,
+                  "count": 3,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 2,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 38.675,
+                "count": 7,
+                "accuracy": 85.71,
+                "left": {
+                  "kind": "split",
+                  "feature": "expectedMinutes",
+                  "threshold": 35.84,
+                  "count": 5,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 4,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "REB",
+      "samples": 59,
+      "projectionBaselineAccuracy": 54.24,
+      "finalBaselineAccuracy": 54.24,
+      "modelAccuracy": 86.44,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "line",
+          "threshold": 5.25,
+          "count": 59,
+          "accuracy": 66.1,
+          "left": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 6.815,
+            "count": 35,
+            "accuracy": 71.43,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 28,
+              "accuracy": 75
+            },
+            "right": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": 0.1125,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 3,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.17,
+            "count": 24,
+            "accuracy": 70.83,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.64,
+              "count": 10,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 9,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -119.5,
+              "count": 14,
+              "accuracy": 85.71,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 4,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.8,
+                "count": 10,
+                "accuracy": 90,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 9,
+                  "accuracy": 88.89
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "AST",
+      "samples": 59,
+      "projectionBaselineAccuracy": 49.15,
+      "finalBaselineAccuracy": 55.93,
+      "modelAccuracy": 88.14,
+      "holdoutAccuracy": 55.56,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "projectedValue",
+          "threshold": 4.39,
+          "count": 59,
+          "accuracy": 62.71,
+          "left": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.435,
+            "count": 35,
+            "accuracy": 68.57,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 32.595,
+              "count": 17,
+              "accuracy": 88.24,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 15,
+                "accuracy": 86.67
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": -0.0788,
+              "count": 18,
+              "accuracy": 77.78,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 30.91,
+                "count": 9,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 8,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceLean",
+                "threshold": 0.0438,
+                "count": 9,
+                "accuracy": 88.89,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 5,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": 0.65,
+                  "count": 4,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 1.935,
+            "count": 24,
+            "accuracy": 75,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.6,
+              "count": 3,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 21,
+              "accuracy": 76.19
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "THREES",
+      "samples": 58,
+      "projectionBaselineAccuracy": 68.97,
+      "finalBaselineAccuracy": 70.69,
+      "modelAccuracy": 91.38,
+      "holdoutAccuracy": 61.11,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "priceLean",
+          "threshold": -0.1584,
+          "count": 58,
+          "accuracy": 75.86,
+          "left": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": 138.25,
+            "count": 23,
+            "accuracy": 86.95,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.1,
+              "count": 19,
+              "accuracy": 94.73,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.645,
+                "count": 18,
+                "accuracy": 94.45,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 17,
+                  "accuracy": 94.12
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 4,
+              "accuracy": 75
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.215,
+            "count": 35,
+            "accuracy": 82.85,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.03,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 5,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.405,
+              "count": 28,
+              "accuracy": 85.72,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 32.215,
+                "count": 16,
+                "accuracy": 87.5,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 15,
+                  "accuracy": 86.67
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 12,
+                "accuracy": 91.67
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "PRA",
+      "samples": 40,
+      "projectionBaselineAccuracy": 42.5,
+      "finalBaselineAccuracy": 45,
+      "modelAccuracy": 92.5,
+      "holdoutAccuracy": 25,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 1.025,
+          "count": 40,
+          "accuracy": 70,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.415,
+            "count": 24,
+            "accuracy": 75,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -3.755,
+              "count": 10,
+              "accuracy": 70,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 36.5,
+                "count": 9,
+                "accuracy": 77.78,
+                "left": {
+                  "kind": "split",
+                  "feature": "priceLean",
+                  "threshold": -0.0106,
+                  "count": 8,
+                  "accuracy": 87.5,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 7,
+                    "accuracy": 85.71
+                  }
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.89,
+              "count": 14,
+              "accuracy": 92.86,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 13,
+                "accuracy": 92.31
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": -116,
+            "count": 16,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 12,
+              "accuracy": 91.67
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 1.58,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 3,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "PA",
+      "samples": 40,
+      "projectionBaselineAccuracy": 40,
+      "finalBaselineAccuracy": 32.5,
+      "modelAccuracy": 87.5,
+      "holdoutAccuracy": 25,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.72,
+          "count": 40,
+          "accuracy": 65,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 30.91,
+            "count": 24,
+            "accuracy": 66.67,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "line",
+              "threshold": 28.625,
+              "count": 23,
+              "accuracy": 69.57,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.135,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.225,
+                "count": 20,
+                "accuracy": 75,
+                "left": {
+                  "kind": "split",
+                  "feature": "priceLean",
+                  "threshold": 0.0053,
+                  "count": 15,
+                  "accuracy": 86.67,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 12,
+                    "accuracy": 91.67
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  }
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": 0.57,
+                  "count": 5,
+                  "accuracy": 80,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 2,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  }
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 38.675,
+            "count": 16,
+            "accuracy": 81.25,
+            "left": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": -0.0068,
+              "count": 14,
+              "accuracy": 85.72,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 13,
+                "accuracy": 84.62
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "PR",
+      "samples": 40,
+      "projectionBaselineAccuracy": 35,
+      "finalBaselineAccuracy": 42.5,
+      "modelAccuracy": 90,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.26,
+          "count": 40,
+          "accuracy": 65,
+          "left": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": 0.0032,
+            "count": 16,
+            "accuracy": 81.25,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 36.195,
+              "count": 9,
+              "accuracy": 88.89,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 5,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.07,
+                "count": 4,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 3,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 7,
+              "accuracy": 100
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 0.375,
+            "count": 24,
+            "accuracy": 75,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 7.48,
+              "count": 22,
+              "accuracy": 77.28,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 19,
+                "accuracy": 78.95
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceLean",
+                "threshold": 0.0235,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n1b7c00jhdx1030gogc7z",
+      "playerName": "Kevin Durant",
+      "market": "RA",
+      "samples": 40,
+      "projectionBaselineAccuracy": 57.5,
+      "finalBaselineAccuracy": 60,
+      "modelAccuracy": 90,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 35.22,
+          "count": 40,
+          "accuracy": 67.5,
+          "left": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.31,
+            "count": 16,
+            "accuracy": 87.5,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 3,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 4.465,
+              "count": 13,
+              "accuracy": 92.31,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 12,
+                "accuracy": 91.67
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 2.045,
+            "count": 24,
+            "accuracy": 70.84,
+            "left": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 39.02,
+              "count": 23,
+              "accuracy": 73.92,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 35.94,
+                "count": 22,
+                "accuracy": 77.28,
+                "left": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": 0.045,
+                  "count": 3,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 2,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "priceAbsLean",
+                  "threshold": 0.0187,
+                  "count": 19,
+                  "accuracy": 84.21,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 3,
+                    "accuracy": 66.67
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 16,
+                    "accuracy": 87.5
+                  }
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    }
+  ]
+}

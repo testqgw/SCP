@@ -1,0 +1,98 @@
+{
+  "PRA": {
+    "full": {
+      "samples": 27,
+      "correct": 22,
+      "wrong": 5,
+      "sideAccuracyPct": 81.48
+    },
+    "train": {
+      "samples": 19,
+      "correct": 16,
+      "wrong": 3,
+      "sideAccuracyPct": 84.21
+    },
+    "holdout": {
+      "samples": 8,
+      "correct": 6,
+      "wrong": 2,
+      "sideAccuracyPct": 75
+    },
+    "holdoutWindow": {
+      "from": "2026-02-03",
+      "to": "2026-03-06"
+    }
+  },
+  "PA": {
+    "full": {
+      "samples": 27,
+      "correct": 21,
+      "wrong": 6,
+      "sideAccuracyPct": 77.78
+    },
+    "train": {
+      "samples": 19,
+      "correct": 16,
+      "wrong": 3,
+      "sideAccuracyPct": 84.21
+    },
+    "holdout": {
+      "samples": 8,
+      "correct": 5,
+      "wrong": 3,
+      "sideAccuracyPct": 62.5
+    },
+    "holdoutWindow": {
+      "from": "2026-02-03",
+      "to": "2026-03-06"
+    }
+  },
+  "PR": {
+    "full": {
+      "samples": 27,
+      "correct": 25,
+      "wrong": 2,
+      "sideAccuracyPct": 92.59
+    },
+    "train": {
+      "samples": 19,
+      "correct": 18,
+      "wrong": 1,
+      "sideAccuracyPct": 94.74
+    },
+    "holdout": {
+      "samples": 8,
+      "correct": 7,
+      "wrong": 1,
+      "sideAccuracyPct": 87.5
+    },
+    "holdoutWindow": {
+      "from": "2026-02-03",
+      "to": "2026-03-06"
+    }
+  },
+  "RA": {
+    "full": {
+      "samples": 27,
+      "correct": 22,
+      "wrong": 5,
+      "sideAccuracyPct": 81.48
+    },
+    "train": {
+      "samples": 19,
+      "correct": 14,
+      "wrong": 5,
+      "sideAccuracyPct": 73.68
+    },
+    "holdout": {
+      "samples": 8,
+      "correct": 8,
+      "wrong": 0,
+      "sideAccuracyPct": 100
+    },
+    "holdoutWindow": {
+      "from": "2026-02-03",
+      "to": "2026-03-06"
+    }
+  }
+}

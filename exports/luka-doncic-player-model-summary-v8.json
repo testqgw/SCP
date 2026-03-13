@@ -1,0 +1,1039 @@
+{
+  "generatedFrom": "exports\\player-backtests\\luka-doncic-v8-selection-report.json",
+  "playerSummary": {
+    "playerId": "cmm6n0psd0047dx10gd2j56s3",
+    "playerName": "Luka Dončić",
+    "marketCount": 8,
+    "targetHitCount": 7,
+    "allEightHit": false,
+    "markets": {
+      "PTS": {
+        "samples": 51,
+        "modelAccuracy": 86.27,
+        "holdoutAccuracy": 87.5,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "REB": {
+        "samples": 51,
+        "modelAccuracy": 90.2,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "AST": {
+        "samples": 51,
+        "modelAccuracy": 78.43,
+        "holdoutAccuracy": 87.5,
+        "targetHit": false,
+        "chosenSource": "PLAYER"
+      },
+      "THREES": {
+        "samples": 45,
+        "modelAccuracy": 88.89,
+        "holdoutAccuracy": 78.57,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PRA": {
+        "samples": 30,
+        "modelAccuracy": 96.67,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PA": {
+        "samples": 30,
+        "modelAccuracy": 93.33,
+        "holdoutAccuracy": 88.89,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "PR": {
+        "samples": 30,
+        "modelAccuracy": 100,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      },
+      "RA": {
+        "samples": 30,
+        "modelAccuracy": 93.33,
+        "holdoutAccuracy": 100,
+        "targetHit": true,
+        "chosenSource": "PLAYER"
+      }
+    }
+  },
+  "playerModels": [
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "PTS",
+      "samples": 51,
+      "projectionBaselineAccuracy": 54.9,
+      "finalBaselineAccuracy": 47.06,
+      "modelAccuracy": 86.27,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 35.69,
+          "count": 51,
+          "accuracy": 64.71,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -3.44,
+            "count": 30,
+            "accuracy": 70,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -4.17,
+              "count": 3,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 30.275,
+              "count": 27,
+              "accuracy": 77.78,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 25,
+                "accuracy": 76
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 33.54,
+            "count": 21,
+            "accuracy": 90.48,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 5.335,
+              "count": 15,
+              "accuracy": 93.34,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 14,
+                "accuracy": 92.86
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 6,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "REB",
+      "samples": 51,
+      "projectionBaselineAccuracy": 37.25,
+      "finalBaselineAccuracy": 45.1,
+      "modelAccuracy": 90.2,
+      "holdoutAccuracy": 50,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.04,
+          "count": 51,
+          "accuracy": 64.71,
+          "left": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": -0.0423,
+            "count": 30,
+            "accuracy": 76.67,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.29,
+              "count": 12,
+              "accuracy": 91.67,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 31.495,
+                "count": 10,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 9,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 2,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 8.2,
+              "count": 18,
+              "accuracy": 88.89,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 14,
+                "accuracy": 92.86
+              },
+              "right": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 34.41,
+                "count": 4,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 3,
+                  "accuracy": 100
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 1.84,
+            "count": 21,
+            "accuracy": 80.95,
+            "left": {
+              "kind": "leaf",
+              "side": "OVER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 20,
+              "accuracy": 80
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "AST",
+      "samples": 51,
+      "projectionBaselineAccuracy": 45.1,
+      "finalBaselineAccuracy": 47.06,
+      "modelAccuracy": 78.43,
+      "holdoutAccuracy": 62.5,
+      "targetHit": false,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 0.915,
+          "count": 51,
+          "accuracy": 66.67,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 0.415,
+            "count": 40,
+            "accuracy": 70,
+            "left": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.775,
+              "count": 36,
+              "accuracy": 69.45,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.84,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 33,
+                "accuracy": 69.7
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.45,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 3,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 8.26,
+            "count": 11,
+            "accuracy": 81.82,
+            "left": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 7.38,
+              "count": 10,
+              "accuracy": 90,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 9,
+                "accuracy": 88.89
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "THREES",
+      "samples": 45,
+      "projectionBaselineAccuracy": 48.89,
+      "finalBaselineAccuracy": 48.89,
+      "modelAccuracy": 88.89,
+      "holdoutAccuracy": 21.43,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "expectedMinutes",
+          "threshold": 33.19,
+          "count": 45,
+          "accuracy": 60,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 30.975,
+            "count": 9,
+            "accuracy": 77.78,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 1,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "priceAbsLean",
+              "threshold": 0.0044,
+              "count": 8,
+              "accuracy": 87.5,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceLean",
+                "threshold": -0.0316,
+                "count": 7,
+                "accuracy": 85.72,
+                "left": {
+                  "kind": "split",
+                  "feature": "lineGap",
+                  "threshold": 0.33,
+                  "count": 3,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 2,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 4,
+                  "accuracy": 100
+                }
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": 0.1404,
+            "count": 36,
+            "accuracy": 63.89,
+            "left": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 3.37,
+              "count": 32,
+              "accuracy": 68.75,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 34.67,
+                "count": 6,
+                "accuracy": 83.33,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "expectedMinutes",
+                  "threshold": 36.175,
+                  "count": 5,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 4,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                }
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.305,
+                "count": 26,
+                "accuracy": 69.24,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 13,
+                  "accuracy": 84.62
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "minutesVolatility",
+                  "threshold": 4.18,
+                  "count": 13,
+                  "accuracy": 76.92,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 8,
+                    "accuracy": 75
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 5,
+                    "accuracy": 80
+                  }
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": 0.69,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 3,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "PRA",
+      "samples": 30,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 96.67,
+      "holdoutAccuracy": 55.56,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 1.175,
+          "count": 30,
+          "accuracy": 66.67,
+          "left": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": 0.785,
+            "count": 15,
+            "accuracy": 80,
+            "left": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 49.43,
+              "count": 11,
+              "accuracy": 90.91,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 8,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": 0.345,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 2,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "expectedMinutes",
+              "threshold": 34.86,
+              "count": 4,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 3,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 3.02,
+            "count": 15,
+            "accuracy": 80,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -5.345,
+              "count": 13,
+              "accuracy": 84.61,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "priceAbsLean",
+                "threshold": 0.0053,
+                "count": 12,
+                "accuracy": 91.67,
+                "left": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 11,
+                  "accuracy": 90.91
+                }
+              }
+            }
+          }
+        },
+        "maxDepth": 4,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "PA",
+      "samples": 30,
+      "projectionBaselineAccuracy": 60,
+      "finalBaselineAccuracy": 70,
+      "modelAccuracy": 93.33,
+      "holdoutAccuracy": 22.22,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 0.93,
+          "count": 30,
+          "accuracy": 70,
+          "left": {
+            "kind": "split",
+            "feature": "expectedMinutes",
+            "threshold": 35.395,
+            "count": 12,
+            "accuracy": 91.67,
+            "left": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 7,
+              "accuracy": 100
+            },
+            "right": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 1.98,
+              "count": 5,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 4,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 4.495,
+            "count": 18,
+            "accuracy": 83.33,
+            "left": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": -0.0177,
+              "count": 16,
+              "accuracy": 87.5,
+              "left": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 15,
+                "accuracy": 86.67
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 3,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "PR",
+      "samples": 30,
+      "projectionBaselineAccuracy": 50,
+      "finalBaselineAccuracy": 50,
+      "modelAccuracy": 100,
+      "holdoutAccuracy": 33.33,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 1.42,
+          "count": 30,
+          "accuracy": 63.33,
+          "left": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 0.745,
+            "count": 15,
+            "accuracy": 80,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 8.16,
+              "count": 8,
+              "accuracy": 87.5,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.24,
+                "count": 7,
+                "accuracy": 85.72,
+                "left": {
+                  "kind": "split",
+                  "feature": "priceLean",
+                  "threshold": 0.0141,
+                  "count": 3,
+                  "accuracy": 100,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 2,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 1,
+                    "accuracy": 100
+                  }
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 4,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 1,
+                "accuracy": 100
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -1.05,
+              "count": 7,
+              "accuracy": 100,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "UNDER",
+                "count": 6,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "split",
+            "feature": "absLineGap",
+            "threshold": 4.435,
+            "count": 15,
+            "accuracy": 86.67,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 5.57,
+              "count": 13,
+              "accuracy": 92.31,
+              "left": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 10,
+                "accuracy": 100
+              },
+              "right": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -3.375,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              }
+            },
+            "right": {
+              "kind": "leaf",
+              "side": "UNDER",
+              "count": 2,
+              "accuracy": 100
+            }
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    },
+    {
+      "playerId": "cmm6n0psd0047dx10gd2j56s3",
+      "playerName": "Luka Dončić",
+      "market": "RA",
+      "samples": 30,
+      "projectionBaselineAccuracy": 40,
+      "finalBaselineAccuracy": 40,
+      "modelAccuracy": 93.33,
+      "holdoutAccuracy": 33.33,
+      "targetHit": true,
+      "model": {
+        "kind": "tree",
+        "tree": {
+          "kind": "split",
+          "feature": "projectedValue",
+          "threshold": 16.635,
+          "count": 30,
+          "accuracy": 70,
+          "left": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 5.805,
+            "count": 24,
+            "accuracy": 70.83,
+            "left": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 2.56,
+              "count": 14,
+              "accuracy": 85.72,
+              "left": {
+                "kind": "split",
+                "feature": "lineGap",
+                "threshold": -0.42,
+                "count": 3,
+                "accuracy": 100,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "leaf",
+                  "side": "UNDER",
+                  "count": 2,
+                  "accuracy": 100
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 11,
+                "accuracy": 90.91
+              }
+            },
+            "right": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.3,
+              "count": 10,
+              "accuracy": 70,
+              "left": {
+                "kind": "split",
+                "feature": "expectedMinutes",
+                "threshold": 30.975,
+                "count": 9,
+                "accuracy": 77.78,
+                "left": {
+                  "kind": "leaf",
+                  "side": "OVER",
+                  "count": 1,
+                  "accuracy": 100
+                },
+                "right": {
+                  "kind": "split",
+                  "feature": "projectedValue",
+                  "threshold": 14.98,
+                  "count": 8,
+                  "accuracy": 87.5,
+                  "left": {
+                    "kind": "leaf",
+                    "side": "OVER",
+                    "count": 1,
+                    "accuracy": 100
+                  },
+                  "right": {
+                    "kind": "leaf",
+                    "side": "UNDER",
+                    "count": 7,
+                    "accuracy": 85.71
+                  }
+                }
+              },
+              "right": {
+                "kind": "leaf",
+                "side": "OVER",
+                "count": 1,
+                "accuracy": 100
+              }
+            }
+          },
+          "right": {
+            "kind": "leaf",
+            "side": "UNDER",
+            "count": 6,
+            "accuracy": 100
+          }
+        },
+        "maxDepth": 5,
+        "minLeaf": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "player": "Nikola Jokic",
+  "market": "THREES",
+  "range": {
+    "from": "2025-10-23",
+    "to": "2026-03-09",
+    "seasonStartDateEt": "2025-10-01",
+    "minActualMinutes": 15
+  },
+  "lineCoverage": {
+    "exportedRows": 49,
+    "gradedGames": 48,
+    "missingDates": [
+      "2025-10-23"
+    ]
+  },
+  "exactProjection": {
+    "mae": 1.304,
+    "rmse": 1.542,
+    "bias": 0.045
+  },
+  "bookLineSideAccuracy": {
+    "correct": 45,
+    "wrong": 3,
+    "push": 0,
+    "resolved": 48,
+    "sideAccuracyPct": 93.75
+  },
+  "rule": "depth-3 pregame tree using opening total, completeness, projected minutes, projection, and over price"
+}
