@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-03-13T07:00:07.646Z",
+  "inputFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live.json",
+  "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-hybrid-wing-guard-split.json",
+  "shortWindowDays": 7,
+  "longWindowDays": 14,
+  "adjustmentMode": "penalties_only",
+  "records": []
+}

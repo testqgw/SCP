@@ -1,12 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/internal/refresh/full",
-      "schedule": "0 14 * * *"
+      "path": "/api/internal/refresh/delta",
+      "schedule": "30 5 * * *"
     },
     {
       "path": "/api/internal/refresh/delta",
-      "schedule": "15 9 * * *"
+      "schedule": "15 12 * * *"
+    },
+    {
+      "path": "/api/internal/refresh/full",
+      "schedule": "10 14 * * *"
     }
   ]
 }

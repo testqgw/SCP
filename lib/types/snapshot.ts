@@ -18,6 +18,51 @@ export type SnapshotStatLog = {
 
 export type SnapshotMetricRecord = Record<SnapshotMarket, number | null>;
 
+export type SnapshotModelSide = "OVER" | "UNDER" | "NEUTRAL";
+
+export type SnapshotModelLine = {
+  fairLine: number | null;
+  modelSide: SnapshotModelSide;
+  projectionGap: number | null;
+  actionOverLine: number | null;
+  actionUnderLine: number | null;
+  actionBuffer: number | null;
+  volatility: number | null;
+};
+
+export type SnapshotModelLineRecord = Record<SnapshotMarket, SnapshotModelLine>;
+
+export type SnapshotPtsConfidenceTier = "HIGH" | "MEDIUM" | "LOW";
+
+export type SnapshotPtsQualifiedRule = {
+  minConfidence: number;
+  maxMinutesRisk: number;
+  minProjectionGap: number;
+  blockOverWhenFavoriteBy: number;
+};
+
+export type SnapshotPtsSignal = {
+  marketLine: number | null;
+  sportsbookCount: number;
+  side: SnapshotModelSide;
+  confidence: number | null;
+  confidenceTier: SnapshotPtsConfidenceTier | null;
+  projectionGap: number | null;
+  minutesRisk: number | null;
+  lineupTimingConfidence: number | null;
+  qualified: boolean;
+  passReasons: string[];
+  rule: SnapshotPtsQualifiedRule;
+};
+
+export type SnapshotRebSignal = SnapshotPtsSignal;
+export type SnapshotAstSignal = SnapshotPtsSignal;
+export type SnapshotThreesSignal = SnapshotPtsSignal;
+export type SnapshotPraSignal = SnapshotPtsSignal;
+export type SnapshotPaSignal = SnapshotPtsSignal;
+export type SnapshotPrSignal = SnapshotPtsSignal;
+export type SnapshotRaSignal = SnapshotPtsSignal;
+
 export type SnapshotCompletenessTier = "HIGH" | "MEDIUM" | "LOW";
 
 export type SnapshotDataCompleteness = {
@@ -110,6 +155,15 @@ export type SnapshotRow = {
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
   projectedTonight: SnapshotMetricRecord;
+  modelLines: SnapshotModelLineRecord;
+  ptsSignal: SnapshotPtsSignal | null;
+  rebSignal: SnapshotRebSignal | null;
+  astSignal: SnapshotAstSignal | null;
+  threesSignal: SnapshotThreesSignal | null;
+  praSignal: SnapshotPraSignal | null;
+  paSignal: SnapshotPaSignal | null;
+  prSignal: SnapshotPrSignal | null;
+  raSignal: SnapshotRaSignal | null;
   recentLogs: SnapshotStatLog[];
   analysisLogs: SnapshotStatLog[];
   dataCompleteness: SnapshotDataCompleteness;
@@ -155,4 +209,53 @@ export type SnapshotBoardData = {
   matchups: SnapshotMatchupOption[];
   teamMatchups: SnapshotTeamMatchupStats[];
   rows: SnapshotRow[];
+};
+
+export type SnapshotPlayerLookupData = {
+  requestedDateEt: string;
+  resolvedDateEt: string;
+  note: string | null;
+  row: SnapshotRow;
+};
+
+export type SnapshotPlayerBacktestSampleSummary = {
+  games: number;
+  correct: number;
+  wrong: number;
+  accuracyPct: number | null;
+  averageLine: number | null;
+  averageProjection: number | null;
+  from: string | null;
+  to: string | null;
+};
+
+export type SnapshotPlayerBacktestGameRow = {
+  gameDateEt: string;
+  matchupKey: string;
+  bookPtsLine: number | null;
+  lineSource: string | null;
+  projectedPts: number | null;
+  predictedSide: SnapshotModelSide | null;
+  actualPts: number | null;
+  actualSide: SnapshotModelSide | "PUSH" | null;
+  correct: boolean | null;
+  openingTeamSpread: number | null;
+  openingTotal: number | null;
+  ptsSideConfidence: number | null;
+  ptsOverScore: number | null;
+  ptsUnderScore: number | null;
+  ptsMinutesRisk: number | null;
+  lineupTimingConfidence: number | null;
+  ptsQualifiedBet: boolean | null;
+};
+
+export type SnapshotPlayerBacktestReport = {
+  playerName: string;
+  reportPath: string;
+  sheetPath: string | null;
+  holdoutRatio: number;
+  fullSample: SnapshotPlayerBacktestSampleSummary;
+  trainingSample: SnapshotPlayerBacktestSampleSummary;
+  holdoutSample: SnapshotPlayerBacktestSampleSummary;
+  games: SnapshotPlayerBacktestGameRow[];
 };

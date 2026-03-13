@@ -1,7 +1,6 @@
 import { SnapshotDashboard } from "@/components/snapshot/SnapshotDashboard";
-import { getSnapshotBoardData } from "@/lib/snapshot/query";
 import { getTodayEtDateString } from "@/lib/snapshot/time";
-import type { SnapshotMarket } from "@/lib/types/snapshot";
+import type { SnapshotBoardData, SnapshotMarket } from "@/lib/types/snapshot";
 
 type HomePageProps = {
   searchParams?: {
@@ -27,13 +26,22 @@ function getMarket(value: string | undefined): SnapshotMarket {
 
 export const dynamic = "force-dynamic";
 
+function createBoardShell(dateEt: string): SnapshotBoardData {
+  return {
+    dateEt,
+    lastUpdatedAt: null,
+    matchups: [],
+    teamMatchups: [],
+    rows: [],
+  };
+}
+
 export default async function HomePage({ searchParams }: HomePageProps): Promise<React.ReactElement> {
   const dateEt = isValidEtDate(searchParams?.date) ? searchParams.date : getTodayEtDateString();
-  const boardData = await getSnapshotBoardData(dateEt);
 
   return (
     <SnapshotDashboard
-      data={boardData}
+      data={createBoardShell(dateEt)}
       initialMarket={getMarket(searchParams?.market)}
       initialMatchup={searchParams?.matchup?.toUpperCase() ?? ""}
       initialPlayerSearch={searchParams?.player ?? ""}

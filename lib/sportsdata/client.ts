@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 type EndpointConfig = {
   baseUrl: string;
   apiKey: string;
@@ -30,8 +33,21 @@ function parsePaths(value: string | undefined, fallback: string[]): string[] {
     .filter(Boolean);
 }
 
+function readEnvFallback(key: string): string | null {
+  const files = [".env.production", ".env.local", ".env", ".env.vercel"];
+  for (const file of files) {
+    const fullPath = path.join(process.cwd(), file);
+    if (!fs.existsSync(fullPath)) continue;
+    const content = fs.readFileSync(fullPath, "utf8");
+    const match = content.match(new RegExp(`^${key}=(.+)$`, "m"));
+    if (!match?.[1]) continue;
+    return match[1].trim().replace(/^['"]|['"]$/g, "");
+  }
+  return null;
+}
+
 function resolveConfig(): EndpointConfig {
-  const apiKey = process.env.SPORTS_DATA_IO_API_KEY;
+  const apiKey = process.env.SPORTS_DATA_IO_API_KEY ?? readEnvFallback("SPORTS_DATA_IO_API_KEY");
   if (!apiKey) {
     throw new Error("SPORTS_DATA_IO_API_KEY is required.");
   }

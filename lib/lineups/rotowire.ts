@@ -41,6 +41,8 @@ export function canonicalTeamCode(code: string): string {
 
 export function normalizePlayerName(value: string): string {
   return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)

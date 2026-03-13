@@ -7,11 +7,39 @@ import {
   type RotowireTeamLineup,
 } from "@/lib/lineups/rotowire";
 import {
+  applyPointsGameOddsAdjustment,
+  fetchDailyGameOddsMap,
+  resolveTeamSpreadForMatchup,
+} from "@/lib/snapshot/gameOdds";
+import {
+  buildLiveAstSignal,
+  buildLivePaSignal,
+  buildLivePraSignal,
+  buildLivePrSignal,
+  buildLiveRaSignal,
+  applyEnhancedPointsProjection,
+  buildLiveRebSignal,
+  buildLiveThreesSignal,
+  buildLivePtsSignal,
+  buildShotPressureSummary,
+  fetchDailyAstLineMap,
+  fetchDailyPaLineMap,
+  fetchDailyPraLineMap,
+  fetchDailyPrLineMap,
+  fetchDailyRaLineMap,
+  fetchDailyRebLineMap,
+  fetchDailyThreesLineMap,
+  fetchDailyPtsLineMap,
+  fetchSeasonVolumeLogs,
+  resolveOpponentShotVolumeMetrics,
+} from "@/lib/snapshot/pointsContext";
+import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
   projectMinutesProfile,
   projectTonightMetrics,
 } from "@/lib/snapshot/projection";
+import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -22,6 +50,7 @@ import type {
   SnapshotMarket,
   SnapshotMatchupOption,
   SnapshotMetricRecord,
+  SnapshotPlayerLookupData,
   SnapshotPrimaryDefender,
   SnapshotRow,
   SnapshotStatLog,
@@ -107,6 +136,25 @@ type PlayerProfile = {
   positionTokens: Set<PositionToken>;
 };
 
+const LIVE_FEED_TIMEOUT_MS = 8000;
+
+async function withTimeoutFallback<T>(promise: Promise<T>, fallback: T, timeoutMs = LIVE_FEED_TIMEOUT_MS): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  return await new Promise<T>((resolve) => {
+    timeoutHandle = setTimeout(() => resolve(fallback), timeoutMs);
+
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(fallback))
+      .finally(() => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+      });
+  });
+}
+
 type LineupTeamSignal = {
   status: LineupStatus;
   starterNames: Set<string>;
@@ -131,6 +179,26 @@ type SnapshotBoardCacheEntry = {
 };
 
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getSeasonStartDateEt(dateEt: string): string {
+  const [yearText, monthText] = dateEt.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) return dateEt;
+  const seasonStartYear = month >= 9 ? year : year - 1;
+  return `${seasonStartYear}-10-01`;
+}
 
 function blankMetricRecord(): SnapshotMetricRecord {
   return {
@@ -470,6 +538,8 @@ type IntelBuildInput = {
   teamCode: string;
   opponentCode: string;
   isHome: boolean;
+  openingTeamSpread: number | null;
+  openingTotal: number | null;
   playerProfile: PlayerProfile | null;
   teamProfiles: PlayerProfile[];
   opponentProfiles: PlayerProfile[];
@@ -532,6 +602,35 @@ function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
     description: "Minutes, starter role, and closing-time volatility.",
     status: "DERIVED",
     items: rotationItems,
+  });
+
+  const environmentItems: SnapshotIntelItem[] = [];
+  addIntelItem(environmentItems, "Game Total", formatNumber(input.openingTotal));
+  addIntelItem(environmentItems, "Team Spread", formatSigned(input.openingTeamSpread));
+  addIntelItem(
+    environmentItems,
+    "Environment Signal",
+    input.openingTotal != null && input.openingTotal >= 235
+      ? "FAST/HIGH TOTAL"
+      : input.openingTotal != null && input.openingTotal <= 222
+        ? "SLOW/LOW TOTAL"
+        : "NEUTRAL",
+  );
+  addIntelItem(
+    environmentItems,
+    "Blowout Risk",
+    input.openingTeamSpread != null && Math.abs(input.openingTeamSpread) >= 8
+      ? "HIGH"
+      : input.openingTeamSpread != null && Math.abs(input.openingTeamSpread) >= 5
+        ? "MEDIUM"
+        : "LOW",
+  );
+  modules.push({
+    id: "game-environment",
+    title: "1B. Game Environment",
+    description: "Opening spread and total context used by the projection layer.",
+    status: "LIVE",
+    items: environmentItems,
   });
 
   const lineupItems: SnapshotIntelItem[] = [];
@@ -1002,9 +1101,557 @@ function teamSummaryFromGames(teamGames: TeamGameEnriched[]): TeamSummary {
   };
 }
 
+async function resolveSnapshotPlayer(input: {
+  playerId?: string | null;
+  playerSearch?: string | null;
+}): Promise<{
+  id: string;
+  fullName: string;
+  position: string | null;
+  teamId: string | null;
+  teamCode: string | null;
+} | null> {
+  if (input.playerId?.trim()) {
+    const player = await prisma.player.findUnique({
+      where: { id: input.playerId.trim() },
+      select: {
+        id: true,
+        fullName: true,
+        position: true,
+        teamId: true,
+        team: { select: { abbreviation: true } },
+      },
+    });
+    if (player) {
+      return {
+        id: player.id,
+        fullName: player.fullName,
+        position: player.position,
+        teamId: player.teamId,
+        teamCode: player.team?.abbreviation ?? null,
+      };
+    }
+  }
+
+  const search = normalizeSearchText(input.playerSearch ?? "");
+  if (!search) return null;
+
+  const candidates = await prisma.player.findMany({
+    where: {
+      OR: [{ isActive: true }, { teamId: { not: null } }],
+    },
+    select: {
+      id: true,
+      fullName: true,
+      firstName: true,
+      lastName: true,
+      position: true,
+      teamId: true,
+      team: { select: { abbreviation: true } },
+    },
+  });
+
+  const searchTokens = search.split(" ");
+  const ranked = candidates
+    .map((candidate) => {
+      const fullName = normalizeSearchText(candidate.fullName);
+      const firstName = normalizeSearchText(candidate.firstName ?? "");
+      const lastName = normalizeSearchText(candidate.lastName ?? "");
+      const fullWithParts = normalizeSearchText(`${candidate.firstName ?? ""} ${candidate.lastName ?? ""}`);
+
+      let score = 0;
+      if (fullName === search || fullWithParts === search) score += 500;
+      if (lastName === search) score += 360;
+      if (fullName.startsWith(search) || fullWithParts.startsWith(search)) score += 260;
+      if (lastName.startsWith(search)) score += 220;
+      if (firstName.startsWith(search)) score += 160;
+      if (searchTokens.length > 1 && searchTokens.every((token) => fullName.includes(token))) score += 180;
+      if (searchTokens.length > 1 && searchTokens.every((token) => fullWithParts.includes(token))) score += 180;
+      if (fullName.includes(search) || fullWithParts.includes(search)) score += 100;
+      if (searchTokens.some((token) => token.length >= 3 && lastName.includes(token))) score += 80;
+      if (searchTokens.some((token) => token.length >= 3 && firstName.includes(token))) score += 50;
+
+      return {
+        candidate: {
+          id: candidate.id,
+          fullName: candidate.fullName,
+          position: candidate.position,
+          teamId: candidate.teamId,
+          teamCode: candidate.team?.abbreviation ?? null,
+        },
+        score,
+      };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return left.candidate.fullName.localeCompare(right.candidate.fullName);
+    });
+
+  return ranked[0]?.candidate ?? null;
+}
+
+async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): Promise<SnapshotRow | null> {
+  const isTodayEt = dateEt === getTodayEtDateString();
+  const seasonStartDateEt = getSeasonStartDateEt(dateEt);
+  const [player, lineupSetting] = await Promise.all([
+    prisma.player.findUnique({
+      where: { id: playerId },
+      select: {
+        id: true,
+        fullName: true,
+        position: true,
+        teamId: true,
+        team: { select: { abbreviation: true } },
+      },
+    }),
+    isTodayEt
+      ? prisma.systemSetting.findUnique({
+          where: { key: "snapshot_lineups_today" },
+          select: { value: true },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  if (!player?.teamId) return null;
+
+  const game = await prisma.game.findFirst({
+    where: {
+      gameDateEt: dateEt,
+      OR: [{ homeTeamId: player.teamId }, { awayTeamId: player.teamId }],
+    },
+    include: {
+      homeTeam: true,
+      awayTeam: true,
+    },
+  });
+
+  if (!game) return null;
+
+  const matchup =
+    game.homeTeamId === player.teamId
+      ? {
+          teamCode: game.homeTeam.abbreviation,
+          opponentCode: game.awayTeam.abbreviation,
+          opponentTeamId: game.awayTeamId,
+          matchupKey: `${game.awayTeam.abbreviation}@${game.homeTeam.abbreviation}`,
+          gameTimeEt: formatUtcToEt(game.commenceTimeUtc),
+          gameTimeUtc: game.commenceTimeUtc,
+          isHome: true,
+        }
+      : {
+          teamCode: game.awayTeam.abbreviation,
+          opponentCode: game.homeTeam.abbreviation,
+          opponentTeamId: game.homeTeamId,
+          matchupKey: `${game.awayTeam.abbreviation}@${game.homeTeam.abbreviation}`,
+          gameTimeEt: formatUtcToEt(game.commenceTimeUtc),
+          gameTimeUtc: game.commenceTimeUtc,
+          isHome: false,
+        };
+
+  const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
+  const lineupMap = buildLineupSignalMap(lineupSnapshot);
+  const [selectedLogs, selectedStatusLogs, opponentGames, leagueAverageRaw] = await Promise.all([
+    prisma.playerGameLog.findMany({
+      where: {
+        playerId: player.id,
+        gameDateEt: { lt: dateEt },
+        minutes: { gt: 0 },
+      },
+      include: {
+        team: { select: { abbreviation: true } },
+        opponentTeam: { select: { abbreviation: true } },
+      },
+      orderBy: [{ gameDateEt: "desc" }],
+    }),
+    prisma.playerGameLog.findMany({
+      where: {
+        playerId: player.id,
+        gameDateEt: { lt: dateEt },
+      },
+      select: {
+        playerId: true,
+        gameDateEt: true,
+        externalGameId: true,
+        isHome: true,
+        starter: true,
+        played: true,
+        teamId: true,
+        opponentTeamId: true,
+      },
+      orderBy: [{ gameDateEt: "desc" }],
+    }),
+    prisma.game.findMany({
+      where: {
+        gameDateEt: { lt: dateEt },
+        OR: [{ homeTeamId: matchup.opponentTeamId }, { awayTeamId: matchup.opponentTeamId }],
+      },
+      select: {
+        externalId: true,
+      },
+      orderBy: [{ gameDateEt: "desc" }, { externalId: "desc" }],
+      take: 10,
+    }),
+    prisma.playerGameLog.aggregate({
+      where: {
+        gameDateEt: { gte: seasonStartDateEt, lt: dateEt },
+        minutes: { gt: 0 },
+      },
+      _avg: {
+        points: true,
+        rebounds: true,
+        assists: true,
+        threes: true,
+      },
+    }),
+  ]);
+
+  const logsForPlayer: SnapshotStatLog[] = [];
+  selectedLogs.forEach((log) => {
+    if (logsForPlayer.length >= 280) return;
+    logsForPlayer.push({
+      gameDateEt: log.gameDateEt,
+      teamCode: log.team?.abbreviation ?? null,
+      opponent: log.opponentTeam?.abbreviation ?? null,
+      isHome: log.isHome,
+      starter: log.starter,
+      played: log.played,
+      minutes: toStat(log.minutes),
+      points: toStat(log.points),
+      rebounds: toStat(log.rebounds),
+      assists: toStat(log.assists),
+      threes: toStat(log.threes),
+      steals: toStat(log.steals),
+      blocks: toStat(log.blocks),
+    });
+  });
+
+  const statusForPlayer: PlayerStatusLog[] = [];
+  selectedStatusLogs.forEach((log) => {
+    if (statusForPlayer.length >= 20) return;
+    statusForPlayer.push({
+      gameDateEt: log.gameDateEt,
+      externalGameId: log.externalGameId,
+      isHome: log.isHome,
+      starter: log.starter,
+      played: log.played,
+      teamId: log.teamId,
+      opponentTeamId: log.opponentTeamId,
+    });
+  });
+
+  const opponentGameIds = opponentGames.map((row) => row.externalId);
+  const opponentAllowanceLogs =
+    opponentGameIds.length > 0
+      ? await prisma.playerGameLog.findMany({
+          where: {
+            opponentTeamId: matchup.opponentTeamId,
+            externalGameId: { in: opponentGameIds },
+            minutes: { gt: 0 },
+          },
+          select: {
+            points: true,
+            rebounds: true,
+            assists: true,
+            threes: true,
+          },
+        })
+      : [];
+
+  const opponentAgg = createAllowanceAgg();
+  opponentAllowanceLogs.forEach((log) => {
+    addToAllowance(
+      opponentAgg,
+      toStat(log.points),
+      toStat(log.rebounds),
+      toStat(log.assists),
+      toStat(log.threes),
+    );
+  });
+
+  const opponentAllowance = averageFromAllowance(opponentAgg.count > 0 ? opponentAgg : null);
+  const leagueAverage = metricsFromBase(
+    toStat(leagueAverageRaw._avg.points),
+    toStat(leagueAverageRaw._avg.rebounds),
+    toStat(leagueAverageRaw._avg.assists),
+    toStat(leagueAverageRaw._avg.threes),
+  );
+  const opponentAllowanceDelta = deltaFromLeague(opponentAllowance, leagueAverage);
+  if (logsForPlayer.length === 0) return null;
+
+  const logsChronological = logsForPlayer.slice().reverse();
+  const statusLast10 = statusForPlayer.slice(0, 10);
+  const last5Logs = logsForPlayer.slice(0, 5);
+  const last10Logs = logsForPlayer.slice(0, 10);
+  const last3Logs = logsForPlayer.slice(0, 3);
+  const sameTeamLogs = logsForPlayer.filter((log) => log.teamCode === matchup.teamCode);
+  const minutesCurrentTeamLast5Avg = average(sameTeamLogs.slice(0, 5).map((log) => log.minutes));
+  const homeAwayLogs = logsForPlayer.filter((log) => log.isHome === matchup.isHome);
+
+  const seasonAverage = averagesByMarket(logsForPlayer);
+  const seasonByMarketChronological = arraysByMarket(logsChronological);
+  const seasonByMarketRecent = arraysByMarket(logsForPlayer);
+  const historyMinutesRecent = logsForPlayer.map((log) => log.minutes);
+  const minutesSeasonAvg = average(logsChronological.map((log) => log.minutes));
+  const personalModels = buildPlayerPersonalModels({
+    historyByMarket: seasonByMarketChronological,
+    minutesSeasonAvg,
+  });
+  const last3Average = averagesByMarket(last3Logs);
+  const last10Average = averagesByMarket(last10Logs);
+  const homeAwayAverage = averagesByMarket(homeAwayLogs);
+  const last5ByMarket = arraysByMarket(last5Logs);
+  const last10ByMarket = arraysByMarket(last10Logs);
+  const trendVsSeason = trendFrom(last3Average, seasonAverage);
+  const computedStartsLast10 = statusLast10.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
+  const computedStarterRateLast10 =
+    statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
+  const computedStartedLastGame = statusLast10[0]?.starter ?? null;
+  const stealsLast10Avg = average(last10Logs.map((log) => log.steals));
+  const blocksLast10Avg = average(last10Logs.map((log) => log.blocks));
+  const minutesLast3Avg = average(last3Logs.map((log) => log.minutes));
+  const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
+  const minutesLast10Avg = average(last10Logs.map((log) => log.minutes));
+  const minutesVolatility = standardDeviation(last10Logs.map((log) => log.minutes));
+  const stocksPer36Last10 =
+    minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
+      ? null
+      : round(((stealsLast10Avg + blocksLast10Avg) / minutesLast10Avg) * 36, 2);
+  const playerProfile: PlayerProfile = {
+    playerId: player.id,
+    playerName: player.fullName,
+    position: player.position,
+    teamId: player.teamId,
+    last10Average,
+    minutesLast3Avg,
+    minutesLast10Avg,
+    minutesTrend:
+      minutesLast3Avg == null || minutesLast10Avg == null ? null : round(minutesLast3Avg - minutesLast10Avg, 2),
+    minutesVolatility,
+    stocksPer36Last10,
+    startsLast10: computedStartsLast10,
+    starterRateLast10: computedStarterRateLast10,
+    startedLastGame: computedStartedLastGame,
+    archetype: determineArchetype(last10Average, minutesLast10Avg),
+    positionTokens: parsePositionTokens(player.position),
+  };
+  const primaryDefender: SnapshotPrimaryDefender | null = null;
+  const teammateCore: SnapshotTeammateCore[] = [];
+  const minutesProfile = projectMinutesProfile({
+    minutesLast3Avg,
+    minutesLast10Avg,
+    minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+    minutesCurrentTeamLast5Avg,
+    minutesCurrentTeamGames: sameTeamLogs.length,
+    lineupStarter: lineupSignal?.lineupStarter ?? null,
+    starterRateLast10: computedStarterRateLast10,
+  });
+  const projectedTonight = projectTonightMetrics({
+    last3Average,
+    last10Average,
+    seasonAverage,
+    homeAwayAverage,
+    opponentAllowance,
+    opponentAllowanceDelta,
+    last10ByMarket,
+    historyByMarket: seasonByMarketRecent,
+    historyMinutes: historyMinutesRecent,
+    sampleSize: logsForPlayer.length,
+    personalModels,
+    minutesSeasonAvg,
+    minutesLast3Avg,
+    minutesLast10Avg,
+    minutesVolatility,
+    minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+    minutesCurrentTeamLast5Avg,
+    minutesCurrentTeamGames: sameTeamLogs.length,
+    lineupStarter: lineupSignal?.lineupStarter ?? null,
+    starterRateLast10: computedStarterRateLast10,
+  });
+  const dataCompleteness = computeDataCompleteness({
+    last10Logs,
+    statusLast10,
+    opponentAllowance,
+    primaryDefender,
+    teammateCore,
+    playerProfile,
+  });
+  const modelLines = buildModelLineRecord({
+    projectedTonight,
+    last10ByMarket,
+    dataCompletenessScore: dataCompleteness.score,
+  });
+
+  const gameIntel: SnapshotGameIntel = {
+    generatedAt: new Date().toISOString(),
+    modules: [
+      {
+        id: "player-lookup-projection",
+        title: "Projection Snapshot",
+        description: "Single-player projection lookup using the same projection engine as the board.",
+        status: "DERIVED",
+        items: [
+          { label: "Projected Minutes", value: formatNumber(minutesProfile.expected) },
+          {
+            label: "Minutes Range",
+            value:
+              minutesProfile.floor == null || minutesProfile.ceiling == null
+                ? "-"
+                : `${formatNumber(minutesProfile.floor)}-${formatNumber(minutesProfile.ceiling)}`,
+          },
+          { label: "PTS / REB / AST", value: `${formatNumber(projectedTonight.PTS)} / ${formatNumber(projectedTonight.REB)} / ${formatNumber(projectedTonight.AST)}` },
+          { label: "PRA / PA / PR / RA", value: `${formatNumber(projectedTonight.PRA)} / ${formatNumber(projectedTonight.PA)} / ${formatNumber(projectedTonight.PR)} / ${formatNumber(projectedTonight.RA)}` },
+        ],
+      },
+      {
+        id: "player-lookup-context",
+        title: "Matchup Context",
+        description: "Fast lookup context for split, form, and opponent allowance.",
+        status: "DERIVED",
+        items: [
+          { label: "L3 vs L10 PTS", value: `${formatNumber(last3Average.PTS)} vs ${formatNumber(last10Average.PTS)}` },
+          { label: "Home/Away Split", value: formatNumber(homeAwayAverage.PTS) },
+          { label: "Opp Delta PTS", value: formatSigned(opponentAllowanceDelta.PTS) },
+          { label: "Current Team Minutes", value: `${formatNumber(minutesCurrentTeamLast5Avg)} (${sameTeamLogs.length} g)` },
+        ],
+      },
+    ],
+  };
+
+  return {
+    playerId: player.id,
+    playerName: player.fullName,
+    position: player.position,
+    teamCode: matchup.teamCode,
+    opponentCode: matchup.opponentCode,
+    matchupKey: matchup.matchupKey,
+    isHome: matchup.isHome,
+    gameTimeEt: matchup.gameTimeEt,
+    last5: last5ByMarket,
+    last10: last10ByMarket,
+    last3Average,
+    last10Average,
+    seasonAverage,
+    homeAwayAverage,
+    trendVsSeason,
+    opponentAllowance,
+    opponentAllowanceDelta,
+    projectedTonight,
+    modelLines,
+    ptsSignal: null,
+    rebSignal: null,
+    astSignal: null,
+    threesSignal: null,
+    praSignal: null,
+    paSignal: null,
+    prSignal: null,
+    raSignal: null,
+    recentLogs: last10Logs,
+    analysisLogs: logsForPlayer,
+    dataCompleteness,
+    playerContext: {
+      archetype: playerProfile.archetype,
+      projectedStarter: applyLineupStarterLabel(
+        starterStatusLabel({
+          startedLastGame: playerProfile.startedLastGame,
+          starterRateLast10: playerProfile.starterRateLast10,
+          rotationRank: null,
+          minutesLast10Avg,
+        }),
+        lineupSignal,
+      ),
+      startedLastGame: playerProfile.startedLastGame,
+      startsLast10: playerProfile.startsLast10,
+      starterRateLast10: playerProfile.starterRateLast10,
+      rotationRank: null,
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesCurrentTeamAvg: minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      minutesTrend: playerProfile.minutesTrend,
+      minutesVolatility,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      primaryDefender,
+      teammateCore,
+    },
+    gameIntel,
+  };
+}
+
+export async function getSnapshotPlayerLookupData(input: {
+  dateEt: string;
+  playerId?: string | null;
+  playerSearch?: string | null;
+}): Promise<SnapshotPlayerLookupData> {
+  const player = await resolveSnapshotPlayer(input);
+  if (!player) {
+    throw new Error("Player not found.");
+  }
+
+  const exactRow = await buildSnapshotRowForPlayerDate(player.id, input.dateEt);
+  if (exactRow) {
+    return {
+      requestedDateEt: input.dateEt,
+      resolvedDateEt: input.dateEt,
+      note: null,
+      row: exactRow,
+    };
+  }
+
+  if (!player.teamId) {
+    throw new Error("Player has no team assignment for lookup.");
+  }
+
+  const previousGame = await prisma.game.findFirst({
+    where: {
+      gameDateEt: { lt: input.dateEt },
+      OR: [{ homeTeamId: player.teamId }, { awayTeamId: player.teamId }],
+    },
+    orderBy: [{ gameDateEt: "desc" }, { commenceTimeUtc: "desc" }],
+    select: { gameDateEt: true },
+  });
+
+  if (previousGame) {
+    const previousRow = await buildSnapshotRowForPlayerDate(player.id, previousGame.gameDateEt);
+    if (previousRow) {
+      return {
+        requestedDateEt: input.dateEt,
+        resolvedDateEt: previousGame.gameDateEt,
+        note: `No ${player.teamCode ?? "team"} game on ${input.dateEt}. Showing the latest available projection from ${previousGame.gameDateEt}.`,
+        row: previousRow,
+      };
+    }
+  }
+
+  const nextGame = await prisma.game.findFirst({
+    where: {
+      gameDateEt: { gt: input.dateEt },
+      OR: [{ homeTeamId: player.teamId }, { awayTeamId: player.teamId }],
+    },
+    orderBy: [{ gameDateEt: "asc" }, { commenceTimeUtc: "asc" }],
+    select: { gameDateEt: true },
+  });
+
+  if (nextGame) {
+    const nextRow = await buildSnapshotRowForPlayerDate(player.id, nextGame.gameDateEt);
+    if (nextRow) {
+      return {
+        requestedDateEt: input.dateEt,
+        resolvedDateEt: nextGame.gameDateEt,
+        note: `No ${player.teamCode ?? "team"} game on ${input.dateEt}. Showing the next available matchup on ${nextGame.gameDateEt}.`,
+        row: nextRow,
+      };
+    }
+  }
+
+  throw new Error("No projected matchup could be built for this player.");
+}
+
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
   const isTodayEt = dateEt === getTodayEtDateString();
-  const [games, latestDataWrite, lineupSetting] = await Promise.all([
+  const [games, latestDataWrite, lineupSetting, dailyOddsMap] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
       include: {
@@ -1022,6 +1669,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
+    withTimeoutFallback(fetchDailyGameOddsMap(dateEt), new Map()),
   ]);
 
   const sourceUpdatedAtIso = latestDataWrite._max.updatedAt?.toISOString() ?? null;
@@ -1211,6 +1859,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     },
     select: {
       id: true,
+      externalId: true,
       fullName: true,
       position: true,
       teamId: true,
@@ -1233,6 +1882,38 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     });
     return emptyData;
   }
+
+  const [
+    allPlayerPositions,
+    seasonVolumeLogs,
+    dailyPtsLineMap,
+    dailyRebLineMap,
+    dailyAstLineMap,
+    dailyThreesLineMap,
+    dailyPraLineMap,
+    dailyPaLineMap,
+    dailyPrLineMap,
+    dailyRaLineMap,
+  ] = await Promise.all([
+      prisma.player.findMany({
+        where: { externalId: { not: null } },
+        select: { externalId: true, position: true },
+      }),
+      withTimeoutFallback(fetchSeasonVolumeLogs(dateEt), []),
+      withTimeoutFallback(fetchDailyPtsLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyRebLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyAstLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyThreesLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyPraLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyPaLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyPrLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyRaLineMap(dateEt), new Map()),
+    ]);
+  const positionByExternalId = new Map(
+    allPlayerPositions
+      .filter((player) => typeof player.externalId === "string" && player.externalId.trim().length > 0)
+      .map((player) => [player.externalId as string, player.position]),
+  );
 
   const playerIds = players.map((player) => player.id);
   const logs = await prisma.playerGameLog.findMany({
@@ -1469,6 +2150,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
 
     const seasonAverage = averagesByMarket(logsForPlayer);
     const seasonByMarketChronological = arraysByMarket(logsChronological);
+    const seasonByMarketRecent = arraysByMarket(logsForPlayer);
+    const historyMinutesRecent = logsForPlayer.map((log) => log.minutes);
     const minutesSeasonAvg = average(logsChronological.map((log) => log.minutes));
     const personalModels = buildPlayerPersonalModels({
       historyByMarket: seasonByMarketChronological,
@@ -1524,6 +2207,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
     const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
+    const dailyOdds = dailyOddsMap.get(matchup.matchupKey) ?? null;
+    const openingTeamSpread = resolveTeamSpreadForMatchup(dailyOdds, matchup.isHome);
+    const openingTotal = dailyOdds?.openingTotal ?? null;
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
     const minutesVolatility =
       playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes));
@@ -1544,6 +2230,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       opponentAllowance,
       opponentAllowanceDelta,
       last10ByMarket,
+      historyByMarket: seasonByMarketRecent,
+      historyMinutes: historyMinutesRecent,
       sampleSize: logsForPlayer.length,
       personalModels,
       minutesSeasonAvg,
@@ -1556,6 +2244,41 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
     });
+    const playerShotPressure = buildShotPressureSummary(seasonVolumeLogs, player.externalId, dateEt);
+    const opponentShotVolume = resolveOpponentShotVolumeMetrics({
+      opponentCode: matchup.opponentCode,
+      dateEt,
+      playerPositionTokens: parsePositionTokens(player.position),
+      seasonLogs: seasonVolumeLogs,
+      positionByExternalId,
+    });
+    const normalizedPlayerName = normalizePlayerName(player.fullName);
+    const marketKey = `${matchup.matchupKey}|${normalizedPlayerName}`;
+    const ptsMarketLine = dailyPtsLineMap.get(marketKey) ?? null;
+    const rebMarketLine = dailyRebLineMap.get(marketKey) ?? null;
+    const astMarketLine = dailyAstLineMap.get(marketKey) ?? null;
+    const threesMarketLine = dailyThreesLineMap.get(marketKey) ?? null;
+    const praMarketLine = dailyPraLineMap.get(marketKey) ?? null;
+    const paMarketLine = dailyPaLineMap.get(marketKey) ?? null;
+    const prMarketLine = dailyPrLineMap.get(marketKey) ?? null;
+    const raMarketLine = dailyRaLineMap.get(marketKey) ?? null;
+    projectedTonight.PTS = applyEnhancedPointsProjection({
+      baseProjection: applyPointsGameOddsAdjustment(projectedTonight.PTS, openingTotal, openingTeamSpread),
+      openingTotal,
+      openingTeamSpread,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      playerShotPressure,
+      opponentShotVolume,
+      marketLine: ptsMarketLine,
+    });
+    if (projectedTonight.PTS != null && projectedTonight.REB != null && projectedTonight.AST != null) {
+      projectedTonight.PRA = round(projectedTonight.PTS + projectedTonight.REB + projectedTonight.AST, 2);
+      projectedTonight.PA = round(projectedTonight.PTS + projectedTonight.AST, 2);
+      projectedTonight.PR = round(projectedTonight.PTS + projectedTonight.REB, 2);
+      projectedTonight.RA = round(projectedTonight.REB + projectedTonight.AST, 2);
+    }
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
       statusLast10,
@@ -1564,6 +2287,360 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       teammateCore,
       playerProfile,
     });
+    const modelLines = buildModelLineRecord({
+      projectedTonight,
+      last10ByMarket,
+      dataCompletenessScore: dataCompleteness.score,
+    });
+    const ptsSignal = buildLivePtsSignal({
+      playerName: player.fullName,
+      playerPosition: player.position,
+      projection: projectedTonight.PTS,
+      pointsProjection: projectedTonight.PTS,
+      reboundsProjection: projectedTonight.REB,
+      assistProjection: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      marketLine: ptsMarketLine,
+      openingTotal,
+      openingTeamSpread,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      minutesVolatility,
+      playerShotPressure,
+      opponentShotVolume,
+      completenessScore: dataCompleteness.score,
+    });
+    const rebSignal = buildLiveRebSignal({
+      playerName: player.fullName,
+      playerPosition: player.position,
+      projection: projectedTonight.REB,
+      pointsProjection: projectedTonight.PTS,
+      reboundsProjection: projectedTonight.REB,
+      assistProjection: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      marketLine: rebMarketLine,
+      openingTotal,
+      openingTeamSpread,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      minutesVolatility,
+      playerShotPressure,
+      opponentShotVolume,
+      completenessScore: dataCompleteness.score,
+    });
+    const astSignal = buildLiveAstSignal({
+      playerName: player.fullName,
+      playerPosition: player.position,
+      projection: projectedTonight.AST,
+      pointsProjection: projectedTonight.PTS,
+      reboundsProjection: projectedTonight.REB,
+      assistProjection: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      marketLine: astMarketLine,
+      openingTotal,
+      openingTeamSpread,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      minutesVolatility,
+      playerShotPressure,
+      opponentShotVolume,
+      completenessScore: dataCompleteness.score,
+    });
+    const threesSignal = buildLiveThreesSignal({
+      playerName: player.fullName,
+      playerPosition: player.position,
+      projection: projectedTonight.THREES,
+      pointsProjection: projectedTonight.PTS,
+      reboundsProjection: projectedTonight.REB,
+      assistProjection: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      marketLine: threesMarketLine,
+      openingTotal,
+      openingTeamSpread,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      minutesVolatility,
+      playerShotPressure,
+      opponentShotVolume,
+      completenessScore: dataCompleteness.score,
+    });
+    const comboSignalInput = {
+      projection: null,
+      marketLine: null,
+      openingTotal,
+      openingTeamSpread,
+      playerName: player.fullName,
+      playerPosition: player.position,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      lineupStatus: lineupSignal?.status ?? null,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      projectedMinutes: minutesProfile.expected,
+      projectedMinutesFloor: minutesProfile.floor,
+      projectedMinutesCeiling: minutesProfile.ceiling,
+      minutesVolatility,
+      completenessScore: dataCompleteness.score,
+      assistProjection: projectedTonight.AST,
+      projectedPoints: projectedTonight.PTS,
+      projectedRebounds: projectedTonight.REB,
+      projectedAssists: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      playerShotPressure,
+      opponentShotVolume,
+    };
+    const praSignal = buildLivePraSignal({
+      ...comboSignalInput,
+      projection: projectedTonight.PRA,
+      marketLine: praMarketLine,
+    });
+    const paSignal = buildLivePaSignal({
+      ...comboSignalInput,
+      projection: projectedTonight.PA,
+      marketLine: paMarketLine,
+    });
+    const prSignal = buildLivePrSignal({
+      ...comboSignalInput,
+      projection: projectedTonight.PR,
+      marketLine: prMarketLine,
+    });
+    const raSignal = buildLiveRaSignal({
+      ...comboSignalInput,
+      projection: projectedTonight.RA,
+      marketLine: raMarketLine,
+    });
+
+    const gameIntel = buildGameIntel({
+      dateEt,
+      teamCode: matchup.teamCode,
+      opponentCode: matchup.opponentCode,
+      isHome: matchup.isHome,
+      openingTeamSpread,
+      openingTotal,
+      playerProfile,
+      teamProfiles,
+      opponentProfiles,
+      primaryDefender,
+      teammateCore,
+      last10Logs,
+      last5Logs,
+      statusLast10,
+      teammateUnavailableLastGame,
+      teammateUnknownStatusLastGame,
+      opponentStarterShareTop5,
+      seasonAverage,
+      last10Average,
+      last3Average,
+      opponentAllowance,
+      opponentAllowanceDelta,
+      teamSummary,
+      opponentSummary,
+    });
+    const livePtsItems: SnapshotIntelItem[] = [];
+    addIntelItem(livePtsItems, "Consensus PTS Line", ptsMarketLine == null ? "-" : formatNumber(ptsMarketLine.line));
+    addIntelItem(
+      livePtsItems,
+      "Market Books",
+      ptsMarketLine == null ? "-" : String(ptsMarketLine.sportsbookCount),
+    );
+    addIntelItem(livePtsItems, "PTS Side", ptsSignal == null ? "-" : ptsSignal.side);
+    addIntelItem(
+      livePtsItems,
+      "PTS Confidence",
+      ptsSignal?.confidence == null ? "-" : `${formatNumber(ptsSignal.confidence)} (${ptsSignal.confidenceTier ?? "LOW"})`,
+    );
+    addIntelItem(
+      livePtsItems,
+      "PTS Filter",
+      ptsSignal == null ? "-" : ptsSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(
+      livePtsItems,
+      "PTS Gap / Risk",
+      ptsSignal == null ? "-" : `${formatSigned(ptsSignal.projectionGap)} / ${formatNumber(ptsSignal.minutesRisk)}`,
+    );
+    addIntelItem(
+      livePtsItems,
+      "FGA / Min (L10)",
+      playerShotPressure?.fgaRate == null ? "-" : playerShotPressure.fgaRate.toFixed(3),
+    );
+    addIntelItem(
+      livePtsItems,
+      "FTA / Min (L10)",
+      playerShotPressure?.ftaRate == null ? "-" : playerShotPressure.ftaRate.toFixed(3),
+    );
+    addIntelItem(
+      livePtsItems,
+      "Opp FGA Allowed / Min",
+      opponentShotVolume?.fgaPerMinute == null ? "-" : opponentShotVolume.fgaPerMinute.toFixed(3),
+    );
+    addIntelItem(
+      livePtsItems,
+      "Opp FT Pressure",
+      opponentShotVolume?.freeThrowPressure == null ? "-" : opponentShotVolume.freeThrowPressure.toFixed(3),
+    );
+    if (livePtsItems.some((item) => item.value !== "-")) {
+      gameIntel.modules.splice(2, 0, {
+        id: "live-points-context",
+        title: "2B. Live PTS Context",
+        description: "Live sportsbook anchor plus player and opponent shot-volume inputs.",
+        status: "LIVE",
+        items: livePtsItems,
+      });
+    }
+    const liveRebItems: SnapshotIntelItem[] = [];
+    addIntelItem(liveRebItems, "Consensus REB Line", rebMarketLine == null ? "-" : formatNumber(rebMarketLine.line));
+    addIntelItem(
+      liveRebItems,
+      "Market Books",
+      rebMarketLine == null ? "-" : String(rebMarketLine.sportsbookCount),
+    );
+    addIntelItem(liveRebItems, "REB Side", rebSignal == null ? "-" : rebSignal.side);
+    addIntelItem(
+      liveRebItems,
+      "REB Confidence",
+      rebSignal?.confidence == null ? "-" : `${formatNumber(rebSignal.confidence)} (${rebSignal.confidenceTier ?? "LOW"})`,
+    );
+    addIntelItem(
+      liveRebItems,
+      "REB Filter",
+      rebSignal == null ? "-" : rebSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(
+      liveRebItems,
+      "REB Gap / Risk",
+      rebSignal == null ? "-" : `${formatSigned(rebSignal.projectionGap)} / ${formatNumber(rebSignal.minutesRisk)}`,
+    );
+    if (liveRebItems.some((item) => item.value !== "-")) {
+      gameIntel.modules.splice(3, 0, {
+        id: "live-rebounds-context",
+        title: "2C. Live REB Context",
+        description: "Live sportsbook rebound line plus minutes-risk and market-lean screen.",
+        status: "LIVE",
+        items: liveRebItems,
+      });
+    }
+    const liveAstItems: SnapshotIntelItem[] = [];
+    addIntelItem(liveAstItems, "Consensus AST Line", astMarketLine == null ? "-" : formatNumber(astMarketLine.line));
+    addIntelItem(
+      liveAstItems,
+      "Market Books",
+      astMarketLine == null ? "-" : String(astMarketLine.sportsbookCount),
+    );
+    addIntelItem(liveAstItems, "AST Side", astSignal == null ? "-" : astSignal.side);
+    addIntelItem(
+      liveAstItems,
+      "AST Confidence",
+      astSignal?.confidence == null ? "-" : `${formatNumber(astSignal.confidence)} (${astSignal.confidenceTier ?? "LOW"})`,
+    );
+    addIntelItem(
+      liveAstItems,
+      "AST Filter",
+      astSignal == null ? "-" : astSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(
+      liveAstItems,
+      "AST Gap / Risk",
+      astSignal == null ? "-" : `${formatSigned(astSignal.projectionGap)} / ${formatNumber(astSignal.minutesRisk)}`,
+    );
+    if (liveAstItems.some((item) => item.value !== "-")) {
+      gameIntel.modules.splice(4, 0, {
+        id: "live-assists-context",
+        title: "2D. Live AST Context",
+        description: "Live sportsbook assist line plus minutes-risk and market-lean screen.",
+        status: "LIVE",
+        items: liveAstItems,
+      });
+    }
+    const liveThreesItems: SnapshotIntelItem[] = [];
+    addIntelItem(liveThreesItems, "Consensus 3PM Line", threesMarketLine == null ? "-" : formatNumber(threesMarketLine.line));
+    addIntelItem(
+      liveThreesItems,
+      "Market Books",
+      threesMarketLine == null ? "-" : String(threesMarketLine.sportsbookCount),
+    );
+    addIntelItem(liveThreesItems, "3PM Side", threesSignal == null ? "-" : threesSignal.side);
+    addIntelItem(
+      liveThreesItems,
+      "3PM Confidence",
+      threesSignal?.confidence == null ? "-" : `${formatNumber(threesSignal.confidence)} (${threesSignal.confidenceTier ?? "LOW"})`,
+    );
+    addIntelItem(
+      liveThreesItems,
+      "3PM Filter",
+      threesSignal == null ? "-" : threesSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(
+      liveThreesItems,
+      "3PM Gap / Risk",
+      threesSignal == null ? "-" : `${formatSigned(threesSignal.projectionGap)} / ${formatNumber(threesSignal.minutesRisk)}`,
+    );
+    if (liveThreesItems.some((item) => item.value !== "-")) {
+      gameIntel.modules.splice(5, 0, {
+        id: "live-threes-context",
+        title: "2E. Live 3PM Context",
+        description: "Live sportsbook 3PM line plus minutes-risk and market-lean screen.",
+        status: "LIVE",
+        items: liveThreesItems,
+      });
+    }
+    const liveComboItems: SnapshotIntelItem[] = [];
+    addIntelItem(liveComboItems, "Consensus PRA Line", praMarketLine == null ? "-" : formatNumber(praMarketLine.line));
+    addIntelItem(liveComboItems, "PRA Side", praSignal == null ? "-" : praSignal.side);
+    addIntelItem(
+      liveComboItems,
+      "PRA Filter",
+      praSignal == null ? "-" : praSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(liveComboItems, "Consensus PA Line", paMarketLine == null ? "-" : formatNumber(paMarketLine.line));
+    addIntelItem(liveComboItems, "PA Side", paSignal == null ? "-" : paSignal.side);
+    addIntelItem(
+      liveComboItems,
+      "PA Filter",
+      paSignal == null ? "-" : paSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(liveComboItems, "Consensus PR Line", prMarketLine == null ? "-" : formatNumber(prMarketLine.line));
+    addIntelItem(liveComboItems, "PR Side", prSignal == null ? "-" : prSignal.side);
+    addIntelItem(
+      liveComboItems,
+      "PR Filter",
+      prSignal == null ? "-" : prSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    addIntelItem(liveComboItems, "Consensus RA Line", raMarketLine == null ? "-" : formatNumber(raMarketLine.line));
+    addIntelItem(liveComboItems, "RA Side", raSignal == null ? "-" : raSignal.side);
+    addIntelItem(
+      liveComboItems,
+      "RA Filter",
+      raSignal == null ? "-" : raSignal.qualified ? "QUALIFIED" : "PASS",
+    );
+    if (liveComboItems.some((item) => item.value !== "-")) {
+      gameIntel.modules.splice(6, 0, {
+        id: "live-combo-context",
+        title: "2F. Live Combo Context",
+        description: "Live combo lines plus projection-gap and minutes-risk screens for PRA, PA, PR, and RA.",
+        status: "LIVE",
+        items: liveComboItems,
+      });
+    }
 
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
@@ -1586,6 +2663,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         opponentAllowance,
         opponentAllowanceDelta,
         projectedTonight,
+        modelLines,
+        ptsSignal,
+        rebSignal,
+        astSignal,
+        threesSignal,
+        praSignal,
+        paSignal,
+        prSignal,
+        raSignal,
         recentLogs: last10Logs,
         analysisLogs: logsForPlayer,
         dataCompleteness,
@@ -1616,30 +2702,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           primaryDefender,
           teammateCore,
         },
-        gameIntel: buildGameIntel({
-          dateEt,
-          teamCode: matchup.teamCode,
-          opponentCode: matchup.opponentCode,
-          isHome: matchup.isHome,
-          playerProfile,
-          teamProfiles,
-          opponentProfiles,
-          primaryDefender,
-          teammateCore,
-          last10Logs,
-          last5Logs,
-          statusLast10,
-          teammateUnavailableLastGame,
-          teammateUnknownStatusLastGame,
-          opponentStarterShareTop5,
-          seasonAverage,
-          last10Average,
-          last3Average,
-          opponentAllowance,
-          opponentAllowanceDelta,
-          teamSummary,
-          opponentSummary,
-        }),
+        gameIntel,
       },
     });
   }

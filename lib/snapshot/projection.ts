@@ -120,6 +120,24 @@ const PLAYER_SPECIFIC_MINUTES_THRESHOLD = (() => {
   return clamp(Math.floor(parsed), 8, 24);
 })();
 
+const PLAYER_SPECIFIC_MODEL_MIN_SAMPLES = (() => {
+  const parsed = Number(process.env.SNAPSHOT_PLAYER_MODEL_MIN_SAMPLES);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 18;
+  return clamp(Math.floor(parsed), 10, 34);
+})();
+
+const COMBO_SUM_WEIGHT = (() => {
+  const parsed = Number(process.env.SNAPSHOT_COMBO_SUM_WEIGHT);
+  if (!Number.isFinite(parsed)) return 0.88;
+  return clamp(parsed, 0, 1);
+})();
+
+const COMBO_DIRECT_WEIGHT = (() => {
+  const parsed = Number(process.env.SNAPSHOT_COMBO_DIRECT_WEIGHT);
+  if (!Number.isFinite(parsed)) return 0.12;
+  return clamp(parsed, 0, 1);
+})();
+
 type ProjectMarketInput = {
   market: SnapshotMarket;
   last3Average: number | null;
@@ -133,6 +151,8 @@ type ProjectMarketInput = {
   minutesProfile: MinutesProjectionProfile;
   personalModel: PersonalMarketModel | null;
   minutesSeasonAvg: number | null;
+  historyValues: number[];
+  historyMinutes: number[];
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesVolatility: number | null;
@@ -151,6 +171,8 @@ export type ProjectTonightInput = {
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
   last10ByMarket: Record<SnapshotMarket, number[]>;
+  historyByMarket: Record<SnapshotMarket, number[]>;
+  historyMinutes: number[];
   sampleSize: number;
   personalModels?: PlayerPersonalModels | null;
   minutesSeasonAvg?: number | null;
@@ -311,13 +333,62 @@ function buildPersonalMarketModel(valuesChronological: number[], minSamples: num
   };
 }
 
+function minutesConditionedEstimate(
+  historyValuesRecentFirst: number[],
+  historyMinutesRecentFirst: number[],
+  expectedMinutes: number,
+): { value: number | null; median: number | null; sample: number } {
+  if (historyValuesRecentFirst.length === 0 || historyMinutesRecentFirst.length === 0) {
+    return { value: null, median: null, sample: 0 };
+  }
+
+  const pairs = historyValuesRecentFirst
+    .map((value, index) => ({
+      value,
+      minutes: historyMinutesRecentFirst[index] ?? 0,
+    }))
+    .filter((item) => Number.isFinite(item.value) && Number.isFinite(item.minutes) && item.minutes > 0);
+
+  if (pairs.length === 0) return { value: null, median: null, sample: 0 };
+
+  const weighted = (
+    items: Array<{ value: number; minutes: number }>,
+    decay: number,
+  ): { value: number | null; median: number | null; sample: number } => {
+    if (items.length === 0) return { value: null, median: null, sample: 0 };
+    let totalWeight = 0;
+    let weightedSum = 0;
+    items.forEach((item) => {
+      const weight = Math.exp(-Math.abs(item.minutes - expectedMinutes) / decay);
+      totalWeight += weight;
+      weightedSum += item.value * weight;
+    });
+    const values = items.map((item) => item.value);
+    const med = median(values);
+    if (totalWeight <= 0) return { value: null, median: med, sample: items.length };
+    return { value: round(weightedSum / totalWeight, 2), median: med, sample: items.length };
+  };
+
+  const near = pairs.filter((item) => Math.abs(item.minutes - expectedMinutes) <= 3).slice(0, 32);
+  if (near.length >= 7) {
+    return weighted(near, 2.3);
+  }
+
+  const medium = pairs.filter((item) => Math.abs(item.minutes - expectedMinutes) <= 5).slice(0, 40);
+  if (medium.length >= 9) {
+    return weighted(medium, 3.2);
+  }
+
+  return weighted(pairs.slice(0, 40), 4.6);
+}
+
 export function buildPlayerPersonalModels(input: BuildPlayerPersonalModelsInput): PlayerPersonalModels {
   const result = createEmptyPlayerPersonalModels();
   if (input.minutesSeasonAvg == null || input.minutesSeasonAvg < PLAYER_SPECIFIC_MINUTES_THRESHOLD) {
     return result;
   }
 
-  const minSamples = clamp(Math.floor(input.minSamples ?? 18), 10, 40);
+  const minSamples = clamp(Math.floor(input.minSamples ?? PLAYER_SPECIFIC_MODEL_MIN_SAMPLES), 10, 40);
   SNAPSHOT_MARKETS.forEach((market) => {
     const series = input.historyByMarket[market] ?? [];
     result[market] = buildPersonalMarketModel(series, minSamples);
@@ -402,6 +473,8 @@ function ewmaRecentFirst(valuesRecentFirst: number[], alpha: number): number | n
 
 function projectMarket(input: ProjectMarketInput): number | null {
   const config = CONFIG_BY_MARKET[input.market];
+  const isVolumeMarket =
+    input.market === "PTS" || input.market === "PRA" || input.market === "PA" || input.market === "PR";
   const ewma = ewmaRecentFirst(input.last10Values, config.alpha);
   const base = weightedBlend([
     { value: ewma, weight: config.weights.ewma },
@@ -426,6 +499,7 @@ function projectMarket(input: ProjectMarketInput): number | null {
       ? null
       : (input.last10Average ?? seasonAnchor) / input.minutesLast10Avg;
   const perMinuteProjection = perMinuteRate == null ? null : round(Math.max(0, perMinuteRate * expectedMinutes), 2);
+  const minutesConditioned = minutesConditionedEstimate(input.historyValues, input.historyMinutes, expectedMinutes);
   const minutesAdjustment =
     perMinuteRate == null
       ? 0
@@ -453,17 +527,20 @@ function projectMarket(input: ProjectMarketInput): number | null {
   if (playerSpecificTier) {
     // Personalized model for stable rotation players (>=15 mpg): trust player-specific rate + robust median.
     const personalizedBlend = weightedBlend([
-      { value: globalProjection, weight: 0.36 },
-      { value: perMinuteProjection, weight: 0.26 },
+      { value: globalProjection, weight: isVolumeMarket ? 0.28 : 0.36 },
+      { value: perMinuteProjection, weight: isVolumeMarket ? 0.33 : 0.26 },
       { value: input.last10Average, weight: 0.2 },
-      { value: median10, weight: 0.11 },
-      { value: input.seasonAverage, weight: 0.07 },
+      { value: median10, weight: isVolumeMarket ? 0.12 : 0.11 },
+      { value: input.seasonAverage, weight: isVolumeMarket ? 0.07 : 0.07 },
     ]);
     projected = personalizedBlend ?? globalProjection;
     const personalizedTrust = clamp(
-      0.3 + sampleConfidence * 0.34 + minutesStability * 0.2 + consistencyScore * 0.16,
-      0.3,
-      0.92,
+      (isVolumeMarket ? 0.32 : 0.3) +
+        sampleConfidence * (isVolumeMarket ? 0.36 : 0.34) +
+        minutesStability * 0.2 +
+        consistencyScore * 0.16,
+      isVolumeMarket ? 0.32 : 0.3,
+      isVolumeMarket ? 0.94 : 0.92,
     );
     projected =
       weightedBlend([
@@ -481,7 +558,11 @@ function projectMarket(input: ProjectMarketInput): number | null {
         ? round(Math.max(0, input.personalModel.intercept + input.personalModel.slope * personalSignal), 2)
         : null;
     if (personalProjection != null && input.personalModel) {
-      const personalWeight = clamp(0.15 + input.personalModel.confidence * 0.55, 0.15, 0.72);
+      const personalWeight = clamp(
+        (isVolumeMarket ? 0.22 : 0.15) + input.personalModel.confidence * (isVolumeMarket ? 0.68 : 0.55),
+        isVolumeMarket ? 0.22 : 0.15,
+        isVolumeMarket ? 0.86 : 0.72,
+      );
       projected =
         weightedBlend([
           { value: projected, weight: 1 - personalWeight },
@@ -525,6 +606,19 @@ function projectMarket(input: ProjectMarketInput): number | null {
       { value: seasonAnchor, weight: outlierGuardWeight },
     ]) ?? projected;
 
+  if (minutesConditioned.value != null) {
+    const minutesConditionWeight = clamp(
+      0.1 + (minutesConditioned.sample >= 12 ? 0.13 : 0.06) + sampleConfidence * 0.1,
+      0.1,
+      0.34,
+    );
+    projected =
+      weightedBlend([
+        { value: projected, weight: 1 - minutesConditionWeight },
+        { value: minutesConditioned.value, weight: minutesConditionWeight },
+      ]) ?? projected;
+  }
+
   if (input.sampleSize < 10 && playerSpecificTier) {
     projected = weightedBlend([
       { value: projected, weight: 0.72 },
@@ -566,6 +660,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
     opponentAllowance: input.opponentAllowance[market],
     opponentAllowanceDelta: input.opponentAllowanceDelta[market],
     last10Values: input.last10ByMarket[market],
+    historyValues: input.historyByMarket[market],
+    historyMinutes: input.historyMinutes,
     sampleSize: input.sampleSize,
     minutesProfile,
     personalModel: input.personalModels?.[market] ?? null,
@@ -604,8 +700,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   comboMarkets.forEach((market) => {
     result[market] =
       weightedBlend([
-        { value: summedCombo[market] ?? null, weight: 0.88 },
-        { value: directComboProjection[market], weight: 0.12 },
+        { value: summedCombo[market] ?? null, weight: COMBO_SUM_WEIGHT },
+        { value: directComboProjection[market], weight: COMBO_DIRECT_WEIGHT },
       ]) ??
       summedCombo[market] ??
       directComboProjection[market];

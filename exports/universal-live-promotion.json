@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-03-13T07:00:07.649Z",
+  "from": "2025-10-23",
+  "to": "2026-03-09",
+  "season": "2025",
+  "rowsFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live.json",
+  "lineFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\historical-lines\\all-players-all-markets-live.csv",
+  "winner": {
+    "label": "hybrid",
+    "calibrated": false,
+    "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-hybrid-wing-guard-split.json",
+    "calibrationFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-calibration.json",
+    "metrics": {
+      "samples": 76475,
+      "rawAccuracy": 66.24,
+      "qualifiedAccuracy": 70.01,
+      "qualifiedPicks": 54859,
+      "coveragePct": 71.73,
+      "blendedAccuracy": 64.99
+    }
+  },
+  "candidates": [
+    {
+      "label": "direct",
+      "calibrated": false,
+      "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-wing-guard-split.json",
+      "calibrationFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-calibration-2025-10-23-to-2026-03-09-direct.json",
+      "metrics": {
+        "samples": 76475,
+        "rawAccuracy": 66.03,
+        "qualifiedAccuracy": 70.01,
+        "qualifiedPicks": 53481,
+        "coveragePct": 69.93,
+        "blendedAccuracy": 64.78
+      }
+    },
+    {
+      "label": "direct-calibrated",
+      "calibrated": true,
+      "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-wing-guard-split.json",
+      "calibrationFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-calibration-2025-10-23-to-2026-03-09-direct.json",
+      "metrics": {
+        "samples": 76475,
+        "rawAccuracy": 66.03,
+        "qualifiedAccuracy": 71.08,
+        "qualifiedPicks": 46360,
+        "coveragePct": 60.62,
+        "blendedAccuracy": 64.01
+      }
+    },
+    {
+      "label": "hybrid",
+      "calibrated": false,
+      "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-hybrid-wing-guard-split.json",
+      "calibrationFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-calibration-2025-10-23-to-2026-03-09-hybrid.json",
+      "metrics": {
+        "samples": 76475,
+        "rawAccuracy": 66.24,
+        "qualifiedAccuracy": 70.01,
+        "qualifiedPicks": 54859,
+        "coveragePct": 71.73,
+        "blendedAccuracy": 64.99
+      }
+    },
+    {
+      "label": "hybrid-calibrated",
+      "calibrated": true,
+      "modelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-archetype-side-models-2025-10-23-to-2026-03-09-hybrid-wing-guard-split.json",
+      "calibrationFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-calibration-2025-10-23-to-2026-03-09-hybrid.json",
+      "metrics": {
+        "samples": 76475,
+        "rawAccuracy": 66.24,
+        "qualifiedAccuracy": 70.71,
+        "qualifiedPicks": 49540,
+        "coveragePct": 64.78,
+        "blendedAccuracy": 64.36
+      }
+    }
+  ]
+}
