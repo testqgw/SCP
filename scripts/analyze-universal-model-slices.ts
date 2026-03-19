@@ -6,7 +6,6 @@ import {
   DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS,
   inspectLiveUniversalModelSide,
   qualifyLiveUniversalModelDecision,
-  type LiveUniversalQualificationSettings,
 } from "../lib/snapshot/liveUniversalSideModels";
 import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
