@@ -1,3 +1,5 @@
+import type { LineupStatus, RotowireAvailabilityStatus } from "@/lib/lineups/rotowire";
+
 export type SnapshotMarket = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "PR" | "RA";
 
 export type SnapshotStatLog = {
@@ -45,6 +47,7 @@ export type SnapshotPtsSignal = {
   marketLine: number | null;
   sportsbookCount: number;
   side: SnapshotModelSide;
+  baselineSide: SnapshotModelSide;
   confidence: number | null;
   confidenceTier: SnapshotPtsConfidenceTier | null;
   projectionGap: number | null;
@@ -62,6 +65,29 @@ export type SnapshotPraSignal = SnapshotPtsSignal;
 export type SnapshotPaSignal = SnapshotPtsSignal;
 export type SnapshotPrSignal = SnapshotPtsSignal;
 export type SnapshotRaSignal = SnapshotPtsSignal;
+
+export type SnapshotPrecisionPickSignal = {
+  side: SnapshotModelSide;
+  qualified?: boolean;
+  historicalAccuracy: number;
+  historicalPicks: number;
+  historicalCoveragePct?: number;
+  bucketRecentAccuracy: number | null;
+  leafAccuracy: number | null;
+  absLineGap: number | null;
+  projectionWinProbability: number | null;
+  projectionPriceEdge?: number | null;
+  reasons?: string[];
+};
+
+export type SnapshotPrecisionSystemSummary = {
+  label: string;
+  historicalAccuracy: number;
+  historicalPicks: number;
+  historicalCoveragePct: number;
+  historicalPicksPerDay?: number;
+  supportedMarkets: SnapshotMarket[];
+};
 
 export type SnapshotCompletenessTier = "HIGH" | "MEDIUM" | "LOW";
 
@@ -119,6 +145,10 @@ export type SnapshotPrimaryDefender = {
 export type SnapshotPlayerContext = {
   archetype: string;
   projectedStarter: string;
+  lineupStatus: LineupStatus | null;
+  lineupStarter: boolean | null;
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
   startedLastGame: boolean | null;
   startsLast10: number;
   starterRateLast10: number | null;
@@ -139,6 +169,7 @@ export type SnapshotPlayerContext = {
 export type SnapshotRow = {
   playerId: string;
   playerName: string;
+  detailLevel?: "BOARD" | "FULL";
   position: string | null;
   teamCode: string;
   opponentCode: string;
@@ -164,6 +195,7 @@ export type SnapshotRow = {
   paSignal: SnapshotPaSignal | null;
   prSignal: SnapshotPrSignal | null;
   raSignal: SnapshotRaSignal | null;
+  precisionSignals?: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>>;
   recentLogs: SnapshotStatLog[];
   analysisLogs: SnapshotStatLog[];
   dataCompleteness: SnapshotDataCompleteness;
@@ -209,6 +241,7 @@ export type SnapshotBoardData = {
   matchups: SnapshotMatchupOption[];
   teamMatchups: SnapshotTeamMatchupStats[];
   rows: SnapshotRow[];
+  precisionSystem?: SnapshotPrecisionSystemSummary | null;
 };
 
 export type SnapshotPlayerLookupData = {

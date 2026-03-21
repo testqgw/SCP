@@ -6,7 +6,7 @@ import { logger } from "@/lib/snapshot/log";
 import { NbaDataClient } from "@/lib/nba/client";
 import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "@/lib/sportsdata/types";
 
-type RefreshMode = "FULL" | "DELTA";
+type RefreshMode = "FULL" | "DELTA" | "FAST";
 
 type RefreshResult = {
   runId: string;
@@ -386,9 +386,30 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const client = new NbaDataClient();
   const warnings: string[] = [];
   const schedule = await client.fetchSchedule();
-  const { from, to } = collectDateWindow(mode, dateEt);
-
   const todaysGames = schedule.filter((game) => game.gameDateEt === dateEt);
+  if (mode === "FAST") {
+    const games = dedupeGames(todaysGames);
+
+    logger.info("NBA payload summary", {
+      dateEt,
+      refreshMode: mode,
+      scheduleGames: schedule.length,
+      todaysGames: todaysGames.length,
+      windowGames: todaysGames.length,
+      finalWindowGames: 0,
+      players: 0,
+      logs: 0,
+    });
+
+    return {
+      games,
+      players: [],
+      logs: [],
+      warnings,
+    };
+  }
+
+  const { from, to } = collectDateWindow(mode, dateEt);
   const windowGames = schedule.filter((game) => game.gameDateEt >= from && game.gameDateEt <= to);
   const finalWindowGames = windowGames.filter((game) => game.statusNumber >= 3);
 
@@ -419,6 +440,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
 
   logger.info("NBA payload summary", {
     dateEt,
+    refreshMode: mode,
     windowFrom: from,
     windowTo: to,
     scheduleGames: schedule.length,
@@ -455,6 +477,8 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
   const startedAt = Date.now();
   const dateEt = getTodayEtDateString();
   const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+  const runType = mode === "FULL" ? "FULL" : "DELTA";
+  const isLightweightRefresh = mode === "FAST";
 
   const activeRun = await prisma.refreshRun.findFirst({
     where: {
@@ -501,9 +525,9 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
 
   const run = await prisma.refreshRun.create({
     data: {
-      type: mode,
+      type: runType,
       status: "RUNNING",
-      notes: { dateEt, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
+      notes: { dateEt, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, requestedMode: mode },
     },
     select: { id: true },
   });
@@ -511,30 +535,40 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
   const warnings: string[] = [];
 
   try {
-    const fetched = await fetchData(mode, dateEt);
+    let lineupMeta: { teamCount: number; source: string } | null = null;
+    const [fetchedResult, lineupResult] = await Promise.allSettled([fetchData(mode, dateEt), storeLineupsSnapshot(dateEt)]);
+    if (fetchedResult.status === "rejected") {
+      throw fetchedResult.reason;
+    }
+    const fetched = fetchedResult.value;
     warnings.push(...fetched.warnings);
 
-    let lineupMeta: { teamCount: number; source: string } | null = null;
-    try {
-      lineupMeta = await storeLineupsSnapshot(dateEt);
-    } catch (error) {
+    if (lineupResult.status === "fulfilled") {
+      lineupMeta = lineupResult.value;
+    } else {
       warnings.push(
-        `Lineup feed unavailable: ${error instanceof Error ? error.message : "unknown lineup fetch error"}`,
+        `Lineup feed unavailable: ${lineupResult.reason instanceof Error ? lineupResult.reason.message : "unknown lineup fetch error"}`,
       );
     }
 
     const teamMap = await upsertTeams(fetched.games, fetched.players, fetched.logs);
-    const playerMap = await upsertPlayers(fetched.players, teamMap);
-    await upsertGames(fetched.games, teamMap);
-    await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
-    await syncPlayerCurrentTeams();
+    const [playerMap] = await Promise.all([
+      upsertPlayers(fetched.players, teamMap),
+      upsertGames(fetched.games, teamMap),
+    ]);
+    if (fetched.logs.length > 0) {
+      await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
+      await syncPlayerCurrentTeams();
+    }
 
-    const qualityIssues = evaluateQualityInput({
-      logs: fetched.logs,
-      games: fetched.games,
-    });
+    const qualityIssues = isLightweightRefresh
+      ? []
+      : evaluateQualityInput({
+          logs: fetched.logs,
+          games: fetched.games,
+        });
     const qualityPass = qualityIssues.length === 0;
-    const isPublishable = QUALITY_GATE_ENABLED ? qualityPass : true;
+    const isPublishable = isLightweightRefresh ? true : QUALITY_GATE_ENABLED ? qualityPass : true;
 
     if (!qualityPass) {
       warnings.push(...qualityIssues.map((issue) => `Quality gate: ${issue}`));
@@ -554,7 +588,14 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable,
         qualityIssues,
-        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, lineupMeta },
+        notes: {
+          dateEt,
+          warnings,
+          source: "nba_official",
+          qualityGateEnabled: QUALITY_GATE_ENABLED,
+          lineupMeta,
+          requestedMode: mode,
+        },
       },
     });
 
@@ -570,6 +611,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           qualityIssues,
           source: "nba_official",
           lineupMeta,
+          requestedMode: mode,
         },
       },
       create: {
@@ -583,6 +625,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           qualityIssues,
           source: "nba_official",
           lineupMeta,
+          requestedMode: mode,
         },
       },
     });
@@ -599,6 +642,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             qualityIssues,
             source: "nba_official",
             lineupMeta,
+            requestedMode: mode,
           },
         },
         create: {
@@ -611,6 +655,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             qualityIssues,
             source: "nba_official",
             lineupMeta,
+            requestedMode: mode,
           },
         },
       });
@@ -640,7 +685,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable: false,
         qualityIssues: ["refresh_failed"],
-        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED },
+        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, requestedMode: mode },
       },
     });
     logger.error("Refresh failed", { runId: run.id, mode, reason });

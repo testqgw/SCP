@@ -14,6 +14,7 @@ import {
   resolveProjectPath,
 } from "../lib/snapshot/universalArtifactPaths";
 import { round } from "../lib/utils";
+import { loadPlayerMetaWithCache } from "./utils/playerMetaCache";
 
 type Side = "OVER" | "UNDER";
 type Market = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "PR" | "RA";
@@ -36,6 +37,7 @@ type TrainingRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -170,12 +172,18 @@ function mean(values: Array<number | null | undefined>): number | null {
   return round(valid.reduce((sum, value) => sum + value, 0) / valid.length, 4);
 }
 
-async function loadPlayerMetaMap(playerIds: string[]): Promise<Map<string, PlayerMeta>> {
-  const rows = await prisma.player.findMany({
-    where: { id: { in: playerIds } },
-    select: { id: true, position: true },
+async function loadPlayerMetaMap(rows: TrainingRow[]): Promise<Map<string, PlayerMeta>> {
+  const cached = await loadPlayerMetaWithCache({
+    rows: rows.map((row) => ({ playerId: row.playerId, playerName: row.playerName })),
+    fetcher: async (ids) =>
+      (
+        await prisma.player.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, position: true },
+        })
+      ).map((row) => ({ ...row, fullName: null })),
   });
-  return new Map(rows.map((row) => [row.id, row]));
+  return new Map([...cached.entries()].map(([id, meta]) => [id, { id, position: meta.position }]));
 }
 
 function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMeta>): Map<string, PlayerSummary> {
@@ -211,7 +219,7 @@ async function main(): Promise<void> {
   const args = parseArgs();
   const payload = JSON.parse(await readFile(path.resolve(args.input), "utf8")) as BacktestRowsFile;
   const filteredRows = payload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes);
-  const playerMetaMap = await loadPlayerMetaMap([...new Set(filteredRows.map((row) => row.playerId))]);
+  const playerMetaMap = await loadPlayerMetaMap(filteredRows);
   const summaries = summarizeRows(filteredRows, playerMetaMap);
   const settings = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS;
 
@@ -228,6 +236,7 @@ async function main(): Promise<void> {
       finalSide: row.finalSide,
       expectedMinutes: row.expectedMinutes,
       minutesVolatility: row.minutesVolatility,
+      benchBigRoleStability: row.benchBigRoleStability ?? null,
       starterRateLast10: row.starterRateLast10,
       archetypeExpectedMinutes: summary?.avgExpectedMinutes ?? null,
       archetypeStarterRateLast10: summary?.avgStarterRate ?? null,

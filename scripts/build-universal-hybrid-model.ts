@@ -22,16 +22,20 @@ type Archetype =
   | "WING"
   | "CONNECTOR_WING"
   | "SPOTUP_WING"
-  | "BENCH_GUARD"
+  | "BENCH_SHOOTING_GUARD"
+  | "BENCH_PASS_FIRST_GUARD"
+  | "BENCH_LOW_USAGE_GUARD"
+  | "BENCH_TRADITIONAL_GUARD"
   | "BENCH_WING"
-  | "BENCH_SCORING_WING"
   | "BENCH_LOW_USAGE_WING"
   | "BENCH_MIDRANGE_SCORER"
   | "BENCH_VOLUME_SCORER"
   | "BENCH_CREATOR_SCORER"
   | "BENCH_REBOUNDING_SCORER"
   | "BENCH_SPACER_SCORER"
-  | "BENCH_BIG"
+  | "BENCH_STRETCH_BIG"
+  | "BENCH_LOW_USAGE_BIG"
+  | "BENCH_TRADITIONAL_BIG"
   | "TWO_WAY_MARKET_WING"
   | "SCORER_CREATOR_WING"
   | "SHOT_CREATING_WING"
@@ -353,8 +357,17 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   const ast = summary.astProjectionAvg ?? 0;
   const threes = summary.threesProjectionAvg ?? 0;
 
-  if (position.includes("C") || reb >= 7.5) return "BENCH_BIG";
-  if (ast >= 4 || position.includes("PG") || position === "G") return "BENCH_GUARD";
+  if (position.includes("C") || reb >= 7.5) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
+  if (ast >= 4 || position.includes("PG") || position === "G") {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
   if (
     (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") &&
     (pts >= 16 || threes >= 1.8)
@@ -377,8 +390,17 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
     return "BENCH_VOLUME_SCORER";
   }
-  if (ast >= reb && ast >= 3.5) return "BENCH_GUARD";
-  if (reb >= pts && reb >= ast) return "BENCH_BIG";
+  if (ast >= reb && ast >= 3.5) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
+  if (reb >= pts && reb >= ast) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
   if (pts >= reb && pts >= ast) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
     if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
@@ -890,16 +912,20 @@ async function main(): Promise<void> {
     "WING",
     "CONNECTOR_WING",
     "SPOTUP_WING",
-    "BENCH_GUARD",
+    "BENCH_SHOOTING_GUARD",
+    "BENCH_PASS_FIRST_GUARD",
+    "BENCH_LOW_USAGE_GUARD",
+    "BENCH_TRADITIONAL_GUARD",
     "BENCH_WING",
-    "BENCH_SCORING_WING",
     "BENCH_LOW_USAGE_WING",
     "BENCH_MIDRANGE_SCORER",
     "BENCH_VOLUME_SCORER",
     "BENCH_CREATOR_SCORER",
     "BENCH_REBOUNDING_SCORER",
     "BENCH_SPACER_SCORER",
-    "BENCH_BIG",
+    "BENCH_STRETCH_BIG",
+    "BENCH_LOW_USAGE_BIG",
+    "BENCH_TRADITIONAL_BIG",
     "TWO_WAY_MARKET_WING",
     "SCORER_CREATOR_WING",
     "SHOT_CREATING_WING",

@@ -1,8 +1,15 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { deriveRotowireAvailabilityImpact } from "../lib/lineups/rotowire";
 import { prisma } from "../lib/prisma";
+import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "../lib/snapshot/benchBigRoleStability";
 import { getTodayEtDateString, inferSeasonFromEtDate } from "../lib/snapshot/time";
-import { SNAPSHOT_MARKETS, buildPlayerPersonalModels, projectTonightMetrics } from "../lib/snapshot/projection";
+import {
+  SNAPSHOT_MARKETS,
+  buildPlayerPersonalModels,
+  projectTonightMetrics,
+  type TeamSynergyInput,
+} from "../lib/snapshot/projection";
 import { round } from "../lib/utils";
 import type { SnapshotMarket, SnapshotMetricRecord, SnapshotModelSide } from "../lib/types/snapshot";
 import {
@@ -72,6 +79,7 @@ type Args = {
   prSideOverrideEnabled: boolean;
   raSideOverrideEnabled: boolean;
   emitPlayerRows: boolean;
+  teammateSynergy: boolean;
 };
 
 type HistoryLog = {
@@ -81,14 +89,27 @@ type HistoryLog = {
   starter: boolean | null;
   restDaysBefore: number | null;
   minutes: number;
+  pace: number | null;
   metrics: SnapshotMetricRecord;
+};
+
+type BacktestPlayerProfile = {
+  playerId: string;
+  playerName: string;
+  normalizedName: string;
+  teamId: string;
+  last10Average: SnapshotMetricRecord;
+  minutesLast10Avg: number | null;
+  starterRateLast10: number | null;
 };
 
 type RollingAgg = {
   count: number;
   sums: Record<SnapshotMarket, number>;
   window: number | null;
-  queue: SnapshotMetricRecord[];
+  paceSum: number;
+  paceCount: number;
+  queue: Array<{ metrics: SnapshotMetricRecord; pace: number | null }>;
 };
 
 type MarketErrorStats = {
@@ -162,6 +183,10 @@ type PlayerMarketTrainingRow = {
   market: SnapshotMarket;
   gameDateEt: string;
   projectedValue: number;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistProjection: number | null;
+  threesProjection: number | null;
   actualValue: number;
   line: number;
   overPrice: number | null;
@@ -176,6 +201,10 @@ type PlayerMarketTrainingRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability: number | null;
+  l5MarketDeltaAvg: number | null;
+  l5OverRate: number | null;
+  l5MinutesAvg: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -193,6 +222,12 @@ type BacktestGameContext = {
   awayTeamId: string;
   homeCode: string;
   awayCode: string;
+};
+
+type MarketMomentumHistory = {
+  lineDeltas: number[];
+  overIndicators: number[];
+  minutes: number[];
 };
 
 function makeLineLookupKey(playerId: string, gameDateEt: string, market: SnapshotMarket): string {
@@ -236,6 +271,49 @@ function computeTrainingRowCompleteness(input: {
     input.minutesVolatility == null ? 45 : Math.max(30, Math.min(100, Math.round(100 - input.minutesVolatility * 8)));
 
   return Math.round(sampleCoverage * 0.4 + statusCoverage * 0.2 + contextCoverage * 0.2 + stabilityCoverage * 0.2);
+}
+
+function computeL5MarketMomentum(history: MarketMomentumHistory | null | undefined): {
+  l5MarketDeltaAvg: number | null;
+  l5OverRate: number | null;
+  l5MinutesAvg: number | null;
+} {
+  if (!history) {
+    return {
+      l5MarketDeltaAvg: null,
+      l5OverRate: null,
+      l5MinutesAvg: null,
+    };
+  }
+
+  const recentDeltas = history.lineDeltas.slice(-5);
+  const recentOverIndicators = history.overIndicators.slice(-5);
+  const recentMinutes = history.minutes.slice(-5);
+
+  return {
+    l5MarketDeltaAvg: recentDeltas.length > 0 ? round(average(recentDeltas) ?? 0, 3) : null,
+    l5OverRate: recentOverIndicators.length > 0 ? round(average(recentOverIndicators) ?? 0, 3) : null,
+    l5MinutesAvg: recentMinutes.length > 0 ? round(average(recentMinutes) ?? 0, 3) : null,
+  };
+}
+
+function pushMarketMomentum(history: MarketMomentumHistory, actualValue: number, lineValue: number, minutes: number): void {
+  const lineDelta = actualValue - lineValue;
+  history.lineDeltas.push(lineDelta);
+  if (history.lineDeltas.length > 5) {
+    history.lineDeltas.shift();
+  }
+
+  const overIndicator = actualValue > lineValue ? 1 : actualValue < lineValue ? 0 : 0.5;
+  history.overIndicators.push(overIndicator);
+  if (history.overIndicators.length > 5) {
+    history.overIndicators.shift();
+  }
+
+  history.minutes.push(minutes);
+  if (history.minutes.length > 5) {
+    history.minutes.shift();
+  }
 }
 
 function impliedProbability(odds: number | null): number | null {
@@ -1028,6 +1106,7 @@ function parseArgs(): Args {
   let prSideOverrideEnabled = true;
   let raSideOverrideEnabled = true;
   let emitPlayerRows = false;
+  let teammateSynergy = false;
 
   for (let i = 0; i < raw.length; i += 1) {
     const token = raw[i];
@@ -1151,6 +1230,14 @@ function parseArgs(): Args {
     }
     if (token === "--emit-player-rows") {
       emitPlayerRows = true;
+      continue;
+    }
+    if (token === "--teammate-synergy") {
+      teammateSynergy = true;
+      continue;
+    }
+    if (token === "--no-teammate-synergy") {
+      teammateSynergy = false;
       continue;
     }
     if (token.startsWith("--mode=")) {
@@ -1893,6 +1980,7 @@ function parseArgs(): Args {
     prSideOverrideEnabled,
     raSideOverrideEnabled,
     emitPlayerRows,
+    teammateSynergy,
   };
 }
 
@@ -2014,6 +2102,8 @@ function createRollingAgg(): RollingAgg {
     count: 0,
     window: null,
     queue: [],
+    paceSum: 0,
+    paceCount: 0,
     sums: {
       PTS: 0,
       REB: 0,
@@ -2033,20 +2123,28 @@ function createRollingWindowAgg(window: number): RollingAgg {
   return agg;
 }
 
-function addToRollingAgg(agg: RollingAgg, metrics: SnapshotMetricRecord): void {
+function addToRollingAgg(agg: RollingAgg, metrics: SnapshotMetricRecord, pace: number | null): void {
   agg.count += 1;
-  agg.queue.push(metrics);
+  agg.queue.push({ metrics, pace });
   MARKETS.forEach((market) => {
     agg.sums[market] += metrics[market] ?? 0;
   });
+  if (pace != null && Number.isFinite(pace) && pace > 0) {
+    agg.paceSum += pace;
+    agg.paceCount += 1;
+  }
 
   if (agg.window != null && agg.queue.length > agg.window) {
     const removed = agg.queue.shift();
     if (removed) {
       agg.count -= 1;
       MARKETS.forEach((market) => {
-        agg.sums[market] -= removed[market] ?? 0;
+        agg.sums[market] -= removed.metrics[market] ?? 0;
       });
+      if (removed.pace != null && Number.isFinite(removed.pace) && removed.pace > 0) {
+        agg.paceSum -= removed.pace;
+        agg.paceCount -= 1;
+      }
     }
   }
 }
@@ -2056,6 +2154,22 @@ function averageFromAgg(agg: RollingAgg | null): SnapshotMetricRecord {
   const result = blankMetricRecord();
   MARKETS.forEach((market) => {
     result[market] = round(agg.sums[market] / agg.count, 2);
+  });
+  return result;
+}
+
+function paceAdjustedAverageFromAgg(agg: RollingAgg | null): SnapshotMetricRecord {
+  const average = averageFromAgg(agg);
+  if (!agg || agg.count === 0 || agg.paceCount === 0) return average;
+
+  const avgPace = agg.paceSum / agg.paceCount;
+  if (!Number.isFinite(avgPace) || avgPace <= 0) return average;
+
+  const factor = clamp(100 / avgPace, 0.85, 1.15);
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    const value = average[market];
+    result[market] = value == null ? null : round(value * factor, 2);
   });
   return result;
 }
@@ -2771,6 +2885,117 @@ function inferLineupStarter(history: HistoryLog[]): { lineupStarter: boolean | n
   return { lineupStarter: null, starterRateLast10 };
 }
 
+function averageMetricRecordFromProfiles(profiles: BacktestPlayerProfile[]): SnapshotMetricRecord {
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    result[market] = average(
+      profiles
+        .map((profile) => profile.last10Average[market])
+        .filter((value): value is number => value != null && Number.isFinite(value)),
+    );
+  });
+  return result;
+}
+
+function buildBacktestTeamProfiles(
+  playerHistory: Map<string, HistoryLog[]>,
+  playerNameById: Map<string, string>,
+): Map<string, BacktestPlayerProfile[]> {
+  const result = new Map<string, BacktestPlayerProfile[]>();
+
+  playerHistory.forEach((history, playerId) => {
+    if (history.length === 0) return;
+    const latestTeamId = history[history.length - 1]?.teamId ?? null;
+    if (!latestTeamId) return;
+    const sameTeamHistory = history.filter((item) => item.teamId === latestTeamId);
+    if (sameTeamHistory.length === 0) return;
+    const recent10 = sameTeamHistory.slice(-10);
+    const playerName = playerNameById.get(playerId) ?? playerId;
+    const lineupStarterSignal = inferLineupStarter(sameTeamHistory);
+    const bucket = result.get(latestTeamId) ?? [];
+    bucket.push({
+      playerId,
+      playerName,
+      normalizedName: normalizeSearchText(playerName),
+      teamId: latestTeamId,
+      last10Average: averagesByMarket(recent10),
+      minutesLast10Avg: average(recent10.map((item) => item.minutes)),
+      starterRateLast10: lineupStarterSignal.starterRateLast10,
+    });
+    result.set(latestTeamId, bucket);
+  });
+
+  result.forEach((profiles, teamId) => {
+    profiles.sort(
+      (a, b) =>
+        (b.minutesLast10Avg ?? 0) - (a.minutesLast10Avg ?? 0) ||
+        (b.last10Average.PTS ?? 0) - (a.last10Average.PTS ?? 0) ||
+        a.playerName.localeCompare(b.playerName),
+    );
+    result.set(teamId, profiles);
+  });
+
+  return result;
+}
+
+function isLikelyMissingHistoricalCoreTeammate(
+  profile: BacktestPlayerProfile,
+  teamSignal: ReturnType<typeof getHistoricalRotowireTeamSignal>,
+): boolean {
+  if (!teamSignal) return false;
+
+  const unavailable = teamSignal.unavailablePlayers.find(
+    (player) => normalizeSearchText(player.playerName) === profile.normalizedName,
+  );
+  if (unavailable) {
+    if (unavailable.status === "OUT" || unavailable.status === "DOUBTFUL") return true;
+    if (unavailable.status === "QUESTIONABLE" && (unavailable.percentPlay ?? 100) <= 55) return true;
+  }
+
+  if (
+    teamSignal.status !== "UNKNOWN" &&
+    !new Set(teamSignal.starters.map((name) => normalizeSearchText(name))).has(profile.normalizedName) &&
+    (profile.starterRateLast10 ?? 0) >= 0.55 &&
+    (profile.minutesLast10Avg ?? 0) >= 24
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function buildBacktestTeammateSynergyInput(input: {
+  playerId: string;
+  teamId: string | null;
+  teamProfilesByTeamId: Map<string, BacktestPlayerProfile[]>;
+  teamSignal: ReturnType<typeof getHistoricalRotowireTeamSignal>;
+}): TeamSynergyInput | null {
+  if (!input.teamId) return null;
+  const teamProfiles = input.teamProfilesByTeamId.get(input.teamId) ?? [];
+  const coreProfiles = teamProfiles.filter((profile) => profile.playerId !== input.playerId).slice(0, 4);
+  if (coreProfiles.length === 0) return null;
+
+  const activeProfiles = coreProfiles.filter((profile) => !isLikelyMissingHistoricalCoreTeammate(profile, input.teamSignal));
+  const missingProfiles = coreProfiles.filter((profile) => isLikelyMissingHistoricalCoreTeammate(profile, input.teamSignal));
+
+  return {
+    activeCoreAverage: averageMetricRecordFromProfiles(activeProfiles),
+    missingCoreAverage: averageMetricRecordFromProfiles(missingProfiles),
+  };
+}
+
+function resolveHistoricalAvailabilitySeverity(
+  playerName: string,
+  teamSignal: ReturnType<typeof getHistoricalRotowireTeamSignal>,
+): number {
+  if (!teamSignal) return 0;
+  const unavailable = teamSignal.unavailablePlayers.find(
+    (player) => normalizeSearchText(player.playerName) === normalizeSearchText(playerName),
+  );
+  if (!unavailable) return 0;
+  return deriveRotowireAvailabilityImpact(unavailable.status, unavailable.percentPlay ?? null).severity;
+}
+
 function createMarketStats(): Record<SnapshotMarket, MarketErrorStats> {
   return {
     PTS: createEmptyMarketErrorStats(),
@@ -2903,6 +3128,7 @@ async function main(): Promise<void> {
       starter: true,
       opponentTeamId: true,
       minutes: true,
+      pace: true,
       points: true,
       rebounds: true,
       assists: true,
@@ -2929,7 +3155,7 @@ async function main(): Promise<void> {
   const historicalPregameByExternalGameId = new Map<string, Awaited<ReturnType<typeof fetchHistoricalPregameOdds>>>();
   const historicalRotowireByDate = new Map<string, Awaited<ReturnType<typeof fetchHistoricalRotowireSnapshot>>>();
 
-  if (args.emitPlayerRows) {
+  if (args.emitPlayerRows || args.teammateSynergy) {
     const evaluationGames = Array.from(
       new Map(
         logs
@@ -2948,16 +3174,19 @@ async function main(): Promise<void> {
       return snapshot;
     });
 
-    await mapLimit(evaluationGames, 8, async (game) => {
-      const pregame = await fetchHistoricalPregameOdds(game.gameDateEt, game.awayCode, game.homeCode).catch(() => null);
-      historicalPregameByExternalGameId.set(game.externalId, pregame);
-      return pregame;
-    });
+    if (args.emitPlayerRows) {
+      await mapLimit(evaluationGames, 8, async (game) => {
+        const pregame = await fetchHistoricalPregameOdds(game.gameDateEt, game.awayCode, game.homeCode).catch(() => null);
+        historicalPregameByExternalGameId.set(game.externalId, pregame);
+        return pregame;
+      });
+    }
   }
 
   const playerHistory = new Map<string, HistoryLog[]>();
   const playerResidualById = new Map<string, PlayerResidualSeries>();
   const playerLinearById = new Map<string, PlayerLinearSeries>();
+  const playerMarketMomentumByKey = new Map<string, MarketMomentumHistory>();
   const globalResidualByBin = createGlobalResidualByBin();
   const marketResidualSeries = createMarketResidualSeries();
   const opponentAggByTeamId = new Map<string, RollingAgg>();
@@ -2982,6 +3211,8 @@ async function main(): Promise<void> {
     const pendingGlobalBinUpdates: Array<{ market: SnapshotMarket; binKey: number; residual: number }> = [];
     const pendingHybridUpdates: HybridPendingUpdate[] = [];
     const pendingPtsGlobalLinearUpdates: LinearPair[] = [];
+    const teamProfilesByTeamId = args.teammateSynergy ? buildBacktestTeamProfiles(playerHistory, playerNameById) : null;
+    const historicalRotowire = args.teammateSynergy ? (historicalRotowireByDate.get(date) ?? null) : null;
 
     if (inEvaluationWindow) {
       for (const log of dayLogs) {
@@ -3049,6 +3280,11 @@ async function main(): Promise<void> {
         );
         const leagueAverage = averageFromAgg(leagueAgg.count > 0 ? leagueAgg : null);
         const opponentAllowanceDelta = deltaFromLeague(opponentAllowance, leagueAverage);
+        const opponentPaceAdjusted = paceAdjustedAverageFromAgg(
+          opponentArchetypeAgg && opponentArchetypeAgg.count >= 6 ? opponentArchetypeAgg : opponentTeamAgg,
+        );
+        const leaguePaceAdjusted = paceAdjustedAverageFromAgg(leagueAgg.count > 0 ? leagueAgg : null);
+        const opponentPaceAdjustedDelta = deltaFromLeague(opponentPaceAdjusted, leaguePaceAdjusted);
 
         const minutesLast10Avg = blendNumber(
           average(last10.map((item) => item.minutes)),
@@ -3066,6 +3302,42 @@ async function main(): Promise<void> {
           sameTeamWeightShort,
         );
         const lineupStarterSignal = inferLineupStarter(history);
+        const currentTeamCode = log.teamId ? (teamCodeById.get(log.teamId) ?? null) : null;
+        const historicalTeamSignal =
+          currentTeamCode && historicalRotowire ? getHistoricalRotowireTeamSignal(historicalRotowire, currentTeamCode) : null;
+        const historicalAvailabilitySeverity = resolveHistoricalAvailabilitySeverity(
+          playerNameById.get(log.playerId) ?? log.playerId,
+          historicalTeamSignal,
+        );
+        const teammateSynergy =
+          args.teammateSynergy && teamProfilesByTeamId
+            ? buildBacktestTeammateSynergyInput({
+                playerId: log.playerId,
+                teamId: log.teamId,
+                teamProfilesByTeamId,
+                teamSignal: historicalTeamSignal,
+              })
+            : null;
+        const missingFrontcourtLoad = computeMissingFrontcourtLoad(teammateSynergy?.missingCoreAverage ?? null);
+        const benchBigRoleStability = computeBenchBigRoleStability({
+          archetype: playerArchetype,
+          minutesVolatility,
+          availabilitySeverity: historicalAvailabilitySeverity,
+          missingFrontcourtLoad,
+        });
+        const projectionGameContext = gameContextByExternalId.get(log.externalGameId) ?? null;
+        const projectionHistoricalPregame = projectionGameContext
+          ? (historicalPregameByExternalGameId.get(projectionGameContext.externalId) ?? null)
+          : null;
+        const projectionOpeningTeamSpread =
+          projectionHistoricalPregame?.openingHomeSpread == null
+            ? null
+            : log.isHome === true
+              ? projectionHistoricalPregame.openingHomeSpread
+              : log.isHome === false
+                ? round(-projectionHistoricalPregame.openingHomeSpread, 2)
+                : null;
+        const projectionOpeningTotal = projectionHistoricalPregame?.openingTotal ?? null;
         const currentTeamHistoryWindow = sameTeamHistory.length > 0 ? sameTeamHistory : last10;
         const ptsPpmHistory = currentTeamHistoryWindow.length >= 8 ? currentTeamHistoryWindow : history;
         const projected =
@@ -3077,6 +3349,7 @@ async function main(): Promise<void> {
                 homeAwayAverage,
                 opponentAllowance,
                 opponentAllowanceDelta,
+                opponentPaceAdjustedDelta,
                 last10ByMarket,
                 historyByMarket: historyByMarketRecent,
                 historyMinutes: historyMinutesRecent,
@@ -3091,6 +3364,13 @@ async function main(): Promise<void> {
                 minutesCurrentTeamGames: Math.min(currentTeamHistoryWindow.length, 10),
                 lineupStarter: lineupStarterSignal.lineupStarter,
                 starterRateLast10: lineupStarterSignal.starterRateLast10,
+                isHome: log.isHome,
+                playerPosition,
+                restDays: currentRestDays,
+                openingTeamSpread: projectionOpeningTeamSpread,
+                openingTotal: projectionOpeningTotal,
+                availabilitySeverity: historicalAvailabilitySeverity,
+                teammateSynergy,
               })
             : args.mode === "player_conditional_median"
               ? projectedFromPlayerConditionalMedian(history, minutesLast10Avg, minutesLast3Avg)
@@ -3112,6 +3392,140 @@ async function main(): Promise<void> {
 
         let projectedAtLeastOne = false;
         const finalPredictions = blankMetricRecord();
+        const expectedMinutesForRow = minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg ?? null;
+        const starterRateLast10ForRow =
+          lineupStarterSignal.starterRateLast10 == null ? null : round(lineupStarterSignal.starterRateLast10, 3);
+        const resolveSideOverrideForMarket = (
+          market: SnapshotMarket,
+          projectedValue: number,
+          lineEntry: HistoricalLineEntry | null,
+        ): SnapshotModelSide | null => {
+          const sideOverrideInput = {
+            projectedValue,
+            lineEntry,
+            expectedMinutes: expectedMinutesForRow,
+            minutesVolatility,
+            starterRateLast10: lineupStarterSignal.starterRateLast10,
+          };
+          switch (market) {
+            case "PTS":
+              return args.ptsSideOverrideEnabled ? applyGlobalPtsSideOverride(sideOverrideInput) : null;
+            case "REB":
+              return args.rebSideOverrideEnabled ? applyGlobalRebSideOverride(sideOverrideInput) : null;
+            case "AST":
+              return args.astSideOverrideEnabled ? applyGlobalAstSideOverride(sideOverrideInput) : null;
+            case "THREES":
+              return args.threesSideOverrideEnabled ? applyGlobalThreesSideOverride(sideOverrideInput) : null;
+            case "PRA":
+              return args.praSideOverrideEnabled ? applyGlobalPraSideOverride(sideOverrideInput) : null;
+            case "PA":
+              return args.paSideOverrideEnabled ? applyGlobalPaSideOverride(sideOverrideInput) : null;
+            case "PR":
+              return args.prSideOverrideEnabled ? applyGlobalPrSideOverride(sideOverrideInput) : null;
+            case "RA":
+              return args.raSideOverrideEnabled ? applyGlobalRaSideOverride(sideOverrideInput) : null;
+            default:
+              return null;
+          }
+        };
+        const pushPlayerMarketTrainingRow = (input: {
+          market: SnapshotMarket;
+          projectedValue: number;
+          actualValue: number;
+          lineEntry: HistoricalLineEntry;
+          sideOverride: SnapshotModelSide | null;
+        }): void => {
+          if (!args.emitPlayerRows) return;
+          const projectionSide = sideFromLine(input.projectedValue, input.lineEntry.line);
+          const finalSide = (input.sideOverride ?? projectionSide) as ResolvedSide | SnapshotModelSide;
+          const actualSide = sideFromLine(input.actualValue, input.lineEntry.line);
+          if (finalSide === "PUSH" || actualSide === "PUSH") return;
+
+          const signal = resolveMarketSignal(input.lineEntry);
+          const lineGap = round(input.projectedValue - input.lineEntry.line, 3);
+          const marketMomentum = computeL5MarketMomentum(
+            playerMarketMomentumByKey.get(`${log.playerId}|${input.market}`) ?? null,
+          );
+          const gameContext = gameContextByExternalId.get(log.externalGameId) ?? null;
+          const teamCode =
+            log.teamId != null
+              ? teamCodeById.get(log.teamId) ??
+                (gameContext == null
+                  ? null
+                  : gameContext.homeTeamId === log.teamId
+                    ? gameContext.homeCode
+                    : gameContext.awayTeamId === log.teamId
+                      ? gameContext.awayCode
+                      : log.isHome === true
+                        ? gameContext.homeCode
+                        : log.isHome === false
+                          ? gameContext.awayCode
+                          : null)
+              : gameContext == null
+                ? null
+                : log.isHome === true
+                  ? gameContext.homeCode
+                  : log.isHome === false
+                    ? gameContext.awayCode
+                    : null;
+          const historicalPregame = gameContext
+            ? (historicalPregameByExternalGameId.get(gameContext.externalId) ?? null)
+            : null;
+          const openingTeamSpread =
+            historicalPregame?.openingHomeSpread == null
+              ? null
+              : log.isHome === true
+                ? historicalPregame.openingHomeSpread
+                : log.isHome === false
+                  ? round(-historicalPregame.openingHomeSpread, 2)
+                  : null;
+          const openingTotal = historicalPregame?.openingTotal ?? null;
+          const historicalRotowire = historicalRotowireByDate.get(log.gameDateEt) ?? null;
+          const teamSignal = getHistoricalRotowireTeamSignal(historicalRotowire, teamCode);
+          const lineupTimingConfidence = computeLineupTimingConfidence(teamSignal);
+          const completenessScore = computeTrainingRowCompleteness({
+            last10Logs: sameTeamLast10.length >= 6 ? sameTeamLast10 : last10,
+            opponentAllowance,
+            minutesVolatility,
+          });
+          playerMarketRows.push({
+            playerId: log.playerId,
+            playerName: playerNameById.get(log.playerId) ?? log.playerId,
+            market: input.market,
+            gameDateEt: log.gameDateEt,
+            projectedValue: input.projectedValue,
+            pointsProjection: projected.PTS,
+            reboundsProjection: projected.REB,
+            assistProjection: projected.AST,
+            threesProjection: projected.THREES,
+            actualValue: input.actualValue,
+            line: input.lineEntry.line,
+            overPrice: input.lineEntry.overPrice,
+            underPrice: input.lineEntry.underPrice,
+            projectionSide,
+            finalSide,
+            actualSide,
+            projectionCorrect: projectionSide === actualSide,
+            finalCorrect: finalSide === actualSide,
+            priceLean: signal.priceLean,
+            favoredSide: signal.favoredSide,
+            expectedMinutes: expectedMinutesForRow == null ? null : round(expectedMinutesForRow, 3),
+            minutesVolatility: minutesVolatility == null ? null : round(minutesVolatility, 3),
+            starterRateLast10: starterRateLast10ForRow,
+            benchBigRoleStability,
+            l5MarketDeltaAvg: marketMomentum.l5MarketDeltaAvg,
+            l5OverRate: marketMomentum.l5OverRate,
+            l5MinutesAvg: marketMomentum.l5MinutesAvg,
+            actualMinutes: round(log.minutes ?? 0, 3),
+            lineGap,
+            absLineGap: round(Math.abs(lineGap), 3),
+            openingTeamSpread,
+            openingTotal,
+            lineupTimingConfidence,
+            completenessScore,
+            spreadResolved: Boolean(openingTeamSpread != null || openingTotal != null),
+          });
+        };
         MARKETS.forEach((market) => {
           if (args.compositeFromCore && isCompositeMarket(market)) return;
           const predictedValue = projected[market];
@@ -3407,86 +3821,7 @@ async function main(): Promise<void> {
           } else if (market === "RA") {
             finalPrediction = priceAwareRaPrediction(finalPrediction, lineEntry);
           }
-          const ptsSideOverride =
-            market === "PTS" && args.ptsSideOverrideEnabled
-              ? applyGlobalPtsSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const rebSideOverride =
-            market === "REB" && args.rebSideOverrideEnabled
-              ? applyGlobalRebSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const astSideOverride =
-            market === "AST" && args.astSideOverrideEnabled
-              ? applyGlobalAstSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const threesSideOverride =
-            market === "THREES" && args.threesSideOverrideEnabled
-              ? applyGlobalThreesSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const praSideOverride =
-            market === "PRA" && args.praSideOverrideEnabled
-              ? applyGlobalPraSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const paSideOverride =
-            market === "PA" && args.paSideOverrideEnabled
-              ? applyGlobalPaSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const prSideOverride =
-            market === "PR" && args.prSideOverrideEnabled
-              ? applyGlobalPrSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
-          const raSideOverride =
-            market === "RA" && args.raSideOverrideEnabled
-              ? applyGlobalRaSideOverride({
-                  projectedValue: finalPrediction,
-                  lineEntry,
-                  expectedMinutes: minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg,
-                  minutesVolatility,
-                  starterRateLast10: lineupStarterSignal.starterRateLast10,
-                })
-              : null;
+          const sideOverride = resolveSideOverrideForMarket(market, finalPrediction, lineEntry);
           finalPredictions[market] = finalPrediction;
 
           applyPredictionStats(
@@ -3494,14 +3829,7 @@ async function main(): Promise<void> {
             finalPrediction,
             actualValue,
             lineEntry?.line ?? null,
-            ptsSideOverride ??
-              rebSideOverride ??
-              astSideOverride ??
-              threesSideOverride ??
-              praSideOverride ??
-              paSideOverride ??
-              prSideOverride ??
-              raSideOverride,
+            sideOverride,
           );
           const playerMarketKey = `${log.playerId}|${market}`;
           const playerMarketStat = playerMarketStats.get(playerMarketKey) ?? createEmptyMarketErrorStats();
@@ -3510,109 +3838,18 @@ async function main(): Promise<void> {
             finalPrediction,
             actualValue,
             lineEntry?.line ?? null,
-            ptsSideOverride ??
-              rebSideOverride ??
-              astSideOverride ??
-              threesSideOverride ??
-              praSideOverride ??
-              paSideOverride ??
-              prSideOverride ??
-              raSideOverride,
+            sideOverride,
           );
           playerMarketStats.set(playerMarketKey, playerMarketStat);
 
-          if (args.emitPlayerRows && lineEntry) {
-            const projectionSide = sideFromLine(finalPrediction, lineEntry.line);
-            const finalSide =
-              (ptsSideOverride ??
-                rebSideOverride ??
-                astSideOverride ??
-                threesSideOverride ??
-                praSideOverride ??
-                paSideOverride ??
-                prSideOverride ??
-                raSideOverride ??
-                projectionSide) as ResolvedSide | SnapshotModelSide;
-            const actualSide = sideFromLine(actualValue, lineEntry.line);
-            if (finalSide !== "PUSH" && actualSide !== "PUSH") {
-              const signal = resolveMarketSignal(lineEntry);
-              const expectedMinutes = minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg ?? null;
-              const lineGap = round(finalPrediction - lineEntry.line, 3);
-              const gameContext = gameContextByExternalId.get(log.externalGameId) ?? null;
-              const teamCode =
-                log.teamId != null
-                  ? teamCodeById.get(log.teamId) ??
-                    (gameContext == null
-                      ? null
-                      : gameContext.homeTeamId === log.teamId
-                        ? gameContext.homeCode
-                        : gameContext.awayTeamId === log.teamId
-                          ? gameContext.awayCode
-                          : log.isHome === true
-                            ? gameContext.homeCode
-                            : log.isHome === false
-                              ? gameContext.awayCode
-                              : null)
-                  : gameContext == null
-                    ? null
-                    : log.isHome === true
-                      ? gameContext.homeCode
-                      : log.isHome === false
-                        ? gameContext.awayCode
-                        : null;
-              const historicalPregame = gameContext
-                ? (historicalPregameByExternalGameId.get(gameContext.externalId) ?? null)
-                : null;
-              const openingTeamSpread =
-                historicalPregame?.openingHomeSpread == null
-                  ? null
-                  : log.isHome === true
-                    ? historicalPregame.openingHomeSpread
-                    : log.isHome === false
-                      ? round(-historicalPregame.openingHomeSpread, 2)
-                      : null;
-              const openingTotal = historicalPregame?.openingTotal ?? null;
-              const historicalRotowire = historicalRotowireByDate.get(log.gameDateEt) ?? null;
-              const teamSignal = getHistoricalRotowireTeamSignal(historicalRotowire, teamCode);
-              const lineupTimingConfidence = computeLineupTimingConfidence(teamSignal);
-              const completenessScore = computeTrainingRowCompleteness({
-                last10Logs: sameTeamLast10.length >= 6 ? sameTeamLast10 : last10,
-                opponentAllowance,
-                minutesVolatility,
-              });
-              playerMarketRows.push({
-                playerId: log.playerId,
-                playerName: playerNameById.get(log.playerId) ?? log.playerId,
-                market,
-                gameDateEt: log.gameDateEt,
-                projectedValue: finalPrediction,
-                actualValue,
-                line: lineEntry.line,
-                overPrice: lineEntry.overPrice,
-                underPrice: lineEntry.underPrice,
-                projectionSide,
-                finalSide,
-                actualSide,
-                projectionCorrect: projectionSide === actualSide,
-                finalCorrect: finalSide === actualSide,
-                priceLean: signal.priceLean,
-                favoredSide: signal.favoredSide,
-                expectedMinutes: expectedMinutes == null ? null : round(expectedMinutes, 3),
-                minutesVolatility: minutesVolatility == null ? null : round(minutesVolatility, 3),
-                starterRateLast10:
-                  lineupStarterSignal.starterRateLast10 == null
-                    ? null
-                    : round(lineupStarterSignal.starterRateLast10, 3),
-                actualMinutes: round(log.minutes ?? 0, 3),
-                lineGap,
-                absLineGap: round(Math.abs(lineGap), 3),
-                openingTeamSpread,
-                openingTotal,
-                lineupTimingConfidence,
-                completenessScore,
-                spreadResolved: Boolean(openingTeamSpread != null || openingTotal != null),
-              });
-            }
+          if (lineEntry) {
+            pushPlayerMarketTrainingRow({
+              market,
+              projectedValue: finalPrediction,
+              actualValue,
+              lineEntry,
+              sideOverride,
+            });
           }
 
           residualHistory.push(actualValue - finalPrediction);
@@ -3668,12 +3905,22 @@ async function main(): Promise<void> {
               if (finalPrediction == null) return;
               const actualValue = actual[market] ?? 0;
               const lineEntry = lineMaps.byPlayerId.get(makeLineLookupKey(log.playerId, log.gameDateEt, market)) ?? null;
-              applyPredictionStats(marketStats[market], finalPrediction, actualValue, lineEntry?.line ?? null);
+              const sideOverride = resolveSideOverrideForMarket(market, finalPrediction, lineEntry);
+              applyPredictionStats(marketStats[market], finalPrediction, actualValue, lineEntry?.line ?? null, sideOverride);
               const playerMarketKey = `${log.playerId}|${market}`;
               const playerMarketStat = playerMarketStats.get(playerMarketKey) ?? createEmptyMarketErrorStats();
-              applyPredictionStats(playerMarketStat, finalPrediction, actualValue, lineEntry?.line ?? null);
+              applyPredictionStats(playerMarketStat, finalPrediction, actualValue, lineEntry?.line ?? null, sideOverride);
               playerMarketStats.set(playerMarketKey, playerMarketStat);
               finalPredictions[market] = finalPrediction;
+              if (lineEntry) {
+                pushPlayerMarketTrainingRow({
+                  market,
+                  projectedValue: finalPrediction,
+                  actualValue,
+                  lineEntry,
+                  sideOverride,
+                });
+              }
               const residualHistory = playerResidualSeries[market];
               residualHistory.push(actualValue - finalPrediction);
               if (residualHistory.length > args.playerBiasWindow) {
@@ -3745,6 +3992,7 @@ async function main(): Promise<void> {
         starter: log.starter,
         restDaysBefore,
         minutes: toStat(log.minutes),
+        pace: log.pace != null && Number.isFinite(log.pace) ? Number(log.pace) : null,
         metrics,
       });
       if (history.length > 140) {
@@ -3754,16 +4002,26 @@ async function main(): Promise<void> {
 
       if (log.opponentTeamId) {
         const teamAgg = opponentAggByTeamId.get(log.opponentTeamId) ?? createRollingWindowAgg(args.opponentWindow);
-        addToRollingAgg(teamAgg, metrics);
+        addToRollingAgg(teamAgg, metrics, log.pace != null && Number.isFinite(log.pace) ? Number(log.pace) : null);
         opponentAggByTeamId.set(log.opponentTeamId, teamAgg);
 
         const archetypeKeyByTeam = `${log.opponentTeamId}|${currentArchetype}`;
         const archetypeAgg =
           opponentAggByTeamAndArchetype.get(archetypeKeyByTeam) ?? createRollingWindowAgg(args.opponentWindow);
-        addToRollingAgg(archetypeAgg, metrics);
+        addToRollingAgg(archetypeAgg, metrics, log.pace != null && Number.isFinite(log.pace) ? Number(log.pace) : null);
         opponentAggByTeamAndArchetype.set(archetypeKeyByTeam, archetypeAgg);
       }
-      addToRollingAgg(leagueAgg, metrics);
+      addToRollingAgg(leagueAgg, metrics, log.pace != null && Number.isFinite(log.pace) ? Number(log.pace) : null);
+
+      for (const market of MARKETS) {
+        const lineEntry = lineMaps.byPlayerId.get(makeLineLookupKey(log.playerId, log.gameDateEt, market)) ?? null;
+        const actualValue = metrics[market];
+        if (lineEntry == null || actualValue == null) continue;
+        const key = `${log.playerId}|${market}`;
+        const momentumHistory = playerMarketMomentumByKey.get(key) ?? { lineDeltas: [], overIndicators: [], minutes: [] };
+        pushMarketMomentum(momentumHistory, actualValue, lineEntry.line, toStat(log.minutes));
+        playerMarketMomentumByKey.set(key, momentumHistory);
+      }
     }
   }
 
@@ -3798,10 +4056,10 @@ async function main(): Promise<void> {
 
   const modelName =
     args.mode === "model"
-      ? "snapshot_projection_v4_player_specific_15mpg"
+      ? `snapshot_projection_v4_player_specific_15mpg${args.teammateSynergy ? "_teammate_synergy" : ""}`
       : args.mode === "player_hybrid"
-        ? "snapshot_projection_v5_player_hybrid_online"
-        : `baseline_${args.mode}`;
+        ? `snapshot_projection_v5_player_hybrid_online${args.teammateSynergy ? "_teammate_synergy" : ""}`
+        : `baseline_${args.mode}${args.teammateSynergy ? "_teammate_synergy" : ""}`;
 
   const byPlayerMarket: FinalizedPlayerMarketStats[] = Array.from(playerMarketStats.entries())
     .map(([key, stats]) => {
@@ -3836,6 +4094,7 @@ async function main(): Promise<void> {
     to: args.to,
     lineFile: args.lineFile,
     directionalAccuracyEnabled: Boolean(args.lineFile),
+    teammateSynergyEnabled: args.teammateSynergy,
     evaluatedDates: evaluationDates.length,
     logsInRange,
     rowsWithHistory,
@@ -3883,6 +4142,11 @@ async function main(): Promise<void> {
       ...(args.playerLinearWeight > 0
         ? [
             `Player linear correction enabled (weight=${round(args.playerLinearWeight, 2)}, window=${args.playerLinearWindow}).`,
+          ]
+        : []),
+      ...(args.teammateSynergy
+        ? [
+            "Teammate synergy adjustment enabled using rolling top-teammate production and archived Rotowire lineup/injury context.",
           ]
         : []),
       ...(args.minHistoryMinutesAvg > 0

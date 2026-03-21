@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import {
   canonicalTeamCode,
+  deriveRotowireAvailabilityImpact,
+  formatRotowireAvailabilityLabel,
   normalizePlayerName,
+  parseStoredRotowireLineupSnapshot,
   type LineupStatus,
   type RotowireLineupSnapshot,
-  type RotowireTeamLineup,
+  type RotowireAvailabilityStatus,
 } from "@/lib/lineups/rotowire";
 import {
   applyPointsGameOddsAdjustment,
@@ -37,8 +40,11 @@ import {
   buildPlayerPersonalModels,
   projectMinutesProfile,
   projectTonightMetrics,
+  type MinutesProjectionProfile,
 } from "@/lib/snapshot/projection";
+import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
+import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotDataCompleteness,
@@ -63,18 +69,30 @@ type PlayerLookupTarget = {
 
 type LineupTeamSignal = {
   status: LineupStatus;
+  hasStarterData: boolean;
   starterNames: Set<string>;
+  availabilityByName: Map<
+    string,
+    {
+      status: RotowireAvailabilityStatus;
+      percentPlay: number | null;
+      title: string | null;
+    }
+  >;
 };
 
 type LineupPlayerSignal = {
   lineupStarter: boolean | null;
   status: LineupStatus;
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
+  availabilityTitle: string | null;
 };
 
 type PositionToken = "G" | "F" | "C";
 
 const MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
-const LIVE_FEED_TIMEOUT_MS = 8000;
+const LIVE_FEED_TIMEOUT_MS = 25000;
 
 async function withTimeoutFallback<T>(promise: Promise<T>, fallback: T, timeoutMs = LIVE_FEED_TIMEOUT_MS): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -104,6 +122,13 @@ function normalizeSearchText(value: string): string {
     .join(" ");
 }
 
+function daysBetweenEt(fromEt: string, toEt: string): number | null {
+  const from = new Date(`${fromEt}T00:00:00Z`).getTime();
+  const to = new Date(`${toEt}T00:00:00Z`).getTime();
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return Math.max(0, Math.round((to - from) / (24 * 60 * 60 * 1000)));
+}
+
 function getSeasonStartDateEt(dateEt: string): string {
   const [yearText, monthText] = dateEt.split("-");
   const year = Number(yearText);
@@ -130,42 +155,8 @@ function blankMetricRecord(): SnapshotMetricRecord {
   };
 }
 
-function isLineupStatus(value: string): value is LineupStatus {
-  return value === "CONFIRMED" || value === "EXPECTED" || value === "UNKNOWN";
-}
-
 function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  if (typeof record.dateEt === "string" && record.dateEt !== dateEt) return null;
-  if (!Array.isArray(record.teams)) return null;
-
-  const teams: RotowireTeamLineup[] = [];
-  record.teams.forEach((team) => {
-    if (!team || typeof team !== "object" || Array.isArray(team)) return;
-    const row = team as Record<string, unknown>;
-    const teamCode = typeof row.teamCode === "string" ? canonicalTeamCode(row.teamCode) : null;
-    if (!teamCode) return;
-    const status = typeof row.status === "string" && isLineupStatus(row.status) ? row.status : "UNKNOWN";
-    const starters = Array.isArray(row.starters)
-      ? row.starters
-          .filter((name): name is string => typeof name === "string")
-          .map((name) => name.trim())
-          .filter(Boolean)
-      : [];
-    if (starters.length === 0) return;
-    teams.push({ teamCode, status, starters });
-  });
-
-  if (teams.length === 0) return null;
-
-  return {
-    source: "rotowire",
-    sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl : "",
-    fetchedAt: typeof record.fetchedAt === "string" ? record.fetchedAt : "",
-    pageDateLabel: typeof record.pageDateLabel === "string" ? record.pageDateLabel : null,
-    teams,
-  };
+  return parseStoredRotowireLineupSnapshot(value, dateEt);
 }
 
 function buildLineupSignalMap(snapshot: RotowireLineupSnapshot | null): Map<string, LineupTeamSignal> {
@@ -175,7 +166,18 @@ function buildLineupSignalMap(snapshot: RotowireLineupSnapshot | null): Map<stri
   snapshot.teams.forEach((team) => {
     map.set(canonicalTeamCode(team.teamCode), {
       status: team.status,
+      hasStarterData: team.starters.length > 0,
       starterNames: new Set(team.starters.map((name) => normalizePlayerName(name))),
+      availabilityByName: new Map(
+        team.availabilityPlayers.map((player) => [
+          normalizePlayerName(player.playerName),
+          {
+            status: player.status,
+            percentPlay: player.percentPlay,
+            title: player.title,
+          },
+        ]),
+      ),
     });
   });
 
@@ -189,10 +191,72 @@ function readLineupSignal(
 ): LineupPlayerSignal | null {
   const teamSignal = lineupMap.get(canonicalTeamCode(teamCode));
   if (!teamSignal) return null;
+  const normalized = normalizePlayerName(playerName);
+  const availability = teamSignal.availabilityByName.get(normalized);
   return {
-    lineupStarter: teamSignal.starterNames.has(normalizePlayerName(playerName)),
+    lineupStarter: teamSignal.hasStarterData ? teamSignal.starterNames.has(normalized) : null,
     status: teamSignal.status,
+    availabilityStatus: availability?.status ?? null,
+    availabilityPercentPlay: availability?.percentPlay ?? null,
+    availabilityTitle: availability?.title ?? null,
   };
+}
+
+function lineupStarterLabel(baseLabel: string, signal: LineupPlayerSignal | null): string {
+  if (!signal) return baseLabel;
+  if (signal.availabilityStatus === "OUT" || signal.availabilityStatus === "DOUBTFUL") {
+    return `${signal.availabilityStatus} (Lineup Feed)`;
+  }
+  if (signal.lineupStarter === true) {
+    return signal.status === "CONFIRMED" ? "Confirmed Starter (Lineup Feed)" : "Expected Starter (Lineup Feed)";
+  }
+  if (signal.lineupStarter === false) {
+    return signal.status === "CONFIRMED" ? "Confirmed Bench (Lineup Feed)" : "Projected Bench (Lineup Feed)";
+  }
+  return baseLabel;
+}
+
+function describeLineupSignal(signal: LineupPlayerSignal | null): string {
+  if (!signal) return "-";
+  const role = signal.lineupStarter == null ? "Role Unknown" : signal.lineupStarter ? "Starter" : "Bench";
+  const availability = formatRotowireAvailabilityLabel(signal.availabilityStatus, signal.availabilityPercentPlay);
+  return availability ? `${signal.status} / ${role} / ${availability}` : `${signal.status} / ${role}`;
+}
+
+function applyAvailabilityToMinutesProfile(
+  profile: MinutesProjectionProfile,
+  signal: LineupPlayerSignal | null,
+): MinutesProjectionProfile {
+  const impact = deriveRotowireAvailabilityImpact(signal?.availabilityStatus ?? null, signal?.availabilityPercentPlay ?? null);
+  if (impact.severity <= 0) return profile;
+
+  const scale = (value: number | null): number | null =>
+    value == null ? null : round(Math.max(0, value * impact.minutesMultiplier), 2);
+
+  return {
+    expected: scale(profile.expected),
+    floor: scale(profile.floor),
+    ceiling: scale(profile.ceiling),
+  };
+}
+
+function applyAvailabilityToMetricRecord(
+  metrics: SnapshotMetricRecord,
+  signal: LineupPlayerSignal | null,
+): SnapshotMetricRecord {
+  const impact = deriveRotowireAvailabilityImpact(signal?.availabilityStatus ?? null, signal?.availabilityPercentPlay ?? null);
+  if (impact.severity <= 0) return metrics;
+
+  const scaled = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    const value = metrics[market];
+    if (market === "PTS" || market === "AST") {
+      scaled[market] = value;
+      return;
+    }
+    scaled[market] = value == null ? null : round(Math.max(0, value * impact.projectionMultiplier), 2);
+  });
+  return scaled;
 }
 
 function average(values: number[]): number | null {
@@ -538,7 +602,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     isTodayEt
       ? prisma.systemSetting.findUnique({
           where: { key: "snapshot_lineups_today" },
-          select: { value: true },
+          select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
     prisma.player.findMany({
@@ -621,7 +685,24 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     starter: log.starter,
     played: log.played,
   }));
-  const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
+  const lineupSnapshot = (
+    isTodayEt
+      ? await withTimeoutFallback(
+          maybeRefreshTodayLineupSnapshot({
+            dateEt,
+            currentValue: lineupSetting?.value ?? null,
+            currentUpdatedAt: lineupSetting?.updatedAt ?? null,
+          }),
+          {
+            snapshot: parseLineupSnapshot(lineupSetting?.value ?? null, dateEt),
+            updatedAt: lineupSetting?.updatedAt ?? null,
+          },
+        )
+      : {
+          snapshot: parseLineupSnapshot(lineupSetting?.value ?? null, dateEt),
+          updatedAt: lineupSetting?.updatedAt ?? null,
+        }
+  ).snapshot;
   const lineupMap = buildLineupSignalMap(lineupSnapshot);
   const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
   const dailyOdds = dailyOddsMap.get(matchup.matchupKey) ?? null;
@@ -651,41 +732,58 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
   const startsLast10 = statusLast10.reduce((count, log) => count + (log.starter === true ? 1 : 0), 0);
   const starterRateLast10 = statusLast10.length > 0 ? round(startsLast10 / statusLast10.length, 2) : null;
   const startedLastGame = statusLast10[0]?.starter ?? null;
+  const projectedRestDays = last10Logs[0] ? daysBetweenEt(last10Logs[0].gameDateEt, dateEt) : null;
   const personalModels = buildPlayerPersonalModels({
     historyByMarket: arraysByMarket(logsChronological),
     minutesSeasonAvg,
   });
-  const minutesProfile = projectMinutesProfile({
-    minutesLast3Avg,
-    minutesLast10Avg,
-    minutesHomeAwayAvg,
-    minutesCurrentTeamLast5Avg,
-    minutesCurrentTeamGames: sameTeamLogs.length,
-    lineupStarter: lineupSignal?.lineupStarter ?? null,
-    starterRateLast10,
-  });
-  const projectedTonight = projectTonightMetrics({
-    last3Average,
-    last10Average,
-    seasonAverage,
-    homeAwayAverage,
-    opponentAllowance,
-    opponentAllowanceDelta,
-    last10ByMarket,
-    historyByMarket: arraysByMarket(logsForPlayer),
-    historyMinutes,
-    sampleSize: logsForPlayer.length,
-    personalModels,
-    minutesSeasonAvg,
-    minutesLast3Avg,
-    minutesLast10Avg,
-    minutesVolatility,
-    minutesHomeAwayAvg,
-    minutesCurrentTeamLast5Avg,
-    minutesCurrentTeamGames: sameTeamLogs.length,
-    lineupStarter: lineupSignal?.lineupStarter ?? null,
-    starterRateLast10,
-  });
+  const availabilitySeverity = deriveRotowireAvailabilityImpact(
+    lineupSignal?.availabilityStatus ?? null,
+    lineupSignal?.availabilityPercentPlay ?? null,
+  ).severity;
+  const minutesProfile = applyAvailabilityToMinutesProfile(
+    projectMinutesProfile({
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesHomeAwayAvg,
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10,
+    }),
+    lineupSignal,
+  );
+  const projectedTonight = applyAvailabilityToMetricRecord(
+    projectTonightMetrics({
+      last3Average,
+      last10Average,
+      seasonAverage,
+      homeAwayAverage,
+      opponentAllowance,
+      opponentAllowanceDelta,
+      last10ByMarket,
+      historyByMarket: arraysByMarket(logsForPlayer),
+      historyMinutes,
+      sampleSize: logsForPlayer.length,
+      personalModels,
+      minutesSeasonAvg,
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesVolatility,
+      minutesHomeAwayAvg,
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10,
+      isHome: matchup.isHome,
+      playerPosition: player.position,
+      restDays: projectedRestDays,
+      openingTeamSpread,
+      openingTotal,
+      availabilitySeverity,
+    }),
+    lineupSignal,
+  );
   const playerShotPressure = buildShotPressureSummary(seasonVolumeLogs, player.externalId, dateEt);
   const opponentShotVolume = resolveOpponentShotVolumeMetrics({
     opponentCode: matchup.opponentCode,
@@ -704,12 +802,55 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
   const paMarketLine = dailyPaLineMap.get(marketKey) ?? null;
   const prMarketLine = dailyPrLineMap.get(marketKey) ?? null;
   const raMarketLine = dailyRaLineMap.get(marketKey) ?? null;
+  const recentMinutes = last5Logs.map((entry) => entry.minutes);
+  const ptsCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.PTS,
+    recentMinutes,
+    currentLine: ptsMarketLine?.line ?? null,
+  });
+  const rebCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.REB,
+    recentMinutes,
+    currentLine: rebMarketLine?.line ?? null,
+  });
+  const astCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.AST,
+    recentMinutes,
+    currentLine: astMarketLine?.line ?? null,
+  });
+  const threesCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.THREES,
+    recentMinutes,
+    currentLine: threesMarketLine?.line ?? null,
+  });
+  const praCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.PRA,
+    recentMinutes,
+    currentLine: praMarketLine?.line ?? null,
+  });
+  const paCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.PA,
+    recentMinutes,
+    currentLine: paMarketLine?.line ?? null,
+  });
+  const prCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.PR,
+    recentMinutes,
+    currentLine: prMarketLine?.line ?? null,
+  });
+  const raCurrentLineRecency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last5ByMarket.RA,
+    recentMinutes,
+    currentLine: raMarketLine?.line ?? null,
+  });
   projectedTonight.PTS = applyEnhancedPointsProjection({
     baseProjection: applyPointsGameOddsAdjustment(projectedTonight.PTS, openingTotal, openingTeamSpread),
     openingTotal,
     openingTeamSpread,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     playerShotPressure,
     opponentShotVolume,
@@ -747,12 +888,15 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     openingTeamSpread,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     archetypeExpectedMinutes: minutesLast10Avg,
     projectedMinutes: minutesProfile.expected,
     projectedMinutesFloor: minutesProfile.floor,
     projectedMinutesCeiling: minutesProfile.ceiling,
     minutesVolatility,
+    ...ptsCurrentLineRecency,
     playerShotPressure,
     opponentShotVolume,
     completenessScore: completeness.score,
@@ -770,12 +914,15 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     openingTeamSpread,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     archetypeExpectedMinutes: minutesLast10Avg,
     projectedMinutes: minutesProfile.expected,
     projectedMinutesFloor: minutesProfile.floor,
     projectedMinutesCeiling: minutesProfile.ceiling,
     minutesVolatility,
+    ...rebCurrentLineRecency,
     playerShotPressure,
     opponentShotVolume,
     completenessScore: completeness.score,
@@ -793,12 +940,15 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     openingTeamSpread,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     archetypeExpectedMinutes: minutesLast10Avg,
     projectedMinutes: minutesProfile.expected,
     projectedMinutesFloor: minutesProfile.floor,
     projectedMinutesCeiling: minutesProfile.ceiling,
     minutesVolatility,
+    ...astCurrentLineRecency,
     playerShotPressure,
     opponentShotVolume,
     completenessScore: completeness.score,
@@ -816,12 +966,15 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     openingTeamSpread,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     archetypeExpectedMinutes: minutesLast10Avg,
     projectedMinutes: minutesProfile.expected,
     projectedMinutesFloor: minutesProfile.floor,
     projectedMinutesCeiling: minutesProfile.ceiling,
     minutesVolatility,
+    ...threesCurrentLineRecency,
     playerShotPressure,
     opponentShotVolume,
     completenessScore: completeness.score,
@@ -833,6 +986,8 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     playerPosition: player.position,
     lineupStarter: lineupSignal?.lineupStarter ?? null,
     lineupStatus: lineupSignal?.status ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     starterRateLast10,
     archetypeExpectedMinutes: minutesLast10Avg,
     projectedMinutes: minutesProfile.expected,
@@ -852,35 +1007,38 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     ...comboSignalInput,
     projection: projectedTonight.PRA,
     marketLine: praMarketLine,
+    ...praCurrentLineRecency,
   });
   const paSignal = buildLivePaSignal({
     ...comboSignalInput,
     projection: projectedTonight.PA,
     marketLine: paMarketLine,
+    ...paCurrentLineRecency,
   });
   const prSignal = buildLivePrSignal({
     ...comboSignalInput,
     projection: projectedTonight.PR,
     marketLine: prMarketLine,
+    ...prCurrentLineRecency,
   });
   const raSignal = buildLiveRaSignal({
     ...comboSignalInput,
     projection: projectedTonight.RA,
     marketLine: raMarketLine,
+    ...raCurrentLineRecency,
   });
+  const liveAvailabilityLabel = formatRotowireAvailabilityLabel(
+    lineupSignal?.availabilityStatus ?? null,
+    lineupSignal?.availabilityPercentPlay ?? null,
+  );
 
   const playerContext: SnapshotPlayerContext = {
     archetype,
-    projectedStarter:
-      lineupSignal?.lineupStarter === true
-        ? lineupSignal.status === "CONFIRMED"
-          ? "Confirmed Starter (Lineup Feed)"
-          : "Expected Starter (Lineup Feed)"
-        : lineupSignal?.lineupStarter === false
-          ? lineupSignal.status === "CONFIRMED"
-            ? "Confirmed Bench (Lineup Feed)"
-            : "Projected Bench (Lineup Feed)"
-          : starterStatusLabel(startedLastGame, starterRateLast10),
+    projectedStarter: lineupStarterLabel(starterStatusLabel(startedLastGame, starterRateLast10), lineupSignal),
+    lineupStatus: lineupSignal?.status ?? null,
+    lineupStarter: lineupSignal?.lineupStarter ?? null,
+    availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+    availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     startedLastGame,
     startsLast10,
     starterRateLast10,
@@ -1065,13 +1223,15 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "Home/Away PTS", value: formatNumber(homeAwayAverage.PTS) },
           { label: "Opponent Delta PTS", value: formatSigned(opponentAllowanceDelta.PTS) },
           { label: "Current Team Minutes", value: `${formatNumber(minutesCurrentTeamLast5Avg)} (${sameTeamLogs.length} g)` },
-          { label: "Lineup Signal", value: lineupSignal == null ? "-" : `${lineupSignal.status} / ${lineupSignal.lineupStarter ? "Starter" : "Bench"}` },
+          { label: "Lineup Signal", value: describeLineupSignal(lineupSignal) },
+          { label: "Live Injury Tag", value: liveAvailabilityLabel ?? "-" },
         ],
       },
     ],
   };
 
   return {
+    detailLevel: "FULL",
     playerId: player.id,
     playerName: player.fullName,
     position: player.position,

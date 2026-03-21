@@ -2,12 +2,14 @@ import { PrismaClient } from "@prisma/client";
 import fs from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { attachCurrentLineRecencyMetrics } from "../lib/snapshot/currentLineRecency";
 import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
   resolveProjectPath,
 } from "../lib/snapshot/universalArtifactPaths";
 import { round } from "../lib/utils";
+import { loadPlayerMetaWithCache } from "./utils/playerMetaCache";
 
 type Side = "OVER" | "UNDER";
 type Market = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "PR" | "RA";
@@ -22,16 +24,20 @@ type Archetype =
   | "WING"
   | "CONNECTOR_WING"
   | "SPOTUP_WING"
-  | "BENCH_GUARD"
+  | "BENCH_SHOOTING_GUARD"
+  | "BENCH_PASS_FIRST_GUARD"
+  | "BENCH_LOW_USAGE_GUARD"
+  | "BENCH_TRADITIONAL_GUARD"
   | "BENCH_WING"
-  | "BENCH_SCORING_WING"
   | "BENCH_LOW_USAGE_WING"
   | "BENCH_MIDRANGE_SCORER"
   | "BENCH_VOLUME_SCORER"
   | "BENCH_CREATOR_SCORER"
   | "BENCH_REBOUNDING_SCORER"
   | "BENCH_SPACER_SCORER"
-  | "BENCH_BIG"
+  | "BENCH_STRETCH_BIG"
+  | "BENCH_LOW_USAGE_BIG"
+  | "BENCH_TRADITIONAL_BIG"
   | "TWO_WAY_MARKET_WING"
   | "SCORER_CREATOR_WING"
   | "SHOT_CREATING_WING"
@@ -40,6 +46,79 @@ type Archetype =
   | "STRETCH_RIM_PROTECTOR_CENTER"
   | "POINT_FORWARD"
   | "LOW_MINUTE_BENCH";
+
+const ENABLE_BENCH_BIG_ROLE_STABILITY = process.env.SNAPSHOT_ENABLE_BENCH_BIG_ROLE_STABILITY?.trim() === "1";
+const ENABLE_CURRENT_LINE_MOMENTUM = process.env.SNAPSHOT_ENABLE_CURRENT_LINE_MOMENTUM?.trim() === "1";
+const ENABLE_L5_MARKET_MOMENTUM = process.env.SNAPSHOT_ENABLE_L5_MARKET_MOMENTUM?.trim() === "1";
+const L5_MOMENTUM_RHYTHM_MARKETS = new Set<Market>(["PTS", "THREES", "PRA"]);
+const ENABLE_L5_CREATOR_FAMILY = process.env.SNAPSHOT_ENABLE_L5_CREATOR_FAMILY?.trim() === "1";
+const L5_CREATOR_ARCHETYPE_FAMILY = new Set<Archetype>([
+  "LEAD_GUARD",
+  "SCORE_FIRST_LEAD_GUARD",
+  "ELITE_SHOOTING_GUARD",
+  "SCORING_GUARD_CREATOR",
+  "POINT_FORWARD",
+  "TWO_WAY_MARKET_WING",
+  "SCORER_CREATOR_WING",
+  "SHOT_CREATING_WING",
+]);
+const L5_CREATOR_WORKLOAD_STABILITY_THRESHOLD = 4;
+const ENABLE_L5_CREATOR_ALLOWLIST = process.env.SNAPSHOT_ENABLE_L5_CREATOR_ALLOWLIST?.trim() === "1";
+const L5_CREATOR_ALLOWLIST = new Set([
+  "AST|SCORE_FIRST_LEAD_GUARD",
+  "PA|ELITE_SHOOTING_GUARD",
+  "PA|SCORING_GUARD_CREATOR",
+  "PRA|POINT_FORWARD",
+  "PRA|TWO_WAY_MARKET_WING",
+  "PR|SCORING_GUARD_CREATOR",
+  "PR|ELITE_SHOOTING_GUARD",
+]);
+const ENABLE_BIG_MAN_SPECIALIST_SEARCH =
+  process.env.SNAPSHOT_ENABLE_BIG_MAN_SPECIALIST_SEARCH?.trim() === "1" ||
+  process.env.SNAPSHOT_ENABLE_BIG_MAN_SPECIALIST_SEARCH?.trim()?.toLowerCase() === "true";
+const BIG_MAN_ARCHETYPE_SET = new Set<Archetype>([
+  "CENTER",
+  "STRETCH_RIM_PROTECTOR_CENTER",
+  "BENCH_TRADITIONAL_BIG",
+  "BENCH_STRETCH_BIG",
+  "BENCH_LOW_USAGE_BIG",
+]);
+const BIG_MAN_SPECIALIST_MARKET_SET = new Set<Market>(["REB", "RA", "PR", "PRA", "PA", "PTS"]);
+const ENABLE_WING_SPECIALIST_SEARCH =
+  process.env.SNAPSHOT_ENABLE_WING_SPECIALIST_SEARCH?.trim() === "1" ||
+  process.env.SNAPSHOT_ENABLE_WING_SPECIALIST_SEARCH?.trim()?.toLowerCase() === "true";
+const WING_SPECIALIST_ARCHETYPE_SET = new Set<Archetype>([
+  "SPOTUP_WING",
+  "BENCH_WING",
+  "CONNECTOR_WING",
+  "SCORING_GUARD_CREATOR",
+  "POINT_FORWARD",
+  "TWO_WAY_MARKET_WING",
+]);
+const WING_SPECIALIST_MARKET_SET = new Set<Market>(["PRA", "PA", "PTS", "THREES", "RA"]);
+
+function isBigManArchetype(archetype: Archetype): boolean {
+  return BIG_MAN_ARCHETYPE_SET.has(archetype);
+}
+
+function isBigManSpecialistBucket(archetype: Archetype, market: Market): boolean {
+  return ENABLE_BIG_MAN_SPECIALIST_SEARCH && isBigManArchetype(archetype) && BIG_MAN_SPECIALIST_MARKET_SET.has(market);
+}
+
+function isWingSpecialistBucket(archetype: Archetype, market: Market): boolean {
+  return ENABLE_WING_SPECIALIST_SEARCH && WING_SPECIALIST_ARCHETYPE_SET.has(archetype) && WING_SPECIALIST_MARKET_SET.has(market);
+}
+
+function dedupeFeatures(features: FeatureName[]): FeatureName[] {
+  const seen = new Set<FeatureName>();
+  const result: FeatureName[] = [];
+  features.forEach((feature) => {
+    if (seen.has(feature)) return;
+    seen.add(feature);
+    result.push(feature);
+  });
+  return result;
+}
 
 type TrainingRow = {
   playerId: string;
@@ -61,6 +140,12 @@ type TrainingRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
+  l5MarketDeltaAvg?: number | null;
+  l5OverRate?: number | null;
+  l5MinutesAvg?: number | null;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -79,7 +164,7 @@ type BacktestRowsFile = {
 
 type PlayerMeta = {
   id: string;
-  fullName: string;
+  fullName: string | null;
   position: string | null;
 };
 
@@ -123,6 +208,12 @@ type FeatureName =
   | "absLineGap"
   | "expectedMinutes"
   | "minutesVolatility"
+  | "benchBigRoleStability"
+  | "l5CurrentLineDeltaAvg"
+  | "l5CurrentLineOverRate"
+  | "l5MarketDeltaAvg"
+  | "l5OverRate"
+  | "l5MinutesAvg"
   | "starterRateLast10"
   | "priceLean"
   | "priceAbsLean"
@@ -182,12 +273,18 @@ type ModelVariant =
   | { kind: "finalOverride" }
   | { kind: "marketFavored" }
   | { kind: "constant"; side: Side }
+  | { kind: "lowMinutesThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "underGapThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "lowMinutesThenFinal"; threshold: number }
+  | { kind: "lowMinutesDisagreementThenFinal"; threshold: number }
   | { kind: "gapThenProjection"; threshold: number }
   | { kind: "gapThenMarket"; threshold: number }
+  | { kind: "overGapThenMarket"; threshold: number }
   | { kind: "strongPriceThenMarket"; threshold: number }
   | { kind: "nearLineThenMarket"; threshold: number }
   | { kind: "agreementThenProjection"; threshold: number }
   | { kind: "favoriteOverSuppress"; spreadThreshold: number; gapThreshold: number }
+  | { kind: "favoriteOverSuppressPositiveGap"; spreadThreshold: number; gapThreshold: number; minExpectedMinutes: number }
   | { kind: "lowQualityThenMarket"; threshold: number }
   | { kind: "lowVolatilityHelioOver"; volatilityThreshold: number; gapThreshold: number }
   | { kind: "tree"; tree: TreeNode; maxDepth: number; minLeaf: number };
@@ -212,6 +309,12 @@ type UniversalModelRecord = {
   model: ModelVariant;
 };
 
+type CandidateEvaluation = {
+  selectionScore: ModelScore;
+  fitScore: ModelScore;
+  model: ModelVariant;
+};
+
 type ModelSelectionStrategy = "in_sample" | "temporal_holdout";
 
 type Args = {
@@ -221,9 +324,31 @@ type Args = {
   maxDepth: number;
   lateWindowRatio: number;
   selectionStrategy: ModelSelectionStrategy;
+  debugMarket?: Market;
+  debugArchetype?: Archetype;
+  debugTop: number;
 };
 
 const prisma = new PrismaClient();
+const SIMPLE_BASELINE_KINDS: ReadonlySet<ModelVariant["kind"]> = new Set(["projection", "finalOverride", "marketFavored"]);
+const TEMPORAL_FIT_COLLAPSE_FALLBACK_DELTA = 8;
+const TEMPORAL_HOLDOUT_EDGE_TO_KEEP_COMPLEX_MODEL = 6;
+const TEMPORAL_BAD_HOLDOUT_FLOOR = 50;
+const TEMPORAL_BAD_HOLDOUT_ANCHOR_MARGIN = 2;
+const TEMPORAL_CONSTANT_HOLDOUT_GIVEBACK = 7;
+const TEMPORAL_CONSTANT_FIT_EDGE_FOR_FALLBACK = 6;
+const TEMPORAL_BENCH_SPACER_PRA_HOLDOUT_GIVEBACK = 4;
+const TEMPORAL_BENCH_SPACER_PRA_FIT_EDGE_FOR_FALLBACK = 2;
+const TEMPORAL_STRETCH_BIG_PRA_HOLDOUT_GIVEBACK = 1;
+const TEMPORAL_STRETCH_BIG_PRA_FIT_EDGE_FOR_FALLBACK = 8;
+const TEMPORAL_STRETCH_BIG_PR_HOLDOUT_GIVEBACK = 8;
+const TEMPORAL_STRETCH_BIG_PR_FIT_EDGE_FOR_FALLBACK = 12;
+const TEMPORAL_SPOTUP_WING_PR_HOLDOUT_GIVEBACK = 2;
+const TEMPORAL_SPOTUP_WING_PR_FIT_EDGE_FOR_FALLBACK = 4;
+const ENABLE_TARGETED_CONSTANT_TRAP_FALLBACKS =
+  process.env.SNAPSHOT_DISABLE_TARGETED_CONSTANT_TRAP_FALLBACKS?.trim() !== "1";
+const ENABLE_MISSING_POSITION_STARTER_FALLBACK =
+  process.env.SNAPSHOT_DISABLE_MISSING_POSITION_STARTER_FALLBACK?.trim() !== "1";
 
 function resolveDefaultInputPath(): string {
   const preferred = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH);
@@ -236,9 +361,12 @@ function parseArgs(): Args {
   let input = resolveDefaultInputPath();
   let out = path.join("exports", "universal-archetype-side-models-2025-10-23-to-2026-03-09.json");
   let minActualMinutes = 15;
-  let maxDepth = 5;
+  let maxDepth = 6;
   let lateWindowRatio = 0.3;
   let selectionStrategy: ModelSelectionStrategy = "in_sample";
+  let debugMarket: Market | undefined;
+  let debugArchetype: Archetype | undefined;
+  let debugTop = 10;
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -304,9 +432,43 @@ function parseArgs(): Args {
       if (value === "in_sample" || value === "temporal_holdout") selectionStrategy = value;
       continue;
     }
+    if (token === "--debug-market" && next) {
+      if (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"].includes(next)) {
+        debugMarket = next as Market;
+      }
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--debug-market=")) {
+      const value = token.slice("--debug-market=".length);
+      if (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"].includes(value)) {
+        debugMarket = value as Market;
+      }
+      continue;
+    }
+    if (token === "--debug-archetype" && next) {
+      debugArchetype = next as Archetype;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--debug-archetype=")) {
+      debugArchetype = token.slice("--debug-archetype=".length) as Archetype;
+      continue;
+    }
+    if (token === "--debug-top" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) debugTop = Math.floor(parsed);
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--debug-top=")) {
+      const parsed = Number(token.slice("--debug-top=".length));
+      if (Number.isFinite(parsed) && parsed > 0) debugTop = Math.floor(parsed);
+      continue;
+    }
   }
 
-  return { input, out, minActualMinutes, maxDepth, lateWindowRatio, selectionStrategy };
+  return { input, out, minActualMinutes, maxDepth, lateWindowRatio, selectionStrategy, debugMarket, debugArchetype, debugTop };
 }
 
 function impliedProbability(odds: number | null): number | null {
@@ -324,21 +486,84 @@ function mean(values: Array<number | null | undefined>): number | null {
   return round(filtered.reduce((sum, value) => sum + value, 0) / filtered.length, 3);
 }
 
-function classifyBenchArchetype(summary: PlayerSummary): Archetype {
+function resolveBenchReboundingScorerArchetype(summary: PlayerSummary, market?: Market): Archetype {
+  if (
+    market === "PTS" &&
+    !summary.position &&
+    (summary.avgExpectedMinutes ?? 0) >= 20 &&
+    (summary.avgStarterRate ?? 0) <= 0.3 &&
+    (summary.ptsProjectionAvg ?? 0) >= 12 &&
+    (summary.rebProjectionAvg ?? 0) >= 5.2 &&
+    (summary.rebProjectionAvg ?? 0) <= 6.4 &&
+    (summary.astProjectionAvg ?? 0) < 3.2 &&
+    (summary.threesProjectionAvg ?? 0) <= 1.2
+  ) {
+    return "BENCH_VOLUME_SCORER";
+  }
+  return "BENCH_REBOUNDING_SCORER";
+}
+
+function shouldUsePositionlessStarterArchetype(summary: PlayerSummary): boolean {
+  if (!ENABLE_MISSING_POSITION_STARTER_FALLBACK) return false;
+  if (summary.position) return false;
+  const minutes = summary.avgExpectedMinutes ?? 0;
+  const starterRate = summary.avgStarterRate ?? 0;
+  const pts = summary.ptsProjectionAvg ?? 0;
+  const reb = summary.rebProjectionAvg ?? 0;
+  const ast = summary.astProjectionAvg ?? 0;
+  const threes = summary.threesProjectionAvg ?? 0;
+
+  if (minutes < 28) return false;
+  const frontcourtLike = reb >= 8 || (reb >= 7.25 && threes >= 1.25);
+  if (frontcourtLike) {
+    if (starterRate >= 0.35) return true;
+    return pts >= 14 || ast >= 2.5 || threes >= 0.8;
+  }
+  if (minutes < 31 || threes < 2 || pts < 16.5 || ast < 3.4 || ast > 5.5) return false;
+  if (starterRate >= 0.35) return true;
+  return reb >= 5 || ast >= 3.8;
+}
+
+function classifyPositionlessStarterArchetype(summary: PlayerSummary): Archetype {
+  const minutes = summary.avgExpectedMinutes ?? 0;
+  const pts = summary.ptsProjectionAvg ?? 0;
+  const reb = summary.rebProjectionAvg ?? 0;
+  const ast = summary.astProjectionAvg ?? 0;
+  const threes = summary.threesProjectionAvg ?? 0;
+
+  if (minutes >= 26 && reb >= 9 && (threes >= 1.5 || pts >= 20)) {
+    return "STRETCH_RIM_PROTECTOR_CENTER";
+  }
+  if (minutes >= 31 && threes >= 2 && pts >= 16.5 && ast >= 3.4 && ast <= 5.5 && (reb >= 5 || ast >= 3.8)) {
+    return "CONNECTOR_WING";
+  }
+  return "CENTER";
+}
+
+function classifyBenchArchetype(summary: PlayerSummary, market?: Market): Archetype {
   const position = (summary.position ?? "").toUpperCase();
   const pts = summary.ptsProjectionAvg ?? 0;
   const reb = summary.rebProjectionAvg ?? 0;
   const ast = summary.astProjectionAvg ?? 0;
   const threes = summary.threesProjectionAvg ?? 0;
 
-  if (position.includes("C") || reb >= 7.5) return "BENCH_BIG";
-  if (ast >= 4 || position.includes("PG") || position === "G") return "BENCH_GUARD";
+  if (position.includes("C") || reb >= 7.5) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
+  if (ast >= 4 || position.includes("PG") || position === "G") {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
   if (
     (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") &&
     (pts >= 16 || threes >= 1.8)
   ) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -349,17 +574,32 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   }
   if (pts >= 15 || threes >= 1.8) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
     return "BENCH_VOLUME_SCORER";
   }
-  if (ast >= reb && ast >= 3.5) return "BENCH_GUARD";
-  if (reb >= pts && reb >= ast) return "BENCH_BIG";
+  // Recover low-minute setup guards when upstream position metadata is missing.
+  if (!position && ast >= 3 && ast >= reb + 1 && pts <= 9 && reb <= 3.75) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
+  if (ast >= reb && ast >= 3.5) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
+  if (reb >= pts && reb >= ast) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
   if (pts >= reb && pts >= ast) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -368,7 +608,7 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   return "LOW_MINUTE_BENCH";
 }
 
-function classifyArchetype(summary: PlayerSummary): Archetype {
+function classifyArchetype(summary: PlayerSummary, market?: Market): Archetype {
   const minutes = summary.avgExpectedMinutes ?? 0;
   const starterRate = summary.avgStarterRate ?? 0;
   const position = (summary.position ?? "").toUpperCase();
@@ -376,8 +616,14 @@ function classifyArchetype(summary: PlayerSummary): Archetype {
   const reb = summary.rebProjectionAvg ?? 0;
   const ast = summary.astProjectionAvg ?? 0;
   const threes = summary.threesProjectionAvg ?? 0;
+  const usePositionlessStarterArchetype = shouldUsePositionlessStarterArchetype(summary);
 
-  if (minutes < 24 || starterRate < 0.35) return classifyBenchArchetype(summary);
+  if (minutes < 24 || (starterRate < 0.35 && !usePositionlessStarterArchetype)) {
+    return classifyBenchArchetype(summary, market);
+  }
+  if (!position && usePositionlessStarterArchetype) {
+    return classifyPositionlessStarterArchetype(summary);
+  }
   if (position.includes("C") && minutes >= 26 && reb >= 9 && (threes >= 1.5 || pts >= 20)) {
     return "STRETCH_RIM_PROTECTOR_CENTER";
   }
@@ -474,6 +720,22 @@ function classifyArchetype(summary: PlayerSummary): Archetype {
     if (pts >= 19 || threes >= 2.4) return "SCORE_FIRST_LEAD_GUARD";
     return "LEAD_GUARD";
   }
+  if (
+    market === "PR" &&
+    !position &&
+    minutes >= 28 &&
+    starterRate >= 0.5 &&
+    pts >= 14 &&
+    pts <= 17.5 &&
+    reb >= 4.2 &&
+    reb < 5.6 &&
+    ast >= 2.6 &&
+    ast < 3.4 &&
+    threes >= 1.6 &&
+    threes <= 2.2
+  ) {
+    return "CONNECTOR_WING";
+  }
   if (ast >= 3.4 || reb >= 5.6) return "CONNECTOR_WING";
   if (pts >= 15 || threes >= 2) return "SPOTUP_WING";
   return "WING";
@@ -496,6 +758,13 @@ function lineTier(market: Market, line: number): number | null {
 }
 
 function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
+  const creatorFamilyMomentumBlocked =
+    ENABLE_L5_CREATOR_FAMILY &&
+    L5_CREATOR_ARCHETYPE_FAMILY.has(row.archetype) &&
+    row.expectedMinutes != null &&
+    row.l5MinutesAvg != null &&
+    Math.abs(row.expectedMinutes - row.l5MinutesAvg) > L5_CREATOR_WORKLOAD_STABILITY_THRESHOLD;
+
   switch (feature) {
     case "lineGap":
       return row.lineGap;
@@ -505,6 +774,23 @@ function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
       return row.expectedMinutes;
     case "minutesVolatility":
       return row.minutesVolatility;
+    case "benchBigRoleStability":
+      return row.benchBigRoleStability ?? null;
+    case "l5CurrentLineDeltaAvg":
+      if (creatorFamilyMomentumBlocked) return null;
+      return row.l5CurrentLineDeltaAvg ?? null;
+    case "l5CurrentLineOverRate":
+      if (creatorFamilyMomentumBlocked) return null;
+      return row.l5CurrentLineOverRate ?? null;
+    case "l5MarketDeltaAvg":
+      if (creatorFamilyMomentumBlocked) return null;
+      return row.l5MarketDeltaAvg ?? null;
+    case "l5OverRate":
+      if (creatorFamilyMomentumBlocked) return null;
+      return row.l5OverRate ?? null;
+    case "l5MinutesAvg":
+      if (creatorFamilyMomentumBlocked) return null;
+      return row.l5MinutesAvg ?? null;
     case "starterRateLast10":
       return row.starterRateLast10;
     case "priceLean":
@@ -628,6 +914,61 @@ function leafFromRows(rows: EnrichedRow[]): LeafNode {
 }
 
 function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] {
+  if (isBigManSpecialistBucket(archetype, market)) {
+    const baseBigFeatures: FeatureName[] = [
+      "expectedMinutes",
+      "minutesVolatility",
+      "starterRateLast10",
+      "roleStability",
+      "contextQuality",
+      "lineGap",
+      "absLineGap",
+      "projectedValue",
+      "projectionPerMinute",
+      "projectionToLineRatio",
+      "priceLean",
+      "priceAbsLean",
+      "priceStrength",
+      "projectionMarketAgreement",
+      "openingTotal",
+      "openingSpreadAbs",
+      "lineupTimingConfidence",
+      "completenessScore",
+      "overProbability",
+      "underProbability",
+    ];
+    if (ENABLE_BENCH_BIG_ROLE_STABILITY) baseBigFeatures.push("benchBigRoleStability");
+
+    if (market === "REB") {
+      return dedupeFeatures([
+        "line",
+        "overPrice",
+        "underPrice",
+        ...baseBigFeatures,
+      ]);
+    }
+    if (market === "RA") {
+      return dedupeFeatures([
+        "comboGapPressure",
+        ...baseBigFeatures,
+      ]);
+    }
+    if (market === "PRA" || market === "PR" || market === "PA") {
+      return dedupeFeatures([
+        "comboGapPressure",
+        ...baseBigFeatures,
+      ]);
+    }
+    if (market === "PTS") {
+      return dedupeFeatures([
+        "overPrice",
+        "underPrice",
+        "line",
+        ...baseBigFeatures,
+      ]);
+    }
+  }
+
   if (archetype === "BENCH_CREATOR_SCORER") {
     if (market === "PTS") {
       return ["priceLean", "underPrice", "expectedMinutes", "lineGap", "absLineGap", "minutesVolatility", "projectedValue", "overProbability"];
@@ -636,7 +977,18 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["lineGap", "expectedMinutes", "priceAbsLean", "line", "minutesVolatility", "underProbability", "overPrice"];
     }
     if (market === "AST") {
-      return ["projectedValue", "lineGap", "absLineGap", "minutesVolatility", "expectedMinutes", "underProbability", "overPrice", "priceLean"];
+      return [
+        "projectedValue",
+        "lineGap",
+        "absLineGap",
+        "minutesVolatility",
+        "expectedMinutes",
+        "underProbability",
+        "overPrice",
+        "priceLean",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "overPrice", "line", "lineTier"];
@@ -656,7 +1008,17 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["lineGap", "expectedMinutes", "line", "projectedValue", "priceAbsLean", "minutesVolatility", "overPrice", "underProbability"];
     }
     if (market === "AST") {
-      return ["underProbability", "lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap"];
+      return [
+        "underProbability",
+        "lineGap",
+        "expectedMinutes",
+        "minutesVolatility",
+        "projectedValue",
+        "priceLean",
+        "absLineGap",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "lineGap", "line", "lineTier"];
@@ -679,7 +1041,17 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["underProbability", "lineGap", "expectedMinutes", "line", "priceAbsLean", "minutesVolatility", "overPrice"];
     }
     if (market === "AST") {
-      return ["lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "absLineGap", "underProbability", "priceLean"];
+      return [
+        "lineGap",
+        "expectedMinutes",
+        "minutesVolatility",
+        "projectedValue",
+        "absLineGap",
+        "underProbability",
+        "priceLean",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["priceLean", "overPrice", "lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "line", "lineTier", "projectionToLineRatio"];
@@ -699,7 +1071,18 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["expectedMinutes", "lineGap", "line", "priceAbsLean", "minutesVolatility", "overPrice", "underProbability"];
     }
     if (market === "AST") {
-      return ["underProbability", "overPrice", "lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap"];
+      return [
+        "underProbability",
+        "overPrice",
+        "lineGap",
+        "expectedMinutes",
+        "minutesVolatility",
+        "projectedValue",
+        "priceLean",
+        "absLineGap",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["absLineGap", "lineGap", "minutesVolatility", "expectedMinutes", "priceLean", "overPrice", "line", "lineTier"];
@@ -725,7 +1108,17 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["line", "expectedMinutes", "lineGap", "priceAbsLean", "overPrice", "absLineGap", "minutesVolatility"];
     }
     if (market === "AST") {
-      return ["projectedValue", "lineGap", "absLineGap", "minutesVolatility", "expectedMinutes", "underProbability", "overPrice"];
+      return [
+        "projectedValue",
+        "lineGap",
+        "absLineGap",
+        "minutesVolatility",
+        "expectedMinutes",
+        "underProbability",
+        "overPrice",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["priceLean", "absLineGap", "lineGap", "expectedMinutes", "minutesVolatility", "overPrice", "line", "lineTier"];
@@ -756,7 +1149,17 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["lineGap", "expectedMinutes", "priceAbsLean", "line", "minutesVolatility", "overPrice", "underPrice"];
     }
     if (market === "AST") {
-      return ["overPrice", "lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap"];
+      return [
+        "overPrice",
+        "lineGap",
+        "expectedMinutes",
+        "minutesVolatility",
+        "projectedValue",
+        "priceLean",
+        "absLineGap",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["lineGap", "absLineGap", "expectedMinutes", "minutesVolatility", "priceLean", "overPrice", "line", "lineTier"];
@@ -795,7 +1198,16 @@ function featuresForMarket(market: Market, archetype: Archetype): FeatureName[] 
       return ["underProbability", "lineGap", "expectedMinutes", "priceAbsLean", "line", "minutesVolatility"];
     }
     if (market === "AST") {
-      return ["lineGap", "expectedMinutes", "minutesVolatility", "projectedValue", "priceLean", "absLineGap"];
+      return [
+        "lineGap",
+        "expectedMinutes",
+        "minutesVolatility",
+        "projectedValue",
+        "priceLean",
+        "absLineGap",
+        "assistRate",
+        "astToLineRatio",
+      ];
     }
     if (market === "THREES") {
       return ["priceLean", "overPrice", "lineGap", "absLineGap", "minutesVolatility", "expectedMinutes", "line", "lineTier"];
@@ -1322,7 +1734,33 @@ function trainTree(rows: EnrichedRow[], maxDepth: number, minLeaf: number, marke
   let bestRight: EnrichedRow[] | null = null;
   let bestAccuracy = baseLeaf.accuracy;
 
-  for (const feature of featuresForMarket(market, rows[0]?.archetype ?? "LOW_MINUTE_BENCH")) {
+  const archetype = rows[0]?.archetype ?? "LOW_MINUTE_BENCH";
+  const featurePool = featuresForMarket(market, archetype);
+  const bucketKey = `${market}|${archetype}`;
+  if (ENABLE_BENCH_BIG_ROLE_STABILITY && !featurePool.includes("benchBigRoleStability")) {
+    featurePool.push("benchBigRoleStability");
+  }
+  if (ENABLE_CURRENT_LINE_MOMENTUM) {
+    if (!featurePool.includes("l5CurrentLineDeltaAvg")) featurePool.push("l5CurrentLineDeltaAvg");
+    if (!featurePool.includes("l5CurrentLineOverRate")) featurePool.push("l5CurrentLineOverRate");
+    if (!featurePool.includes("l5MinutesAvg")) featurePool.push("l5MinutesAvg");
+  }
+  if (ENABLE_L5_MARKET_MOMENTUM && L5_MOMENTUM_RHYTHM_MARKETS.has(market)) {
+    if (!featurePool.includes("l5MarketDeltaAvg")) featurePool.push("l5MarketDeltaAvg");
+    if (!featurePool.includes("l5OverRate")) featurePool.push("l5OverRate");
+    if (!featurePool.includes("l5MinutesAvg")) featurePool.push("l5MinutesAvg");
+  }
+  if (ENABLE_L5_CREATOR_FAMILY && L5_CREATOR_ARCHETYPE_FAMILY.has(archetype)) {
+    if (!featurePool.includes("l5MarketDeltaAvg")) featurePool.push("l5MarketDeltaAvg");
+    if (!featurePool.includes("l5OverRate")) featurePool.push("l5OverRate");
+  }
+  if (ENABLE_L5_CREATOR_ALLOWLIST && L5_CREATOR_ALLOWLIST.has(bucketKey)) {
+    if (!featurePool.includes("l5MarketDeltaAvg")) featurePool.push("l5MarketDeltaAvg");
+    if (!featurePool.includes("l5OverRate")) featurePool.push("l5OverRate");
+    if (!featurePool.includes("l5MinutesAvg")) featurePool.push("l5MinutesAvg");
+  }
+
+  for (const feature of featurePool) {
     for (const threshold of candidateThresholds(rows, feature)) {
       const left = rows.filter((row) => {
         const value = getFeature(row, feature);
@@ -1380,6 +1818,16 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
       return row.finalSide;
     case "marketFavored":
       return row.favoredSide === "NEUTRAL" ? row.projectionSide : row.favoredSide;
+    case "lowMinutesThenFinalElseConstant":
+      return (row.expectedMinutes ?? Infinity) <= model.threshold ? row.finalSide : model.side;
+    case "underGapThenFinalElseConstant":
+      return row.lineGap <= -model.threshold ? row.finalSide : model.side;
+    case "lowMinutesThenFinal":
+      return (row.expectedMinutes ?? Infinity) <= model.threshold ? row.finalSide : row.projectionSide;
+    case "lowMinutesDisagreementThenFinal":
+      return (row.expectedMinutes ?? Infinity) <= model.threshold && row.finalSide !== row.projectionSide
+        ? row.finalSide
+        : row.projectionSide;
     case "gapThenProjection":
       return row.absLineGap >= model.threshold
         ? row.projectionSide
@@ -1388,6 +1836,12 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
           : row.favoredSide;
     case "gapThenMarket":
       return row.absLineGap >= model.threshold
+        ? row.favoredSide === "NEUTRAL"
+          ? row.projectionSide
+          : row.favoredSide
+        : row.projectionSide;
+    case "overGapThenMarket":
+      return row.lineGap >= model.threshold
         ? row.favoredSide === "NEUTRAL"
           ? row.projectionSide
           : row.favoredSide
@@ -1416,6 +1870,18 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
         row.openingTeamSpread != null &&
         row.openingTeamSpread <= model.spreadThreshold &&
         row.absLineGap <= model.gapThreshold
+      ) {
+        return row.favoredSide === "OVER" ? "UNDER" : row.favoredSide === "NEUTRAL" ? "UNDER" : row.favoredSide;
+      }
+      return row.projectionSide;
+    case "favoriteOverSuppressPositiveGap":
+      if (
+        row.projectionSide === "OVER" &&
+        row.openingTeamSpread != null &&
+        row.openingTeamSpread <= model.spreadThreshold &&
+        row.absLineGap <= model.gapThreshold &&
+        row.lineGap >= 0 &&
+        (row.expectedMinutes ?? 0) >= model.minExpectedMinutes
       ) {
         return row.favoredSide === "OVER" ? "UNDER" : row.favoredSide === "NEUTRAL" ? "UNDER" : row.favoredSide;
       }
@@ -1456,6 +1922,8 @@ function modelComplexity(model: ModelVariant): number {
     case "finalOverride":
     case "marketFavored":
       return 2;
+    case "lowMinutesThenFinalElseConstant":
+    case "underGapThenFinalElseConstant":
     default:
       return 3;
   }
@@ -1483,6 +1951,13 @@ function splitTemporalHoldout(
 }
 
 function buildCandidateVariants(rows: EnrichedRow[], market: Market, maxDepth: number): ModelVariant[] {
+  const archetype = rows[0]?.archetype;
+  const bigManSpecialistBucket =
+    archetype != null &&
+    isBigManSpecialistBucket(archetype, market);
+  const wingSpecialistBucket =
+    archetype != null &&
+    isWingSpecialistBucket(archetype, market);
   const candidates: ModelVariant[] = [
     { kind: "projection" },
     { kind: "finalOverride" },
@@ -1496,6 +1971,23 @@ function buildCandidateVariants(rows: EnrichedRow[], market: Market, maxDepth: n
     candidates.push({ kind: "gapThenProjection", threshold });
     candidates.push({ kind: "gapThenMarket", threshold });
   });
+  if (market === "PA" && rows[0]?.archetype === "BENCH_VOLUME_SCORER") {
+    [1.5, 1.75, 2, 2.25, 2.5, 3].forEach((threshold) => {
+      candidates.push({ kind: "overGapThenMarket", threshold });
+    });
+  }
+  [14, 16, 18, 20, 22, 24].forEach((threshold) => {
+    candidates.push({ kind: "lowMinutesThenFinal", threshold });
+    candidates.push({ kind: "lowMinutesDisagreementThenFinal", threshold });
+  });
+  if (market === "PRA" && rows[0]?.archetype === "BENCH_STRETCH_BIG") {
+    [18, 20, 22, 24, 26].forEach((threshold) => {
+      candidates.push({ kind: "lowMinutesThenFinalElseConstant", threshold, side: "OVER" });
+    });
+    [0.5, 1, 1.5, 2, 2.5, 3].forEach((threshold) => {
+      candidates.push({ kind: "underGapThenFinalElseConstant", threshold, side: "OVER" });
+    });
+  }
   const nearLineThresholds =
     market === "THREES" ? [0.15, 0.25, 0.35, 0.5] : market === "PRA" ? [0.5, 1, 1.5, 2] : [0.25, 0.5, 0.75, 1, 1.25];
   nearLineThresholds.forEach((threshold) => {
@@ -1512,6 +2004,15 @@ function buildCandidateVariants(rows: EnrichedRow[], market: Market, maxDepth: n
       candidates.push({ kind: "favoriteOverSuppress", spreadThreshold, gapThreshold });
     });
   });
+  if (market === "PA" && rows[0]?.archetype === "CENTER") {
+    [-8.5, -6.5, -5.5].forEach((spreadThreshold) => {
+      [0.5, 1, 1.5].forEach((gapThreshold) => {
+        [27, 28, 29, 30].forEach((minExpectedMinutes) => {
+          candidates.push({ kind: "favoriteOverSuppressPositiveGap", spreadThreshold, gapThreshold, minExpectedMinutes });
+        });
+      });
+    });
+  }
   [0.45, 0.55, 0.65].forEach((threshold) => {
     candidates.push({ kind: "lowQualityThenMarket", threshold });
   });
@@ -1523,9 +2024,26 @@ function buildCandidateVariants(rows: EnrichedRow[], market: Market, maxDepth: n
     });
   }
 
-  const maxMinLeaf = Math.max(1, Math.min(8, Math.floor(rows.length / 10) || 1));
-  for (let depth = 1; depth <= maxDepth; depth += 1) {
-    for (let minLeaf = 1; minLeaf <= maxMinLeaf; minLeaf += 1) {
+  const defaultMaxMinLeaf = Math.max(1, Math.min(8, Math.floor(rows.length / 10) || 1));
+  const minLeafCandidates = new Set<number>();
+  for (let minLeaf = 1; minLeaf <= defaultMaxMinLeaf; minLeaf += 1) {
+    minLeafCandidates.add(minLeaf);
+  }
+  if (bigManSpecialistBucket) {
+    [10, 12, 14, 16, 18].forEach((minLeaf) => {
+      if (minLeaf < rows.length / 2) minLeafCandidates.add(minLeaf);
+    });
+  }
+  if (wingSpecialistBucket) {
+    [40, 60, 80].forEach((minLeaf) => {
+      if (minLeaf < rows.length / 2) minLeafCandidates.add(minLeaf);
+    });
+  }
+
+  const depthLimit = wingSpecialistBucket ? 6 : bigManSpecialistBucket ? Math.min(maxDepth, 6) : maxDepth;
+  const orderedMinLeaves = Array.from(minLeafCandidates).sort((left, right) => left - right);
+  for (let depth = 1; depth <= depthLimit; depth += 1) {
+    for (const minLeaf of orderedMinLeaves) {
       candidates.push({ kind: "tree", tree: trainTree(rows, depth, minLeaf, market), maxDepth: depth, minLeaf });
     }
   }
@@ -1543,10 +2061,34 @@ function refitVariant(model: ModelVariant, rows: EnrichedRow[], market: Market):
   };
 }
 
-function isBetterModelCandidate(
-  candidate: { selectionScore: ModelScore; fitScore: ModelScore; model: ModelVariant },
-  best: { selectionScore: ModelScore; fitScore: ModelScore; model: ModelVariant } | null,
-): boolean {
+function describeModelVariant(model: ModelVariant): string {
+  switch (model.kind) {
+    case "constant":
+      return `constant:${model.side}`;
+    case "tree":
+      return `tree:d${model.maxDepth}:l${model.minLeaf}`;
+    case "gapThenProjection":
+    case "gapThenMarket":
+    case "overGapThenMarket":
+    case "lowMinutesThenFinalElseConstant":
+    case "underGapThenFinalElseConstant":
+    case "lowMinutesThenFinal":
+    case "lowMinutesDisagreementThenFinal":
+    case "nearLineThenMarket":
+    case "agreementThenProjection":
+    case "lowQualityThenMarket":
+    case "strongPriceThenMarket":
+      return `${model.kind}:${"threshold" in model ? model.threshold : "na"}`;
+    case "favoriteOverSuppress":
+      return `${model.kind}:${model.spreadThreshold}/${model.gapThreshold}`;
+    case "lowVolatilityHelioOver":
+      return `${model.kind}:${model.volatilityThreshold}/${model.gapThreshold}`;
+    default:
+      return model.kind;
+  }
+}
+
+function isBetterModelCandidate(candidate: CandidateEvaluation, best: CandidateEvaluation | null): boolean {
   if (!best) return true;
   if (candidate.selectionScore.accuracy !== best.selectionScore.accuracy) {
     return candidate.selectionScore.accuracy > best.selectionScore.accuracy;
@@ -1557,12 +2099,267 @@ function isBetterModelCandidate(
   return modelComplexity(candidate.model) < modelComplexity(best.model);
 }
 
+function shouldFallbackToAnchorCandidate(
+  candidate: CandidateEvaluation,
+  anchor: CandidateEvaluation | null,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): boolean {
+  if (selectionStrategy !== "temporal_holdout" || !hasHoldoutRows || !anchor) return false;
+
+  const fitCollapse = anchor.fitScore.accuracy - candidate.fitScore.accuracy;
+  const selectionEdge = candidate.selectionScore.accuracy - anchor.selectionScore.accuracy;
+  if (
+    fitCollapse >= TEMPORAL_FIT_COLLAPSE_FALLBACK_DELTA &&
+    selectionEdge <= TEMPORAL_HOLDOUT_EDGE_TO_KEEP_COMPLEX_MODEL
+  ) {
+    return true;
+  }
+
+  if (
+    candidate.selectionScore.accuracy < TEMPORAL_BAD_HOLDOUT_FLOOR &&
+    anchor.selectionScore.accuracy >= candidate.selectionScore.accuracy + TEMPORAL_BAD_HOLDOUT_ANCHOR_MARGIN
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function findConstantFallbackCandidate(
+  candidate: CandidateEvaluation,
+  candidates: CandidateEvaluation[],
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (selectionStrategy !== "temporal_holdout" || !hasHoldoutRows || candidate.model.kind !== "constant") return null;
+
+  const minimumSelectionAccuracy = candidate.selectionScore.accuracy - TEMPORAL_CONSTANT_HOLDOUT_GIVEBACK;
+  const minimumFitAccuracy = candidate.fitScore.accuracy + TEMPORAL_CONSTANT_FIT_EDGE_FOR_FALLBACK;
+  return (
+    candidates
+      .filter(
+        (alternative) =>
+          alternative.model.kind !== "constant" &&
+          alternative.selectionScore.accuracy >= minimumSelectionAccuracy &&
+          alternative.fitScore.accuracy >= minimumFitAccuracy,
+      )
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (modelComplexity(left.model) !== modelComplexity(right.model)) {
+          return modelComplexity(left.model) - modelComplexity(right.model);
+        }
+        return right.fitScore.accuracy - left.fitScore.accuracy;
+      })[0] ?? null
+  );
+}
+
+function findStretchBigPRAFallbackCandidate(
+  candidate: CandidateEvaluation,
+  candidates: CandidateEvaluation[],
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (!ENABLE_TARGETED_CONSTANT_TRAP_FALLBACKS) return null;
+  if (
+    selectionStrategy !== "temporal_holdout" ||
+    !hasHoldoutRows ||
+    market !== "PRA" ||
+    archetype !== "BENCH_STRETCH_BIG" ||
+    (candidate.model.kind !== "constant" && candidate.model.kind !== "lowMinutesThenFinalElseConstant")
+  ) {
+    return null;
+  }
+
+  const minimumSelectionAccuracy = candidate.selectionScore.accuracy - TEMPORAL_STRETCH_BIG_PRA_HOLDOUT_GIVEBACK;
+  const minimumFitAccuracy = candidate.fitScore.accuracy + TEMPORAL_STRETCH_BIG_PRA_FIT_EDGE_FOR_FALLBACK;
+  const getThreshold = (evaluation: CandidateEvaluation): number =>
+    evaluation.model.kind === "underGapThenFinalElseConstant" ? evaluation.model.threshold : Number.POSITIVE_INFINITY;
+  return (
+    candidates
+      .filter(
+        (alternative) =>
+          alternative.model.kind === "underGapThenFinalElseConstant" &&
+          alternative.selectionScore.accuracy >= minimumSelectionAccuracy &&
+          alternative.fitScore.accuracy >= minimumFitAccuracy,
+      )
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (right.fitScore.accuracy !== left.fitScore.accuracy) {
+          return right.fitScore.accuracy - left.fitScore.accuracy;
+        }
+        return getThreshold(left) - getThreshold(right);
+      })[0] ?? null
+  );
+}
+
+function findBenchSpacerPRAFallbackCandidate(
+  candidate: CandidateEvaluation,
+  candidates: CandidateEvaluation[],
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (!ENABLE_TARGETED_CONSTANT_TRAP_FALLBACKS) return null;
+  if (
+    selectionStrategy !== "temporal_holdout" ||
+    !hasHoldoutRows ||
+    market !== "PRA" ||
+    archetype !== "BENCH_SPACER_SCORER" ||
+    candidate.model.kind !== "constant"
+  ) {
+    return null;
+  }
+
+  const minimumSelectionAccuracy = candidate.selectionScore.accuracy - TEMPORAL_BENCH_SPACER_PRA_HOLDOUT_GIVEBACK;
+  const minimumFitAccuracy = candidate.fitScore.accuracy + TEMPORAL_BENCH_SPACER_PRA_FIT_EDGE_FOR_FALLBACK;
+  return (
+    candidates
+      .filter(
+        (alternative) =>
+          (alternative.model.kind === "marketFavored" || alternative.model.kind === "finalOverride") &&
+          alternative.selectionScore.accuracy >= minimumSelectionAccuracy &&
+          alternative.fitScore.accuracy >= minimumFitAccuracy,
+      )
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (modelComplexity(left.model) !== modelComplexity(right.model)) {
+          return modelComplexity(left.model) - modelComplexity(right.model);
+        }
+        return right.fitScore.accuracy - left.fitScore.accuracy;
+      })[0] ?? null
+  );
+}
+
+function findStretchBigPRFallbackCandidate(
+  candidate: CandidateEvaluation,
+  candidates: CandidateEvaluation[],
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (
+    selectionStrategy !== "temporal_holdout" ||
+    !hasHoldoutRows ||
+    market !== "PR" ||
+    archetype !== "BENCH_STRETCH_BIG" ||
+    candidate.model.kind !== "constant"
+  ) {
+    return null;
+  }
+
+  const minimumSelectionAccuracy = candidate.selectionScore.accuracy - TEMPORAL_STRETCH_BIG_PR_HOLDOUT_GIVEBACK;
+  const minimumFitAccuracy = candidate.fitScore.accuracy + TEMPORAL_STRETCH_BIG_PR_FIT_EDGE_FOR_FALLBACK;
+  const getThreshold = (evaluation: CandidateEvaluation): number =>
+    evaluation.model.kind === "gapThenProjection" ? evaluation.model.threshold : Number.POSITIVE_INFINITY;
+  return (
+    candidates
+      .filter(
+        (alternative) =>
+          alternative.model.kind === "gapThenProjection" &&
+          alternative.selectionScore.accuracy >= minimumSelectionAccuracy &&
+          alternative.fitScore.accuracy >= minimumFitAccuracy,
+      )
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (right.fitScore.accuracy !== left.fitScore.accuracy) {
+          return right.fitScore.accuracy - left.fitScore.accuracy;
+        }
+        return getThreshold(left) - getThreshold(right);
+      })[0] ?? null
+  );
+}
+
+function keepCenterPAConstantCandidate(
+  candidate: CandidateEvaluation,
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (!ENABLE_TARGETED_CONSTANT_TRAP_FALLBACKS) return null;
+  if (
+    selectionStrategy !== "temporal_holdout" ||
+    !hasHoldoutRows ||
+    market !== "PA" ||
+    archetype !== "CENTER" ||
+    candidate.model.kind !== "constant" ||
+    candidate.model.side !== "OVER"
+  ) {
+    return null;
+  }
+
+  if (candidate.selectionScore.accuracy < 52 || candidate.fitScore.accuracy < 49) {
+    return null;
+  }
+
+  return candidate;
+}
+
+function findSpotupWingPRFallbackCandidate(
+  candidate: CandidateEvaluation,
+  candidates: CandidateEvaluation[],
+  market: Market,
+  archetype: Archetype | undefined,
+  selectionStrategy: ModelSelectionStrategy,
+  hasHoldoutRows: boolean,
+): CandidateEvaluation | null {
+  if (
+    selectionStrategy !== "temporal_holdout" ||
+    !hasHoldoutRows ||
+    market !== "PR" ||
+    archetype !== "SPOTUP_WING" ||
+    candidate.model.kind !== "constant"
+  ) {
+    return null;
+  }
+
+  const minimumSelectionAccuracy = candidate.selectionScore.accuracy - TEMPORAL_SPOTUP_WING_PR_HOLDOUT_GIVEBACK;
+  const minimumFitAccuracy = candidate.fitScore.accuracy + TEMPORAL_SPOTUP_WING_PR_FIT_EDGE_FOR_FALLBACK;
+  const getThreshold = (evaluation: CandidateEvaluation): number =>
+    evaluation.model.kind === "gapThenMarket" ? evaluation.model.threshold : Number.POSITIVE_INFINITY;
+  return (
+    candidates
+      .filter(
+        (alternative) =>
+          alternative.model.kind === "gapThenMarket" &&
+          alternative.selectionScore.accuracy >= minimumSelectionAccuracy &&
+          alternative.fitScore.accuracy >= minimumFitAccuracy,
+      )
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (right.fitScore.accuracy !== left.fitScore.accuracy) {
+          return right.fitScore.accuracy - left.fitScore.accuracy;
+        }
+        return getThreshold(left) - getThreshold(right);
+      })[0] ?? null
+  );
+}
+
 function fitBestModel(
   rows: EnrichedRow[],
   market: Market,
   maxDepth: number,
   selectionStrategy: ModelSelectionStrategy,
   lateWindowRatio: number,
+  debugLabel?: string,
+  debugTop = 10,
 ): {
   model: ModelVariant;
   score: ModelScore;
@@ -1573,28 +2370,141 @@ function fitBestModel(
     selectionStrategy === "temporal_holdout" ? splitTemporalHoldout(rows, lateWindowRatio) : { fitRows: rows, holdoutRows: [] };
   const candidates = buildCandidateVariants(fitRows, market, maxDepth);
 
-  let best:
-    | {
-        model: ModelVariant;
-        selectionScore: ModelScore;
-        fitScore: ModelScore;
-      }
-    | null = null;
+  let best: CandidateEvaluation | null = null;
+  let bestAnchor: CandidateEvaluation | null = null;
+  const evaluatedCandidates: CandidateEvaluation[] = [];
 
   const selectionRows = holdoutRows.length ? holdoutRows : fitRows;
   for (const candidate of candidates) {
     const selectionScore = scoreVariant(candidate, selectionRows);
     const fitScore = scoreVariant(candidate, fitRows);
-    if (isBetterModelCandidate({ model: candidate, selectionScore, fitScore }, best)) {
-      best = { model: candidate, selectionScore, fitScore };
+    const evaluation = { model: candidate, selectionScore, fitScore };
+    evaluatedCandidates.push(evaluation);
+    if (SIMPLE_BASELINE_KINDS.has(candidate.kind) && isBetterModelCandidate(evaluation, bestAnchor)) {
+      bestAnchor = evaluation;
+    }
+    if (isBetterModelCandidate(evaluation, best)) {
+      best = evaluation;
     }
   }
 
-  const resolvedBest = best ?? {
+  const bestCandidate = best ?? {
     model: candidates[0],
     selectionScore: scoreVariant(candidates[0], holdoutRows.length ? holdoutRows : fitRows),
     fitScore: scoreVariant(candidates[0], fitRows),
   };
+  const targetedFallbackCandidate = keepCenterPAConstantCandidate(
+    bestCandidate,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  ) ?? findStretchBigPRAFallbackCandidate(
+    bestCandidate,
+    evaluatedCandidates,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  ) ?? findBenchSpacerPRAFallbackCandidate(
+    bestCandidate,
+    evaluatedCandidates,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  ) ?? findStretchBigPRFallbackCandidate(
+    bestCandidate,
+    evaluatedCandidates,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  ) ?? findSpotupWingPRFallbackCandidate(
+    bestCandidate,
+    evaluatedCandidates,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  );
+  const constantFallbackCandidate = findConstantFallbackCandidate(
+    bestCandidate,
+    evaluatedCandidates,
+    market,
+    rows[0]?.archetype,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  );
+  const anchorFallbackCandidate = shouldFallbackToAnchorCandidate(
+    bestCandidate,
+    bestAnchor,
+    selectionStrategy,
+    holdoutRows.length > 0,
+  )
+    ? (bestAnchor ?? bestCandidate)
+    : null;
+  const resolvedBest = targetedFallbackCandidate ?? constantFallbackCandidate ?? anchorFallbackCandidate ?? bestCandidate;
+
+  if (debugLabel) {
+    const sortedCandidates = evaluatedCandidates
+      .slice()
+      .sort((left, right) => {
+        if (right.selectionScore.accuracy !== left.selectionScore.accuracy) {
+          return right.selectionScore.accuracy - left.selectionScore.accuracy;
+        }
+        if (right.fitScore.accuracy !== left.fitScore.accuracy) {
+          return right.fitScore.accuracy - left.fitScore.accuracy;
+        }
+        return modelComplexity(left.model) - modelComplexity(right.model);
+      })
+      .slice(0, debugTop)
+      .map((candidate) => ({
+        model: describeModelVariant(candidate.model),
+        selectionAccuracy: candidate.selectionScore.accuracy,
+        fitAccuracy: candidate.fitScore.accuracy,
+        complexity: modelComplexity(candidate.model),
+      }));
+    console.error(
+      JSON.stringify(
+        {
+          debugLabel,
+          fitRows: fitRows.length,
+          holdoutRows: holdoutRows.length,
+          anchor: bestAnchor
+            ? {
+                model: describeModelVariant(bestAnchor.model),
+                selectionAccuracy: bestAnchor.selectionScore.accuracy,
+                fitAccuracy: bestAnchor.fitScore.accuracy,
+              }
+            : null,
+          constantFallback: constantFallbackCandidate
+            ? {
+                model: describeModelVariant(constantFallbackCandidate.model),
+                selectionAccuracy: constantFallbackCandidate.selectionScore.accuracy,
+                fitAccuracy: constantFallbackCandidate.fitScore.accuracy,
+              }
+            : null,
+          targetedFallback: targetedFallbackCandidate
+            ? {
+                model: describeModelVariant(targetedFallbackCandidate.model),
+                selectionAccuracy: targetedFallbackCandidate.selectionScore.accuracy,
+                fitAccuracy: targetedFallbackCandidate.fitScore.accuracy,
+              }
+            : null,
+          selected: {
+            model: describeModelVariant(resolvedBest.model),
+            selectionAccuracy: resolvedBest.selectionScore.accuracy,
+            fitAccuracy: resolvedBest.fitScore.accuracy,
+          },
+          topCandidates: sortedCandidates,
+        },
+        null,
+        2,
+      ),
+    );
+  }
+
   const refitModel = refitVariant(resolvedBest.model, rows, market);
   const refitScore = scoreVariant(refitModel, rows);
 
@@ -1606,17 +2516,20 @@ function fitBestModel(
   };
 }
 
-async function loadPlayerMetaMap(playerIds: string[]): Promise<Map<string, PlayerMeta>> {
-  const rows = await prisma.player.findMany({
-    where: { id: { in: playerIds } },
-    select: {
-      id: true,
-      fullName: true,
-      position: true,
-    },
+async function loadPlayerMetaMap(rows: TrainingRow[]): Promise<Map<string, PlayerMeta>> {
+  const cached = await loadPlayerMetaWithCache({
+    rows: rows.map((row) => ({ playerId: row.playerId, playerName: row.playerName })),
+    fetcher: async (ids) =>
+      prisma.player.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          fullName: true,
+          position: true,
+        },
+      }),
   });
-
-  return new Map(rows.map((row) => [row.id, row]));
+  return new Map([...cached.entries()].map(([id, meta]) => [id, { id, fullName: meta.fullName, position: meta.position }]));
 }
 
 function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMeta>): Map<string, PlayerSummary> {
@@ -1653,7 +2566,7 @@ function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMet
 function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>): EnrichedRow[] {
   return rows.map((row) => {
     const summary = summaries.get(row.playerId);
-    const archetype = summary ? classifyArchetype(summary) : "LOW_MINUTE_BENCH";
+    const archetype = summary ? classifyArchetype(summary, row.market) : "LOW_MINUTE_BENCH";
     const summaryMinutes = summary?.avgExpectedMinutes ?? row.expectedMinutes ?? 0;
     const summaryPoints = summary?.ptsProjectionAvg ?? 0;
     const summaryRebounds = summary?.rebProjectionAvg ?? 0;
@@ -1756,8 +2669,10 @@ function baselineAccuracy(rows: EnrichedRow[], selector: (row: EnrichedRow) => S
 async function main(): Promise<void> {
   const args = parseArgs();
   const payload = JSON.parse(await readFile(path.resolve(args.input), "utf8")) as BacktestRowsFile;
-  const filteredRows = payload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes);
-  const playerMetaMap = await loadPlayerMetaMap([...new Set(filteredRows.map((row) => row.playerId))]);
+  const filteredRows = attachCurrentLineRecencyMetrics(
+    payload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes),
+  );
+  const playerMetaMap = await loadPlayerMetaMap(filteredRows);
   const summaries = summarizeRows(filteredRows, playerMetaMap);
   const rows = enrichRows(filteredRows, summaries);
 
@@ -1773,16 +2688,20 @@ async function main(): Promise<void> {
     "WING",
     "CONNECTOR_WING",
     "SPOTUP_WING",
-    "BENCH_GUARD",
+    "BENCH_SHOOTING_GUARD",
+    "BENCH_PASS_FIRST_GUARD",
+    "BENCH_LOW_USAGE_GUARD",
+    "BENCH_TRADITIONAL_GUARD",
     "BENCH_WING",
-    "BENCH_SCORING_WING",
     "BENCH_LOW_USAGE_WING",
     "BENCH_MIDRANGE_SCORER",
     "BENCH_VOLUME_SCORER",
     "BENCH_CREATOR_SCORER",
     "BENCH_REBOUNDING_SCORER",
     "BENCH_SPACER_SCORER",
-    "BENCH_BIG",
+    "BENCH_STRETCH_BIG",
+    "BENCH_LOW_USAGE_BIG",
+    "BENCH_TRADITIONAL_BIG",
     "TWO_WAY_MARKET_WING",
     "SCORER_CREATOR_WING",
     "SHOT_CREATING_WING",
@@ -1808,6 +2727,8 @@ async function main(): Promise<void> {
         args.maxDepth,
         args.selectionStrategy,
         args.lateWindowRatio,
+        args.debugMarket === market && args.debugArchetype === archetype ? `${market}|${archetype}` : undefined,
+        args.debugTop,
       );
       const splitIndex = bucket.length < 8 ? bucket.length : Math.max(1, Math.floor(bucket.length * (1 - args.lateWindowRatio)));
       const lateWindow = bucket.slice(splitIndex);

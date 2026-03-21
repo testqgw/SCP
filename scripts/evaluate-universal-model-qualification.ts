@@ -14,7 +14,9 @@ import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
   resolveProjectPath,
 } from "../lib/snapshot/universalArtifactPaths";
+import { attachCurrentLineRecencyMetrics } from "../lib/snapshot/currentLineRecency";
 import { round } from "../lib/utils";
+import { loadPlayerMetaWithCache } from "./utils/playerMetaCache";
 
 type Side = "OVER" | "UNDER";
 type Market = "PTS" | "REB" | "AST" | "THREES" | "PRA" | "PA" | "PR" | "RA";
@@ -37,6 +39,10 @@ type TrainingRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  l5MinutesAvg?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -85,6 +91,14 @@ type SummaryStats = {
   blendedAccuracy: number;
 };
 
+type HeadlineMetrics = {
+  rawAccuracy: number;
+  qualifiedAccuracy: number | null;
+  qualifiedPicks: number;
+  coveragePct: number;
+  blendedAccuracy: number;
+};
+
 type SweepResult = SummaryStats & LiveUniversalQualificationSettings;
 
 type Args = {
@@ -95,9 +109,12 @@ type Args = {
   minBucketSamples: number;
   minLeafAccuracy: number;
   minLeafCount: number;
+  minProjectionWinProbability: number;
+  minProjectionPriceEdge: number;
   useMarketOverrides: boolean;
   sweep: boolean;
   disableLiveCalibration: boolean;
+  disableLiveProjectionDistribution: boolean;
 };
 
 const prisma = new PrismaClient();
@@ -117,9 +134,12 @@ function parseArgs(): Args {
   let minBucketSamples = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minBucketSamples;
   let minLeafAccuracy = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minLeafAccuracy;
   let minLeafCount = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minLeafCount;
+  let minProjectionWinProbability = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minProjectionWinProbability;
+  let minProjectionPriceEdge = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minProjectionPriceEdge;
   let useMarketOverrides = true;
   let sweep = false;
   let disableLiveCalibration = false;
+  let disableLiveProjectionDistribution = false;
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -213,6 +233,32 @@ function parseArgs(): Args {
       disableLiveCalibration = true;
       continue;
     }
+    if (token === "--disable-live-projection-distribution") {
+      disableLiveProjectionDistribution = true;
+      continue;
+    }
+    if (token === "--min-projection-win-probability" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) minProjectionWinProbability = parsed;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--min-projection-win-probability=")) {
+      const parsed = Number(token.slice("--min-projection-win-probability=".length));
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) minProjectionWinProbability = parsed;
+      continue;
+    }
+    if (token === "--min-projection-price-edge" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) minProjectionPriceEdge = parsed;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--min-projection-price-edge=")) {
+      const parsed = Number(token.slice("--min-projection-price-edge=".length));
+      if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 1) minProjectionPriceEdge = parsed;
+      continue;
+    }
   }
 
   return {
@@ -223,9 +269,12 @@ function parseArgs(): Args {
     minBucketSamples,
     minLeafAccuracy,
     minLeafCount,
+    minProjectionWinProbability,
+    minProjectionPriceEdge,
     useMarketOverrides,
     sweep,
     disableLiveCalibration,
+    disableLiveProjectionDistribution,
   };
 }
 
@@ -258,15 +307,21 @@ function mean(values: Array<number | null | undefined>): number | null {
 }
 
 async function loadPlayerMetaMap(playerIds: string[]): Promise<Map<string, PlayerMeta>> {
-  const rows = await prisma.player.findMany({
-    where: { id: { in: playerIds } },
-    select: {
-      id: true,
-      position: true,
-    },
+  const cached = await loadPlayerMetaWithCache({
+    rows: playerIds.map((playerId) => ({ playerId })),
+    fetcher: async (ids) =>
+      (
+        await prisma.player.findMany({
+          where: { id: { in: ids } },
+          select: {
+            id: true,
+            position: true,
+          },
+        })
+      ).map((row) => ({ ...row, fullName: null })),
   });
 
-  return new Map(rows.map((row) => [row.id, row]));
+  return new Map([...cached.entries()].map(([id, meta]) => [id, { id, position: meta.position }]));
 }
 
 function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMeta>): Map<string, PlayerSummary> {
@@ -304,6 +359,8 @@ function evaluateRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>
     minBucketSamples: 0,
     minLeafAccuracy: 0,
     minLeafCount: 0,
+    minProjectionWinProbability: 0,
+    minProjectionPriceEdge: 0,
   };
 
   return rows.map((row) => {
@@ -316,8 +373,12 @@ function evaluateRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>
         overPrice: row.overPrice,
         underPrice: row.underPrice,
         finalSide: row.finalSide,
+        l5CurrentLineDeltaAvg: row.l5CurrentLineDeltaAvg ?? null,
+        l5CurrentLineOverRate: row.l5CurrentLineOverRate ?? null,
+        l5MinutesAvg: row.l5MinutesAvg ?? null,
         expectedMinutes: row.expectedMinutes,
         minutesVolatility: row.minutesVolatility,
+        benchBigRoleStability: row.benchBigRoleStability ?? null,
         starterRateLast10: row.starterRateLast10,
         archetypeExpectedMinutes: summary?.avgExpectedMinutes ?? null,
         archetypeStarterRateLast10: summary?.avgStarterRate ?? null,
@@ -370,11 +431,23 @@ function summarizeEvaluatedRows(rows: EvaluatedRow[], settings: LiveUniversalQua
   };
 }
 
+function buildHeadlineMetrics(stats: SummaryStats): HeadlineMetrics {
+  return {
+    rawAccuracy: stats.rawAccuracy,
+    qualifiedAccuracy: stats.qualifiedAccuracy,
+    qualifiedPicks: stats.qualifiedPicks,
+    coveragePct: stats.coveragePct,
+    blendedAccuracy: stats.blendedAccuracy,
+  };
+}
+
 function buildSweep(rows: EvaluatedRow[]): SweepResult[] {
   const bucketLateThresholds = [58, 60, 62, 64, 66, 68];
   const bucketSampleThresholds = [0, 25, 50, 100];
   const leafAccuracyThresholds = [0, 55, 60, 65, 70];
   const leafCountThresholds = [0, 5, 10, 20, 30];
+  const projectionWinProbabilityThresholds = [0, 0.52, 0.54, 0.56];
+  const projectionPriceEdgeThresholds = [0, 0.005, 0.01, 0.02];
 
   const results: SweepResult[] = [];
 
@@ -382,17 +455,23 @@ function buildSweep(rows: EvaluatedRow[]): SweepResult[] {
     for (const minBucketSamples of bucketSampleThresholds) {
       for (const minLeafAccuracy of leafAccuracyThresholds) {
         for (const minLeafCount of leafCountThresholds) {
-          const settings: LiveUniversalQualificationSettings = {
-            minBucketLateAccuracy,
-            minBucketSamples,
-            minLeafAccuracy,
-            minLeafCount,
-          };
-          const summary = summarizeEvaluatedRows(rows, settings);
-          results.push({
-            ...settings,
-            ...summary,
-          });
+          for (const minProjectionWinProbability of projectionWinProbabilityThresholds) {
+            for (const minProjectionPriceEdge of projectionPriceEdgeThresholds) {
+              const settings: LiveUniversalQualificationSettings = {
+                minBucketLateAccuracy,
+                minBucketSamples,
+                minLeafAccuracy,
+                minLeafCount,
+                minProjectionWinProbability,
+                minProjectionPriceEdge,
+              };
+              const summary = summarizeEvaluatedRows(rows, settings);
+              results.push({
+                ...settings,
+                ...summary,
+              });
+            }
+          }
         }
       }
     }
@@ -414,8 +493,15 @@ async function main(): Promise<void> {
   } else {
     delete process.env.SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION;
   }
+  if (args.disableLiveProjectionDistribution) {
+    process.env.SNAPSHOT_UNIVERSAL_DISABLE_PROJECTION_DISTRIBUTION = "1";
+  } else {
+    delete process.env.SNAPSHOT_UNIVERSAL_DISABLE_PROJECTION_DISTRIBUTION;
+  }
   const payload = JSON.parse(await readFile(path.resolve(args.input), "utf8")) as BacktestRowsFile;
-  const filteredRows = payload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes);
+  const filteredRows = attachCurrentLineRecencyMetrics(
+    payload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes),
+  );
   const playerMetaMap = await loadPlayerMetaMap([...new Set(filteredRows.map((row) => row.playerId))]);
   const summaries = summarizeRows(filteredRows, playerMetaMap);
   const evaluatedRows = evaluateRows(filteredRows, summaries);
@@ -424,6 +510,8 @@ async function main(): Promise<void> {
     minBucketSamples: args.minBucketSamples,
     minLeafAccuracy: args.minLeafAccuracy,
     minLeafCount: args.minLeafCount,
+    minProjectionWinProbability: args.minProjectionWinProbability,
+    minProjectionPriceEdge: args.minProjectionPriceEdge,
     marketOverrides: args.useMarketOverrides ? cloneMarketOverrides() : undefined,
   };
 
@@ -442,10 +530,17 @@ async function main(): Promise<void> {
     input: args.input,
     from: payload.from,
     to: payload.to,
+    metricPriority: ["rawAccuracy", "qualifiedAccuracy", "blendedAccuracy"],
+    metricDefinitions: {
+      rawAccuracy: "True model-side accuracy on every row before the qualification gate.",
+      qualifiedAccuracy: "Accuracy on rows that pass the qualification gate.",
+      blendedAccuracy: "Portfolio accuracy after non-qualified rows fall back to the baseline finalSide.",
+    },
     filters: {
       minActualMinutes: args.minActualMinutes,
     },
     settings,
+    headlineMetrics: buildHeadlineMetrics(overall),
     overall,
     byMarket,
     sweepTopResults: args.sweep && !settings.marketOverrides ? buildSweep(evaluatedRows).slice(0, 25) : [],

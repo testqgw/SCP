@@ -14,6 +14,7 @@ import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
   resolveProjectPath,
 } from "../lib/snapshot/universalArtifactPaths";
+import { attachCurrentLineRecencyMetrics } from "../lib/snapshot/currentLineRecency";
 import {
   buildUniversalResidualCalibrationKey,
   type UniversalResidualCalibrationFile,
@@ -39,6 +40,10 @@ type TrainingRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  l5MinutesAvg?: number | null;
   openingTeamSpread: number | null;
   openingTotal: number | null;
   lineupTimingConfidence: number | null;
@@ -71,6 +76,10 @@ type Args = {
   minRecentSamples: number;
   maxAdjustment: number;
   adjustmentMode: "penalties_only" | "symmetric";
+  markets: Market[];
+  archetypes: string[];
+  families: string[];
+  scale: number;
 };
 
 type GroupStat = {
@@ -114,6 +123,18 @@ function parseArgs(): Args {
   let minRecentSamples = 18;
   let maxAdjustment = 5;
   let adjustmentMode: Args["adjustmentMode"] = "penalties_only";
+  const markets: Market[] = [];
+  const archetypes: string[] = [];
+  const families: string[] = [];
+  let scale = 1;
+
+  const pushList = (target: string[], value: string): void => {
+    value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean)
+      .forEach((entry) => target.push(entry));
+  };
 
   for (let i = 0; i < raw.length; i += 1) {
     const token = raw[i];
@@ -198,6 +219,47 @@ function parseArgs(): Args {
     if (token.startsWith("--adjustment-mode=")) {
       const value = token.slice("--adjustment-mode=".length);
       adjustmentMode = value === "symmetric" ? "symmetric" : "penalties_only";
+      continue;
+    }
+    if ((token === "--market" || token === "--markets") && next) {
+      pushList(markets, next);
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("--market=") || token.startsWith("--markets=")) {
+      const value = token.includes("--markets=") ? token.slice("--markets=".length) : token.slice("--market=".length);
+      pushList(markets, value);
+      continue;
+    }
+    if ((token === "--archetype" || token === "--archetypes") && next) {
+      pushList(archetypes, next);
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("--archetype=") || token.startsWith("--archetypes=")) {
+      const value = token.includes("--archetypes=")
+        ? token.slice("--archetypes=".length)
+        : token.slice("--archetype=".length);
+      pushList(archetypes, value);
+      continue;
+    }
+    if ((token === "--family" || token === "--families") && next) {
+      pushList(families, next);
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("--family=") || token.startsWith("--families=")) {
+      const value = token.includes("--families=") ? token.slice("--families=".length) : token.slice("--family=".length);
+      pushList(families, value);
+      continue;
+    }
+    if (token === "--scale" && next) {
+      scale = Number(next) || scale;
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("--scale=")) {
+      scale = Number(token.slice("--scale=".length)) || scale;
     }
   }
 
@@ -211,13 +273,19 @@ function parseArgs(): Args {
     minRecentSamples,
     maxAdjustment,
     adjustmentMode,
+    markets: [...new Set(markets)],
+    archetypes: [...new Set(archetypes)],
+    families: [...new Set(families)],
+    scale,
   };
 }
 
 async function loadRows(inputPath: string): Promise<TrainingRow[]> {
   const raw = JSON.parse(await readFile(inputPath, "utf8")) as { playerMarketRows?: TrainingRow[] } | TrainingRow[];
   const rows = Array.isArray(raw) ? raw : raw.playerMarketRows ?? [];
-  return rows.filter((row): row is TrainingRow => row.actualSide === "OVER" || row.actualSide === "UNDER");
+  return attachCurrentLineRecencyMetrics(
+    rows.filter((row): row is TrainingRow => row.actualSide === "OVER" || row.actualSide === "UNDER"),
+  );
 }
 
 async function loadPlayerMetaMap(playerIds: string[]): Promise<Map<string, PlayerMeta>> {
@@ -295,8 +363,12 @@ async function main(): Promise<void> {
       overPrice: row.overPrice,
       underPrice: row.underPrice,
       finalSide: row.finalSide as SnapshotModelSide,
+      l5CurrentLineDeltaAvg: row.l5CurrentLineDeltaAvg ?? null,
+      l5CurrentLineOverRate: row.l5CurrentLineOverRate ?? null,
+      l5MinutesAvg: row.l5MinutesAvg ?? null,
       expectedMinutes: row.expectedMinutes,
       minutesVolatility: row.minutesVolatility,
+      benchBigRoleStability: row.benchBigRoleStability ?? null,
       starterRateLast10: row.starterRateLast10,
       archetypeExpectedMinutes: summary?.avgExpectedMinutes ?? null,
       archetypeStarterRateLast10: summary?.avgStarterRate ?? null,
@@ -382,6 +454,27 @@ async function main(): Promise<void> {
     return left.minutesBucket.localeCompare(right.minutesBucket);
   });
 
+  let filteredRecords = records;
+  if (args.markets.length > 0) {
+    const allowed = new Set(args.markets);
+    filteredRecords = filteredRecords.filter((record) => allowed.has(record.market));
+  }
+  if (args.archetypes.length > 0) {
+    const allowed = new Set(args.archetypes);
+    filteredRecords = filteredRecords.filter((record) => allowed.has(record.archetype));
+  }
+  if (args.families.length > 0) {
+    const allowed = new Set(args.families.map((entry) => entry.trim()).filter(Boolean));
+    filteredRecords = filteredRecords.filter((record) => allowed.has(`${record.market}|${record.archetype}`));
+  }
+  if (Number.isFinite(args.scale) && Math.abs(args.scale - 1) > 1e-9) {
+    filteredRecords = filteredRecords.map((record) => ({
+      ...record,
+      bucketAccuracyAdjustment: round(record.bucketAccuracyAdjustment * args.scale, 2),
+      leafAccuracyAdjustment: round(record.leafAccuracyAdjustment * args.scale, 2),
+    }));
+  }
+
   const payload: UniversalResidualCalibrationFile = {
     generatedAt: new Date().toISOString(),
     inputFile: args.input,
@@ -389,13 +482,13 @@ async function main(): Promise<void> {
     shortWindowDays: args.shortWindowDays,
     longWindowDays: args.longWindowDays,
     adjustmentMode: args.adjustmentMode,
-    records,
+    records: filteredRecords,
   };
 
   await mkdir(path.dirname(args.out), { recursive: true });
   await writeFile(args.out, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 
-  const activeAdjustments = records.filter(
+  const activeAdjustments = filteredRecords.filter(
     (record) => Math.abs(record.bucketAccuracyAdjustment) > 0 || Math.abs(record.leafAccuracyAdjustment) > 0,
   ).length;
   // eslint-disable-next-line no-console
@@ -406,8 +499,12 @@ async function main(): Promise<void> {
         out: args.out,
         latestDateEt,
         adjustmentMode: args.adjustmentMode,
-        records: records.length,
+        records: filteredRecords.length,
         activeAdjustments,
+        scale: args.scale,
+        markets: args.markets,
+        archetypes: args.archetypes,
+        families: args.families,
       },
       null,
       2,

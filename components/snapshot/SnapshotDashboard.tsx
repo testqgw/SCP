@@ -1,21 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
   SnapshotMarket,
   SnapshotModelSide,
   SnapshotPlayerBacktestReport,
   SnapshotPlayerLookupData,
+  SnapshotPrecisionPickSignal,
   SnapshotPtsConfidenceTier,
   SnapshotPtsSignal,
   SnapshotRow,
 } from "@/lib/types/snapshot";
 
+type MarketFilter = SnapshotMarket | "ALL";
+
 type SnapshotDashboardProps = {
   data: SnapshotBoardData;
-  initialMarket: SnapshotMarket;
+  initialMarket: MarketFilter;
   initialMatchup: string;
   initialPlayerSearch: string;
 };
@@ -25,6 +29,14 @@ type SnapshotBoardApiResponse = {
   result?: SnapshotBoardData;
   error?: string;
 };
+
+type SnapshotRefreshApiResponse = {
+  result?: { status?: string; warnings?: string[] };
+  error?: string;
+};
+
+const VISIT_REFRESH_INTERVAL_MS = 30_000;
+const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 15_000;
 
 const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PTS", label: "Points (PTS)" },
@@ -36,6 +48,13 @@ const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PR", label: "PR" },
   { value: "RA", label: "RA" },
 ];
+
+const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
+  { value: "ALL", label: "All Markets" },
+  ...MARKET_OPTIONS,
+];
+
+const HOMEPAGE_QUALIFIED_PICK_LIMIT = 6;
 
 type DetailSectionKey = "context" | "intel" | "backtest" | "markets" | "logs" | "summary" | "team";
 
@@ -126,6 +145,70 @@ function signalLabelForMarket(market: SnapshotMarket): string {
   return market === "THREES" ? "3PM" : market;
 }
 
+function precisionSignalForMarket(row: SnapshotRow, market: SnapshotMarket): SnapshotPrecisionPickSignal | null {
+  return row.precisionSignals?.[market] ?? null;
+}
+
+function comparePrecisionSignals(
+  left: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
+    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
+  right: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
+    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
+): number {
+  if (right.historicalAccuracy !== left.historicalAccuracy) {
+    return right.historicalAccuracy - left.historicalAccuracy;
+  }
+
+  const rightWinProbability = right.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
+  const leftWinProbability = left.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
+  if (rightWinProbability !== leftWinProbability) {
+    return rightWinProbability - leftWinProbability;
+  }
+
+  const rightPriceEdge = right.projectionPriceEdge ?? Number.NEGATIVE_INFINITY;
+  const leftPriceEdge = left.projectionPriceEdge ?? Number.NEGATIVE_INFINITY;
+  if (rightPriceEdge !== leftPriceEdge) {
+    return rightPriceEdge - leftPriceEdge;
+  }
+
+  const rightGap = right.absLineGap ?? Number.NEGATIVE_INFINITY;
+  const leftGap = left.absLineGap ?? Number.NEGATIVE_INFINITY;
+  if (rightGap !== leftGap) {
+    return rightGap - leftGap;
+  }
+
+  const rightLeaf = right.leafAccuracy ?? Number.NEGATIVE_INFINITY;
+  const leftLeaf = left.leafAccuracy ?? Number.NEGATIVE_INFINITY;
+  if (rightLeaf !== leftLeaf) {
+    return rightLeaf - leftLeaf;
+  }
+
+  const rightBucket = right.bucketRecentAccuracy ?? Number.NEGATIVE_INFINITY;
+  const leftBucket = left.bucketRecentAccuracy ?? Number.NEGATIVE_INFINITY;
+  if (rightBucket !== leftBucket) {
+    return rightBucket - leftBucket;
+  }
+
+  return 0;
+}
+
+function isUnavailableForDailyCard(row: SnapshotRow): boolean {
+  const availabilityStatus = row.playerContext.availabilityStatus;
+  if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") return true;
+  if (availabilityStatus === "QUESTIONABLE" && (row.playerContext.availabilityPercentPlay ?? 100) <= 55) return true;
+  return false;
+}
+
+function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
+  return (
+    data.lastUpdatedAt !== null ||
+    data.matchups.length > 0 ||
+    data.teamMatchups.length > 0 ||
+    data.rows.length > 0 ||
+    Boolean(data.precisionSystem)
+  );
+}
+
 type MarketSignalDisplay = {
   statusText: string;
   statusClass: string;
@@ -154,6 +237,15 @@ type FocusCandidate = {
   signalQualified: boolean;
   supportText: string;
   reasons: string[];
+};
+
+type PrecisionCandidate = FocusCandidate & {
+  precision: SnapshotPrecisionPickSignal;
+};
+
+type DailyCardCandidate = {
+  candidate: PrecisionCandidate;
+  precision: SnapshotPrecisionPickSignal;
 };
 
 function resolveMarketSignalDisplay(
@@ -441,6 +533,17 @@ function formatPercentValue(value: number | null): string {
   return `${value.toFixed(0)}%`;
 }
 
+function formatClientTimestamp(value: Date): string {
+  return value.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 function percentile(values: number[], p: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -538,16 +641,21 @@ export function SnapshotDashboard({
   initialMatchup,
   initialPlayerSearch,
 }: SnapshotDashboardProps): React.ReactElement {
+  const hasInitialBoardSnapshot = hasBoardSnapshotData(initialData);
   const router = useRouter();
-  const boardLoadTargetRef = useRef<string | null>(initialData.rows.length > 0 ? initialData.dateEt : null);
+  const boardLoadTargetRef = useRef<string | null>(hasInitialBoardSnapshot ? initialData.dateEt : null);
   const boardRequestRef = useRef(0);
+  const playerDetailRequestRef = useRef(0);
+  const lastVisitRefreshRef = useRef<{ key: string | null; at: number }>({ key: null, at: 0 });
+  const refreshInFlightRef = useRef(false);
+  const pendingBoardReloadTimeoutRef = useRef<number | null>(null);
   const [boardData, setBoardData] = useState<SnapshotBoardData>(initialData);
   const activeData = boardData;
   const [matchup, setMatchup] = useState(
     initialMatchup && initialData.matchups.some((option) => option.key === initialMatchup) ? initialMatchup : "",
   );
   const [dateInput, setDateInput] = useState(initialData.dateEt);
-  const [market, setMarket] = useState<SnapshotMarket>(initialMarket);
+  const [market, setMarket] = useState<MarketFilter>(initialMarket);
   const [playerSearch, setPlayerSearch] = useState(initialPlayerSearch);
   const [playerSuggestOpen, setPlayerSuggestOpen] = useState(false);
   const [playerSuggestIndex, setPlayerSuggestIndex] = useState(-1);
@@ -555,25 +663,47 @@ export function SnapshotDashboard({
   const [minutesFloorMap, setMinutesFloorMap] = useState<Record<string, string>>({});
   const [guideOpen, setGuideOpen] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<SnapshotRow | null>(null);
-  const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket);
+  const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket === "ALL" ? "PTS" : initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(true);
+  const [pageOpenedAt, setPageOpenedAt] = useState<string | null>(null);
+  const showAdvancedView = false;
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
     defaultCollapsedSections(true),
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
-  const [isBoardLoading, setIsBoardLoading] = useState(initialData.rows.length === 0);
+  const [isBoardLoading, setIsBoardLoading] = useState(!hasInitialBoardSnapshot);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [isPlayerLookupLoading, setIsPlayerLookupLoading] = useState(false);
   const [playerLookupError, setPlayerLookupError] = useState<string | null>(null);
   const [playerLookupMeta, setPlayerLookupMeta] = useState<Omit<SnapshotPlayerLookupData, "row"> | null>(null);
+  const [isPlayerDetailLoading, setIsPlayerDetailLoading] = useState(false);
+  const [playerDetailError, setPlayerDetailError] = useState<string | null>(null);
   const [playerBacktest, setPlayerBacktest] = useState<SnapshotPlayerBacktestReport | null>(null);
   const [playerBacktestLoading, setPlayerBacktestLoading] = useState(false);
   const [playerBacktestError, setPlayerBacktestError] = useState<string | null>(null);
+  const isAllMarketsView = market === "ALL";
 
-  async function loadBoardData(targetDate: string): Promise<void> {
+  const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<SnapshotBoardData> => {
+    const params = new URLSearchParams();
+    params.set("date", targetDate);
+    if (options?.bustCache) {
+      params.set("t", String(Date.now()));
+    }
+
+    const response = await fetch(`/api/snapshot/board?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const payload = (await response.json()) as SnapshotBoardApiResponse;
+    if (!response.ok || !payload.ok || !payload.result) {
+      throw new Error(payload.error ?? "Board load failed.");
+    }
+    return payload.result;
+  }, []);
+
+  const loadBoardData = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<void> => {
     const requestId = boardRequestRef.current + 1;
     boardRequestRef.current = requestId;
     boardLoadTargetRef.current = targetDate;
@@ -581,15 +711,9 @@ export function SnapshotDashboard({
     setBoardError(null);
 
     try {
-      const response = await fetch(`/api/snapshot/board?date=${encodeURIComponent(targetDate)}`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as SnapshotBoardApiResponse;
-      if (!response.ok || !payload.ok || !payload.result) {
-        throw new Error(payload.error ?? "Board load failed.");
-      }
+      const result = await fetchBoardSnapshot(targetDate, options);
       if (requestId !== boardRequestRef.current) return;
-      setBoardData(payload.result);
+      setBoardData(result);
     } catch (error) {
       if (requestId !== boardRequestRef.current) return;
       setBoardError(error instanceof Error ? error.message : "Board load failed.");
@@ -598,11 +722,111 @@ export function SnapshotDashboard({
         setIsBoardLoading(false);
       }
     }
-  }
+  }, [fetchBoardSnapshot]);
+
+  const scheduleBoardReload = useCallback((targetDate: string, delayMs = VISIT_REFRESH_FOLLOW_UP_LOAD_MS): void => {
+    if (pendingBoardReloadTimeoutRef.current != null) {
+      window.clearTimeout(pendingBoardReloadTimeoutRef.current);
+    }
+
+    pendingBoardReloadTimeoutRef.current = window.setTimeout(() => {
+      pendingBoardReloadTimeoutRef.current = null;
+      void loadBoardData(targetDate, { bustCache: true });
+    }, delayMs);
+  }, [loadBoardData]);
+
+  const runBoardRefresh = useCallback(async (targetDate: string, source: "manual" | "visit"): Promise<void> => {
+    const isTodaySlate = targetDate === getTodayEtDateString(new Date());
+    if (!isTodaySlate) {
+      await loadBoardData(targetDate, { bustCache: true });
+      return;
+    }
+
+    if (refreshInFlightRef.current) {
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    setIsRefreshing(true);
+    setRefreshError(null);
+    setRefreshMessage(
+      source === "visit"
+        ? "Refreshing the live board for this visit..."
+        : "Refresh started. The page stays usable while the newest board finishes loading.",
+    );
+
+    try {
+      const response = await fetch("/api/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: source === "visit" ? "FAST" : "DELTA" }),
+      });
+      const payload = (await response.json()) as SnapshotRefreshApiResponse;
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Refresh failed");
+      }
+
+      const warnings = payload.result?.warnings ?? [];
+      if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
+        setRefreshMessage(
+          source === "visit"
+            ? "A live refresh is already running. Loading the newest board as soon as it finishes."
+            : "Refresh is already running. Loading the newest board shortly.",
+        );
+        scheduleBoardReload(targetDate);
+        await loadBoardData(targetDate, { bustCache: true });
+        return;
+      }
+
+      setRefreshMessage(
+        source === "visit"
+          ? `Board refreshed for this visit (${payload.result?.status ?? "SUCCESS"}).`
+          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Updating board...`,
+      );
+      await loadBoardData(targetDate, { bustCache: true });
+    } catch (error) {
+      if (source === "visit") {
+        const message = error instanceof Error ? error.message : "Auto refresh failed.";
+        setRefreshError(`Auto refresh failed: ${message}`);
+        await loadBoardData(targetDate, { bustCache: true });
+        return;
+      }
+
+      setRefreshError(error instanceof Error ? error.message : "Refresh failed");
+    } finally {
+      refreshInFlightRef.current = false;
+      setIsRefreshing(false);
+    }
+  }, [loadBoardData, scheduleBoardReload]);
+
+  const refreshBoardForVisit = useCallback(
+    (targetDate: string, options?: { minIntervalMs?: number }): void => {
+      const now = Date.now();
+      const visitKey =
+        targetDate === getTodayEtDateString(new Date()) ? `live-refresh:${targetDate}` : `board-load:${targetDate}`;
+      const minIntervalMs = options?.minIntervalMs ?? VISIT_REFRESH_INTERVAL_MS;
+      if (lastVisitRefreshRef.current.key === visitKey && now - lastVisitRefreshRef.current.at < minIntervalMs) {
+        return;
+      }
+
+      lastVisitRefreshRef.current = { key: visitKey, at: now };
+      setPageOpenedAt(formatClientTimestamp(new Date(now)));
+      void runBoardRefresh(targetDate, "visit");
+    },
+    [runBoardRefresh],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (pendingBoardReloadTimeoutRef.current != null) {
+        window.clearTimeout(pendingBoardReloadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedPlayer) {
-      setFocusedMarket(market);
+      setFocusedMarket(market === "ALL" ? "PTS" : market);
     }
   }, [selectedPlayer, market]);
 
@@ -611,13 +835,23 @@ export function SnapshotDashboard({
   }, [initialData.dateEt]);
 
   useEffect(() => {
-    if (boardLoadTargetRef.current === initialData.dateEt && (activeData.rows.length > 0 || isBoardLoading)) {
-      return;
-    }
     setBoardData(initialData);
     setBoardError(null);
-    void loadBoardData(initialData.dateEt);
-  }, [activeData.rows.length, initialData, initialData.dateEt, isBoardLoading]);
+    boardLoadTargetRef.current = initialData.dateEt;
+    if (!hasBoardSnapshotData(initialData)) {
+      void loadBoardData(initialData.dateEt, { bustCache: true });
+    }
+    refreshBoardForVisit(initialData.dateEt);
+  }, [initialData, loadBoardData, refreshBoardForVisit]);
+
+  useEffect(() => {
+    const handlePageShow = (): void => {
+      refreshBoardForVisit(activeData.dateEt);
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, [activeData.dateEt, refreshBoardForVisit]);
 
   useEffect(() => {
     if (matchup && !activeData.matchups.some((option) => option.key === matchup)) {
@@ -719,19 +953,78 @@ export function SnapshotDashboard({
   }, [selectedPlayer]);
 
   function closePlayerDetail(): void {
+    playerDetailRequestRef.current += 1;
     setPlayerLookupMeta(null);
+    setIsPlayerDetailLoading(false);
+    setPlayerDetailError(null);
     setSelectedPlayer(null);
   }
 
-  function openPlayerDetail(
+  const hydratePlayerDetail = useCallback(async (
+    row: SnapshotRow,
+    existingLookupMeta: Omit<SnapshotPlayerLookupData, "row"> | null,
+  ): Promise<void> => {
+    if (row.detailLevel === "FULL") {
+      setIsPlayerDetailLoading(false);
+      setPlayerDetailError(null);
+      return;
+    }
+
+    const requestId = playerDetailRequestRef.current + 1;
+    playerDetailRequestRef.current = requestId;
+    setIsPlayerDetailLoading(true);
+    setPlayerDetailError(null);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("date", activeData.dateEt);
+      params.set("playerId", row.playerId);
+      const response = await fetch(`/api/snapshot/player?${params.toString()}`, { cache: "no-store" });
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        result?: SnapshotPlayerLookupData;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.ok || !payload.result) {
+        throw new Error(payload.error ?? "Player detail load failed.");
+      }
+
+      if (requestId !== playerDetailRequestRef.current) return;
+
+      setSelectedPlayer(payload.result.row);
+      if (!existingLookupMeta) {
+        setPlayerLookupMeta({
+          requestedDateEt: payload.result.requestedDateEt,
+          resolvedDateEt: payload.result.resolvedDateEt,
+          note: payload.result.note,
+        });
+      }
+    } catch (error) {
+      if (requestId !== playerDetailRequestRef.current) return;
+      setPlayerDetailError(error instanceof Error ? error.message : "Player detail load failed.");
+    } finally {
+      if (requestId === playerDetailRequestRef.current) {
+        setIsPlayerDetailLoading(false);
+      }
+    }
+  }, [activeData.dateEt]);
+
+  const openPlayerDetail = useCallback((
     row: SnapshotRow,
     lookupMeta: Omit<SnapshotPlayerLookupData, "row"> | null = null,
     targetMarket: SnapshotMarket | null = null,
-  ): void {
-    setFocusedMarket(targetMarket ?? market);
+  ): void => {
+    setFocusedMarket(targetMarket ?? (market === "ALL" ? "PTS" : market));
     setPlayerLookupMeta(lookupMeta);
+    setPlayerDetailError(null);
     setSelectedPlayer(row);
-  }
+    if (row.detailLevel !== "FULL") {
+      void hydratePlayerDetail(row, lookupMeta);
+      return;
+    }
+    setIsPlayerDetailLoading(false);
+  }, [hydratePlayerDetail, market]);
 
   function toggleSection(key: DetailSectionKey): void {
     setCollapsedSections((current) => ({
@@ -752,7 +1045,7 @@ export function SnapshotDashboard({
     const params = new URLSearchParams();
     const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : activeData.dateEt;
     params.set("date", normalizedDate);
-    params.set("market", market);
+    if (market !== "ALL") params.set("market", market);
     if (matchup) params.set("matchup", matchup);
     const player = playerSearch.trim();
     if (player) params.set("player", player);
@@ -769,40 +1062,16 @@ export function SnapshotDashboard({
       void loadBoardData(normalizedDate);
       return;
     }
+    setBoardError(null);
+    setRefreshError(null);
+    setRefreshMessage(null);
+    setIsBoardLoading(true);
     router.push(targetUrl);
-    void loadBoardData(normalizedDate);
   }
 
   async function handleRefresh(): Promise<void> {
     if (isRefreshing) return;
-    setIsRefreshing(true);
-    setRefreshError(null);
-    setRefreshMessage(null);
-    try {
-      const response = await fetch("/api/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "DELTA" }),
-      });
-      const payload = (await response.json()) as {
-        result?: { status?: string; warnings?: string[] };
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Refresh failed");
-      }
-      const warnings = payload.result?.warnings ?? [];
-      if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
-        setRefreshMessage("Refresh is already running. Please wait 1-2 minutes, then click Load Data.");
-        return;
-      }
-      setRefreshMessage(`Refresh complete (${payload.result?.status ?? "SUCCESS"}). Updating board...`);
-      await loadBoardData(/^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : activeData.dateEt);
-    } catch (error) {
-      setRefreshError(error instanceof Error ? error.message : "Refresh failed");
-    } finally {
-      setIsRefreshing(false);
-    }
+    await runBoardRefresh(/^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : activeData.dateEt, "manual");
   }
 
   async function handlePlayerLookup(): Promise<void> {
@@ -874,10 +1143,8 @@ export function SnapshotDashboard({
     const exact = filteredRows.find((row) => row.playerName.toLowerCase() === queryLower);
     const startsWith = filteredRows.find((row) => row.playerName.toLowerCase().startsWith(queryLower));
     const bestMatch = exact ?? startsWith ?? filteredRows[0];
-    setFocusedMarket(market);
-    setPlayerLookupMeta(null);
-    setSelectedPlayer(bestMatch);
-  }, [initialPlayerSearch, activeData.dateEt, initialMarket, initialMatchup, filteredRows, market]);
+    openPlayerDetail(bestMatch);
+  }, [filteredRows, initialPlayerSearch, openPlayerDetail]);
 
   const playerSuggestionPool = useMemo(() => {
     const rows = matchup ? activeData.rows.filter((row) => row.matchupKey === matchup) : activeData.rows;
@@ -903,18 +1170,21 @@ export function SnapshotDashboard({
   }, [playerSuggestionPool, playerSearch]);
 
   const filteredTeamMatchups = useMemo(() => {
+    if (!showAdvancedView) return [];
     if (!matchup) return activeData.teamMatchups;
     return activeData.teamMatchups.filter((item) => item.matchupKey === matchup);
-  }, [activeData.teamMatchups, matchup]);
+  }, [activeData.teamMatchups, matchup, showAdvancedView]);
 
   const currentMarketLabel = useMemo(
-    () => MARKET_OPTIONS.find((option) => option.value === market)?.label ?? market,
+    () => MARKET_FILTER_OPTIONS.find((option) => option.value === market)?.label ?? market,
     [market],
   );
+  const teamStatsMarket = market === "ALL" ? null : market;
 
-  const focusCandidates = useMemo(
-    () =>
-      filteredRows
+  const marketFocusCandidates = useMemo(
+    () => {
+      if (!showAdvancedView || market === "ALL") return [];
+      return filteredRows
         .map((row) => buildFocusCandidate(row, market, lineMap[lineKey(row.playerId, market)]))
         .sort((left, right) => {
           if (right.focusScore !== left.focusScore) return right.focusScore - left.focusScore;
@@ -922,18 +1192,9 @@ export function SnapshotDashboard({
           const rightConfidence = right.display?.confidence ?? 0;
           if (rightConfidence !== leftConfidence) return rightConfidence - leftConfidence;
           return left.row.playerName.localeCompare(right.row.playerName);
-        }),
-    [filteredRows, market, lineMap],
-  );
-
-  const topFocusCandidates = useMemo(
-    () => focusCandidates.filter((candidate) => candidate.focusTier !== "DEEP").slice(0, 8),
-    [focusCandidates],
-  );
-
-  const qualifiedCandidates = useMemo(
-    () => focusCandidates.filter((candidate) => candidate.signalQualified),
-    [focusCandidates],
+        });
+    },
+    [filteredRows, lineMap, market, showAdvancedView],
   );
 
   const allQualifiedCandidates = useMemo(
@@ -956,13 +1217,97 @@ export function SnapshotDashboard({
     [filteredRows, lineMap],
   );
 
+  const allFocusCandidates = useMemo(
+    () => {
+      if (!showAdvancedView) return [];
+      return filteredRows
+        .flatMap((row) =>
+          MARKET_OPTIONS.map((option) => buildFocusCandidate(row, option.value, lineMap[lineKey(row.playerId, option.value)])),
+        )
+        .sort((left, right) => {
+          const leftConfidence = left.display?.confidence ?? 0;
+          const rightConfidence = right.display?.confidence ?? 0;
+          if (rightConfidence !== leftConfidence) return rightConfidence - leftConfidence;
+          if (right.focusScore !== left.focusScore) return right.focusScore - left.focusScore;
+          if (left.row.gameTimeEt !== right.row.gameTimeEt) return left.row.gameTimeEt.localeCompare(right.row.gameTimeEt);
+          if (left.row.playerName !== right.row.playerName) return left.row.playerName.localeCompare(right.row.playerName);
+          return left.market.localeCompare(right.market);
+        });
+    },
+    [filteredRows, lineMap, showAdvancedView],
+  );
+
+  const focusCandidates = useMemo(() => {
+    if (!showAdvancedView) return [];
+    return market === "ALL" ? allFocusCandidates : marketFocusCandidates;
+  }, [allFocusCandidates, market, marketFocusCandidates, showAdvancedView]);
+
+  const topFocusCandidates = useMemo(
+    () => focusCandidates.filter((candidate) => candidate.focusTier !== "DEEP").slice(0, 8),
+    [focusCandidates],
+  );
+
+  const qualifiedCandidates = useMemo(
+    () => focusCandidates.filter((candidate) => candidate.signalQualified),
+    [focusCandidates],
+  );
+
   const allQualifiedMarketSummary = useMemo(
-    () =>
-      MARKET_OPTIONS.map((option) => ({
+    () => {
+      const counts = new Map<SnapshotMarket, number>();
+      allQualifiedCandidates.forEach((candidate) => {
+        counts.set(candidate.market, (counts.get(candidate.market) ?? 0) + 1);
+      });
+      return MARKET_OPTIONS.map((option) => ({
         ...option,
-        count: allQualifiedCandidates.filter((candidate) => candidate.market === option.value).length,
-      })).filter((option) => option.count > 0),
+        count: counts.get(option.value) ?? 0,
+      })).filter((option) => option.count > 0);
+    },
     [allQualifiedCandidates],
+  );
+
+  const precisionCandidates = useMemo(
+    () => {
+      const ranked = filteredRows
+        .flatMap((row) =>
+          (activeData.precisionSystem?.supportedMarkets ?? []).flatMap((supportedMarket) => {
+            const precision = precisionSignalForMarket(row, supportedMarket);
+            if (!precision) return [];
+            const isPrecisionQualified = precision?.qualified ?? precision?.side !== "NEUTRAL";
+            if (!isPrecisionQualified) return [];
+            return [
+              {
+                ...buildFocusCandidate(row, supportedMarket, lineMap[lineKey(row.playerId, supportedMarket)]),
+                precision,
+              } satisfies PrecisionCandidate,
+            ];
+          }),
+        )
+        .sort((left, right) => {
+          const signalComparison = comparePrecisionSignals(left.precision, right.precision);
+          if (signalComparison !== 0) return signalComparison;
+          if (right.focusScore !== left.focusScore) return right.focusScore - left.focusScore;
+          return left.row.playerName.localeCompare(right.row.playerName);
+        });
+
+      const seenPlayers = new Set<string>();
+      return ranked.filter((candidate) => {
+        if (isUnavailableForDailyCard(candidate.row)) return false;
+        if (seenPlayers.has(candidate.row.playerId)) return false;
+        seenPlayers.add(candidate.row.playerId);
+        return true;
+      });
+    },
+    [activeData.precisionSystem?.supportedMarkets, filteredRows, lineMap],
+  );
+
+  const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
+    () =>
+      precisionCandidates.map((candidate) => ({
+        candidate,
+        precision: candidate.precision,
+      })),
+    [precisionCandidates],
   );
 
   const displayedCandidates = useMemo(() => {
@@ -970,36 +1315,36 @@ export function SnapshotDashboard({
     return focusCandidates;
   }, [focusCandidates, qualifiedCandidates, showQualifiedOnly]);
 
-  const matchupFocusCards = useMemo(
-    () =>
-      filteredTeamMatchups.map((item) => {
-        const candidates = focusCandidates.filter((candidate) => candidate.row.matchupKey === item.matchupKey);
-        return {
-          item,
-          totalFocus: candidates.filter((candidate) => candidate.focusTier !== "DEEP").length,
-          qualifiedCount: candidates.filter((candidate) => candidate.signalQualified).length,
-          topCandidates: candidates.slice(0, 3),
-        };
-      }),
-    [filteredTeamMatchups, focusCandidates],
+  const homepageQualifiedCandidates = useMemo(
+    () => allQualifiedCandidates.slice(0, HOMEPAGE_QUALIFIED_PICK_LIMIT),
+    [allQualifiedCandidates],
   );
 
+  const leadingMarket = useMemo(() => {
+    if (allQualifiedMarketSummary.length === 0) return null;
+    return [...allQualifiedMarketSummary].sort((left, right) => right.count - left.count || left.value.localeCompare(right.value))[0];
+  }, [allQualifiedMarketSummary]);
+
+  const matchupFocusCards = useMemo(() => {
+    if (!showAdvancedView) return [];
+    return filteredTeamMatchups.map((item) => {
+      const candidates = focusCandidates.filter((candidate) => candidate.row.matchupKey === item.matchupKey);
+      return {
+        item,
+        totalFocus: candidates.filter((candidate) => candidate.focusTier !== "DEEP").length,
+        qualifiedCount: candidates.filter((candidate) => candidate.signalQualified).length,
+        topCandidates: candidates.slice(0, 3),
+      };
+    });
+  }, [filteredTeamMatchups, focusCandidates, showAdvancedView]);
+
   const selectedMinutesFloor = 22;
-  const activeLineCount = useMemo(
-    () => Object.keys(lineMap).filter((key) => Boolean(parseLine(lineMap[key]))).length,
-    [lineMap],
-  );
-  const highQualityCount = useMemo(
-    () => filteredRows.filter((row) => row.dataCompleteness.tier === "HIGH").length,
-    [filteredRows],
-  );
-  const focusCount = useMemo(
-    () => focusCandidates.filter((candidate) => candidate.focusTier !== "DEEP").length,
-    [focusCandidates],
-  );
   const qualifiedFocusCount = useMemo(
-    () => focusCandidates.filter((candidate) => candidate.signalQualified).length,
-    [focusCandidates],
+    () =>
+      market === "ALL"
+        ? allQualifiedCandidates.length
+        : allQualifiedCandidates.filter((candidate) => candidate.market === market).length,
+    [allQualifiedCandidates, market],
   );
 
   useEffect(() => {
@@ -1020,133 +1365,244 @@ export function SnapshotDashboard({
     openPlayerDetail(row, null);
   }
 
-  return (
-    <main className="mx-auto max-w-[1750px] px-4 pb-8 pt-6 sm:px-6 lg:px-10">
-      <section className="rounded-[26px] border border-[#d5e2ff33] bg-[radial-gradient(1200px_420px_at_8%_0%,#1f5f6f66_0%,transparent_58%),radial-gradient(900px_500px_at_100%_0%,#d9770655_0%,transparent_64%),linear-gradient(150deg,#0e1a35_0%,#121c33_52%,#0b1528_100%)] px-5 py-5 shadow-[0_20px_80px_-45px_rgba(245,158,11,0.65)] sm:px-7 sm:py-7">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.28em] text-amber-200/85">NBA Snapshot Terminal</p>
-            <h1 className="title-font mt-1 text-3xl uppercase text-white sm:text-[2.35rem]">Player Prop Command Center</h1>
-            <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
-              Faster reads, cleaner card flow, and minute-aware market context. Use your own lines and inspect every player through the detail console.
-            </p>
-            <p className="mt-1 text-xs text-slate-300/80">
-              Last refresh: {activeData.lastUpdatedAt ? new Date(activeData.lastUpdatedAt).toLocaleString() : "No refresh yet"}
-            </p>
-          </div>
+  function jumpToSection(sectionId: string): void {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
-          <div className="flex flex-wrap items-center gap-2">
+  function openAllQualifiedBoard(): void {
+    jumpToSection("all-qualified-section");
+  }
+
+  function focusPlayerLookup(): void {
+    const target = document.getElementById("player-search-input") as HTMLInputElement | null;
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => target.focus(), 120);
+  }
+
+  return (
+    <main className="mx-auto max-w-[1600px] px-4 pb-12 pt-6 sm:px-6 lg:px-10">
+      <section className="overflow-hidden rounded-[34px] border border-[#f0d7a1]/15 bg-[radial-gradient(1100px_440px_at_0%_0%,#0f766e55_0%,transparent_62%),radial-gradient(900px_420px_at_100%_0%,#f59e0b33_0%,transparent_58%),linear-gradient(155deg,#071426_0%,#0d1830_48%,#111828_100%)] px-5 py-5 shadow-[0_28px_90px_-42px_rgba(15,23,42,0.9)] sm:px-7 sm:py-7">
+        <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+          <div className="space-y-5">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-[#f3d99b]">UltOps NBA Research</p>
+              <h1 className="title-font mt-3 max-w-4xl text-4xl uppercase leading-[0.95] text-white sm:text-[3.35rem]">
+                Find The Best Card Fast, Then Open Only The Research You Need
+              </h1>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-200/88">
+                This homepage is now built for a fast public read: give the board a few seconds to load, start with the
+                Daily 6 card, then scan the top qualified plays. If you want deeper research on anyone else, open that
+                player directly from lookup.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300/80">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  Page opened: {pageOpenedAt ?? "Loading..."}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  Board updated:{" "}
+                  {activeData.lastUpdatedAt ? new Date(activeData.lastUpdatedAt).toLocaleString() : "No refresh yet"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => jumpToSection("daily-card-section")}
+              className="rounded-full border border-[#4fd1c5]/35 bg-[#0f766e]/20 px-4 py-2 text-sm font-semibold text-teal-50 transition hover:bg-[#0f766e]/30"
+            >
+              Start With Daily 6
+            </button>
+            <button
+              type="button"
+              onClick={openAllQualifiedBoard}
+              className="rounded-full border border-[#f0d7a1]/35 bg-[#f59e0b]/16 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-[#f59e0b]/24"
+            >
+              View All Qualified Picks
+            </button>
             <button
               type="button"
               onClick={() => {
                 void handleRefresh();
               }}
               disabled={isRefreshing}
-              className="rounded-xl border border-emerald-300/45 bg-emerald-500/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isRefreshing ? "Refreshing..." : "Refresh Data"}
+              {isRefreshing ? "Refreshing Slate..." : "Refresh Slate"}
             </button>
             <button
               type="button"
               onClick={() => setGuideOpen(true)}
-              className="rounded-xl border border-amber-300/45 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-500/30"
+              className="rounded-full border border-white/12 bg-[#13203a] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-[#182746]"
             >
-              Open Guide
+              How It Works
             </button>
           </div>
-        </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
-          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Players Showing</p>
-            <p className="mt-1 text-xl font-semibold text-white">{filteredRows.length}</p>
-          </article>
-          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Matchups</p>
-            <p className="mt-1 text-xl font-semibold text-white">{filteredTeamMatchups.length}</p>
-          </article>
-          <article className="rounded-xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-emerald-100/70">Focus This Market</p>
-            <p className="mt-1 text-xl font-semibold text-white">{focusCount}</p>
-          </article>
-          <article className="rounded-xl border border-amber-300/20 bg-amber-500/10 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-amber-100/70">Qualified This Market</p>
-            <p className="mt-1 text-xl font-semibold text-white">{qualifiedFocusCount}</p>
-          </article>
-          <article className="rounded-xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100/70">Qualified All Markets</p>
-            <p className="mt-1 text-xl font-semibold text-white">{allQualifiedCandidates.length}</p>
-          </article>
-          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">High Data Quality</p>
-            <p className="mt-1 text-xl font-semibold text-white">{highQualityCount}</p>
-          </article>
-          <article className="rounded-xl border border-slate-200/15 bg-[#0e1830]/75 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Lines Entered</p>
-            <p className="mt-1 text-xl font-semibold text-white">{activeLineCount}</p>
-          </article>
-        </div>
+          <div className="rounded-[26px] border border-cyan-300/20 bg-[#0b2940]/72 px-4 py-4 text-sm text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <p className="font-semibold text-white">Give the board a few seconds to fully load.</p>
+            <p className="mt-1 text-cyan-50/82">
+              The site settles the slate, live lines, and qualified picks in the background. You should see the top cards
+              stabilize a moment after you hit <span className="font-semibold text-white">Load Board</span> or{" "}
+              <span className="font-semibold text-white">Refresh Slate</span>.
+            </p>
+          </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <article className="rounded-[22px] border border-teal-300/16 bg-[#0b2a2c]/66 px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-teal-100/65">
+                  {activeData.precisionSystem ? `${activeData.precisionSystem.label} Today` : "Daily Card Today"}
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-white">
+                  {activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}
+                </p>
+                <p className="mt-2 text-xs text-slate-300">The first card to trust-check.</p>
+              </article>
+              <article className="rounded-[22px] border border-amber-300/16 bg-[#2a1b0b]/66 px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-amber-100/65">
+                  {isAllMarketsView ? "Qualified On Page" : "Qualified This Market"}
+                </p>
+                <p className="mt-2 text-3xl font-semibold text-white">{qualifiedFocusCount}</p>
+                <p className="mt-2 text-xs text-slate-300">Strong model-backed reads live now.</p>
+              </article>
+              <article className="rounded-[22px] border border-cyan-300/16 bg-[#0a2438]/66 px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-cyan-100/65">Best Market Today</p>
+                <p className="mt-2 text-3xl font-semibold text-white">{leadingMarket?.value ?? "-"}</p>
+                <p className="mt-2 text-xs text-slate-300">Where the board is surfacing the most value.</p>
+              </article>
+              <article className="rounded-[22px] border border-slate-200/10 bg-[#111b2f]/72 px-4 py-4">
+                <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Markets Live</p>
+                <p className="mt-2 text-3xl font-semibold text-white">{allQualifiedMarketSummary.length}</p>
+                <p className="mt-2 text-xs text-slate-300">How many prop markets are live on this board.</p>
+              </article>
+            </div>
 
-        <form onSubmit={handleLoadData} className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[190px_1fr_220px_150px]">
-          <label className="flex min-w-[170px] flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-            Date (ET)
-            <input
-              type="date"
-              value={dateInput}
-              onChange={(event) => setDateInput(event.target.value)}
-              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
-            />
-          </label>
+            {allQualifiedMarketSummary.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMarket("ALL")}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    isAllMarketsView
+                      ? "border-teal-300/45 bg-teal-500/15 text-teal-100"
+                      : "border-white/10 bg-white/6 text-slate-200 hover:border-cyan-300/30 hover:text-white"
+                  }`}
+                >
+                  All Picks {allQualifiedCandidates.length}
+                </button>
+                {allQualifiedMarketSummary.map((option) => (
+                  <button
+                    key={`market-summary-${option.value}`}
+                    type="button"
+                    onClick={() => setMarket(option.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      market === option.value
+                        ? "border-amber-300/45 bg-amber-500/15 text-amber-100"
+                        : "border-white/10 bg-white/6 text-slate-200 hover:border-cyan-300/30 hover:text-white"
+                    }`}
+                  >
+                    {option.value} {option.count}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
-          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-            Matchup
-            <select
-              value={matchup}
-              onChange={(event) => setMatchup(event.target.value)}
-              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
-            >
-              <option value="">All Matchups</option>
-              {activeData.matchups.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="grid gap-4">
+            <div className="rounded-[28px] border border-white/10 bg-[#0b1324]/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Board Controls</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Load The Slate You Want</h2>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Use the date, matchup, and market controls here, then let the board settle before reading the cards.
+                  </p>
+                </div>
+                <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100">
+                  Homepage = Daily 6 + Qualified
+                </span>
+              </div>
 
-          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-            Market
-            <select
-              value={market}
-              onChange={(event) => setMarket(event.target.value as SnapshotMarket)}
-              className="rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
-            >
-              {MARKET_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+              <form onSubmit={handleLoadData} className="mt-5 grid grid-cols-1 gap-3">
+                <div className="grid gap-3 md:grid-cols-[180px_1fr]">
+                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+                    Date (ET)
+                    <input
+                      type="date"
+                      value={dateInput}
+                      onChange={(event) => setDateInput(event.target.value)}
+                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
+                    />
+                  </label>
 
-          <button
-            type="submit"
-            className="h-[42px] self-end rounded-xl border border-amber-300/45 bg-amber-500/20 px-4 text-sm font-semibold text-amber-100 hover:bg-amber-500/30"
-          >
-            Load Data
-          </button>
-        </form>
+                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+                    Matchup
+                    <select
+                      value={matchup}
+                      onChange={(event) => setMatchup(event.target.value)}
+                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
+                    >
+                      <option value="">All Matchups</option>
+                      {activeData.matchups.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
 
-        <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-50">
-          Selected market controls the focus board, slate cards, and deep board. The cross-market section below shows
-          every qualified bet on the page across PTS, REB, AST, THREES, PRA, PA, PR, and RA.
-        </div>
+                <div className="grid gap-3 md:grid-cols-[1fr_170px]">
+                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+                    Market
+                    <select
+                      value={market}
+                      onChange={(event) => setMarket(event.target.value as MarketFilter)}
+                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
+                    >
+                      {MARKET_FILTER_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-        <div className="mt-3 grid grid-cols-1 gap-3">
-          <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-            Player Search
-            <div className="relative">
+                  <button
+                    type="submit"
+                    className="h-[42px] self-end rounded-xl border border-amber-300/35 bg-amber-500/18 px-4 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/26"
+                  >
+                    {isBoardLoading ? "Loading..." : "Load Board"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-[#0c162a]/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Player Lookup</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Open Any Player Directly</h2>
+                  <p className="mt-2 text-sm text-slate-300">
+                    The homepage stays trimmed down. Use lookup whenever you want the full player detail instead of more
+                    homepage clutter.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={focusPlayerLookup}
+                  className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/12"
+                >
+                  Focus Lookup
+                </button>
+              </div>
+
+              <div className="mt-5">
+                <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
+                  Player Search
+                  <div className="relative">
               <input
+                id="player-search-input"
                 value={playerSearch}
                 onFocus={() => {
                   setPlayerSuggestOpen(true);
@@ -1202,11 +1658,11 @@ export function SnapshotDashboard({
                     setPlayerSuggestIndex(-1);
                   }
                 }}
-                placeholder="Type player name..."
-                className="w-full rounded-xl border border-slate-300/25 bg-[#081127]/90 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+                placeholder="Type any player name..."
+                className="w-full rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
               />
               {playerSuggestOpen && playerSuggestions.length > 0 ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-slate-300/25 bg-[#0a1630] shadow-[0_18px_45px_-20px_rgba(15,23,42,0.95)]">
+                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-slate-300/20 bg-[#0a1630] shadow-[0_18px_45px_-20px_rgba(15,23,42,0.95)]">
                   {playerSuggestions.map((row, index) => (
                     <button
                       key={`suggest-${row.playerId}`}
@@ -1216,7 +1672,7 @@ export function SnapshotDashboard({
                         applyPlayerSuggestion(row);
                       }}
                       className={`flex w-full items-center justify-between gap-2 border-b border-slate-300/10 px-3 py-2 text-left text-xs last:border-b-0 ${
-                        index === playerSuggestIndex ? "bg-amber-400/20 text-amber-100" : "text-slate-200 hover:bg-slate-700/30"
+                        index === playerSuggestIndex ? "bg-cyan-400/18 text-cyan-100" : "text-slate-200 hover:bg-slate-700/30"
                       }`}
                     >
                       <span className="font-medium">{row.playerName}</span>
@@ -1227,199 +1683,341 @@ export function SnapshotDashboard({
                   ))}
                 </div>
               ) : null}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void handlePlayerLookup();
-                }}
-                disabled={isPlayerLookupLoading}
-                className="rounded-xl border border-cyan-300/45 bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isPlayerLookupLoading ? "Opening..." : "Open Player Lookup"}
-              </button>
-              <p className="text-[11px] text-slate-400">
-                Opens the player detail directly, even if he is not on the current slate.
-              </p>
-            </div>
-          </label>
-        </div>
+                  </div>
+                </label>
+              </div>
 
-        <p className="mt-3 text-xs text-slate-300/80">
-          Tip: the table now defaults to the <span className="text-amber-200">Model Fair Line</span>. Type your own line only when you want to override it.
-        </p>
-
-        {refreshMessage ? <p className="mt-2 text-xs text-emerald-200">{refreshMessage}</p> : null}
-        {refreshError ? <p className="mt-2 text-xs text-rose-200">{refreshError}</p> : null}
-        {playerLookupError ? <p className="mt-2 text-xs text-rose-200">{playerLookupError}</p> : null}
-        {isBoardLoading ? <p className="mt-2 text-xs text-cyan-200">Loading board for {dateInput}...</p> : null}
-        {boardError ? <p className="mt-2 text-xs text-rose-200">{boardError}</p> : null}
-      </section>
-
-      <section className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <article className="rounded-[24px] border border-emerald-300/20 bg-[linear-gradient(160deg,#0e1932_0%,#0b1730_55%,#0f1e24_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(16,185,129,0.6)] sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Today&apos;s Focus Board</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">{currentMarketLabel}</h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-300">
-                Ranked for quick action using live qualification, confidence, edge size, minutes risk, and data quality.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-right text-xs text-emerald-50">
-              <p className="uppercase tracking-[0.14em] text-emerald-100/70">Best Current Looks</p>
-              <p className="mt-1 text-2xl font-semibold text-white">{topFocusCandidates.length}</p>
-            </div>
-          </div>
-
-          {topFocusCandidates.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-              No strong focus bets surfaced for the current filters yet. Try a different market or matchup.
-            </div>
-          ) : (
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {topFocusCandidates.map((candidate, index) => (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[11px] text-slate-400">
+                  Opens the full player research panel, even when that player is not on the visible homepage cards.
+                </p>
                 <button
-                  key={`focus-${candidate.row.playerId}`}
                   type="button"
                   onClick={() => {
-                    setPlayerLookupError(null);
-                    openPlayerDetail(candidate.row, null);
+                    void handlePlayerLookup();
                   }}
-                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-30px_rgba(148,163,184,0.65)] ${focusTierClass(
-                    candidate.focusTier,
-                  )}`}
+                  disabled={isPlayerLookupLoading}
+                  className="rounded-xl border border-cyan-300/35 bg-cyan-500/16 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/24 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-white/65">#{index + 1} {focusTierLabel(candidate.focusTier)}</p>
-                      <h3 className="mt-1 text-lg font-semibold text-white">{candidate.row.playerName}</h3>
-                      <p className="mt-1 text-xs text-slate-200/80">
-                        {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${modelSideClass(candidate.display?.side ?? candidate.modelLine.modelSide)}`}>
-                        {(candidate.display?.side ?? candidate.modelLine.modelSide) === "NEUTRAL"
-                          ? "WAIT"
-                          : `${candidate.display?.side ?? candidate.modelLine.modelSide} ${market}`}
-                      </span>
-                      <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-semibold text-white/80">
-                        Score {formatStat(candidate.focusScore)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
-                      <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
-                    </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Confidence</p>
-                      <p className="mt-1 font-semibold">
-                        {candidate.display?.confidence == null ? "-" : formatStat(candidate.display.confidence)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Line / Gap</p>
-                      <p className="mt-1 font-semibold">
-                        {formatAverage(candidate.currentLine)} / {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Minutes</p>
-                      <p className="mt-1 font-semibold">
-                        {formatAverage(candidate.row.playerContext.projectedMinutes)} proj
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 space-y-1 text-xs text-slate-100/90">
-                    {candidate.reasons.map((reason) => (
-                      <p key={`${candidate.row.playerId}-${reason}`}>{reason}</p>
-                    ))}
-                    <p className="text-slate-200/75">{candidate.supportText}</p>
-                  </div>
+                  {isPlayerLookupLoading ? "Opening Research..." : "Open Player Research"}
                 </button>
-              ))}
-            </div>
-          )}
-        </article>
-
-        <article className="rounded-[24px] border border-amber-300/20 bg-[linear-gradient(160deg,#101936_0%,#111a31_45%,#23170d_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(245,158,11,0.55)] sm:p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Games Today</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">Slate at a Glance</h2>
-              <p className="mt-1 text-sm text-slate-300">
-                Each matchup shows how many current-market bets are worth a closer look before the full board.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            {matchupFocusCards.length === 0 ? (
-              <div className="rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-                No games loaded for the current filters.
               </div>
-            ) : (
-              matchupFocusCards.map(({ item, totalFocus, qualifiedCount, topCandidates }) => (
-                <article key={`slate-${item.matchupKey}`} className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-white">{item.awayTeam} at {item.homeTeam}</p>
-                      <p className="mt-1 text-xs text-slate-300">{item.gameTimeEt}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em]">
-                      <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-1 text-amber-100">
-                        {totalFocus} focus
-                      </span>
-                      <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-emerald-100">
-                        {qualifiedCount} qualified
-                      </span>
-                    </div>
-                  </div>
-
-                  {topCandidates.length === 0 ? (
-                    <p className="mt-3 text-xs text-slate-400">No standout current-market looks in this matchup yet.</p>
-                  ) : (
-                    <div className="mt-3 space-y-2">
-                      {topCandidates.map((candidate) => (
-                        <button
-                          key={`slate-pick-${candidate.row.playerId}`}
-                          type="button"
-                          onClick={() => {
-                            setPlayerLookupError(null);
-                            openPlayerDetail(candidate.row, null);
-                          }}
-                          className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:bg-white/[0.07]"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-white">{candidate.row.playerName}</p>
-                            <p className="mt-1 text-[11px] text-slate-300">
-                              {candidate.display?.statusText ?? "MODEL READ"} • {candidate.currentLineLabel}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-xs font-semibold ${(candidate.display?.side ?? candidate.modelLine.modelSide) === "OVER" ? "text-emerald-200" : (candidate.display?.side ?? candidate.modelLine.modelSide) === "UNDER" ? "text-amber-200" : "text-slate-200"}`}>
-                              {candidate.display?.side ?? candidate.modelLine.modelSide}
-                            </p>
-                            <p className="mt-1 text-[11px] text-slate-300">Score {formatStat(candidate.focusScore)}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </article>
-              ))
-            )}
+            </div>
           </div>
-        </article>
+        </div>
+
+        {refreshMessage ? (
+          <p className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
+            {refreshMessage}
+          </p>
+        ) : null}
+        {refreshError ? (
+          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+            {refreshError}
+          </p>
+        ) : null}
+        {playerLookupError ? (
+          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+            {playerLookupError}
+          </p>
+        ) : null}
+        {isBoardLoading ? (
+          <p className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-100">
+            Loading board for {dateInput}...
+          </p>
+        ) : null}
+        {boardError ? (
+          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
+            {boardError}
+          </p>
+        ) : null}
       </section>
 
-      <section className="mt-6 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(160deg,#101e38_0%,#0d1a30_55%,#12223f_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(34,211,238,0.4)] sm:p-5">
+      {activeData.precisionSystem ? (
+        <section
+          id="daily-card-section"
+          className="mt-8 rounded-[32px] border border-[#4fd1c5]/15 bg-[radial-gradient(900px_320px_at_0%_0%,#0f766e2a_0%,transparent_60%),radial-gradient(760px_320px_at_100%_0%,#f59e0b26_0%,transparent_60%),linear-gradient(160deg,#0a1426_0%,#0d1a30_55%,#101b2f_100%)] p-5 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.88)] sm:p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-teal-100/70">{activeData.precisionSystem.label}</p>
+              <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s Best One-Prop-Per-Player Card</h2>
+              <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
+                This section only shows true Daily 6 model picks. No fillers, no duplicate players, and the strongest reads
+                are ranked first.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              <div className="rounded-2xl border border-teal-300/15 bg-teal-500/[0.08] px-3 py-2">
+                <p className="uppercase tracking-[0.12em] text-teal-100/70">Today</p>
+                <p className="mt-1 text-xl font-semibold text-white">{dailyCardCandidates.length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">Hist Rate</p>
+                <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalAccuracy)}%</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">Card Rule</p>
+                <p className="mt-1 text-xl font-semibold text-white">1 prop / player</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">Markets</p>
+                <p className="mt-1 text-sm font-semibold text-white">{activeData.precisionSystem.supportedMarkets.join(" / ")}</p>
+              </div>
+            </div>
+          </div>
+
+          {dailyCardCandidates.length === 0 ? (
+            <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
+              No true one-prop-per-player Daily 6 picks are available for the current filters yet. Try clearing matchup or
+              player filters and refresh the board.
+            </div>
+          ) : (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
+                <p className="font-semibold text-white">
+                  {precisionCandidates.length >= 6
+                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} selection${precisionCandidates.length === 1 ? "" : "s"}, and they are all shown here.`
+                    : `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true play${precisionCandidates.length === 1 ? "" : "s"} today. This card does not mix in non-model filler picks.`}
+                </p>
+                <p className="mt-2">
+                  Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.
+                </p>
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                {dailyCardCandidates.map((entry, index) => {
+                  const side =
+                    entry.precision.side ?? entry.candidate.display?.side ?? entry.candidate.modelLine.modelSide;
+                  const isLead = index === 0;
+
+                  return (
+                    <button
+                      key={`daily-card-${entry.candidate.row.playerId}-${entry.candidate.market}`}
+                      type="button"
+                      onClick={() => {
+                        setPlayerLookupError(null);
+                        openPlayerDetail(entry.candidate.row, null, entry.candidate.market);
+                      }}
+                      className={`group rounded-[28px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
+                        isLead
+                          ? "border-fuchsia-300/30 bg-[linear-gradient(150deg,rgba(168,85,247,0.14)_0%,rgba(17,24,39,0.94)_45%,rgba(8,15,29,0.98)_100%)] xl:col-span-3"
+                          : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                              {isLead ? "Top Daily 6 Pick" : `Card #${index + 1}`}
+                            </span>
+                            <span className="rounded-full border border-fuchsia-200/20 bg-fuchsia-400/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-50/90">
+                              {entry.candidate.market}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className={`font-semibold text-white ${isLead ? "text-3xl" : "text-2xl"}`}>
+                              {entry.candidate.row.playerName}
+                            </h3>
+                            <p className="mt-1 text-sm text-slate-200/82">
+                              {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} |{" "}
+                              {entry.candidate.row.gameTimeEt}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${modelSideClass(side)}`}>
+                            {side === "NEUTRAL" ? "WAIT" : `${side} ${entry.candidate.market}`}
+                          </span>
+                          <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/78">
+                            Hist {formatStat(entry.precision.historicalAccuracy)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={`mt-5 grid gap-2 text-xs text-slate-100 ${isLead ? "sm:grid-cols-2 xl:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
+                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Line</p>
+                          <p className="mt-1 font-semibold">{formatAverage(entry.candidate.currentLine)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Gap</p>
+                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.absLineGap, true)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Bucket</p>
+                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.bucketRecentAccuracy)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Leaf</p>
+                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.leafAccuracy)}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Model Prob</p>
+                          <p className="mt-1 font-semibold">
+                            {entry.precision.projectionWinProbability == null
+                              ? "-"
+                              : `${formatStat(entry.precision.projectionWinProbability)}%`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2 text-sm text-slate-100/90">
+                        <p>{entry.candidate.reasons[0] ?? entry.candidate.supportText}</p>
+                        <p className="text-slate-300/75">
+                          Historical rule pack: {entry.precision.historicalPicks} similar picks at{" "}
+                          {formatStat(entry.precision.historicalAccuracy)}%.
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      <section id="best-picks-section" className="mt-6 rounded-[24px] border border-emerald-300/20 bg-[linear-gradient(160deg,#0e1932_0%,#0b1730_55%,#0f1e24_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(16,185,129,0.6)] sm:p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Qualified Picks</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white">The Strongest Qualified Plays On The Page</h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-300">
+              The homepage now only shows qualified model picks. If you want to research anyone else in full detail, use
+              the player lookup instead of scanning extra homepage clutter.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {allQualifiedCandidates.length > homepageQualifiedCandidates.length ? (
+              <button
+                type="button"
+                onClick={openAllQualifiedBoard}
+                className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
+              >
+                View All {allQualifiedCandidates.length}
+              </button>
+            ) : null}
+            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-right text-xs text-emerald-50">
+              <p className="uppercase tracking-[0.14em] text-emerald-100/70">Qualified On Page</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
+            </div>
+          </div>
+        </div>
+
+        {homepageQualifiedCandidates.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+            No qualified picks are available for the current filters yet. Try another date, matchup, or market, then give
+            the board a few seconds to finish loading.
+          </div>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
+              Showing the top {homepageQualifiedCandidates.length} of {allQualifiedCandidates.length} qualified picks on
+              the homepage. Use <span className="font-semibold text-white">View All Qualified Picks</span> any time to
+              open the full all-market board.
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {homepageQualifiedCandidates.map((candidate, index) => {
+                const side = candidate.display?.side ?? candidate.modelLine.modelSide;
+
+                return (
+                  <button
+                    key={`qualified-home-${candidate.row.playerId}-${candidate.market}`}
+                    type="button"
+                    onClick={() => {
+                      setPlayerLookupError(null);
+                      openPlayerDetail(candidate.row, null, candidate.market);
+                    }}
+                    className={`rounded-[26px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
+                      index === 0
+                        ? "border-emerald-300/30 bg-[linear-gradient(150deg,rgba(16,185,129,0.12)_0%,rgba(17,24,39,0.94)_48%,rgba(8,15,29,0.98)_100%)]"
+                        : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                            {index === 0 ? "Top Qualified" : `Qualified #${index + 1}`}
+                          </span>
+                          <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-100/90">
+                            {candidate.market}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-semibold text-white">{candidate.row.playerName}</h3>
+                          <p className="mt-1 text-sm text-slate-200/82">
+                            {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${modelSideClass(side)}`}>
+                          {side === "NEUTRAL" ? "WAIT" : `${side} ${candidate.market}`}
+                        </span>
+                        <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/78">
+                          {candidate.display?.confidence == null ? "Conf -" : `Conf ${formatStat(candidate.display.confidence)}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
+                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Status</p>
+                        <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Line</p>
+                        <p className="mt-1 font-semibold">{formatAverage(candidate.currentLine)}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Gap</p>
+                        <p className="mt-1 font-semibold">
+                          {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Proj Min</p>
+                        <p className="mt-1 font-semibold">{formatAverage(candidate.row.playerContext.projectedMinutes)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2 text-sm text-slate-100/90">
+                      <p>{candidate.reasons[0] ?? candidate.supportText}</p>
+                      <p className="text-slate-300/75">{candidate.supportText}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-[28px] border border-[#f0d7a1]/15 bg-[linear-gradient(150deg,#111827_0%,#0c162b_52%,#111827_100%)] p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.9)]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="max-w-3xl">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-[#f3d99b]">Research Deeper</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Use Player Lookup For Full Player Research</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              The homepage now stays tight on purpose. If you want deeper logs, matchup context, backtest detail, or every
+              market for a player, jump to lookup and open the full panel there instead of loading more homepage clutter.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={focusPlayerLookup}
+            className="rounded-full border border-[#f0d7a1]/35 bg-[#f59e0b]/16 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-[#f59e0b]/24"
+          >
+            Jump To Lookup
+          </button>
+        </div>
+      </section>
+
+      <section id="all-qualified-section" className="mt-6 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(160deg,#101e38_0%,#0d1a30_55%,#12223f_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(34,211,238,0.4)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">All Markets</p>
@@ -1523,6 +2121,174 @@ export function SnapshotDashboard({
         )}
       </section>
 
+      {showAdvancedView ? (
+        <>
+      <section className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="rounded-[24px] border border-emerald-300/20 bg-[linear-gradient(160deg,#0e1932_0%,#0b1730_55%,#0f1e24_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(16,185,129,0.6)] sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Today&apos;s Focus Board</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">{currentMarketLabel}</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-300">
+                Ranked for quick action using live qualification, confidence, edge size, minutes risk, and data quality.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-right text-xs text-emerald-50">
+              <p className="uppercase tracking-[0.14em] text-emerald-100/70">Best Current Looks</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{topFocusCandidates.length}</p>
+            </div>
+          </div>
+
+          {topFocusCandidates.length === 0 ? (
+            <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+              No strong focus bets surfaced for the current filters yet. Try a different market or matchup.
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {topFocusCandidates.map((candidate, index) => (
+                <button
+                  key={`focus-${candidate.row.playerId}-${candidate.market}`}
+                  type="button"
+                  onClick={() => {
+                    setPlayerLookupError(null);
+                    openPlayerDetail(candidate.row, null, candidate.market);
+                  }}
+                  className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-30px_rgba(148,163,184,0.65)] ${focusTierClass(
+                    candidate.focusTier,
+                  )}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-white/65">#{index + 1} {focusTierLabel(candidate.focusTier)}</p>
+                      <h3 className="mt-1 text-lg font-semibold text-white">{candidate.row.playerName}</h3>
+                      <p className="mt-1 text-xs text-slate-200/80">
+                        {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${modelSideClass(candidate.display?.side ?? candidate.modelLine.modelSide)}`}>
+                        {(candidate.display?.side ?? candidate.modelLine.modelSide) === "NEUTRAL"
+                          ? "WAIT"
+                          : `${candidate.display?.side ?? candidate.modelLine.modelSide} ${candidate.market}`}
+                      </span>
+                      <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-semibold text-white/80">
+                        Score {formatStat(candidate.focusScore)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
+                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
+                      <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
+                    </div>
+                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Confidence</p>
+                      <p className="mt-1 font-semibold">
+                        {candidate.display?.confidence == null ? "-" : formatStat(candidate.display.confidence)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Line / Gap</p>
+                      <p className="mt-1 font-semibold">
+                        {formatAverage(candidate.currentLine)} / {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Minutes</p>
+                      <p className="mt-1 font-semibold">
+                        {formatAverage(candidate.row.playerContext.projectedMinutes)} proj
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-1 text-xs text-slate-100/90">
+                    {candidate.reasons.map((reason) => (
+                      <p key={`${candidate.row.playerId}-${reason}`}>{reason}</p>
+                    ))}
+                    <p className="text-slate-200/75">{candidate.supportText}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </article>
+
+        <article className="rounded-[24px] border border-amber-300/20 bg-[linear-gradient(160deg,#101936_0%,#111a31_45%,#23170d_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(245,158,11,0.55)] sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Games Today</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">Slate at a Glance</h2>
+              <p className="mt-1 text-sm text-slate-300">
+                {isAllMarketsView
+                  ? "Each matchup rolls up the strongest overall props first, so you can scan the whole slate before narrowing down."
+                  : "Each matchup shows how many current-market bets are worth a closer look before the full board."}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {matchupFocusCards.length === 0 ? (
+              <div className="rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+                No games loaded for the current filters.
+              </div>
+            ) : (
+              matchupFocusCards.map(({ item, totalFocus, qualifiedCount, topCandidates }) => (
+                <article key={`slate-${item.matchupKey}`} className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.awayTeam} at {item.homeTeam}</p>
+                      <p className="mt-1 text-xs text-slate-300">{item.gameTimeEt}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em]">
+                      <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-1 text-amber-100">
+                        {totalFocus} focus
+                      </span>
+                      <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-emerald-100">
+                        {qualifiedCount} qualified
+                      </span>
+                    </div>
+                  </div>
+
+                  {topCandidates.length === 0 ? (
+                    <p className="mt-3 text-xs text-slate-400">No standout current-market looks in this matchup yet.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {topCandidates.map((candidate) => (
+                        <button
+                          key={`slate-pick-${candidate.row.playerId}-${candidate.market}`}
+                          type="button"
+                          onClick={() => {
+                            setPlayerLookupError(null);
+                            openPlayerDetail(candidate.row, null, candidate.market);
+                          }}
+                          className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-left hover:bg-white/[0.07]"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-white">{candidate.row.playerName}</p>
+                            <p className="mt-1 text-[11px] text-slate-300">
+                              {candidate.display?.statusText ?? "MODEL READ"} | {candidate.currentLineLabel}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-xs font-semibold ${(candidate.display?.side ?? candidate.modelLine.modelSide) === "OVER" ? "text-emerald-200" : (candidate.display?.side ?? candidate.modelLine.modelSide) === "UNDER" ? "text-amber-200" : "text-slate-200"}`}>
+                              {candidate.display?.side ?? candidate.modelLine.modelSide}
+                            </p>
+                            <p className="mt-1 text-[11px] text-slate-300">Score {formatStat(candidate.focusScore)}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))
+            )}
+          </div>
+        </article>
+      </section>
+
+
+      {!isAllMarketsView ? (
       <section className="mt-6 rounded-[24px] border border-amber-300/20 bg-[linear-gradient(160deg,#121b34_0%,#0e182f_55%,#20130b_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(245,158,11,0.55)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1546,11 +2312,11 @@ export function SnapshotDashboard({
           <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
             {qualifiedCandidates.map((candidate, index) => (
               <button
-                key={`qualified-${candidate.row.playerId}`}
+                key={`qualified-${candidate.row.playerId}-${candidate.market}`}
                 type="button"
                 onClick={() => {
                   setPlayerLookupError(null);
-                  openPlayerDetail(candidate.row, null);
+                  openPlayerDetail(candidate.row, null, candidate.market);
                 }}
                 className="rounded-2xl border border-amber-300/30 bg-[#0d162d] p-4 text-left hover:bg-[#111e3c]"
               >
@@ -1607,10 +2373,15 @@ export function SnapshotDashboard({
           </div>
         )}
       </section>
+      ) : null}
 
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Team Matchup Stats</h2>
-        {isBoardLoading && filteredTeamMatchups.length === 0 ? (
+        {isAllMarketsView ? (
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">
+            Pick a specific market when you want team offense vs defense matchup stats. The default all-markets view stays focused on the best overall prop selection.
+          </div>
+        ) : isBoardLoading && filteredTeamMatchups.length === 0 ? (
           <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">
             Loading matchup stats...
           </div>
@@ -1619,8 +2390,9 @@ export function SnapshotDashboard({
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {filteredTeamMatchups.map((item) => {
-              const awayEdge = edge(item.awayLast10For[market], item.homeLast10Allowed[market]);
-              const homeEdge = edge(item.homeLast10For[market], item.awayLast10Allowed[market]);
+              const matchupMarket = teamStatsMarket ?? "PTS";
+              const awayEdge = edge(item.awayLast10For[matchupMarket], item.homeLast10Allowed[matchupMarket]);
+              const homeEdge = edge(item.homeLast10For[matchupMarket], item.awayLast10Allowed[matchupMarket]);
               return (
                 <article key={item.matchupKey} className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-4 shadow-[0_16px_40px_-30px_rgba(245,158,11,0.45)]">
                   <p className="text-xs uppercase tracking-[0.12em] text-amber-200">{item.matchupKey}</p>
@@ -1633,10 +2405,10 @@ export function SnapshotDashboard({
                         Record: {item.awaySeasonRecord.wins}-{item.awaySeasonRecord.losses} (L10 {item.awayLast10Record.wins}-{item.awayLast10Record.losses})
                       </p>
                       <p className="text-slate-300">
-                        For ({market}): {formatAverage(item.awaySeasonFor[market])} | L10 {formatAverage(item.awayLast10For[market])}
+                        For ({matchupMarket}): {formatAverage(item.awaySeasonFor[matchupMarket])} | L10 {formatAverage(item.awayLast10For[matchupMarket])}
                       </p>
                       <p className="text-slate-300">
-                        Allowed ({market}): {formatAverage(item.awaySeasonAllowed[market])} | L10 {formatAverage(item.awayLast10Allowed[market])}
+                        Allowed ({matchupMarket}): {formatAverage(item.awaySeasonAllowed[matchupMarket])} | L10 {formatAverage(item.awayLast10Allowed[matchupMarket])}
                       </p>
                       <p className="text-slate-300">
                         Attack vs Opp D: {formatAverage(awayEdge, true)}
@@ -1649,10 +2421,10 @@ export function SnapshotDashboard({
                         Record: {item.homeSeasonRecord.wins}-{item.homeSeasonRecord.losses} (L10 {item.homeLast10Record.wins}-{item.homeLast10Record.losses})
                       </p>
                       <p className="text-slate-300">
-                        For ({market}): {formatAverage(item.homeSeasonFor[market])} | L10 {formatAverage(item.homeLast10For[market])}
+                        For ({matchupMarket}): {formatAverage(item.homeSeasonFor[matchupMarket])} | L10 {formatAverage(item.homeLast10For[matchupMarket])}
                       </p>
                       <p className="text-slate-300">
-                        Allowed ({market}): {formatAverage(item.homeSeasonAllowed[market])} | L10 {formatAverage(item.homeLast10Allowed[market])}
+                        Allowed ({matchupMarket}): {formatAverage(item.homeSeasonAllowed[matchupMarket])} | L10 {formatAverage(item.homeLast10Allowed[matchupMarket])}
                       </p>
                       <p className="text-slate-300">
                         Attack vs Opp D: {formatAverage(homeEdge, true)}
@@ -1666,7 +2438,7 @@ export function SnapshotDashboard({
         )}
       </section>
 
-      <section className="mt-6">
+      <section id="deep-board" className="mt-6">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Deep Board</h2>
@@ -1718,6 +2490,7 @@ export function SnapshotDashboard({
                 <thead className="bg-[#1a2a51] text-xs uppercase tracking-[0.12em] text-slate-200/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
+                    {isAllMarketsView ? <th className="px-4 py-3">Market</th> : null}
                     <th className="px-4 py-3">Focus</th>
                     <th className="px-4 py-3">Matchup</th>
                     <th className="px-4 py-3">
@@ -1804,7 +2577,7 @@ export function SnapshotDashboard({
                         definition="Model projection for this market tonight from recent form, season baseline, home/away split, matchup allowance, and minutes trend."
                       />
                     </th>
-                    {["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"].includes(market) ? (
+                    {!isAllMarketsView ? (
                       <th className="px-4 py-3">
                         <HeaderWithTip
                           label={`${signalLabelForMarket(market)} Filter`}
@@ -1821,7 +2594,9 @@ export function SnapshotDashboard({
                           }
                         />
                       </th>
-                    ) : null}
+                    ) : (
+                      <th className="px-4 py-3">Live Filter</th>
+                    )}
                     <th className="px-4 py-3">Your Line</th>
                     <th className="px-4 py-3">
                       <HeaderWithTip
@@ -1840,7 +2615,8 @@ export function SnapshotDashboard({
                 <tbody>
                   {displayedCandidates.map((candidate) => {
                     const row = candidate.row;
-                    const l10Values = row.last10[market];
+                    const candidateMarket = candidate.market;
+                    const l10Values = row.last10[candidateMarket];
                     const l10Volatility = standardDeviation(l10Values);
                     const l10Consistency = consistencyPct(l10Values);
                     const floor = minValue(l10Values);
@@ -1850,15 +2626,15 @@ export function SnapshotDashboard({
                     const currentLine = candidate.currentLine;
                     const l10Hit = currentLine == null ? null : hitCounts(l10Values, currentLine);
                     const minuteFloorLogs = row.analysisLogs.filter((log) => log.minutes >= selectedMinutesFloor);
-                    const minuteFloorValues = minuteFloorLogs.map((log) => marketValueFromLog(log, market));
+                    const minuteFloorValues = minuteFloorLogs.map((log) => marketValueFromLog(log, candidateMarket));
                     const minuteFloorHit = currentLine == null ? null : hitCounts(minuteFloorValues, currentLine);
 
                     return (
                       <tr
-                        key={row.playerId}
+                        key={`${row.playerId}:${candidateMarket}`}
                         onClick={() => {
                           setPlayerLookupError(null);
-                          openPlayerDetail(row, null);
+                          openPlayerDetail(row, null, candidateMarket);
                         }}
                         className={`cursor-pointer border-t border-slate-300/10 text-slate-100 hover:bg-cyan-300/8 ${focusRowAccentClass(
                           candidate.focusTier,
@@ -1868,6 +2644,9 @@ export function SnapshotDashboard({
                           <div>{row.playerName}</div>
                           <div className="text-xs text-slate-400">{row.position ?? "N/A"}</div>
                         </td>
+                        {isAllMarketsView ? (
+                          <td className="px-4 py-3 text-xs font-semibold text-cyan-100">{signalLabelForMarket(candidateMarket)}</td>
+                        ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div className="flex flex-wrap items-center gap-1">
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${focusTierClass(candidate.focusTier)}`}>
@@ -1925,17 +2704,17 @@ export function SnapshotDashboard({
                           <div className="mt-1 text-slate-400">{candidate.currentLineLabel}</div>
                           <div className="mt-1 text-slate-400">{candidate.supportText}</div>
                         </td>
-                        <td className="px-4 py-3">{formatAverage(row.last10Average[market])}</td>
-                        <td className="px-4 py-3">{formatAverage(row.seasonAverage[market])}</td>
+                        <td className="px-4 py-3">{formatAverage(row.last10Average[candidateMarket])}</td>
+                        <td className="px-4 py-3">{formatAverage(row.seasonAverage[candidateMarket])}</td>
                         <td className="px-4 py-3">{formatAverage(l10Volatility)}</td>
                         <td className="px-4 py-3">{formatPercentValue(l10Consistency)}</td>
                         <td className="px-4 py-3">
                           {floor == null || ceiling == null ? "-" : `${formatStat(floor)} / ${formatStat(ceiling)}`}
                         </td>
-                        <td className="px-4 py-3">{formatAverage(row.trendVsSeason[market], true)}</td>
-                        <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[market], true)}</td>
+                        <td className="px-4 py-3">{formatAverage(row.trendVsSeason[candidateMarket], true)}</td>
+                        <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[candidateMarket], true)}</td>
                         <td className="px-4 py-3 text-xs">
-                          <div>{formatAverage(row.projectedTonight[market])}</div>
+                          <div>{formatAverage(row.projectedTonight[candidateMarket])}</div>
                           <div className="mt-1 flex items-center gap-1">
                             <span className="text-slate-400">Fair</span>
                             <span className="font-semibold text-cyan-100">{formatAverage(modelLine.fairLine)}</span>
@@ -1974,7 +2753,7 @@ export function SnapshotDashboard({
                             </div>
                           </td>
                         ) : (
-                          <td className="px-4 py-3 text-xs text-slate-400">No live {market} line</td>
+                          <td className="px-4 py-3 text-xs text-slate-400">No live {candidateMarket} line</td>
                         )}
                         <td className="px-4 py-3">
                           <div className="mb-1 text-[10px] text-slate-400">
@@ -1985,12 +2764,12 @@ export function SnapshotDashboard({
                                 )}`}
                           </div>
                           <input
-                            value={lineMap[lineKey(row.playerId, market)] ?? ""}
+                            value={lineMap[lineKey(row.playerId, candidateMarket)] ?? ""}
                             onClick={(event) => event.stopPropagation()}
                             onChange={(event) =>
                               setLineMap((current) => ({
                                 ...current,
-                                [lineKey(row.playerId, market)]: event.target.value,
+                                [lineKey(row.playerId, candidateMarket)]: event.target.value,
                               }))
                             }
                             inputMode="decimal"
@@ -2029,6 +2808,9 @@ export function SnapshotDashboard({
         )}
       </section>
 
+        </>
+      ) : null}
+
       {guideOpen ? (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
@@ -2060,11 +2842,11 @@ export function SnapshotDashboard({
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
                 <ol className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>1. Pick a date, matchup, and market from the top filters.</li>
-                  <li>2. For `PTS`, `REB`, and `AST`, read the market filter first. `QUALIFIED` means the live side cleared the confidence and minutes-risk rules.</li>
-                  <li>3. Read the `Model Fair Line` and `Over/Under Zone` in each row.</li>
+                  <li>1. Start with `All Markets` to see the strongest overall slate.</li>
+                  <li>2. Use the market chips to jump into a single stat family only when you want to narrow the board.</li>
+                  <li>3. Read the `Daily 6` card first, then the overall best-pick section.</li>
                   <li>4. Override with your own line only when needed, then read `L10 O/U` plus `Minute Badge`.</li>
-                  <li>5. Click a player row to open full analyzer + context sections.</li>
+                  <li>5. Click a player row to open the full analyzer and context sections.</li>
                 </ol>
               </article>
 
@@ -2136,6 +2918,16 @@ export function SnapshotDashboard({
                   {playerLookupMeta?.note ? (
                     <p className="mt-2 max-w-2xl rounded-lg border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
                       {playerLookupMeta.note}
+                    </p>
+                  ) : null}
+                  {isPlayerDetailLoading ? (
+                    <p className="mt-2 max-w-2xl rounded-lg border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
+                      Loading the full player detail now. The header is ready, and the deeper logs and intel will fill in next.
+                    </p>
+                  ) : null}
+                  {playerDetailError ? (
+                    <p className="mt-2 max-w-2xl rounded-lg border border-rose-300/20 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
+                      {playerDetailError}
                     </p>
                   ) : null}
                   {(["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as SnapshotMarket[]).map((signalMarket) => {
@@ -3158,11 +3950,11 @@ export function SnapshotDashboard({
             >
               <section className="text-xs text-slate-300">
               <p>
-                Quick read ({market}): L5 avg {formatAverage(average(selectedPlayer.last5[market]))} | L10 avg{" "}
-                {formatAverage(selectedPlayer.last10Average[market])} | Projection {formatAverage(selectedPlayer.projectedTonight[market])} | Fair line{" "}
-                {formatAverage(selectedPlayer.modelLines[market].fairLine)} | Model side {selectedPlayer.modelLines[market].modelSide} | Trend{" "}
-                {formatAverage(selectedPlayer.trendVsSeason[market], true)} | Opp +/-{" "}
-                {formatAverage(selectedPlayer.opponentAllowanceDelta[market], true)}
+                Quick read ({focusedMarket}): L5 avg {formatAverage(average(selectedPlayer.last5[focusedMarket]))} | L10 avg{" "}
+                {formatAverage(selectedPlayer.last10Average[focusedMarket])} | Projection {formatAverage(selectedPlayer.projectedTonight[focusedMarket])} | Fair line{" "}
+                {formatAverage(selectedPlayer.modelLines[focusedMarket].fairLine)} | Model side {selectedPlayer.modelLines[focusedMarket].modelSide} | Trend{" "}
+                {formatAverage(selectedPlayer.trendVsSeason[focusedMarket], true)} | Opp +/-{" "}
+                {formatAverage(selectedPlayer.opponentAllowanceDelta[focusedMarket], true)}
               </p>
             </section>
             </CollapsibleSection>
@@ -3178,11 +3970,11 @@ export function SnapshotDashboard({
                 {(() => {
                   const item = matchupStatsByKey.get(selectedPlayer.matchupKey)!;
                   const teamIsAway = selectedPlayer.teamCode === item.awayTeam;
-                  const teamFor = teamIsAway ? item.awayLast10For[market] : item.homeLast10For[market];
-                  const oppAllowed = teamIsAway ? item.homeLast10Allowed[market] : item.awayLast10Allowed[market];
+                  const teamFor = teamIsAway ? item.awayLast10For[focusedMarket] : item.homeLast10For[focusedMarket];
+                  const oppAllowed = teamIsAway ? item.homeLast10Allowed[focusedMarket] : item.awayLast10Allowed[focusedMarket];
                   return (
                     <p className="text-slate-300">
-                      Team context ({selectedPlayer.teamCode} {market}): L10 offense {formatAverage(teamFor)} vs opponent L10 allowed {formatAverage(oppAllowed)} | edge{" "}
+                      Team context ({selectedPlayer.teamCode} {focusedMarket}): L10 offense {formatAverage(teamFor)} vs opponent L10 allowed {formatAverage(oppAllowed)} | edge{" "}
                       {formatAverage(edge(teamFor, oppAllowed), true)}
                     </p>
                   );

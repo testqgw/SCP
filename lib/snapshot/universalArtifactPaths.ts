@@ -6,6 +6,10 @@ export const DEFAULT_UNIVERSAL_LIVE_MODEL_FALLBACK_RELATIVE_PATH = path.join(
   "universal-archetype-side-models-2025-10-23-to-2026-03-09-v16-bench-split.json",
 );
 export const DEFAULT_UNIVERSAL_LIVE_CALIBRATION_RELATIVE_PATH = path.join("exports", "universal-live-calibration.json");
+export const DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH = path.join(
+  "exports",
+  "universal-live-projection-distribution.json",
+);
 export const DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH = path.join("exports", "projection-backtest-allplayers-with-rows-live.json");
 export const DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH = path.join(
   "exports",

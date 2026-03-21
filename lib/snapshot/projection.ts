@@ -138,6 +138,207 @@ const COMBO_DIRECT_WEIGHT = (() => {
   return clamp(parsed, 0, 1);
 })();
 
+const SCORE_FIRST_LEAD_GUARD_THREES_FACTOR = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SCORE_FIRST_LEAD_GUARD_THREES_FACTOR);
+  if (!Number.isFinite(parsed)) return 1;
+  return clamp(parsed, 0.85, 1.15);
+})();
+
+// 2026-03-17: default-off late-stage scoring penalty for heavy-favorite score-first guards.
+const FAVORITE_SCORING_PENALTY_FACTOR = (() => {
+  const parsed = Number(process.env.SNAPSHOT_FAVORITE_SCORING_PENALTY_FACTOR);
+  if (!Number.isFinite(parsed)) return 1;
+  return clamp(parsed, 0.7, 1);
+})();
+
+// 2026-03-18: default-off B2B scoring efficiency drag.
+// In this stack, consecutive-game fatigue shows up as restDays <= 1.
+const B2B_EFFICIENCY_DRAG = (() => {
+  const parsed = Number(process.env.SNAPSHOT_B2B_EFFICIENCY_DRAG);
+  if (!Number.isFinite(parsed)) return 1;
+  return clamp(parsed, 0.85, 1);
+})();
+
+// 2026-03-18: only apply B2B scoring drag to true heavy-workload players.
+const B2B_MINUTES_THRESHOLD = (() => {
+  const parsed = Number(process.env.SNAPSHOT_B2B_MINUTES_THRESHOLD);
+  if (!Number.isFinite(parsed)) return 32;
+  return clamp(parsed, 24, 40);
+})();
+
+// 2026-03-18: default-off asymmetric road tax for vulnerable bench/spot-up roles.
+const ROAD_BENCH_DRAG = (() => {
+  const parsed = Number(process.env.SNAPSHOT_ROAD_BENCH_DRAG);
+  if (!Number.isFinite(parsed)) return 1;
+  return clamp(parsed, 0.82, 1);
+})();
+
+// 2026-03-18: default-off spot-up-wing road volatility factor.
+const SPOTUP_WING_ROAD_VOLATILITY_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SPOTUP_WING_ROAD_VOLATILITY_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.5);
+})();
+
+// 2026-03-16: whole-model game-environment factor using live/historical opening totals.
+const OPENING_TOTAL_ENV_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_OPENING_TOTAL_ENV_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0.0025;
+  return clamp(parsed, -0.01, 0.01);
+})();
+
+const OPENING_TOTAL_ENV_BASELINE = (() => {
+  const parsed = Number(process.env.SNAPSHOT_OPENING_TOTAL_ENV_BASELINE);
+  if (!Number.isFinite(parsed)) return 228;
+  return clamp(parsed, 210, 250);
+})();
+
+// 2026-03-16: asymmetric spread hooks for big-role game script.
+// Promoted winner: favorite-center penalty only.
+const FAVORITE_CENTER_PENALTY_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_FAVORITE_CENTER_PENALTY_STRENGTH);
+  if (!Number.isFinite(parsed)) return 1;
+  return clamp(parsed, 0, 2);
+})();
+
+// 2026-03-17: default-off guard blowout penalty sweep for favorite lead guards.
+const FAVORITE_GUARD_PENALTY_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_FAVORITE_GUARD_PENALTY_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 2);
+})();
+
+const UNDERDOG_BENCH_BIG_BOOST_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_UNDERDOG_BENCH_BIG_BOOST_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 2);
+})();
+
+const BIG_ROLE_SPREAD_ABS_THRESHOLD = (() => {
+  const parsed = Number(process.env.SNAPSHOT_BIG_ROLE_SPREAD_ABS_THRESHOLD);
+  if (!Number.isFinite(parsed)) return 10;
+  return clamp(parsed, 6, 18);
+})();
+
+// 2026-03-16: whole-model frontcourt rebound-opportunity factor, kept env-gated for fast sweeps.
+const BIGMAN_REB_FACTOR_STRENGTH = (() => {
+  const parsed = Number(process.env.BIGMAN_REB_FACTOR_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.25);
+})();
+
+const BIGMAN_REB_FACTOR_BASELINE = (() => {
+  const parsed = Number(process.env.BIGMAN_REB_FACTOR_BASELINE);
+  if (!Number.isFinite(parsed)) return 220;
+  return clamp(parsed, 210, 250);
+})();
+
+// 2026-03-16: whole-model bench-big minutes sensitivity, kept env-gated for sweeps.
+const BENCH_BIG_MINUTES_SENSITIVITY = (() => {
+  const parsed = Number(process.env.BENCH_BIG_MINUTES_SENSITIVITY);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.25);
+})();
+
+const BENCH_BIG_MINUTES_BASELINE = (() => {
+  const parsed = Number(process.env.BENCH_BIG_MINUTES_BASELINE);
+  if (!Number.isFinite(parsed)) return 220;
+  return clamp(parsed, 210, 250);
+})();
+
+// 2026-03-16: whole-model role-volatility factor for big roles, kept env-gated for sweeps.
+const ROLE_VOLATILITY_STRENGTH = (() => {
+  const parsed = Number(process.env.ROLE_VOLATILITY_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.25);
+})();
+
+const ROLE_VOLATILITY_BASELINE = (() => {
+  const parsed = Number(process.env.ROLE_VOLATILITY_BASELINE);
+  if (!Number.isFinite(parsed)) return 4.5;
+  return clamp(parsed, 2.5, 8);
+})();
+
+// 2026-03-16: pace-adjusted opponent-defense proxy for big roles.
+// True oppDefRtg isn't in the snapshot stack, so this uses pace-normalized opponent allowance deltas.
+const OPP_DEF_RTG_STRENGTH = (() => {
+  const parsed = Number(process.env.OPP_DEF_RTG_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.1);
+})();
+
+// 2026-03-16: whole-model injury + teammate-absence minutes multiplier for bigs.
+const INJURY_TEAMMATE_MINUTES_STRENGTH = (() => {
+  const parsed = Number(process.env.INJURY_TEAMMATE_MINUTES_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0;
+  return clamp(parsed, 0, 1.4);
+})();
+
+const OPENING_TOTAL_ENV_MARKET_WEIGHT: Record<SnapshotMarket, number> = {
+  PTS: 1,
+  REB: 0.84,
+  AST: 1.06,
+  THREES: 1,
+  PRA: 1,
+  PA: 1.02,
+  PR: 0.93,
+  RA: 0.92,
+};
+
+const BIGMAN_REB_OPPORTUNITY_MARKET_WEIGHT: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 0.92,
+  REB: 1,
+  PRA: 1.06,
+  PR: 1.09,
+  RA: 1.14,
+};
+
+const BENCH_BIG_MINUTES_MARKET_WEIGHT: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 0.95,
+  REB: 1.08,
+  PA: 1.05,
+  PRA: 1.04,
+  PR: 1.03,
+  RA: 1.02,
+};
+
+const BIG_ROLE_VOLATILITY_MARKET_WEIGHT: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 0.94,
+  REB: 1.12,
+  PA: 1.06,
+  PRA: 1.09,
+  PR: 1.15,
+  RA: 1.18,
+};
+
+const BIG_ROLE_OPP_DEF_MARKET_WEIGHT: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 0.96,
+  REB: 1.22,
+  PA: 1.09,
+  PRA: 1.12,
+  PR: 1.18,
+  RA: 1.28,
+};
+
+const BIG_ROLE_OPP_DEF_MARKET_SCALE: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 5.5,
+  REB: 2.2,
+  PA: 5.2,
+  PRA: 7.2,
+  PR: 5.8,
+  RA: 3.0,
+};
+
+const BIG_ROLE_INJURY_TEAMMATE_MARKET_WEIGHT: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 0.93,
+  REB: 1.14,
+  AST: 1.02,
+  PRA: 1.11,
+  PA: 1.07,
+  PR: 1.16,
+  RA: 1.19,
+};
+
 type ProjectMarketInput = {
   market: SnapshotMarket;
   last3Average: number | null;
@@ -170,6 +371,7 @@ export type ProjectTonightInput = {
   homeAwayAverage: SnapshotMetricRecord;
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
+  opponentPaceAdjustedDelta?: SnapshotMetricRecord | null;
   last10ByMarket: Record<SnapshotMarket, number[]>;
   historyByMarket: Record<SnapshotMarket, number[]>;
   historyMinutes: number[];
@@ -184,6 +386,18 @@ export type ProjectTonightInput = {
   minutesCurrentTeamGames: number;
   lineupStarter: boolean | null;
   starterRateLast10: number | null;
+  isHome?: boolean | null;
+  playerPosition?: string | null;
+  restDays?: number | null;
+  openingTotal?: number | null;
+  openingTeamSpread?: number | null;
+  availabilitySeverity?: number | null;
+  teammateSynergy?: TeamSynergyInput | null;
+};
+
+export type TeamSynergyInput = {
+  activeCoreAverage: SnapshotMetricRecord;
+  missingCoreAverage: SnapshotMetricRecord;
 };
 
 export type MinutesProjectionInput = {
@@ -412,6 +626,647 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+function applyOpeningTotalEnvironmentAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  openingTotal: number | null | undefined,
+): number | null {
+  if (value == null || openingTotal == null || !Number.isFinite(openingTotal) || OPENING_TOTAL_ENV_STRENGTH === 0) {
+    return value;
+  }
+
+  const envLift = clamp((openingTotal - OPENING_TOTAL_ENV_BASELINE) * OPENING_TOTAL_ENV_STRENGTH, -0.06, 0.06);
+  const weightedLift = envLift * OPENING_TOTAL_ENV_MARKET_WEIGHT[market];
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function isFrontcourtReboundOpportunityProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistsProjection: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const guardLike = position.includes("PG") || position.includes("SG") || position === "G";
+  const explicitFrontcourt =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+  const statShapeFrontcourt = reb >= 6.2 && ast <= 4.6;
+
+  if (minutes < 14) return false;
+  if (guardLike && !statShapeFrontcourt) return false;
+  if (!explicitFrontcourt && !statShapeFrontcourt) return false;
+  return reb >= 5.4 || pts >= 10;
+}
+
+function isBenchBigMinutesProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistsProjection: number | null;
+  threesProjection: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+  const benchLikeMinutes = minutes >= 10 && minutes <= 27.5;
+  const reserveLikeRole = starterRate < 0.45 || minutes < 23.5;
+  const traditionalBenchBig = reb >= 5.5 && ast <= 4.1 && threes <= 1.3;
+  const stretchBenchBig = reb >= 4.8 && threes >= 0.9 && ast <= 4.3;
+
+  if (!benchLikeMinutes || !reserveLikeRole) return false;
+  if (explicitBig && (traditionalBenchBig || stretchBenchBig)) return true;
+  return !position.includes("G") && (traditionalBenchBig || stretchBenchBig);
+}
+
+function isCenterSpreadProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+
+  return explicitBig && minutes >= 24 && starterRate >= 0.55;
+}
+
+function isBenchBigSpreadProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+
+  return explicitBig && minutes >= 10 && minutes <= 28 && starterRate < 0.5;
+}
+
+function isFavoriteGuardSpreadProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  last10Average: SnapshotMetricRecord;
+  seasonAverage: SnapshotMetricRecord;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase();
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.last10Average.PTS ?? input.seasonAverage.PTS ?? 0;
+  const ast = input.last10Average.AST ?? input.seasonAverage.AST ?? 0;
+  const threes = input.last10Average.THREES ?? input.seasonAverage.THREES ?? 0;
+  const guardLike = position.includes("PG") || position === "G" || position.includes("SG") || ast >= 5;
+
+  if (!guardLike || position.includes("C")) return false;
+  if (minutes < 28 || starterRate < 0.35) return false;
+
+  // Exclude pure table-setters; this is aimed at score-first / generic lead-guard blowout risk.
+  if (ast >= 6.8 && pts <= 22 && threes <= 2.6) return false;
+  return true;
+}
+
+function resolveBigRoleSpreadMinutesAdjustment(input: {
+  openingTeamSpread: number | null | undefined;
+  centerProfile: boolean;
+  benchBigProfile: boolean;
+}): number {
+  if (input.openingTeamSpread == null || !Number.isFinite(input.openingTeamSpread)) {
+    return 1;
+  }
+
+  if (input.centerProfile && FAVORITE_CENTER_PENALTY_STRENGTH > 0 && input.openingTeamSpread <= -BIG_ROLE_SPREAD_ABS_THRESHOLD) {
+    const excessSpread = Math.abs(input.openingTeamSpread) - BIG_ROLE_SPREAD_ABS_THRESHOLD;
+    if (excessSpread > 0) {
+      return clamp(1 - excessSpread * FAVORITE_CENTER_PENALTY_STRENGTH * 0.008, 0.82, 1);
+    }
+  }
+
+  if (
+    input.benchBigProfile &&
+    UNDERDOG_BENCH_BIG_BOOST_STRENGTH > 0 &&
+    input.openingTeamSpread >= BIG_ROLE_SPREAD_ABS_THRESHOLD
+  ) {
+    const excessSpread = input.openingTeamSpread - BIG_ROLE_SPREAD_ABS_THRESHOLD;
+    if (excessSpread > 0) {
+      return clamp(1 + excessSpread * UNDERDOG_BENCH_BIG_BOOST_STRENGTH * 0.007, 1, 1.18);
+    }
+  }
+
+  return 1;
+}
+
+function resolveFavoriteGuardSpreadMinutesAdjustment(input: {
+  openingTeamSpread: number | null | undefined;
+  guardProfile: boolean;
+}): number {
+  if (input.openingTeamSpread == null || !Number.isFinite(input.openingTeamSpread)) {
+    return 1;
+  }
+
+  if (
+    input.guardProfile &&
+    FAVORITE_GUARD_PENALTY_STRENGTH > 0 &&
+    input.openingTeamSpread <= -BIG_ROLE_SPREAD_ABS_THRESHOLD
+  ) {
+    const excessSpread = Math.abs(input.openingTeamSpread) - BIG_ROLE_SPREAD_ABS_THRESHOLD;
+    if (excessSpread > 0) {
+      return clamp(1 - excessSpread * FAVORITE_GUARD_PENALTY_STRENGTH * 0.008, 0.84, 1);
+    }
+  }
+
+  return 1;
+}
+
+function isBigRoleVolatilityProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  last10Average: SnapshotMetricRecord;
+  seasonAverage: SnapshotMetricRecord;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const reb = input.last10Average.REB ?? input.seasonAverage.REB ?? 0;
+  const ast = input.last10Average.AST ?? input.seasonAverage.AST ?? 0;
+  const threes = input.last10Average.THREES ?? input.seasonAverage.THREES ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+  const frontcourtShape = reb >= 4.8 && ast <= 4.8;
+  const benchBigLike = minutes <= 28.5 && (starterRate < 0.55 || minutes < 24);
+  const centerLike = explicitBig && minutes >= 18;
+  const stretchBigLike = frontcourtShape && threes >= 0.8 && minutes <= 30;
+
+  if (minutes < 12) return false;
+  if (position.includes("PG") || position.includes("SG") || position === "G") return false;
+  return centerLike || (benchBigLike && frontcourtShape) || stretchBigLike;
+}
+
+function resolveMissingFrontcourtLoad(synergy: TeamSynergyInput | null | undefined): number {
+  if (!synergy) return 0;
+  const missing = synergy.missingCoreAverage;
+  const rebLoad = (missing.REB ?? 0) / 7.5;
+  const raLoad = (missing.RA ?? 0) / 8.5;
+  const prLoad = (missing.PR ?? 0) / 18;
+  const ptsLoad = (missing.PTS ?? 0) / 22;
+  return clamp(rebLoad * 0.42 + raLoad * 0.28 + prLoad * 0.2 + ptsLoad * 0.1, 0, 1.6);
+}
+
+function resolveBigRoleMinutesAdjustment(input: {
+  enabled: boolean;
+  availabilitySeverity: number | null | undefined;
+  missingFrontcourtLoad: number;
+}): number {
+  if (!input.enabled || INJURY_TEAMMATE_MINUTES_STRENGTH === 0) return 1;
+
+  const availabilitySeverity = clamp(input.availabilitySeverity ?? 0, 0, 1);
+  let multiplier = 1 + input.missingFrontcourtLoad * 0.095 * INJURY_TEAMMATE_MINUTES_STRENGTH;
+  if (availabilitySeverity > 0.3) {
+    multiplier *= 1 - availabilitySeverity * INJURY_TEAMMATE_MINUTES_STRENGTH * 0.72;
+  } else if (availabilitySeverity > 0) {
+    multiplier *= 1 - availabilitySeverity * INJURY_TEAMMATE_MINUTES_STRENGTH * 0.28;
+  }
+  return clamp(multiplier, 0.38, 1.45);
+}
+
+function applyMinutesAdjustmentToProfile(profile: MinutesProjectionProfile, multiplier: number): MinutesProjectionProfile {
+  if (multiplier === 1) return profile;
+
+  const scale = (value: number | null, floor: number): number | null =>
+    value == null ? null : round(Math.max(floor, value * multiplier), 2);
+
+  return {
+    expected: scale(profile.expected, 10),
+    floor: scale(profile.floor, 8),
+    ceiling: scale(profile.ceiling, 12),
+  };
+}
+
+function applyBigmanReboundOpportunityAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  openingTotal: number | null | undefined,
+  enabled: boolean,
+): number | null {
+  if (
+    !enabled ||
+    value == null ||
+    openingTotal == null ||
+    !Number.isFinite(openingTotal) ||
+    BIGMAN_REB_FACTOR_STRENGTH === 0
+  ) {
+    return value;
+  }
+
+  const marketWeight = BIGMAN_REB_OPPORTUNITY_MARKET_WEIGHT[market];
+  if (marketWeight == null) return value;
+
+  const rawLift = (openingTotal - BIGMAN_REB_FACTOR_BASELINE) * BIGMAN_REB_FACTOR_STRENGTH * 0.0012;
+  const weightedLift = clamp(rawLift * marketWeight, -0.08, 0.08);
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function applyBenchBigMinutesSensitivityAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  openingTotal: number | null | undefined,
+  enabled: boolean,
+): number | null {
+  if (
+    !enabled ||
+    value == null ||
+    openingTotal == null ||
+    !Number.isFinite(openingTotal) ||
+    BENCH_BIG_MINUTES_SENSITIVITY === 0
+  ) {
+    return value;
+  }
+
+  const marketWeight = BENCH_BIG_MINUTES_MARKET_WEIGHT[market];
+  if (marketWeight == null) return value;
+
+  const rawLift = (openingTotal - BENCH_BIG_MINUTES_BASELINE) * BENCH_BIG_MINUTES_SENSITIVITY * 0.0008;
+  const weightedLift = clamp(rawLift * marketWeight, -0.06, 0.06);
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function resolveBigRoleVolatilityMinutesAdjustment(input: {
+  enabled: boolean;
+  minutesVolatility: number | null | undefined;
+}): number {
+  if (!input.enabled || input.minutesVolatility == null || ROLE_VOLATILITY_STRENGTH === 0) return 1;
+
+  const volatilityDelta = input.minutesVolatility - ROLE_VOLATILITY_BASELINE;
+  const rawFactor = 1 - volatilityDelta * ROLE_VOLATILITY_STRENGTH * 0.018;
+  return clamp(rawFactor, 0.82, 1.12);
+}
+
+function applyBigRoleVolatilityAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  volatilityAdjustment: number,
+  enabled: boolean,
+): number | null {
+  if (!enabled || value == null || ROLE_VOLATILITY_STRENGTH === 0 || volatilityAdjustment === 1) {
+    return value;
+  }
+
+  const marketWeight = BIG_ROLE_VOLATILITY_MARKET_WEIGHT[market];
+  if (marketWeight == null) return value;
+
+  const weightedLift = clamp((volatilityAdjustment - 1) * marketWeight, -0.22, 0.12);
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function applyBigRoleOpponentDefenseAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  delta: SnapshotMetricRecord | null | undefined,
+  enabled: boolean,
+): number | null {
+  if (!enabled || value == null || !delta || OPP_DEF_RTG_STRENGTH === 0) return value;
+
+  const marketDelta = delta[market];
+  const marketWeight = BIG_ROLE_OPP_DEF_MARKET_WEIGHT[market];
+  const scale = BIG_ROLE_OPP_DEF_MARKET_SCALE[market];
+  if (marketDelta == null || marketWeight == null || scale == null) return value;
+
+  const normalized = clamp(marketDelta / scale, -1.5, 1.5);
+  const weightedLift = clamp(normalized * OPP_DEF_RTG_STRENGTH * 0.08 * marketWeight, -0.14, 0.14);
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function applyBigRoleInjuryTeammateAdjustment(
+  value: number | null,
+  market: SnapshotMarket,
+  minutesAdjustment: number,
+  enabled: boolean,
+): number | null {
+  if (!enabled || value == null || INJURY_TEAMMATE_MINUTES_STRENGTH === 0 || minutesAdjustment === 1) {
+    return value;
+  }
+
+  const marketWeight = BIG_ROLE_INJURY_TEAMMATE_MARKET_WEIGHT[market];
+  if (marketWeight == null) return value;
+
+  const weightedLift = clamp((minutesAdjustment - 1) * marketWeight, -0.18, 0.18);
+  return round(Math.max(0, value * (1 + weightedLift)), 2);
+}
+
+function roleScale(primary: number | null, fallback: number | null, baseline: number, min = 0.22, max = 1.2): number {
+  const reference = primary ?? fallback ?? 0;
+  return clamp(reference / baseline, min, max);
+}
+
+function isScoreFirstLeadGuardProjectionProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  assistsProjection: number | null;
+  threesProjection: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase();
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+  const guardLike = position.includes("PG") || position.includes("SG") || position === "G" || ast >= 5;
+
+  if (!guardLike || position.includes("C")) return false;
+  if (minutes < 30 || starterRate < 0.35) return false;
+  if (ast >= 6.8 && pts <= 22 && threes <= 2.6) return false;
+  return pts >= 19 || threes >= 2.4;
+}
+
+function isFavoriteGuardScoringPenaltyProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  assistsProjection: number | null;
+  openingTeamSpread?: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase();
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const spread = input.openingTeamSpread ?? null;
+  const guardLike =
+    position.includes("PG") ||
+    position === "G" ||
+    (position.includes("SG") && ast >= 4.5) ||
+    ast >= 5.5;
+  const scoreToAstRatio = pts / Math.max(ast, 0.75);
+
+  if (spread == null || !Number.isFinite(spread) || spread > -BIG_ROLE_SPREAD_ABS_THRESHOLD) return false;
+  if (!guardLike || position.includes("C")) return false;
+  if (minutes < 28 || starterRate < 0.35) return false;
+  if (pts <= 18) return false;
+  return scoreToAstRatio > 2.5;
+}
+
+function applyFavoriteGuardScoringPenalty(
+  value: number | null,
+  market: SnapshotMarket,
+  enabled: boolean,
+): number | null {
+  if (!enabled || value == null || FAVORITE_SCORING_PENALTY_FACTOR >= 1) return value;
+
+  const marketWeight: Partial<Record<SnapshotMarket, number>> = {
+    PTS: 1,
+    THREES: 1,
+    PA: 0.9,
+    PRA: 0.72,
+  };
+  const weight = marketWeight[market];
+  if (weight == null) return value;
+
+  const weightedFactor = 1 - (1 - FAVORITE_SCORING_PENALTY_FACTOR) * weight;
+  const floor = market === "THREES" ? 0.5 : 0;
+  return round(Math.max(floor, value * weightedFactor), 2);
+}
+
+function isBackToBackRestDay(restDays: number | null | undefined): boolean {
+  return restDays != null && restDays <= 1;
+}
+
+function applyB2BEfficiencyDrag(
+  value: number | null,
+  market: SnapshotMarket,
+  restDays: number | null | undefined,
+  expectedMinutes: number | null | undefined,
+): number | null {
+  if (value == null || B2B_EFFICIENCY_DRAG >= 1) return value;
+  if (!isBackToBackRestDay(restDays)) return value;
+  if ((expectedMinutes ?? 0) < B2B_MINUTES_THRESHOLD) return value;
+  if (market !== "PTS" && market !== "THREES") return value;
+
+  const floor = market === "THREES" ? 0.5 : 0;
+  return round(Math.max(floor, value * B2B_EFFICIENCY_DRAG), 2);
+}
+
+function isRoadBenchDragProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistsProjection: number | null;
+  threesProjection: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+  const guardLike = position.includes("PG") || position.includes("SG") || position === "G";
+  const wingLike = !guardLike && !explicitBig;
+
+  const benchWingLike =
+    wingLike &&
+    minutes >= 10 &&
+    minutes <= 27.5 &&
+    starterRate < 0.45 &&
+    ast <= 4.2 &&
+    (threes >= 0.7 || pts >= 8);
+
+  const spotupWingLike =
+    wingLike &&
+    minutes >= 24 &&
+    starterRate >= 0.3 &&
+    ast <= 4.4 &&
+    reb <= 6 &&
+    (threes >= 1.6 || pts >= 15);
+
+  const benchStretchBigLike =
+    explicitBig &&
+    minutes >= 10 &&
+    minutes <= 27 &&
+    starterRate < 0.45 &&
+    reb >= 4.5 &&
+    ast <= 4.3 &&
+    threes >= 0.9;
+
+  return benchWingLike || spotupWingLike || benchStretchBigLike;
+}
+
+function isSpotupWingRoadVolatilityProfile(input: {
+  playerPosition?: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistsProjection: number | null;
+  threesProjection: number | null;
+}): boolean {
+  const position = (input.playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistsProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+
+  const explicitBig =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+  const guardLike = position.includes("PG") || position.includes("SG") || position === "G";
+  const wingLike = !guardLike && !explicitBig;
+
+  return (
+    wingLike &&
+    minutes >= 24 &&
+    minutes <= 38 &&
+    starterRate >= 0.3 &&
+    ast <= 4.4 &&
+    reb <= 6 &&
+    (threes >= 1.6 || pts >= 15)
+  );
+}
+
+function applyRoadBenchDrag(
+  value: number | null,
+  market: SnapshotMarket,
+  isHome: boolean | null | undefined,
+  enabled: boolean,
+): number | null {
+  if (!enabled || value == null || ROAD_BENCH_DRAG >= 1) return value;
+  if (isHome !== false) return value;
+  if (market !== "PTS" && market !== "THREES") return value;
+
+  const floor = market === "THREES" ? 0.5 : 0;
+  return round(Math.max(floor, value * ROAD_BENCH_DRAG), 2);
+}
+
+function applySpotupWingRoadVolatilityFactor(
+  value: number | null,
+  market: SnapshotMarket,
+  isHome: boolean | null | undefined,
+  enabled: boolean,
+  minutesVolatilityRatio: number,
+): number | null {
+  if (!enabled || value == null || SPOTUP_WING_ROAD_VOLATILITY_STRENGTH <= 0) return value;
+  if (isHome !== false) return value;
+  if (market !== "PTS" && market !== "THREES") return value;
+
+  const baseFactor = 1 + SPOTUP_WING_ROAD_VOLATILITY_STRENGTH * minutesVolatilityRatio;
+  const factor = market === "THREES" ? baseFactor * 0.92 : baseFactor;
+  const floor = market === "THREES" ? 0.5 : 0;
+  return round(Math.max(floor, value * factor), 2);
+}
+
+function applyTeammateSynergyAdjustments(
+  result: SnapshotMetricRecord,
+  last10Average: SnapshotMetricRecord,
+  synergy: TeamSynergyInput | null | undefined,
+): void {
+  if (!synergy) return;
+
+  const active = synergy.activeCoreAverage;
+  const missing = synergy.missingCoreAverage;
+
+  if (result.PTS != null) {
+    const scorerRole = roleScale(result.PTS, last10Average.PTS, 20, 0.24, 1.18);
+    const creatorSupport = (active.AST ?? 0) * scorerRole * 0.04;
+    const spacingSupport = (active.THREES ?? 0) * scorerRole * 0.025;
+    const scorerCompetition = (active.PTS ?? 0) * (1 - clamp(scorerRole / 1.18, 0.18, 0.92)) * 0.03;
+    const missingBoost = (missing.PTS ?? 0) * scorerRole * 0.085 + (missing.THREES ?? 0) * scorerRole * 0.04;
+    result.PTS = round(Math.max(0, result.PTS + clamp(creatorSupport + spacingSupport + missingBoost - scorerCompetition, -1.4, 2.6)), 2);
+  }
+
+  if (result.REB != null) {
+    const boardRole = roleScale(result.REB, last10Average.REB, 8, 0.24, 1.15);
+    const boardCompetition = (active.REB ?? 0) * (1 - clamp(boardRole / 1.15, 0.18, 0.92)) * 0.045;
+    const missingBoost = (missing.REB ?? 0) * boardRole * 0.085;
+    result.REB = round(Math.max(0, result.REB + clamp(missingBoost - boardCompetition, -0.8, 1.6)), 2);
+  }
+
+  if (result.AST != null) {
+    const creatorRole = roleScale(result.AST, last10Average.AST, 6, 0.24, 1.2);
+    const finisherSupport = (active.PTS ?? 0) * creatorRole * 0.02 + (active.THREES ?? 0) * creatorRole * 0.05;
+    const creatorCompetition = (active.AST ?? 0) * (1 - clamp(creatorRole / 1.2, 0.18, 0.92)) * 0.05;
+    const missingBoost = (missing.AST ?? 0) * creatorRole * 0.09;
+    result.AST = round(Math.max(0, result.AST + clamp(finisherSupport + missingBoost - creatorCompetition, -0.9, 1.8)), 2);
+  }
+
+  if (result.THREES != null) {
+    const spacingRole = roleScale(result.THREES, last10Average.THREES, 2.4, 0.24, 1.2);
+    const creatorSupport = (active.AST ?? 0) * spacingRole * 0.028;
+    const spacingCompetition = (active.THREES ?? 0) * (1 - clamp(spacingRole / 1.2, 0.18, 0.92)) * 0.04;
+    const missingBoost = (missing.THREES ?? 0) * spacingRole * 0.11;
+    result.THREES = round(Math.max(0, result.THREES + clamp(creatorSupport + missingBoost - spacingCompetition, -0.35, 0.95)), 2);
+  }
+}
+
 function lineupMinutesDelta(lineupStarter: boolean | null, starterRateLast10: number | null): number {
   if (lineupStarter == null) {
     return 0;
@@ -636,7 +1491,7 @@ function projectMarket(input: ProjectMarketInput): number | null {
 }
 
 export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetricRecord {
-  const minutesProfile = projectMinutesProfile({
+  let minutesProfile = projectMinutesProfile({
     minutesLast3Avg: input.minutesLast3Avg,
     minutesLast10Avg: input.minutesLast10Avg,
     minutesHomeAwayAvg: input.minutesHomeAwayAvg,
@@ -645,6 +1500,55 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
     lineupStarter: input.lineupStarter,
     starterRateLast10: input.starterRateLast10,
   });
+
+  const centerSpreadProfile = isCenterSpreadProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+  });
+  const benchBigSpreadProfile = isBenchBigSpreadProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+  });
+  const bigRoleSpreadAdjustment = resolveBigRoleSpreadMinutesAdjustment({
+    openingTeamSpread: input.openingTeamSpread,
+    centerProfile: centerSpreadProfile,
+    benchBigProfile: benchBigSpreadProfile,
+  });
+  minutesProfile = applyMinutesAdjustmentToProfile(minutesProfile, bigRoleSpreadAdjustment);
+  const favoriteGuardSpreadProfile = isFavoriteGuardSpreadProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    last10Average: input.last10Average,
+    seasonAverage: input.seasonAverage,
+  });
+  const favoriteGuardSpreadAdjustment = resolveFavoriteGuardSpreadMinutesAdjustment({
+    openingTeamSpread: input.openingTeamSpread,
+    guardProfile: favoriteGuardSpreadProfile,
+  });
+  minutesProfile = applyMinutesAdjustmentToProfile(minutesProfile, favoriteGuardSpreadAdjustment);
+
+  const bigRoleVolatilityProfile = isBigRoleVolatilityProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    last10Average: input.last10Average,
+    seasonAverage: input.seasonAverage,
+  });
+  const bigRoleVolatilityAdjustment = resolveBigRoleVolatilityMinutesAdjustment({
+    enabled: bigRoleVolatilityProfile,
+    minutesVolatility: input.minutesVolatility,
+  });
+  minutesProfile = applyMinutesAdjustmentToProfile(minutesProfile, bigRoleVolatilityAdjustment);
+  const missingFrontcourtLoad = resolveMissingFrontcourtLoad(input.teammateSynergy);
+  const bigRoleMinutesAdjustment = resolveBigRoleMinutesAdjustment({
+    enabled: bigRoleVolatilityProfile,
+    availabilitySeverity: input.availabilitySeverity,
+    missingFrontcourtLoad,
+  });
+  minutesProfile = applyMinutesAdjustmentToProfile(minutesProfile, bigRoleMinutesAdjustment);
 
   const result = blankMetricRecord();
   const baseMarkets: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
@@ -680,8 +1584,166 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
     result[market] = projectMarket(projectionInputFor(market));
   });
 
+  applyTeammateSynergyAdjustments(result, input.last10Average, input.teammateSynergy);
+
+  baseMarkets.forEach((market) => {
+    result[market] = applyOpeningTotalEnvironmentAdjustment(result[market], market, input.openingTotal);
+  });
+
+  const roadBenchDragProfile = isRoadBenchDragProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    pointsProjection: result.PTS,
+    reboundsProjection: result.REB,
+    assistsProjection: result.AST,
+    threesProjection: result.THREES,
+  });
+  const spotupWingRoadVolatilityProfile = isSpotupWingRoadVolatilityProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    pointsProjection: result.PTS,
+    reboundsProjection: result.REB,
+    assistsProjection: result.AST,
+    threesProjection: result.THREES,
+  });
+  const spotupWingMinutesVolatilityRatio = clamp(
+    (input.minutesVolatility ?? 0) / Math.max(8, minutesProfile.expected || 8),
+    0,
+    1.8,
+  );
+
+  const frontcourtReboundOpportunityProfile = isFrontcourtReboundOpportunityProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    pointsProjection: result.PTS,
+    reboundsProjection: result.REB,
+    assistsProjection: result.AST,
+  });
+
+  const benchBigMinutesProfile = isBenchBigMinutesProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    pointsProjection: result.PTS,
+    reboundsProjection: result.REB,
+    assistsProjection: result.AST,
+    threesProjection: result.THREES,
+  });
+
+  baseMarkets.forEach((market) => {
+    result[market] = applyBigmanReboundOpportunityAdjustment(
+      result[market],
+      market,
+      input.openingTotal,
+      frontcourtReboundOpportunityProfile,
+    );
+    result[market] = applyBenchBigMinutesSensitivityAdjustment(
+      result[market],
+      market,
+      input.openingTotal,
+      benchBigMinutesProfile,
+    );
+    result[market] = applyBigRoleOpponentDefenseAdjustment(
+      result[market],
+      market,
+      input.opponentPaceAdjustedDelta,
+      bigRoleVolatilityProfile,
+    );
+    result[market] = applyBigRoleVolatilityAdjustment(
+      result[market],
+      market,
+      bigRoleVolatilityAdjustment,
+      bigRoleVolatilityProfile,
+    );
+    result[market] = applyBigRoleInjuryTeammateAdjustment(
+      result[market],
+      market,
+      bigRoleMinutesAdjustment,
+      bigRoleVolatilityProfile,
+    );
+    result[market] = applyB2BEfficiencyDrag(result[market], market, input.restDays, minutesProfile.expected);
+    result[market] = applyRoadBenchDrag(result[market], market, input.isHome, roadBenchDragProfile);
+    result[market] = applySpotupWingRoadVolatilityFactor(
+      result[market],
+      market,
+      input.isHome,
+      spotupWingRoadVolatilityProfile,
+      spotupWingMinutesVolatilityRatio,
+    );
+  });
+
+  if (
+    SCORE_FIRST_LEAD_GUARD_THREES_FACTOR !== 1 &&
+    result.THREES != null &&
+    isScoreFirstLeadGuardProjectionProfile({
+      playerPosition: input.playerPosition,
+      expectedMinutes: minutesProfile.expected,
+      starterRateLast10: input.starterRateLast10,
+      pointsProjection: result.PTS,
+      assistsProjection: result.AST,
+      threesProjection: result.THREES,
+    })
+  ) {
+    result.THREES = round(Math.max(0.5, result.THREES * SCORE_FIRST_LEAD_GUARD_THREES_FACTOR), 2);
+  }
+
+  const favoriteGuardScoringPenaltyProfile = isFavoriteGuardScoringPenaltyProfile({
+    playerPosition: input.playerPosition,
+    expectedMinutes: minutesProfile.expected,
+    starterRateLast10: input.starterRateLast10,
+    pointsProjection: result.PTS,
+    assistsProjection: result.AST,
+    openingTeamSpread: input.openingTeamSpread,
+  });
+  const penalizedPts = applyFavoriteGuardScoringPenalty(result.PTS, "PTS", favoriteGuardScoringPenaltyProfile);
+  const penalizedThrees = applyFavoriteGuardScoringPenalty(result.THREES, "THREES", favoriteGuardScoringPenaltyProfile);
+
   comboMarkets.forEach((market) => {
     directComboProjection[market] = projectMarket(projectionInputFor(market));
+    directComboProjection[market] = applyOpeningTotalEnvironmentAdjustment(
+      directComboProjection[market],
+      market,
+      input.openingTotal,
+    );
+    directComboProjection[market] = applyBigmanReboundOpportunityAdjustment(
+      directComboProjection[market],
+      market,
+      input.openingTotal,
+      frontcourtReboundOpportunityProfile,
+    );
+    directComboProjection[market] = applyBenchBigMinutesSensitivityAdjustment(
+      directComboProjection[market],
+      market,
+      input.openingTotal,
+      benchBigMinutesProfile,
+    );
+    directComboProjection[market] = applyBigRoleOpponentDefenseAdjustment(
+      directComboProjection[market],
+      market,
+      input.opponentPaceAdjustedDelta,
+      bigRoleVolatilityProfile,
+    );
+    directComboProjection[market] = applyBigRoleVolatilityAdjustment(
+      directComboProjection[market],
+      market,
+      bigRoleVolatilityAdjustment,
+      bigRoleVolatilityProfile,
+    );
+    directComboProjection[market] = applyBigRoleInjuryTeammateAdjustment(
+      directComboProjection[market],
+      market,
+      bigRoleMinutesAdjustment,
+      bigRoleVolatilityProfile,
+    );
+    if (market === "PA" || market === "PRA") {
+      directComboProjection[market] = applyFavoriteGuardScoringPenalty(
+        directComboProjection[market],
+        market,
+        favoriteGuardScoringPenaltyProfile,
+      );
+    }
   });
 
   const sumOrNull = (...values: Array<number | null>): number | null => {
@@ -691,9 +1753,9 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   };
 
   const summedCombo: Partial<Record<SnapshotMarket, number | null>> = {
-    PRA: sumOrNull(result.PTS, result.REB, result.AST),
-    PA: sumOrNull(result.PTS, result.AST),
-    PR: sumOrNull(result.PTS, result.REB),
+    PRA: sumOrNull(penalizedPts, result.REB, result.AST),
+    PA: sumOrNull(penalizedPts, result.AST),
+    PR: sumOrNull(penalizedPts, result.REB),
     RA: sumOrNull(result.REB, result.AST),
   };
 
@@ -706,6 +1768,9 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
       summedCombo[market] ??
       directComboProjection[market];
   });
+
+  result.PTS = penalizedPts;
+  result.THREES = penalizedThrees;
 
   return result;
 }

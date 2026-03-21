@@ -4,8 +4,14 @@ import {
   DEFAULT_UNIVERSAL_LIVE_CALIBRATION_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_MODEL_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_MODEL_RELATIVE_PATH,
+  DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH,
   resolveProjectPath,
 } from "@/lib/snapshot/universalArtifactPaths";
+import {
+  buildUniversalProjectionDistributionKey,
+  type UniversalProjectionDistributionFile,
+  type UniversalProjectionDistributionRecord,
+} from "@/lib/snapshot/universalProjectionDistribution";
 import {
   buildUniversalResidualCalibrationKey,
   universalMinutesBucket,
@@ -13,9 +19,11 @@ import {
   type UniversalResidualCalibrationFile,
   type UniversalResidualCalibrationRecord,
 } from "@/lib/snapshot/universalResidualCalibration";
+import { computeBenchBigRoleStability } from "@/lib/snapshot/benchBigRoleStability";
 import type { SnapshotMarket, SnapshotModelSide } from "@/lib/types/snapshot";
 
 type Side = "OVER" | "UNDER";
+type Market = SnapshotMarket;
 export type Archetype =
   | "LEAD_GUARD"
   | "TABLE_SETTING_LEAD_GUARD"
@@ -27,16 +35,20 @@ export type Archetype =
   | "WING"
   | "CONNECTOR_WING"
   | "SPOTUP_WING"
-  | "BENCH_GUARD"
+  | "BENCH_SHOOTING_GUARD"
+  | "BENCH_PASS_FIRST_GUARD"
+  | "BENCH_LOW_USAGE_GUARD"
+  | "BENCH_TRADITIONAL_GUARD"
   | "BENCH_WING"
-  | "BENCH_SCORING_WING"
   | "BENCH_LOW_USAGE_WING"
   | "BENCH_MIDRANGE_SCORER"
   | "BENCH_VOLUME_SCORER"
   | "BENCH_CREATOR_SCORER"
   | "BENCH_REBOUNDING_SCORER"
   | "BENCH_SPACER_SCORER"
-  | "BENCH_BIG"
+  | "BENCH_STRETCH_BIG"
+  | "BENCH_LOW_USAGE_BIG"
+  | "BENCH_TRADITIONAL_BIG"
   | "TWO_WAY_MARKET_WING"
   | "SCORER_CREATOR_WING"
   | "SHOT_CREATING_WING"
@@ -49,8 +61,12 @@ export type Archetype =
 type FeatureName =
   | "lineGap"
   | "absLineGap"
+  | "l5CurrentLineDeltaAvg"
+  | "l5CurrentLineOverRate"
+  | "l5MinutesAvg"
   | "expectedMinutes"
   | "minutesVolatility"
+  | "benchBigRoleStability"
   | "starterRateLast10"
   | "priceLean"
   | "priceAbsLean"
@@ -110,12 +126,18 @@ type ModelVariant =
   | { kind: "finalOverride" }
   | { kind: "marketFavored" }
   | { kind: "constant"; side: Side }
+  | { kind: "lowMinutesThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "underGapThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "lowMinutesThenFinal"; threshold: number }
+  | { kind: "lowMinutesDisagreementThenFinal"; threshold: number }
   | { kind: "gapThenProjection"; threshold: number }
   | { kind: "gapThenMarket"; threshold: number }
+  | { kind: "overGapThenMarket"; threshold: number }
   | { kind: "strongPriceThenMarket"; threshold: number }
   | { kind: "nearLineThenMarket"; threshold: number }
   | { kind: "agreementThenProjection"; threshold: number }
   | { kind: "favoriteOverSuppress"; spreadThreshold: number; gapThreshold: number }
+  | { kind: "favoriteOverSuppressPositiveGap"; spreadThreshold: number; gapThreshold: number; minExpectedMinutes: number }
   | { kind: "lowQualityThenMarket"; threshold: number }
   | { kind: "lowVolatilityHelioOver"; volatilityThreshold: number; gapThreshold: number }
   | { kind: "tree"; tree: TreeNode; maxDepth: number; minLeaf: number };
@@ -138,6 +160,8 @@ type LiveUniversalQualificationThresholds = {
   minBucketSamples: number;
   minLeafAccuracy: number;
   minLeafCount: number;
+  minProjectionWinProbability: number;
+  minProjectionPriceEdge: number;
 };
 
 type LiveUniversalQualificationArchetypeOverrides = Partial<
@@ -157,6 +181,7 @@ export type LiveUniversalQualificationSettings = LiveUniversalQualificationThres
 export type RawLiveUniversalModelDecision = {
   market: SnapshotMarket;
   rawSide: SnapshotModelSide;
+  finalSide: SnapshotModelSide;
   archetype: Archetype | null;
   minutesBucket: UniversalMinutesBucket | null;
   modelKind: ModelVariant["kind"] | null;
@@ -165,6 +190,17 @@ export type RawLiveUniversalModelDecision = {
   bucketLateAccuracy: number | null;
   leafCount: number | null;
   leafAccuracy: number | null;
+  absLineGap: number | null;
+  favoredSide: "OVER" | "UNDER" | "NEUTRAL" | null;
+  priceLean: number | null;
+  priceStrength: number | null;
+  projectionMarketAgreement: number | null;
+  overProbability: number | null;
+  underProbability: number | null;
+  projectionWinProbability: number | null;
+  projectionPriceEdge: number | null;
+  projectionResidualMean: number | null;
+  projectionResidualStdDev: number | null;
 };
 
 export type LiveUniversalModelDecision = RawLiveUniversalModelDecision & {
@@ -182,8 +218,12 @@ type LiveUniversalModelRow = {
   finalSide: Side;
   favoredSide: "OVER" | "UNDER" | "NEUTRAL";
   priceLean: number | null;
+  l5CurrentLineDeltaAvg: number | null;
+  l5CurrentLineOverRate: number | null;
+  l5MinutesAvg: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
+  benchBigRoleStability: number | null;
   starterRateLast10: number | null;
   lineGap: number;
   absLineGap: number;
@@ -213,15 +253,19 @@ type LiveUniversalModelRow = {
   astToLineRatio: number | null;
 };
 
-type PredictLiveUniversalSideInput = {
+export type PredictLiveUniversalSideInput = {
   market: SnapshotMarket;
   projectedValue: number | null;
   line: number | null;
   overPrice: number | null;
   underPrice: number | null;
   finalSide: SnapshotModelSide;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  l5MinutesAvg?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
+  benchBigRoleStability?: number | null;
   starterRateLast10: number | null;
   archetypeExpectedMinutes?: number | null;
   archetypeStarterRateLast10?: number | null;
@@ -236,9 +280,927 @@ type PredictLiveUniversalSideInput = {
   threesProjection?: number | null;
 };
 
+const POINT_FORWARD_WEAK_MARKET_ROLE_FIX_MARKETS: readonly Market[] = ["THREES", "PA", "RA"];
+const HELIOCENTRIC_WEAK_MARKET_ROLE_FIX_MARKETS: readonly Market[] = ["PTS", "PRA", "PR", "PA", "RA"];
+const HELIOCENTRIC_GUARD_ROLE_FIX_EXCLUDED_MARKETS: readonly Market[] = ["THREES", "AST"];
+const BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX_MARKETS: readonly Market[] = ["PA", "PR"];
+const BENCH_CREATOR_SCORER_ROLE_FIX_MARKETS: readonly Market[] = ["PTS", "AST", "PRA", "PR"];
+const POINT_FORWARD_WEAK_MARKET_ROLE_FIX = {
+  minMinutes: 30,
+  minPoints: 22,
+  minRebounds: 6,
+  minAssists: 4.5,
+  maxAssistsExclusive: 6.8,
+  maxThrees: 2.6,
+} as const;
+const HELIOCENTRIC_GUARD_ROLE_FIX = {
+  minMinutes: 27,
+  minStarterRate: 0.5,
+  minPoints: 19,
+  minAssists: 7.2,
+  minThrees: 2.7,
+} as const;
+const BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX = {
+  maxMinutes: 16.5,
+  maxStarterRate: 0.3,
+  maxPoints: 6.5,
+  maxRebounds: 5.75,
+  maxThrees: 0.5,
+} as const;
+const BENCH_CREATOR_SCORER_ROLE_FIX = {
+  minMinutes: 20,
+  minStarterRate: 0.25,
+  minPoints: 10,
+  minAssists: 1.3,
+  minThrees: 2.2,
+  maxRebounds: 4.5,
+} as const;
+const HELIOCENTRIC_WEAK_MARKET_ROLE_FIX_ARCHETYPE = (() => {
+  const raw = process.env.SNAPSHOT_HELIOCENTRIC_WEAK_MARKET_ROLE_FIX_ARCHETYPE?.trim();
+  if (!raw) return "POINT_FORWARD" as Archetype;
+  const normalized = raw.toUpperCase();
+  if (normalized === "OFF" || normalized === "NONE") return null;
+  switch (normalized) {
+    case "POINT_FORWARD":
+      return "POINT_FORWARD" as Archetype;
+    case "SCORE_FIRST_LEAD_GUARD":
+      return "SCORE_FIRST_LEAD_GUARD" as Archetype;
+    case "TABLE_SETTING_LEAD_GUARD":
+      return "TABLE_SETTING_LEAD_GUARD" as Archetype;
+    case "JUMBO_CREATOR_GUARD":
+      return "JUMBO_CREATOR_GUARD" as Archetype;
+    default:
+      return "POINT_FORWARD" as Archetype;
+  }
+})();
+
 const DEFAULT_MODEL_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_MODEL_RELATIVE_PATH);
 const DEFAULT_MODEL_FALLBACK_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_MODEL_FALLBACK_RELATIVE_PATH);
 const DEFAULT_CALIBRATION_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_CALIBRATION_RELATIVE_PATH);
+const DEFAULT_PROJECTION_DISTRIBUTION_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH);
+const ENABLE_MISSING_POSITION_STARTER_FALLBACK =
+  process.env.SNAPSHOT_DISABLE_MISSING_POSITION_STARTER_FALLBACK?.trim() !== "1";
+const PTS_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PTS_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PTS_MIN_LEAF_ACCURACY)
+  : 58;
+const REB_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_REB_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_REB_MIN_LEAF_ACCURACY)
+  : 60;
+const AST_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_AST_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_AST_MIN_LEAF_ACCURACY)
+  : 58;
+const PTS_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PTS_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 56;
+const PTS_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PTS_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : PTS_MIN_LEAF_ACCURACY;
+const PTS_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const PTS_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : 57;
+const PTS_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PTS_WING_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PTS_WING_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PTS_WING_MIN_LEAF_ACCURACY)
+  : 55;
+const PTS_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 55;
+const PTS_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY)
+  : 55;
+const PTS_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PTS_CONNECTOR_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_CONNECTOR_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_CONNECTOR_WING_MIN_LEAF_ACCURACY)
+  : PTS_MIN_LEAF_ACCURACY;
+const PTS_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PTS_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY)
+  : 60;
+const PTS_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PTS_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY)
+  : 60;
+const REB_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_CENTER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_CENTER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_CENTER_MIN_LEAF_ACCURACY)
+  : 54;
+const REB_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 55.5;
+const REB_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 53.5;
+const REB_ELITE_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_ELITE_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_ELITE_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_ELITE_SHOOTING_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_ELITE_SHOOTING_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_ELITE_SHOOTING_GUARD_MIN_LEAF_ACCURACY)
+  : REB_MIN_LEAF_ACCURACY;
+const REB_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 60;
+const REB_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : 64;
+const REB_BENCH_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 52;
+const REB_BENCH_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_WING_MIN_LEAF_ACCURACY)
+  : 52.5;
+const REB_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 57;
+const REB_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY)
+  : 57;
+const REB_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_WING_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_REB_WING_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_REB_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const REB_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_CONNECTOR_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_CONNECTOR_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_CONNECTOR_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const REB_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : REB_MIN_LEAF_ACCURACY;
+const AST_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 60;
+const AST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 53.5;
+const AST_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_CENTER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const AST_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY)
+  : 62;
+const AST_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const AST_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY)
+  : AST_MIN_LEAF_ACCURACY;
+const AST_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const AST_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY)
+  : AST_MIN_LEAF_ACCURACY;
+const AST_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 55;
+const AST_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY)
+  : 55.5;
+const AST_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 55;
+const AST_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_AST_CENTER_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_AST_CENTER_MIN_LEAF_ACCURACY)
+  : 57;
+const AST_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const AST_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const AST_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 60;
+const AST_TWO_WAY_MARKET_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_TWO_WAY_MARKET_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_TWO_WAY_MARKET_WING_MIN_LEAF_ACCURACY)
+  : 62;
+const AST_BENCH_TRADITIONAL_BIG_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_BIG_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_BIG_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const AST_BENCH_TRADITIONAL_BIG_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_BIG_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_TRADITIONAL_BIG_MIN_LEAF_ACCURACY)
+  : 56;
+const AST_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const AST_BENCH_STRETCH_BIG_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_BENCH_STRETCH_BIG_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_BENCH_STRETCH_BIG_MIN_LEAF_ACCURACY)
+  : AST_MIN_LEAF_ACCURACY;
+const AST_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const AST_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_AST_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_AST_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : AST_MIN_LEAF_ACCURACY;
+const PRA_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PRA_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PRA_MIN_LEAF_ACCURACY)
+  : 58;
+const PA_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PA_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PA_MIN_LEAF_ACCURACY)
+  : 67;
+const PA_SPOTUP_WING_USE_LEGACY_SIDE_BIAS =
+  process.env.SNAPSHOT_PA_SPOTUP_WING_USE_LEGACY_SIDE_BIAS?.trim() === "1";
+const PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD_RAW =
+  process.env.SNAPSHOT_PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD?.trim() ?? null;
+const PA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 52;
+const PA_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : 69;
+const PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD =
+  PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD_RAW?.toLowerCase() === "off"
+    ? null
+    : Number.isFinite(Number(PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD_RAW))
+      ? Number(PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD_RAW)
+      : 1;
+const PA_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const PA_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PA_WING_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PA_WING_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PA_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const PA_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PA_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const PA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PA_BENCH_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const PA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY)
+  : 59;
+const PA_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 60;
+const PA_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY)
+  : 70;
+const PA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 49;
+const PA_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 58;
+const PA_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_CENTER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 46;
+const PA_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PA_CENTER_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PA_CENTER_MIN_LEAF_ACCURACY)
+  : 57;
+const PA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PA_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : PA_MIN_LEAF_ACCURACY;
+const PA_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const PA_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY)
+  : 65;
+const PR_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PR_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PR_MIN_LEAF_ACCURACY)
+  : 60;
+const PTS_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_CENTER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PTS_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PTS_CENTER_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PTS_CENTER_MIN_LEAF_ACCURACY)
+  : 56;
+const PTS_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 63;
+const PTS_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : PTS_MIN_LEAF_ACCURACY;
+const PTS_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PTS_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY)
+  : PTS_MIN_LEAF_ACCURACY;
+const PR_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PR_CENTER_MIN_BUCKET_LATE_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PR_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 47;
+const PR_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 54.5;
+const PR_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PR_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY)
+  : PR_MIN_LEAF_ACCURACY;
+const PR_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PR_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY)
+  : PR_MIN_LEAF_ACCURACY;
+const RA_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_RA_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_RA_MIN_LEAF_ACCURACY)
+  : 67;
+const RA_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_RA_CENTER_MIN_BUCKET_LATE_ACCURACY))
+  ? Number(process.env.SNAPSHOT_RA_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 55;
+const RA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 48;
+const RA_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_RA_LEAD_GUARD_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_RA_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 54;
+const RA_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_RA_CENTER_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_RA_CENTER_MIN_LEAF_ACCURACY)
+  : 54;
+const PR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PR_WING_MIN_BUCKET_LATE_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PR_WING_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PR_WING_MIN_LEAF_ACCURACY))
+  ? Number(process.env.SNAPSHOT_PR_WING_MIN_LEAF_ACCURACY)
+  : 58;
+const PR_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : PR_WING_MIN_BUCKET_LATE_ACCURACY;
+const PR_BENCH_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_WING_MIN_BUCKET_LATE_ACCURACY)
+  : PR_WING_MIN_BUCKET_LATE_ACCURACY;
+const PR_CONNECTOR_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_CONNECTOR_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_CONNECTOR_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const PR_BENCH_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_WING_MIN_LEAF_ACCURACY)
+  : 56;
+const PR_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PR_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 57;
+const PR_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 62;
+const PR_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 62;
+const PR_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : PR_MIN_LEAF_ACCURACY;
+const PR_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PR_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PR_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY)
+  : 50;
+const THREES_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PRA_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 58;
+const PRA_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 60;
+const PRA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PRA_LEAD_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_LEAD_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_LEAD_GUARD_MIN_LEAF_ACCURACY)
+  : 60;
+const PRA_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PRA_BENCH_CREATOR_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_BENCH_CREATOR_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_BENCH_CREATOR_SCORER_MIN_LEAF_ACCURACY)
+  : PRA_MIN_LEAF_ACCURACY;
+const PRA_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : PRA_MIN_LEAF_ACCURACY;
+const THREES_SCORE_FIRST_LEAD_GUARD_SIDE_BIAS = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_SCORE_FIRST_LEAD_GUARD_SIDE_BIAS),
+)
+  ? Number(process.env.SNAPSHOT_THREES_SCORE_FIRST_LEAD_GUARD_SIDE_BIAS)
+  : 0;
+const THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_BUCKET_LATE_ACCURACY)
+  : 54.5;
+const THREES_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const THREES_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : 60;
+const THREES_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const THREES_CONNECTOR_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_CONNECTOR_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_CONNECTOR_WING_MIN_LEAF_ACCURACY)
+  : 58;
+const THREES_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const THREES_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY)
+  : 58;
+const THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_LEAF_ACCURACY)
+  : 56;
+const RA_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const REB_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_REB_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_REB_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY)
+  : REB_MIN_LEAF_ACCURACY;
+const RA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const RA_BENCH_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_WING_MIN_LEAF_ACCURACY)
+  : 54;
+const RA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY)
+  : 51;
+const RA_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY)
+  : 64;
+const RA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY)
+  : 52;
+const RA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY)
+  : 53.5;
+const RA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const RA_POINT_FORWARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_POINT_FORWARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_POINT_FORWARD_MIN_LEAF_ACCURACY)
+  : RA_MIN_LEAF_ACCURACY;
+const RA_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const RA_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY)
+  : 62;
+const RA_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const RA_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY)
+  : RA_MIN_LEAF_ACCURACY;
+const RA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY)
+  : 54;
+const RA_SPOTUP_WING_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_SPOTUP_WING_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_RA_SPOTUP_WING_MIN_LEAF_ACCURACY)
+  : 62;
+// 2026-03-17: Bench traditional big combo markets were skewing too UNDER-heavy.
+const PA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE?.trim() || "projection";
+const PA_SCORING_GUARD_CREATOR_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PA_SCORING_GUARD_CREATOR_MODEL_OVERRIDE?.trim() || "projection";
+const PA_SPOTUP_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PA_SPOTUP_WING_MODEL_OVERRIDE?.trim() || "projection";
+const PA_CONNECTOR_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PA_CONNECTOR_WING_MODEL_OVERRIDE?.trim() || "";
+const PTS_LEAD_GUARD_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "";
+const PTS_SPOTUP_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_SPOTUP_WING_MODEL_OVERRIDE?.trim() || "";
+const PTS_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_WING_MODEL_OVERRIDE?.trim() || "";
+const PTS_CONNECTOR_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_CONNECTOR_WING_MODEL_OVERRIDE?.trim() || "";
+const PTS_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PTS_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "";
+const PTS_BENCH_SPACER_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PTS_BENCH_SPACER_SCORER_MODEL_OVERRIDE?.trim() || "";
+const PTS_CENTER_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_CENTER_MODEL_OVERRIDE?.trim() || "";
+const PTS_POINT_FORWARD_MODEL_OVERRIDE = process.env.SNAPSHOT_PTS_POINT_FORWARD_MODEL_OVERRIDE?.trim() || "";
+const PTS_JUMBO_CREATOR_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PTS_JUMBO_CREATOR_GUARD_MODEL_OVERRIDE?.trim() || "marketFavored";
+const PTS_JUMBO_CREATOR_GUARD_MIN_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_JUMBO_CREATOR_GUARD_MIN_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_JUMBO_CREATOR_GUARD_MIN_BUCKET_LATE_ACCURACY)
+  : 56;
+const PTS_JUMBO_CREATOR_GUARD_MIN_LEAF_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_PTS_JUMBO_CREATOR_GUARD_MIN_LEAF_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_PTS_JUMBO_CREATOR_GUARD_MIN_LEAF_ACCURACY)
+  : PTS_MIN_LEAF_ACCURACY;
+const REB_CENTER_MODEL_OVERRIDE = process.env.SNAPSHOT_REB_CENTER_MODEL_OVERRIDE?.trim() || "";
+const AST_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_AST_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE?.trim() || "marketFavored";
+const AST_CENTER_MODEL_OVERRIDE = process.env.SNAPSHOT_AST_CENTER_MODEL_OVERRIDE?.trim() || "";
+const AST_LEAD_GUARD_MODEL_OVERRIDE = process.env.SNAPSHOT_AST_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "";
+const PR_CENTER_MODEL_OVERRIDE = process.env.SNAPSHOT_PR_CENTER_MODEL_OVERRIDE?.trim() || "";
+const PR_BENCH_CREATOR_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PR_BENCH_CREATOR_SCORER_MODEL_OVERRIDE?.trim() || "";
+const PR_BENCH_VOLUME_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PR_BENCH_VOLUME_SCORER_MODEL_OVERRIDE?.trim() || "projection";
+const PR_BENCH_STRETCH_BIG_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PR_BENCH_STRETCH_BIG_MODEL_OVERRIDE?.trim() || "gapThenProjection:1";
+const PR_LEAD_GUARD_MODEL_OVERRIDE = process.env.SNAPSHOT_PR_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "";
+const PR_POINT_FORWARD_MODEL_OVERRIDE = process.env.SNAPSHOT_PR_POINT_FORWARD_MODEL_OVERRIDE?.trim() || "";
+const PRA_LEAD_GUARD_MODEL_OVERRIDE = process.env.SNAPSHOT_PRA_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "";
+const PA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE?.trim() || "";
+const PRA_SPOTUP_WING_MODEL_OVERRIDE = process.env.SNAPSHOT_PRA_SPOTUP_WING_MODEL_OVERRIDE?.trim() || "";
+const PA_BENCH_WING_MODEL_OVERRIDE =
+  process.env.PA_BENCH_WING_MODEL_OVERRIDE?.trim() ||
+  process.env.SNAPSHOT_PA_BENCH_WING_MODEL_OVERRIDE?.trim() ||
+  "";
+const PRA_FAMILY_MODEL_OVERRIDE =
+  process.env.PRA_FAMILY_MODEL_OVERRIDE?.trim() ||
+  process.env.SNAPSHOT_PRA_FAMILY_MODEL_OVERRIDE?.trim() ||
+  "";
+const RA_TWMW_MODEL_OVERRIDE =
+  process.env.RA_TWMW_MODEL_OVERRIDE?.trim() ||
+  process.env.SNAPSHOT_RA_TWMW_MODEL_OVERRIDE?.trim() ||
+  "";
+const DRAG_MIN_BUCKET_LATE = Number.isFinite(
+  Number(process.env.DRAG_MIN_BUCKET_LATE ?? process.env.SNAPSHOT_DRAG_MIN_BUCKET_LATE),
+)
+  ? Number(process.env.DRAG_MIN_BUCKET_LATE ?? process.env.SNAPSHOT_DRAG_MIN_BUCKET_LATE)
+  : null;
+const PA_BENCH_WING_NATIVE_VETO_MAX_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MAX_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MAX_ABS_LINE_GAP)
+  : null;
+const PA_BENCH_WING_NATIVE_VETO_MIN_PRICE_STRENGTH = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MIN_PRICE_STRENGTH),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MIN_PRICE_STRENGTH)
+  : null;
+const PA_BENCH_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT = Number.isFinite(
+  Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT),
+)
+  ? Number(process.env.SNAPSHOT_PA_BENCH_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  : null;
+const PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP)
+  : null;
+const PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP)
+  : 2;
+const PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT),
+)
+  ? Number(process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  : null;
+const PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN =
+  process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN?.trim() === "1";
+const PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_FAVORED_MATCH =
+  process.env.SNAPSHOT_PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_FAVORED_MATCH?.trim() === "1";
+const PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP)
+  : null;
+const PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT = Number.isFinite(
+  Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT),
+)
+  ? Number(process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  : null;
+const PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN =
+  process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN?.trim() === "1";
+const PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH =
+  process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH == null
+    ? true
+    : process.env.SNAPSHOT_PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH?.trim() === "1";
+const RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP)
+  : null;
+const RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP),
+)
+  ? Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP)
+  : null;
+const RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT = Number.isFinite(
+  Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT),
+)
+  ? Number(process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  : 0;
+const RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MATCH =
+  process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MATCH?.trim() === "1";
+const RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH =
+  process.env.SNAPSHOT_RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH?.trim() === "1";
+const RA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_RA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE?.trim() || "gapThenMarket:1";
+const RA_BENCH_CREATOR_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_RA_BENCH_CREATOR_SCORER_MODEL_OVERRIDE?.trim() || "finalOverride";
+const RA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_RA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE?.trim() || "";
+const RA_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_RA_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE?.trim() || "projection";
+const THREES_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_THREES_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "favoriteOverSuppress:-6.5:1.5";
+const THREES_STRETCH_RIM_PROTECTOR_CENTER_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_THREES_STRETCH_RIM_PROTECTOR_CENTER_MODEL_OVERRIDE?.trim() || "";
+const PRA_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE =
+  process.env.SNAPSHOT_PRA_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE?.trim() || "gapThenMarket:0.25";
+const PRA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY = DRAG_MIN_BUCKET_LATE ?? 56;
+const PRA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY = DRAG_MIN_BUCKET_LATE ?? 56;
+const RA_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY = DRAG_MIN_BUCKET_LATE ?? 56;
+// 2026-03-17: Narrow opposite-juice veto for weaker buckets only.
+const JUICE_VETO_THRESHOLD = Number.isFinite(Number(process.env.SNAPSHOT_JUICE_VETO_THRESHOLD))
+  ? Number(process.env.SNAPSHOT_JUICE_VETO_THRESHOLD)
+  : 0.59;
+const JUICE_VETO_MAX_BUCKET_LATE_ACCURACY = Number.isFinite(
+  Number(process.env.SNAPSHOT_JUICE_VETO_MAX_BUCKET_LATE_ACCURACY),
+)
+  ? Number(process.env.SNAPSHOT_JUICE_VETO_MAX_BUCKET_LATE_ACCURACY)
+  : 62;
 
 function resolveModelFilePath(): string {
   const override = process.env.SNAPSHOT_UNIVERSAL_MODEL_FILE?.trim();
@@ -254,65 +1216,390 @@ function resolveCalibrationFilePath(): string {
   return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
 }
 
+function resolveProjectionDistributionFilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_PROJECTION_DISTRIBUTION_FILE?.trim();
+  if (!override) return DEFAULT_PROJECTION_DISTRIBUTION_FILE;
+  return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+}
+
 export const DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS: LiveUniversalQualificationSettings = {
   minBucketLateAccuracy: 56,
   minBucketSamples: 0,
   minLeafAccuracy: 67,
   minLeafCount: 0,
+  minProjectionWinProbability: 0,
+  minProjectionPriceEdge: 0,
   marketOverrides: {
     PTS: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 58,
+      minLeafAccuracy: PTS_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      minProjectionWinProbability: 0,
+      minProjectionPriceEdge: 0,
+      archetypeOverrides: {
+        CENTER: {
+          minBucketLateAccuracy: PTS_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_CENTER_MIN_LEAF_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: PTS_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        SCORE_FIRST_LEAD_GUARD: {
+          minBucketLateAccuracy: PTS_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        WING: {
+          minBucketLateAccuracy: PTS_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_WING_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: PTS_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        SCORING_GUARD_CREATOR: {
+          minBucketLateAccuracy: PTS_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY,
+        },
+        BENCH_LOW_USAGE_WING: {
+          minBucketLateAccuracy: PTS_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_SHOOTING_GUARD: {
+          minBucketLateAccuracy: PTS_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_TRADITIONAL_GUARD: {
+          minBucketLateAccuracy: PTS_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY,
+        },
+        CONNECTOR_WING: {
+          minBucketLateAccuracy: PTS_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_CONNECTOR_WING_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: PTS_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        JUMBO_CREATOR_GUARD: {
+          minBucketLateAccuracy: PTS_JUMBO_CREATOR_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PTS_JUMBO_CREATOR_GUARD_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     REB: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 60,
+      minLeafAccuracy: REB_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        BENCH_WING: {
+          minBucketLateAccuracy: REB_BENCH_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_BENCH_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_LOW_USAGE_WING: {
+          minBucketLateAccuracy: REB_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY,
+        },
+        WING: {
+          minBucketLateAccuracy: REB_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_WING_MIN_LEAF_ACCURACY,
+        },
+        CONNECTOR_WING: {
+          minBucketLateAccuracy: REB_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_CONNECTOR_WING_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: REB_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        CENTER: {
+          minBucketLateAccuracy: REB_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_CENTER_MIN_LEAF_ACCURACY,
+        },
+        SCORE_FIRST_LEAD_GUARD: {
+          minBucketLateAccuracy: REB_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: REB_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        ELITE_SHOOTING_GUARD: {
+          minBucketLateAccuracy: REB_ELITE_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_ELITE_SHOOTING_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_VOLUME_SCORER: {
+          minBucketLateAccuracy: REB_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: REB_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     AST: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 58,
+      minLeafAccuracy: AST_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        CENTER: {
+          minBucketLateAccuracy: AST_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_CENTER_MIN_LEAF_ACCURACY,
+        },
+        BENCH_SHOOTING_GUARD: {
+          minBucketLateAccuracy: AST_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_TRADITIONAL_GUARD: {
+          minBucketLateAccuracy: AST_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_SPACER_SCORER: {
+          minBucketLateAccuracy: AST_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY,
+        },
+        BENCH_STRETCH_BIG: {
+          minBucketLateAccuracy: AST_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_STRETCH_BIG_MIN_LEAF_ACCURACY,
+        },
+        BENCH_TRADITIONAL_BIG: {
+          minBucketLateAccuracy: AST_BENCH_TRADITIONAL_BIG_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_TRADITIONAL_BIG_MIN_LEAF_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: AST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: AST_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: AST_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_PASS_FIRST_GUARD: {
+          minBucketLateAccuracy: AST_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY,
+        },
+        TWO_WAY_MARKET_WING: {
+          minBucketLateAccuracy: AST_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: AST_TWO_WAY_MARKET_WING_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     THREES: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
       minLeafAccuracy: 60,
       minLeafCount: 0,
+      archetypeOverrides: {
+        SCORE_FIRST_LEAD_GUARD: {
+          minBucketLateAccuracy: THREES_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: THREES_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: THREES_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        CONNECTOR_WING: {
+          minBucketLateAccuracy: THREES_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: THREES_CONNECTOR_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_VOLUME_SCORER: {
+          minBucketLateAccuracy: THREES_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: THREES_BENCH_VOLUME_SCORER_MIN_LEAF_ACCURACY,
+        },
+        STRETCH_RIM_PROTECTOR_CENTER: {
+          minBucketLateAccuracy: THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: THREES_STRETCH_RIM_PROTECTOR_CENTER_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     PRA: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 58,
+      minLeafAccuracy: PRA_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        POINT_FORWARD: {
+          minBucketLateAccuracy: PRA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PRA_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        SCORING_GUARD_CREATOR: {
+          minBucketLateAccuracy: PRA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY,
+        },
+        SCORE_FIRST_LEAD_GUARD: {
+          minBucketLateAccuracy: PRA_SCORE_FIRST_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PRA_SCORE_FIRST_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: PRA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PRA_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: 57,
+        },
+        BENCH_CREATOR_SCORER: {
+          minBucketLateAccuracy: PRA_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PRA_BENCH_CREATOR_SCORER_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     PA: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 61,
+      minLeafAccuracy: PA_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        BENCH_WING: {
+          minBucketLateAccuracy: PA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_BENCH_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_LOW_USAGE_WING: {
+          minBucketLateAccuracy: PA_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY,
+        },
+        CONNECTOR_WING: {
+          minBucketLateAccuracy: PA_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY,
+        },
+        WING: {
+          minBucketLateAccuracy: PA_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_REBOUNDING_SCORER: {
+          minBucketLateAccuracy: PA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY,
+        },
+        BENCH_SPACER_SCORER: {
+          minBucketLateAccuracy: PA_BENCH_SPACER_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_BENCH_SPACER_SCORER_MIN_LEAF_ACCURACY,
+        },
+        BENCH_SHOOTING_GUARD: {
+          minBucketLateAccuracy: PA_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: PA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        CENTER: {
+          minBucketLateAccuracy: PA_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_CENTER_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: PA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: PA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PA_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     PR: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 60,
+      minLeafAccuracy: PR_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        BENCH_WING: {
+          minBucketLateAccuracy: PR_BENCH_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_BENCH_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_STRETCH_BIG: {
+          minBucketLateAccuracy: PR_BENCH_STRETCH_BIG_MIN_BUCKET_LATE_ACCURACY,
+        },
+        BENCH_CREATOR_SCORER: {
+          minBucketLateAccuracy: PR_BENCH_CREATOR_SCORER_MIN_BUCKET_LATE_ACCURACY,
+        },
+        BENCH_SHOOTING_GUARD: {
+          minBucketLateAccuracy: PR_BENCH_SHOOTING_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_BENCH_SHOOTING_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_LOW_USAGE_WING: {
+          minBucketLateAccuracy: PR_BENCH_LOW_USAGE_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_BENCH_LOW_USAGE_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_VOLUME_SCORER: {
+          minBucketLateAccuracy: PR_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY,
+        },
+        CENTER: {
+          minBucketLateAccuracy: PR_CENTER_MIN_BUCKET_LATE_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: PR_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: PR_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        CONNECTOR_WING: {
+          minBucketLateAccuracy: PR_CONNECTOR_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_CONNECTOR_WING_MIN_LEAF_ACCURACY,
+        },
+        WING: {
+          minBucketLateAccuracy: PR_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: PR_WING_MIN_LEAF_ACCURACY,
+        },
+      },
     },
     RA: {
       minBucketLateAccuracy: 56,
       minBucketSamples: 0,
-      minLeafAccuracy: 62,
+      minLeafAccuracy: RA_MIN_LEAF_ACCURACY,
       minLeafCount: 0,
+      archetypeOverrides: {
+        BENCH_REBOUNDING_SCORER: {
+          minBucketLateAccuracy: RA_BENCH_REBOUNDING_SCORER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_BENCH_REBOUNDING_SCORER_MIN_LEAF_ACCURACY,
+        },
+        POINT_FORWARD: {
+          minBucketLateAccuracy: RA_POINT_FORWARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_POINT_FORWARD_MIN_LEAF_ACCURACY,
+        },
+        SCORING_GUARD_CREATOR: {
+          minBucketLateAccuracy: RA_SCORING_GUARD_CREATOR_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_SCORING_GUARD_CREATOR_MIN_LEAF_ACCURACY,
+        },
+        BENCH_VOLUME_SCORER: {
+          minBucketLateAccuracy: RA_BENCH_VOLUME_SCORER_MIN_BUCKET_LATE_ACCURACY,
+        },
+        BENCH_WING: {
+          minBucketLateAccuracy: RA_BENCH_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_BENCH_WING_MIN_LEAF_ACCURACY,
+        },
+        BENCH_TRADITIONAL_GUARD: {
+          minBucketLateAccuracy: RA_BENCH_TRADITIONAL_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_BENCH_TRADITIONAL_GUARD_MIN_LEAF_ACCURACY,
+        },
+        BENCH_PASS_FIRST_GUARD: {
+          minBucketLateAccuracy: RA_BENCH_PASS_FIRST_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_BENCH_PASS_FIRST_GUARD_MIN_LEAF_ACCURACY,
+        },
+        CENTER: {
+          minBucketLateAccuracy: RA_CENTER_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_CENTER_MIN_LEAF_ACCURACY,
+        },
+        LEAD_GUARD: {
+          minBucketLateAccuracy: RA_LEAD_GUARD_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_LEAD_GUARD_MIN_LEAF_ACCURACY,
+        },
+        SPOTUP_WING: {
+          minBucketLateAccuracy: RA_SPOTUP_WING_MIN_BUCKET_LATE_ACCURACY,
+          minLeafAccuracy: RA_SPOTUP_WING_MIN_LEAF_ACCURACY,
+        },
+        TWO_WAY_MARKET_WING: {
+          minBucketLateAccuracy: RA_TWO_WAY_MARKET_WING_MIN_BUCKET_LATE_ACCURACY,
+        },
+      },
     },
   },
 };
 
 let cachedModelMap: Map<string, UniversalModelRecord> | null = null;
 let cachedCalibrationMap: Map<string, UniversalResidualCalibrationRecord> | null = null;
+let cachedProjectionDistributionMap: Map<string, UniversalProjectionDistributionRecord> | null = null;
 
 function impliedProbability(odds: number | null): number | null {
   if (odds == null || !Number.isFinite(odds) || odds === 0) return null;
@@ -332,6 +1619,50 @@ function round(value: number, digits = 4): number {
   return Math.round(value * factor) / factor;
 }
 
+function erf(value: number): number {
+  const sign = value < 0 ? -1 : 1;
+  const abs = Math.abs(value);
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+  const t = 1 / (1 + p * abs);
+  const poly = (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t);
+  const y = 1 - poly * Math.exp(-abs * abs);
+  return sign * y;
+}
+
+function normalCdf(value: number, mean: number, stdDev: number): number {
+  const safeStd = Math.max(stdDev, 1e-6);
+  const z = (value - mean) / (safeStd * Math.sqrt(2));
+  return clamp(0.5 * (1 + erf(z)), 0, 1);
+}
+
+function residualStdDevFloorForMarket(market: SnapshotMarket): number {
+  switch (market) {
+    case "PTS":
+      return 4.2;
+    case "REB":
+      return 2.1;
+    case "AST":
+      return 1.9;
+    case "THREES":
+      return 1.05;
+    case "PRA":
+      return 5.8;
+    case "PA":
+      return 4.9;
+    case "PR":
+      return 5.1;
+    case "RA":
+      return 2.9;
+    default:
+      return 2.5;
+  }
+}
+
 function resolveQualificationThresholds(
   market: SnapshotMarket,
   archetype: Archetype | null,
@@ -346,7 +1677,333 @@ function resolveQualificationThresholds(
       archetypeOverride?.minBucketSamples ?? marketOverride?.minBucketSamples ?? settings.minBucketSamples,
     minLeafAccuracy: archetypeOverride?.minLeafAccuracy ?? marketOverride?.minLeafAccuracy ?? settings.minLeafAccuracy,
     minLeafCount: archetypeOverride?.minLeafCount ?? marketOverride?.minLeafCount ?? settings.minLeafCount,
+    minProjectionWinProbability:
+      archetypeOverride?.minProjectionWinProbability ??
+      marketOverride?.minProjectionWinProbability ??
+      settings.minProjectionWinProbability,
+    minProjectionPriceEdge:
+      archetypeOverride?.minProjectionPriceEdge ??
+      marketOverride?.minProjectionPriceEdge ??
+      settings.minProjectionPriceEdge,
   };
+}
+
+function parseModelOverride(value: string): ModelVariant | null {
+  if (!value) return null;
+  const [kind, first, second] = value.split(":");
+  switch (kind) {
+    case "projection":
+      return { kind: "projection" };
+    case "finalOverride":
+      return { kind: "finalOverride" };
+    case "marketFavored":
+      return { kind: "marketFavored" };
+    case "constant":
+      return first === "OVER" || first === "UNDER" ? { kind: "constant", side: first } : null;
+    case "gapThenProjection": {
+      const threshold = Number(first);
+      return Number.isFinite(threshold) ? { kind: "gapThenProjection", threshold } : null;
+    }
+    case "gapThenMarket": {
+      const threshold = Number(first);
+      return Number.isFinite(threshold) ? { kind: "gapThenMarket", threshold } : null;
+    }
+    case "agreementThenProjection": {
+      const threshold = Number(first);
+      return Number.isFinite(threshold) ? { kind: "agreementThenProjection", threshold } : null;
+    }
+    case "favoriteOverSuppress": {
+      const spreadThreshold = Number(first);
+      const gapThreshold = Number(second);
+      return Number.isFinite(spreadThreshold) && Number.isFinite(gapThreshold)
+        ? { kind: "favoriteOverSuppress", spreadThreshold, gapThreshold }
+        : null;
+    }
+    case "lowQualityThenMarket": {
+      const threshold = Number(first);
+      return Number.isFinite(threshold) ? { kind: "lowQualityThenMarket", threshold } : null;
+    }
+    default:
+      return null;
+  }
+}
+
+function applyRuntimeModelOverride(record: UniversalModelRecord): UniversalModelRecord {
+  let override: ModelVariant | null = null;
+  if (record.market === "PTS" && record.archetype === "LEAD_GUARD") {
+    override = parseModelOverride(PTS_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "WING") {
+    override = parseModelOverride(PTS_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "CONNECTOR_WING") {
+    override = parseModelOverride(PTS_CONNECTOR_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "SPOTUP_WING") {
+    override = parseModelOverride(PTS_SPOTUP_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "SCORE_FIRST_LEAD_GUARD") {
+    override = parseModelOverride(PTS_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "BENCH_SPACER_SCORER") {
+    override = parseModelOverride(PTS_BENCH_SPACER_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "CENTER") {
+    override = parseModelOverride(PTS_CENTER_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "POINT_FORWARD") {
+    override = parseModelOverride(PTS_POINT_FORWARD_MODEL_OVERRIDE);
+  } else if (record.market === "PTS" && record.archetype === "JUMBO_CREATOR_GUARD") {
+    override = parseModelOverride(PTS_JUMBO_CREATOR_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "REB" && record.archetype === "CENTER") {
+    override = parseModelOverride(REB_CENTER_MODEL_OVERRIDE);
+  } else if (record.market === "AST" && record.archetype === "CENTER") {
+    override = parseModelOverride(AST_CENTER_MODEL_OVERRIDE);
+  } else if (record.market === "AST" && record.archetype === "LEAD_GUARD") {
+    override = parseModelOverride(AST_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "AST" && record.archetype === "BENCH_SHOOTING_GUARD") {
+    override = parseModelOverride(AST_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "BENCH_TRADITIONAL_BIG") {
+    override = parseModelOverride(PA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "BENCH_REBOUNDING_SCORER") {
+    override = parseModelOverride(PA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "SCORING_GUARD_CREATOR") {
+    override = parseModelOverride(PA_SCORING_GUARD_CREATOR_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "SPOTUP_WING") {
+    override = parseModelOverride(PA_SPOTUP_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "BENCH_WING") {
+    override = parseModelOverride(PA_BENCH_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PA" && record.archetype === "CONNECTOR_WING") {
+    override = parseModelOverride(PA_CONNECTOR_WING_MODEL_OVERRIDE);
+  } else if (record.market === "PRA" && record.archetype === "SPOTUP_WING") {
+    override = parseModelOverride(PRA_SPOTUP_WING_MODEL_OVERRIDE || PRA_FAMILY_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "CENTER") {
+    override = parseModelOverride(PR_CENTER_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "BENCH_CREATOR_SCORER") {
+    override = parseModelOverride(PR_BENCH_CREATOR_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "BENCH_VOLUME_SCORER") {
+    override = parseModelOverride(PR_BENCH_VOLUME_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "BENCH_STRETCH_BIG") {
+    override = parseModelOverride(PR_BENCH_STRETCH_BIG_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "LEAD_GUARD") {
+    override = parseModelOverride(PR_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "PR" && record.archetype === "POINT_FORWARD") {
+    override = parseModelOverride(PR_POINT_FORWARD_MODEL_OVERRIDE);
+  } else if (
+    record.market === "PRA" &&
+    (record.archetype === "SCORING_GUARD_CREATOR" || record.archetype === "POINT_FORWARD")
+  ) {
+    override = parseModelOverride(PRA_FAMILY_MODEL_OVERRIDE);
+  } else if (record.market === "PRA" && record.archetype === "LEAD_GUARD") {
+    override = parseModelOverride(PRA_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "RA" && record.archetype === "BENCH_CREATOR_SCORER") {
+    override = parseModelOverride(RA_BENCH_CREATOR_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "RA" && record.archetype === "BENCH_REBOUNDING_SCORER") {
+    override = parseModelOverride(RA_BENCH_REBOUNDING_SCORER_MODEL_OVERRIDE);
+  } else if (record.market === "RA" && record.archetype === "BENCH_SHOOTING_GUARD") {
+    override = parseModelOverride(RA_BENCH_SHOOTING_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "RA" && record.archetype === "BENCH_TRADITIONAL_BIG") {
+    override = parseModelOverride(RA_BENCH_TRADITIONAL_BIG_MODEL_OVERRIDE);
+  } else if (record.market === "RA" && record.archetype === "TWO_WAY_MARKET_WING") {
+    override = parseModelOverride(RA_TWMW_MODEL_OVERRIDE);
+  } else if (record.market === "THREES" && record.archetype === "SCORE_FIRST_LEAD_GUARD") {
+    override = parseModelOverride(THREES_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE);
+  } else if (record.market === "THREES" && record.archetype === "STRETCH_RIM_PROTECTOR_CENTER") {
+    override = parseModelOverride(THREES_STRETCH_RIM_PROTECTOR_CENTER_MODEL_OVERRIDE);
+  } else if (record.market === "PRA" && record.archetype === "SCORE_FIRST_LEAD_GUARD") {
+    override = parseModelOverride(PRA_SCORE_FIRST_LEAD_GUARD_MODEL_OVERRIDE);
+  }
+
+  if (!override) return record;
+  return {
+    ...record,
+    model: override,
+  };
+}
+
+function shouldApplyPaBenchWingNativeVeto(decision: RawLiveUniversalModelDecision): boolean {
+  if (decision.market !== "PA" || decision.archetype !== "BENCH_WING") return false;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return false;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return false;
+  if (decision.rawSide === decision.finalSide) return false;
+  if (
+    PA_BENCH_WING_NATIVE_VETO_MAX_ABS_LINE_GAP == null ||
+    PA_BENCH_WING_NATIVE_VETO_MIN_PRICE_STRENGTH == null
+  ) {
+    return false;
+  }
+  if (decision.absLineGap == null || decision.absLineGap > PA_BENCH_WING_NATIVE_VETO_MAX_ABS_LINE_GAP) {
+    return false;
+  }
+  if (decision.priceStrength == null || decision.priceStrength < PA_BENCH_WING_NATIVE_VETO_MIN_PRICE_STRENGTH) {
+    return false;
+  }
+  if (
+    decision.favoredSide == null ||
+    decision.favoredSide === "NEUTRAL" ||
+    decision.favoredSide === decision.rawSide
+  ) {
+    return false;
+  }
+  if (
+    PA_BENCH_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT != null &&
+    (decision.projectionMarketAgreement == null ||
+      decision.projectionMarketAgreement > PA_BENCH_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function isAdversePriceLeanForSide(side: SnapshotModelSide, priceLean: number | null): boolean {
+  if (priceLean == null) return false;
+  if (side === "OVER") return priceLean < 0;
+  if (side === "UNDER") return priceLean > 0;
+  return false;
+}
+
+function shouldApplyPraScoringGuardCreatorNativeVeto(decision: RawLiveUniversalModelDecision): boolean {
+  if (decision.market !== "PRA" || decision.archetype !== "SCORING_GUARD_CREATOR") return false;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return false;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return false;
+  if (decision.rawSide === decision.finalSide) return false;
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP == null &&
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP == null &&
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT == null &&
+    !PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN &&
+    !PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_FAVORED_MATCH
+  ) {
+    return false;
+  }
+  if (decision.absLineGap == null) {
+    return false;
+  }
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP != null &&
+    decision.absLineGap < PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MIN_ABS_LINE_GAP
+  ) {
+    return false;
+  }
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP != null &&
+    decision.absLineGap > PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_ABS_LINE_GAP
+  ) {
+    return false;
+  }
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT != null &&
+    (decision.projectionMarketAgreement == null ||
+      decision.projectionMarketAgreement > PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  ) {
+    return false;
+  }
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN &&
+    !isAdversePriceLeanForSide(decision.rawSide, decision.priceLean)
+  ) {
+    return false;
+  }
+  if (
+    PRA_SCORING_GUARD_CREATOR_NATIVE_VETO_REQUIRE_FAVORED_MATCH &&
+    (decision.favoredSide == null ||
+      decision.favoredSide === "NEUTRAL" ||
+      decision.favoredSide !== decision.rawSide)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function shouldApplyPraPointForwardNativeVeto(decision: RawLiveUniversalModelDecision): boolean {
+  if (decision.market !== "PRA" || decision.archetype !== "POINT_FORWARD") return false;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return false;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return false;
+  if (decision.rawSide === decision.finalSide) return false;
+  if (
+    PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP == null &&
+    PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT == null &&
+    !PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN &&
+    !PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH
+  ) {
+    return false;
+  }
+  if (
+    PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP != null &&
+    (decision.absLineGap == null || decision.absLineGap > PRA_POINT_FORWARD_NATIVE_VETO_MAX_ABS_LINE_GAP)
+  ) {
+    return false;
+  }
+  if (
+    PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT != null &&
+    (decision.projectionMarketAgreement == null ||
+      decision.projectionMarketAgreement > PRA_POINT_FORWARD_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  ) {
+    return false;
+  }
+  if (
+    PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_ADVERSE_PRICE_LEAN &&
+    !isAdversePriceLeanForSide(decision.rawSide, decision.priceLean)
+  ) {
+    return false;
+  }
+  if (
+    PRA_POINT_FORWARD_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH &&
+    (decision.favoredSide == null ||
+      decision.favoredSide === "NEUTRAL" ||
+      decision.favoredSide === decision.rawSide)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function shouldApplyRaTwoWayMarketWingNativeVeto(decision: RawLiveUniversalModelDecision): boolean {
+  if (decision.market !== "RA" || decision.archetype !== "TWO_WAY_MARKET_WING") return false;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return false;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return false;
+  if (decision.rawSide === decision.finalSide) return false;
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP == null &&
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP == null &&
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT == null &&
+    !RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MATCH &&
+    !RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH
+  ) {
+    return false;
+  }
+  if (decision.absLineGap == null) {
+    return false;
+  }
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP != null &&
+    decision.absLineGap < RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MIN_ABS_LINE_GAP
+  ) {
+    return false;
+  }
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP != null &&
+    decision.absLineGap > RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_ABS_LINE_GAP
+  ) {
+    return false;
+  }
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT != null &&
+    (decision.projectionMarketAgreement == null ||
+      decision.projectionMarketAgreement > RA_TWO_WAY_MARKET_WING_NATIVE_VETO_MAX_PROJECTION_MARKET_AGREEMENT)
+  ) {
+    return false;
+  }
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MATCH &&
+    (decision.favoredSide == null ||
+      decision.favoredSide === "NEUTRAL" ||
+      decision.favoredSide !== decision.rawSide)
+  ) {
+    return false;
+  }
+  if (
+    RA_TWO_WAY_MARKET_WING_NATIVE_VETO_REQUIRE_FAVORED_MISMATCH &&
+    (decision.favoredSide == null ||
+      decision.favoredSide === "NEUTRAL" ||
+      decision.favoredSide === decision.rawSide)
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function loadModelMap(): Map<string, UniversalModelRecord> {
@@ -362,7 +2019,7 @@ function loadModelMap(): Map<string, UniversalModelRecord> {
   try {
     const payload = JSON.parse(fs.readFileSync(modelFilePath, "utf8")) as UniversalModelFile;
     for (const record of payload.models ?? []) {
-      map.set(`${record.market}|${record.archetype}`, record);
+      map.set(`${record.market}|${record.archetype}`, applyRuntimeModelOverride(record));
     }
   } catch {
     cachedModelMap = map;
@@ -405,27 +2062,223 @@ function loadCalibrationMap(): Map<string, UniversalResidualCalibrationRecord> {
   return map;
 }
 
-function classifyBenchArchetype(input: {
+function loadProjectionDistributionMap(): Map<string, UniversalProjectionDistributionRecord> {
+  if (cachedProjectionDistributionMap) return cachedProjectionDistributionMap;
+
+  const map = new Map<string, UniversalProjectionDistributionRecord>();
+  if (process.env.SNAPSHOT_UNIVERSAL_DISABLE_PROJECTION_DISTRIBUTION?.trim() === "1") {
+    cachedProjectionDistributionMap = map;
+    return map;
+  }
+
+  const distributionFilePath = resolveProjectionDistributionFilePath();
+  if (!fs.existsSync(distributionFilePath)) {
+    cachedProjectionDistributionMap = map;
+    return map;
+  }
+
+  try {
+    const payload = JSON.parse(fs.readFileSync(distributionFilePath, "utf8")) as UniversalProjectionDistributionFile;
+    for (const record of payload.records ?? []) {
+      map.set(
+        buildUniversalProjectionDistributionKey(record.scope, record.market, record.archetype, record.minutesBucket),
+        record,
+      );
+    }
+  } catch {
+    cachedProjectionDistributionMap = map;
+    return map;
+  }
+
+  cachedProjectionDistributionMap = map;
+  return map;
+}
+
+type ProjectionDistributionEstimate = {
+  sampleCount: number;
+  residualMean: number;
+  residualStdDev: number;
+  overWinProbability: number;
+  underWinProbability: number;
+};
+
+function estimateProjectionDistribution(
+  market: SnapshotMarket,
+  archetype: Archetype | null,
+  minutesBucket: UniversalMinutesBucket | null,
+  projectedValue: number,
+  line: number,
+): ProjectionDistributionEstimate | null {
+  if (!archetype || !minutesBucket) return null;
+
+  const distributionMap = loadProjectionDistributionMap();
+  if (distributionMap.size === 0) return null;
+
+  const candidates: Array<{ record: UniversalProjectionDistributionRecord; baseWeight: number }> = [];
+  const scoped = distributionMap.get(
+    buildUniversalProjectionDistributionKey("market_archetype_minutes", market, archetype, minutesBucket),
+  );
+  if (scoped) candidates.push({ record: scoped, baseWeight: 1 });
+
+  const marketMinutes = distributionMap.get(
+    buildUniversalProjectionDistributionKey("market_minutes", market, null, minutesBucket),
+  );
+  if (marketMinutes) candidates.push({ record: marketMinutes, baseWeight: 0.62 });
+
+  const marketWide = distributionMap.get(buildUniversalProjectionDistributionKey("market", market, null, null));
+  if (marketWide) candidates.push({ record: marketWide, baseWeight: 0.38 });
+
+  if (candidates.length === 0) return null;
+
+  const weighted = candidates.map(({ record, baseWeight }) => {
+    const sampleWeight = clamp(Math.log10(record.sampleCount + 1) / 2.3, 0.18, 1);
+    return {
+      record,
+      weight: baseWeight * sampleWeight,
+    };
+  });
+  const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  if (totalWeight <= 0) return null;
+
+  const residualMean =
+    weighted.reduce((sum, entry) => sum + entry.record.residualMean * entry.weight, 0) / totalWeight;
+  const secondMoment =
+    weighted.reduce((sum, entry) => {
+      const variance = entry.record.residualStdDev * entry.record.residualStdDev;
+      return sum + (variance + entry.record.residualMean * entry.record.residualMean) * entry.weight;
+    }, 0) / totalWeight;
+  const residualStdDev = Math.max(
+    residualStdDevFloorForMarket(market),
+    Math.sqrt(Math.max(0, secondMoment - residualMean * residualMean)),
+  );
+  const threshold = line - projectedValue;
+  const underWinProbability = normalCdf(threshold, residualMean, residualStdDev);
+  const overWinProbability = clamp(1 - underWinProbability, 0, 1);
+  const sampleCount = weighted.reduce((sum, entry) => sum + entry.record.sampleCount * entry.weight, 0) / totalWeight;
+
+  return {
+    sampleCount: round(sampleCount, 2),
+    residualMean: round(residualMean, 4),
+    residualStdDev: round(residualStdDev, 4),
+    overWinProbability: round(overWinProbability, 4),
+    underWinProbability: round(underWinProbability, 4),
+  };
+}
+
+function resolveBenchReboundingScorerArchetype(
+  input: {
+    playerPosition: string | null;
+    expectedMinutes?: number | null;
+    starterRateLast10?: number | null;
+    pointsProjection: number | null;
+    reboundsProjection: number | null;
+    assistProjection: number | null;
+    threesProjection: number | null;
+  },
+  market?: Market,
+): Archetype {
+  if (
+    market === "PTS" &&
+    !input.playerPosition &&
+    (input.expectedMinutes ?? 0) >= 20 &&
+    (input.starterRateLast10 ?? 0) <= 0.3 &&
+    (input.pointsProjection ?? 0) >= 12 &&
+    (input.reboundsProjection ?? 0) >= 5.2 &&
+    (input.reboundsProjection ?? 0) <= 6.4 &&
+    (input.assistProjection ?? 0) < 3.2 &&
+    (input.threesProjection ?? 0) <= 1.2
+  ) {
+    return "BENCH_VOLUME_SCORER";
+  }
+  return "BENCH_REBOUNDING_SCORER";
+}
+
+function shouldUsePositionlessStarterArchetype(input: {
+  playerPosition: string | null;
+  expectedMinutes: number | null;
+  starterRateLast10: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistProjection: number | null;
+  threesProjection: number | null;
+}): boolean {
+  if (!ENABLE_MISSING_POSITION_STARTER_FALLBACK) return false;
+  if (input.playerPosition) return false;
+  const minutes = input.expectedMinutes ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+
+  if (minutes < 28) return false;
+  const frontcourtLike = reb >= 8 || (reb >= 7.25 && threes >= 1.25);
+  if (frontcourtLike) {
+    if (starterRate >= 0.35) return true;
+    return pts >= 14 || ast >= 2.5 || threes >= 0.8;
+  }
+  if (minutes < 31 || threes < 2 || pts < 16.5 || ast < 3.4 || ast > 5.5) return false;
+  if (starterRate >= 0.35) return true;
+  return reb >= 5 || ast >= 3.8;
+}
+
+function classifyPositionlessStarterArchetype(input: {
+  expectedMinutes: number | null;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistProjection?: number | null;
+  threesProjection: number | null;
+}): Archetype {
+  const minutes = input.expectedMinutes ?? 0;
+  const pts = input.pointsProjection ?? 0;
+  const reb = input.reboundsProjection ?? 0;
+  const ast = input.assistProjection ?? 0;
+  const threes = input.threesProjection ?? 0;
+
+  if (minutes >= 26 && reb >= 9 && (threes >= 1.5 || pts >= 20)) {
+    return "STRETCH_RIM_PROTECTOR_CENTER";
+  }
+  if (minutes >= 31 && threes >= 2 && pts >= 16.5 && ast >= 3.4 && ast <= 5.5 && (reb >= 5 || ast >= 3.8)) {
+    return "CONNECTOR_WING";
+  }
+  return "CENTER";
+}
+
+function classifyBenchArchetype(
+  input: {
   playerPosition: string | null;
   pointsProjection: number | null;
   reboundsProjection: number | null;
   assistProjection: number | null;
   threesProjection: number | null;
-}): Archetype {
+  expectedMinutes?: number | null;
+  starterRateLast10?: number | null;
+  },
+  market?: Market,
+): Archetype {
   const position = (input.playerPosition ?? "").toUpperCase();
   const pts = input.pointsProjection ?? 0;
   const reb = input.reboundsProjection ?? 0;
   const ast = input.assistProjection ?? 0;
   const threes = input.threesProjection ?? 0;
 
-  if (position.includes("C") || reb >= 7.5) return "BENCH_BIG";
-  if (ast >= 4 || position.includes("PG") || position === "G") return "BENCH_GUARD";
+  if (position.includes("C") || reb >= 7.5) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
+  if (ast >= 4 || position.includes("PG") || position === "G") {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
   if (
     (position.includes("SG") || position.includes("SF") || position.includes("PF") || position === "F") &&
     (pts >= 16 || threes >= 1.8)
   ) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(input, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -436,17 +2289,32 @@ function classifyBenchArchetype(input: {
   }
   if (pts >= 15 || threes >= 1.8) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(input, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
     return "BENCH_VOLUME_SCORER";
   }
-  if (ast >= reb && ast >= 3.5) return "BENCH_GUARD";
-  if (reb >= pts && reb >= ast) return "BENCH_BIG";
+  // Recover low-minute setup guards when upstream position metadata is missing.
+  if (!position && ast >= 3 && ast >= reb + 1 && pts <= 9 && reb <= 3.75) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
+  if (ast >= reb && ast >= 3.5) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    if (pts < 8.0 && ast < 2.5) return "BENCH_LOW_USAGE_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
+  }
+  if (reb >= pts && reb >= ast) {
+    if (threes >= 0.5) return "BENCH_STRETCH_BIG";
+    if (pts < 6.5 && reb < 4.5) return "BENCH_LOW_USAGE_BIG";
+    return "BENCH_TRADITIONAL_BIG";
+  }
   if (pts >= reb && pts >= ast) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(input, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -456,6 +2324,7 @@ function classifyBenchArchetype(input: {
 }
 
 function classifyArchetype(input: {
+  market?: Market;
   playerPosition: string | null;
   expectedMinutes: number | null;
   starterRateLast10: number | null;
@@ -471,10 +2340,22 @@ function classifyArchetype(input: {
   const reb = input.reboundsProjection ?? 0;
   const ast = input.assistProjection ?? 0;
   const threes = input.threesProjection ?? 0;
+  const usePositionlessStarterArchetype = shouldUsePositionlessStarterArchetype(input);
 
-  if (minutes < 24 || starterRate < 0.35) {
+  if (minutes < 24 || (starterRate < 0.35 && !usePositionlessStarterArchetype)) {
     return classifyBenchArchetype({
       playerPosition: input.playerPosition,
+      pointsProjection: input.pointsProjection,
+      reboundsProjection: input.reboundsProjection,
+      assistProjection: input.assistProjection,
+      threesProjection: input.threesProjection,
+      expectedMinutes: input.expectedMinutes,
+      starterRateLast10: input.starterRateLast10,
+    }, input.market);
+  }
+  if (!position && usePositionlessStarterArchetype) {
+    return classifyPositionlessStarterArchetype({
+      expectedMinutes: input.expectedMinutes,
       pointsProjection: input.pointsProjection,
       reboundsProjection: input.reboundsProjection,
       assistProjection: input.assistProjection,
@@ -580,9 +2461,186 @@ function classifyArchetype(input: {
     if (pts >= 19 || threes >= 2.4) return "SCORE_FIRST_LEAD_GUARD";
     return "LEAD_GUARD";
   }
+  if (
+    input.market === "PR" &&
+    !position &&
+    minutes >= 28 &&
+    starterRate >= 0.5 &&
+    pts >= 14 &&
+    pts <= 17.5 &&
+    reb >= 4.2 &&
+    reb < 5.6 &&
+    ast >= 2.6 &&
+    ast < 3.4 &&
+    threes >= 1.6 &&
+    threes <= 2.2
+  ) {
+    return "CONNECTOR_WING";
+  }
   if (ast >= 3.4 || reb >= 5.6) return "CONNECTOR_WING";
   if (pts >= 15 || threes >= 2) return "SPOTUP_WING";
   return "WING";
+}
+
+function shouldApplyPointForwardWeakMarketRoleFix(
+  archetype: Archetype,
+  input: {
+    market: Market;
+    playerPosition: string | null;
+    expectedMinutes: number | null;
+    pointsProjection: number | null;
+    reboundsProjection: number | null;
+    assistProjection: number | null;
+    threesProjection: number | null;
+  },
+): boolean {
+  if (archetype !== "SCORING_GUARD_CREATOR") return false;
+  if (!POINT_FORWARD_WEAK_MARKET_ROLE_FIX_MARKETS.includes(input.market)) return false;
+
+  const position = (input.playerPosition ?? "").toUpperCase();
+  const isGuard = position.includes("PG") || position.includes("SG") || position === "G";
+  if (!isGuard || position.includes("C")) return false;
+
+  if (
+    input.expectedMinutes == null ||
+    input.pointsProjection == null ||
+    input.reboundsProjection == null ||
+    input.assistProjection == null ||
+    input.threesProjection == null
+  ) {
+    return false;
+  }
+
+  if (input.expectedMinutes < POINT_FORWARD_WEAK_MARKET_ROLE_FIX.minMinutes) return false;
+  if (input.pointsProjection < POINT_FORWARD_WEAK_MARKET_ROLE_FIX.minPoints) return false;
+  if (input.reboundsProjection < POINT_FORWARD_WEAK_MARKET_ROLE_FIX.minRebounds) return false;
+  if (input.assistProjection < POINT_FORWARD_WEAK_MARKET_ROLE_FIX.minAssists) return false;
+  if (input.assistProjection >= POINT_FORWARD_WEAK_MARKET_ROLE_FIX.maxAssistsExclusive) return false;
+  if (input.threesProjection > POINT_FORWARD_WEAK_MARKET_ROLE_FIX.maxThrees) return false;
+  return true;
+}
+
+function heliocentricWeakMarketRoleFixArchetype(): Archetype | null {
+  return HELIOCENTRIC_WEAK_MARKET_ROLE_FIX_ARCHETYPE;
+}
+
+function shouldApplyHeliocentricWeakMarketRoleFix(
+  archetype: Archetype,
+  input: {
+    market: Market;
+  },
+): boolean {
+  if (archetype !== "HELIOCENTRIC_GUARD") return false;
+  if (heliocentricWeakMarketRoleFixArchetype() == null) return false;
+  return HELIOCENTRIC_WEAK_MARKET_ROLE_FIX_MARKETS.includes(input.market);
+}
+
+function shouldApplyHeliocentricGuardRoleFix(
+  archetype: Archetype,
+  input: {
+    market: Market;
+    playerPosition: string | null;
+    expectedMinutes: number | null;
+    starterRateLast10: number | null;
+    pointsProjection: number | null;
+    assistProjection: number | null;
+    threesProjection: number | null;
+  },
+): boolean {
+  if (archetype !== "SCORE_FIRST_LEAD_GUARD") return false;
+  if (HELIOCENTRIC_GUARD_ROLE_FIX_EXCLUDED_MARKETS.includes(input.market)) return false;
+
+  const position = (input.playerPosition ?? "").toUpperCase();
+  const isGuard = position.includes("PG") || position.includes("SG") || position === "G";
+  if (!isGuard || position.includes("C")) return false;
+
+  if (
+    input.expectedMinutes == null ||
+    input.starterRateLast10 == null ||
+    input.pointsProjection == null ||
+    input.assistProjection == null ||
+    input.threesProjection == null
+  ) {
+    return false;
+  }
+
+  if (input.expectedMinutes < HELIOCENTRIC_GUARD_ROLE_FIX.minMinutes) return false;
+  if (input.starterRateLast10 < HELIOCENTRIC_GUARD_ROLE_FIX.minStarterRate) return false;
+  if (input.pointsProjection < HELIOCENTRIC_GUARD_ROLE_FIX.minPoints) return false;
+  if (input.assistProjection < HELIOCENTRIC_GUARD_ROLE_FIX.minAssists) return false;
+  if (input.threesProjection < HELIOCENTRIC_GUARD_ROLE_FIX.minThrees) return false;
+  return true;
+}
+
+function shouldApplyBenchLowUsageBigComboRoleFix(
+  archetype: Archetype,
+  input: {
+    market: Market;
+    expectedMinutes: number | null;
+    starterRateLast10: number | null;
+    pointsProjection: number | null;
+    reboundsProjection: number | null;
+    threesProjection: number | null;
+  },
+): boolean {
+  if (archetype !== "BENCH_TRADITIONAL_BIG") return false;
+  if (!BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX_MARKETS.includes(input.market)) return false;
+
+  if (
+    input.expectedMinutes == null ||
+    input.starterRateLast10 == null ||
+    input.pointsProjection == null ||
+    input.reboundsProjection == null ||
+    input.threesProjection == null
+  ) {
+    return false;
+  }
+
+  if (input.expectedMinutes > BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX.maxMinutes) return false;
+  if (input.starterRateLast10 > BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX.maxStarterRate) return false;
+  if (input.pointsProjection > BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX.maxPoints) return false;
+  if (input.reboundsProjection > BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX.maxRebounds) return false;
+  if (input.threesProjection > BENCH_LOW_USAGE_BIG_COMBO_ROLE_FIX.maxThrees) return false;
+  return true;
+}
+
+function shouldApplyBenchCreatorScorerRoleFix(
+  archetype: Archetype,
+  input: {
+    market: Market;
+    playerPosition: string | null;
+    expectedMinutes: number | null;
+    starterRateLast10: number | null;
+    pointsProjection: number | null;
+    reboundsProjection: number | null;
+    assistProjection: number | null;
+    threesProjection: number | null;
+  },
+): boolean {
+  if (archetype !== "BENCH_SPACER_SCORER") return false;
+  if (!BENCH_CREATOR_SCORER_ROLE_FIX_MARKETS.includes(input.market)) return false;
+
+  const position = (input.playerPosition ?? "").toUpperCase();
+  if (!position || position.includes("C")) return false;
+
+  if (
+    input.expectedMinutes == null ||
+    input.starterRateLast10 == null ||
+    input.pointsProjection == null ||
+    input.reboundsProjection == null ||
+    input.assistProjection == null ||
+    input.threesProjection == null
+  ) {
+    return false;
+  }
+
+  if (input.expectedMinutes < BENCH_CREATOR_SCORER_ROLE_FIX.minMinutes) return false;
+  if (input.starterRateLast10 < BENCH_CREATOR_SCORER_ROLE_FIX.minStarterRate) return false;
+  if (input.pointsProjection < BENCH_CREATOR_SCORER_ROLE_FIX.minPoints) return false;
+  if (input.reboundsProjection > BENCH_CREATOR_SCORER_ROLE_FIX.maxRebounds) return false;
+  if (input.assistProjection < BENCH_CREATOR_SCORER_ROLE_FIX.minAssists) return false;
+  if (input.threesProjection < BENCH_CREATOR_SCORER_ROLE_FIX.minThrees) return false;
+  return true;
 }
 
 function lineTier(market: SnapshotMarket, line: number): number | null {
@@ -607,10 +2665,18 @@ function getFeature(row: LiveUniversalModelRow, feature: FeatureName): number | 
       return row.lineGap;
     case "absLineGap":
       return row.absLineGap;
+    case "l5CurrentLineDeltaAvg":
+      return row.l5CurrentLineDeltaAvg;
+    case "l5CurrentLineOverRate":
+      return row.l5CurrentLineOverRate;
+    case "l5MinutesAvg":
+      return row.l5MinutesAvg;
     case "expectedMinutes":
       return row.expectedMinutes;
     case "minutesVolatility":
       return row.minutesVolatility;
+    case "benchBigRoleStability":
+      return row.benchBigRoleStability;
     case "starterRateLast10":
       return row.starterRateLast10;
     case "priceLean":
@@ -707,6 +2773,16 @@ function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
       return row.favoredSide === "NEUTRAL" ? row.finalSide : row.favoredSide;
     case "constant":
       return model.side;
+    case "lowMinutesThenFinalElseConstant":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold ? row.finalSide : model.side;
+    case "underGapThenFinalElseConstant":
+      return row.lineGap <= -model.threshold ? row.finalSide : model.side;
+    case "lowMinutesThenFinal":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold ? row.finalSide : row.projectionSide;
+    case "lowMinutesDisagreementThenFinal":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold && row.finalSide !== row.projectionSide
+        ? row.finalSide
+        : row.projectionSide;
     case "gapThenProjection":
       return row.absLineGap >= model.threshold
         ? row.projectionSide
@@ -715,6 +2791,12 @@ function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
           : row.favoredSide;
     case "gapThenMarket":
       return row.absLineGap >= model.threshold
+        ? row.favoredSide === "NEUTRAL"
+          ? row.finalSide
+          : row.favoredSide
+        : row.projectionSide;
+    case "overGapThenMarket":
+      return row.lineGap >= model.threshold
         ? row.favoredSide === "NEUTRAL"
           ? row.finalSide
           : row.favoredSide
@@ -743,6 +2825,18 @@ function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
         return "UNDER";
       }
       return row.finalSide;
+    case "favoriteOverSuppressPositiveGap":
+      if (
+        row.finalSide === "OVER" &&
+        row.openingTeamSpread != null &&
+        row.openingTeamSpread <= model.spreadThreshold &&
+        row.absLineGap <= model.gapThreshold &&
+        row.lineGap >= 0 &&
+        (row.expectedMinutes ?? 0) >= model.minExpectedMinutes
+      ) {
+        return "UNDER";
+      }
+      return row.finalSide;
     case "lowQualityThenMarket":
       return (row.contextQuality ?? 1) <= model.threshold
         ? row.favoredSide === "NEUTRAL"
@@ -765,13 +2859,47 @@ function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
   }
 }
 
-export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInput): RawLiveUniversalModelDecision {
+function applyBucketSideBias(
+  market: SnapshotMarket,
+  archetype: Archetype,
+  row: LiveUniversalModelRow,
+  side: Side,
+): Side {
+  if (
+    market === "PA" &&
+    archetype === "SPOTUP_WING" &&
+    PA_SPOTUP_WING_USE_LEGACY_SIDE_BIAS &&
+    PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD != null
+  ) {
+    return row.absLineGap >= PA_SPOTUP_WING_GAP_THEN_MARKET_THRESHOLD
+      ? row.favoredSide === "NEUTRAL"
+        ? row.finalSide
+        : row.favoredSide
+      : row.projectionSide;
+  }
+  if (
+    market === "THREES" &&
+    archetype === "SCORE_FIRST_LEAD_GUARD" &&
+    THREES_SCORE_FIRST_LEAD_GUARD_SIDE_BIAS !== 0
+  ) {
+    const biasedGap = row.lineGap + THREES_SCORE_FIRST_LEAD_GUARD_SIDE_BIAS;
+    if (biasedGap > 0) return "OVER";
+    if (biasedGap < 0) return "UNDER";
+  }
+  return side;
+}
+
+function inspectLiveUniversalModelSideInternal(
+  input: PredictLiveUniversalSideInput,
+  forcedArchetype?: Archetype,
+): RawLiveUniversalModelDecision {
   const archetypeMinutes = input.archetypeExpectedMinutes ?? input.expectedMinutes;
   const minutesBucket = universalMinutesBucket(archetypeMinutes);
   if (input.projectedValue == null || input.line == null) {
     return {
       market: input.market,
       rawSide: "NEUTRAL",
+      finalSide: input.finalSide,
       archetype: null,
       minutesBucket: null,
       modelKind: null,
@@ -780,10 +2908,22 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
       bucketLateAccuracy: null,
       leafCount: null,
       leafAccuracy: null,
+      absLineGap: null,
+      favoredSide: null,
+      priceLean: null,
+      priceStrength: null,
+      projectionMarketAgreement: null,
+      overProbability: null,
+      underProbability: null,
+      projectionWinProbability: null,
+      projectionPriceEdge: null,
+      projectionResidualMean: null,
+      projectionResidualStdDev: null,
     };
   }
 
-  const archetype = classifyArchetype({
+  const classificationInput = {
+    market: input.market,
     playerPosition: input.playerPosition,
     expectedMinutes: archetypeMinutes,
     starterRateLast10: input.archetypeStarterRateLast10 ?? input.starterRateLast10,
@@ -794,12 +2934,28 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
     assistProjection: input.assistProjection,
     threesProjection:
       input.threesProjection ?? (input.market === "THREES" ? input.projectedValue : null),
-  });
+  };
+  const classifiedArchetype = classifyArchetype(classificationInput);
+  const roleAdjustedArchetype = shouldApplyPointForwardWeakMarketRoleFix(classifiedArchetype, classificationInput)
+    ? "POINT_FORWARD"
+    : shouldApplyHeliocentricGuardRoleFix(classifiedArchetype, classificationInput)
+      ? "HELIOCENTRIC_GUARD"
+      : shouldApplyBenchLowUsageBigComboRoleFix(classifiedArchetype, classificationInput)
+        ? "BENCH_LOW_USAGE_BIG"
+        : shouldApplyBenchCreatorScorerRoleFix(classifiedArchetype, classificationInput)
+          ? "BENCH_CREATOR_SCORER"
+          : classifiedArchetype;
+  const archetype =
+    forcedArchetype ??
+    (shouldApplyHeliocentricWeakMarketRoleFix(roleAdjustedArchetype, classificationInput)
+      ? heliocentricWeakMarketRoleFixArchetype()!
+      : roleAdjustedArchetype);
   const record = loadModelMap().get(`${input.market}|${archetype}`);
   if (!record) {
     return {
       market: input.market,
       rawSide: "NEUTRAL",
+      finalSide: input.finalSide,
       archetype,
       minutesBucket,
       modelKind: null,
@@ -808,6 +2964,17 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
       bucketLateAccuracy: null,
       leafCount: null,
       leafAccuracy: null,
+      absLineGap: null,
+      favoredSide: null,
+      priceLean: null,
+      priceStrength: null,
+      projectionMarketAgreement: null,
+      overProbability: null,
+      underProbability: null,
+      projectionWinProbability: null,
+      projectionPriceEdge: null,
+      projectionResidualMean: null,
+      projectionResidualStdDev: null,
     };
   }
   const model = record.model;
@@ -869,8 +3036,17 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
     finalSide,
     favoredSide,
     priceLean,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.expectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability:
+      input.benchBigRoleStability ??
+      computeBenchBigRoleStability({
+        archetype,
+        minutesVolatility: input.minutesVolatility,
+      }),
     starterRateLast10: input.starterRateLast10,
     lineGap: round(input.projectedValue - input.line, 4),
     absLineGap: round(Math.abs(input.projectedValue - input.line), 4),
@@ -937,11 +3113,33 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
         : null,
   };
 
+  const projectionDistribution = estimateProjectionDistribution(
+    input.market,
+    archetype,
+    minutesBucket,
+    input.projectedValue,
+    input.line,
+  );
+
   const leaf = model.kind === "tree" ? resolveTreeLeaf(model.tree, row) : null;
+  const rawSide = applyBucketSideBias(input.market, archetype, row, predictVariant(model, row));
+  const projectionWinProbability =
+    rawSide === "OVER"
+      ? projectionDistribution?.overWinProbability ?? null
+      : rawSide === "UNDER"
+        ? projectionDistribution?.underWinProbability ?? null
+        : null;
+  const chosenSideImpliedProbability =
+    rawSide === "OVER" ? overProbability : rawSide === "UNDER" ? underProbability : null;
+  const projectionPriceEdge =
+    projectionWinProbability == null || chosenSideImpliedProbability == null
+      ? null
+      : round(projectionWinProbability - chosenSideImpliedProbability, 4);
 
   return {
     market: input.market,
-    rawSide: predictVariant(model, row),
+    rawSide,
+    finalSide,
     archetype,
     minutesBucket,
     modelKind: model.kind,
@@ -950,7 +3148,29 @@ export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInp
     bucketLateAccuracy: record.lateWindowAccuracy ?? null,
     leafCount: leaf?.count ?? null,
     leafAccuracy: leaf?.accuracy ?? null,
+    absLineGap: row.absLineGap,
+    favoredSide,
+    priceLean,
+    priceStrength,
+    projectionMarketAgreement: row.projectionMarketAgreement,
+    overProbability,
+    underProbability,
+    projectionWinProbability,
+    projectionPriceEdge,
+    projectionResidualMean: projectionDistribution?.residualMean ?? null,
+    projectionResidualStdDev: projectionDistribution?.residualStdDev ?? null,
   };
+}
+
+export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInput): RawLiveUniversalModelDecision {
+  return inspectLiveUniversalModelSideInternal(input);
+}
+
+export function inspectLiveUniversalModelSideForArchetype(
+  input: PredictLiveUniversalSideInput,
+  archetype: Archetype,
+): RawLiveUniversalModelDecision {
+  return inspectLiveUniversalModelSideInternal(input, archetype);
 }
 
 export function qualifyLiveUniversalModelDecision(
@@ -984,6 +3204,45 @@ export function qualifyLiveUniversalModelDecision(
   }
   if (decision.leafCount != null && decision.leafCount < thresholds.minLeafCount) {
     rejectionReasons.push("Tree leaf sample count below threshold.");
+  }
+  if (
+    thresholds.minProjectionWinProbability > 0 &&
+    decision.projectionWinProbability != null &&
+    decision.projectionWinProbability < thresholds.minProjectionWinProbability
+  ) {
+    rejectionReasons.push("Projection win probability below threshold.");
+  }
+  if (
+    thresholds.minProjectionPriceEdge > 0 &&
+    decision.projectionPriceEdge != null &&
+    decision.projectionPriceEdge < thresholds.minProjectionPriceEdge
+  ) {
+    rejectionReasons.push("Projection price edge below threshold.");
+  }
+  if (JUICE_VETO_THRESHOLD != null && decision.rawSide !== "NEUTRAL") {
+    const allowByBucketAccuracy =
+      JUICE_VETO_MAX_BUCKET_LATE_ACCURACY == null ||
+      bucketRecentAccuracy == null ||
+      bucketRecentAccuracy <= JUICE_VETO_MAX_BUCKET_LATE_ACCURACY;
+    if (allowByBucketAccuracy) {
+      const opposingProbability =
+        decision.rawSide === "OVER" ? decision.underProbability : decision.overProbability;
+      if (opposingProbability != null && opposingProbability >= JUICE_VETO_THRESHOLD) {
+        rejectionReasons.push("Opposing market juice veto.");
+      }
+    }
+  }
+  if (shouldApplyPaBenchWingNativeVeto(decision)) {
+    rejectionReasons.push("PA | BENCH_WING native regime veto.");
+  }
+  if (shouldApplyPraScoringGuardCreatorNativeVeto(decision)) {
+    rejectionReasons.push("PRA | SCORING_GUARD_CREATOR native regime veto.");
+  }
+  if (shouldApplyPraPointForwardNativeVeto(decision)) {
+    rejectionReasons.push("PRA | POINT_FORWARD native regime veto.");
+  }
+  if (shouldApplyRaTwoWayMarketWingNativeVeto(decision)) {
+    rejectionReasons.push("RA | TWO_WAY_MARKET_WING native regime veto.");
   }
 
   return {

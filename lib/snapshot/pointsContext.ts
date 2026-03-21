@@ -1,11 +1,18 @@
 import { load } from "cheerio";
-import { canonicalTeamCode, normalizePlayerName, type LineupStatus } from "@/lib/lineups/rotowire";
+import {
+  canonicalTeamCode,
+  deriveRotowireAvailabilityImpact,
+  normalizePlayerName,
+  type LineupStatus,
+  type RotowireAvailabilityStatus,
+} from "@/lib/lineups/rotowire";
 import { predictLivePlayerModelSide } from "@/lib/snapshot/livePlayerSideModels";
 import { predictLiveUniversalModelSide } from "@/lib/snapshot/liveUniversalSideModels";
 import { SportsDataClient } from "@/lib/sportsdata/client";
 import { inferSeasonFromEtDate } from "@/lib/snapshot/time";
 import type {
   SnapshotAstSignal,
+  SnapshotMarket,
   SnapshotModelSide,
   SnapshotPaSignal,
   SnapshotPraSignal,
@@ -57,7 +64,13 @@ export type DailyPlayerPropLine = {
   sportsbookCount: number;
   overPrice: number | null;
   underPrice: number | null;
-  source: "sportsdata" | "scoresandodds";
+  source: "sportsdata" | "scoresandodds" | "covers";
+};
+
+export type DailyMatchupHint = {
+  awayCode: string;
+  homeCode: string;
+  matchupKey: string;
 };
 
 export type LivePtsSignalInput = {
@@ -73,12 +86,18 @@ export type LivePtsSignalInput = {
   openingTeamSpread: number | null;
   lineupStarter: boolean | null;
   lineupStatus: LineupStatus | null;
+  availabilityStatus?: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay?: number | null;
   starterRateLast10: number | null;
   archetypeExpectedMinutes?: number | null;
   projectedMinutes: number | null;
   projectedMinutesFloor: number | null;
   projectedMinutesCeiling: number | null;
   minutesVolatility: number | null;
+  benchBigRoleStability?: number | null;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  l5MinutesAvg?: number | null;
   playerShotPressure: ShotPressureSummary | null;
   opponentShotVolume: OpponentShotVolumeMetrics | null;
   completenessScore: number | null;
@@ -157,23 +176,47 @@ export type EnhancedPointsProjectionInput = {
   openingTeamSpread: number | null;
   lineupStarter: boolean | null;
   lineupStatus: LineupStatus | null;
+  availabilityStatus?: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay?: number | null;
   starterRateLast10: number | null;
   playerShotPressure: ShotPressureSummary | null;
   opponentShotVolume: OpponentShotVolumeMetrics | null;
   marketLine: DailyPlayerPropLine | null;
 };
 
-const sportsDataClient = new SportsDataClient();
+let sportsDataClient: SportsDataClient | null | undefined;
+
+function getSportsDataClient(): SportsDataClient | null {
+  if (sportsDataClient !== undefined) return sportsDataClient;
+  try {
+    sportsDataClient = new SportsDataClient();
+  } catch {
+    sportsDataClient = null;
+  }
+  return sportsDataClient;
+}
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
 const NBA_STATS_CACHE = new Map<string, Promise<SeasonVolumeLog[]>>();
 const DAILY_PROP_LINE_CACHE = new Map<string, { expiresAt: number; data: Promise<Map<string, DailyPlayerPropLine>> }>();
 const SCORES_AND_ODDS_EVENT_CACHE = new Map<string, Promise<ScoresAndOddsEvent[]>>();
 const SCORES_AND_ODDS_MARKET_CACHE = new Map<string, Promise<ScoresAndOddsMarket[]>>();
 const SCORES_AND_ODDS_PAGE_CACHE = new Map<string, Promise<string>>();
+const COVERS_SCHEDULE_CACHE = new Map<string, Promise<CoversScheduleGame[]>>();
 const DAILY_PROP_LINE_TTL_MS = 5 * 60_000;
+const SCORES_AND_ODDS_SOURCE_TIMEOUT_MS = 12_000;
+const COVERS_SOURCE_TIMEOUT_MS = 12_000;
 
 type ScoresAndOddsEvent = {
   identifier: number;
+  awayCode: string;
+  homeCode: string;
+  matchupKey: string;
+  pageUrl: string | null;
+};
+
+type CoversScheduleGame = {
+  boxscoreId: string;
+  gameDateEt: string;
   awayCode: string;
   homeCode: string;
   matchupKey: string;
@@ -198,8 +241,72 @@ type ScoresAndOddsMarket = {
   >;
 };
 
+type CoversMarketRow = {
+  playerName: string;
+  line: number | null;
+  overPrice: number | null;
+  underPrice: number | null;
+  sportsbookCount: number;
+};
+
+const COVERS_PROP_EVENT: Partial<Record<SnapshotMarket, string>> = {
+  PTS: "NBA_GAME_PLAYER_POINTS",
+  REB: "NBA_GAME_PLAYER_REBOUNDS",
+  AST: "NBA_GAME_PLAYER_ASSISTS",
+  THREES: "NBA_GAME_PLAYER_3_POINTERS_MADE",
+};
+
+const COVERS_TEAM_SLUG: Record<string, string> = {
+  ATL: "atlanta-hawks",
+  BKN: "brooklyn-nets",
+  BOS: "boston-celtics",
+  CHA: "charlotte-hornets",
+  CHI: "chicago-bulls",
+  CLE: "cleveland-cavaliers",
+  DAL: "dallas-mavericks",
+  DEN: "denver-nuggets",
+  DET: "detroit-pistons",
+  GSW: "golden-state-warriors",
+  HOU: "houston-rockets",
+  IND: "indiana-pacers",
+  LAC: "los-angeles-clippers",
+  LAL: "los-angeles-lakers",
+  MEM: "memphis-grizzlies",
+  MIA: "miami-heat",
+  MIL: "milwaukee-bucks",
+  MIN: "minnesota-timberwolves",
+  NOP: "new-orleans-pelicans",
+  NYK: "new-york-knicks",
+  OKC: "oklahoma-city-thunder",
+  ORL: "orlando-magic",
+  PHI: "philadelphia-76ers",
+  PHX: "phoenix-suns",
+  POR: "portland-trail-blazers",
+  SAC: "sacramento-kings",
+  SAS: "san-antonio-spurs",
+  TOR: "toronto-raptors",
+  UTA: "utah-jazz",
+  WAS: "washington-wizards",
+};
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTimeoutValue<T>(promise: Promise<T>, fallback: T, timeoutMs: number): Promise<T> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  return await new Promise<T>((resolve) => {
+    timeoutHandle = setTimeout(() => resolve(fallback), timeoutMs);
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(fallback))
+      .finally(() => {
+        if (timeoutHandle) {
+          clearTimeout(timeoutHandle);
+        }
+      });
+  });
 }
 
 async function fetchTextWithRetry(url: string): Promise<string> {
@@ -313,6 +420,181 @@ function parsePropSide(value: unknown): "OVER" | "UNDER" | null {
   return null;
 }
 
+function parseCoversOddsCell(value: string | null | undefined): { side: "OVER" | "UNDER"; line: number; price: number | null } | null {
+  const normalized = (value ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  const match = normalized.match(/([ou])\s*(-?\d+(?:\.\d+)?)(?:\s*([+-]\d+|even|ev|evs))?/);
+  if (!match) return null;
+  const line = Number(match[2]);
+  if (!Number.isFinite(line)) return null;
+  return {
+    side: match[1] === "o" ? "OVER" : "UNDER",
+    line,
+    price: parseAmericanOddsText(match[3] ?? null),
+  };
+}
+
+function parseCoversBookSlug(src: string | null | undefined): string | null {
+  const normalized = (src ?? "").trim();
+  if (!normalized) return null;
+  const match = normalized.match(/\/([^/]+)\.(?:svg|png)(?:\?|$)/i);
+  if (!match) return null;
+  return normalizeSearchText(match[1]);
+}
+
+function parseCoversDate(dateLabel: string, targetDateEt: string): string | null {
+  const cleaned = dateLabel.replace(/\s+/g, " ").trim();
+  const match = cleaned.match(/^([A-Za-z]{3})\s+(\d{1,2})/);
+  if (!match) return null;
+
+  const monthToken = match[1].slice(0, 3).toLowerCase();
+  const monthIndex = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].indexOf(monthToken);
+  if (monthIndex < 0) return null;
+
+  const day = Number(match[2]);
+  if (!Number.isFinite(day)) return null;
+  const seasonStartYear = Number(inferSeasonFromEtDate(targetDateEt));
+  const year = monthIndex >= 9 ? seasonStartYear : seasonStartYear + 1;
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+async function fetchCoversScheduleByTeam(teamCode: string, targetDateEt: string): Promise<CoversScheduleGame[]> {
+  const normalizedTeamCode = teamCode.trim().toUpperCase();
+  const seasonKey = `${inferSeasonFromEtDate(targetDateEt)}|${normalizedTeamCode}`;
+  const cached = COVERS_SCHEDULE_CACHE.get(seasonKey);
+  if (cached) return cached;
+
+  const task = (async () => {
+    const teamSlug = COVERS_TEAM_SLUG[normalizedTeamCode];
+    if (!teamSlug) return [];
+
+    const html = await fetchTextWithRetry(`https://www.covers.com/sport/basketball/nba/teams/main/${teamSlug}`);
+    const $ = load(html);
+    const rows = $("#past-results tbody tr").toArray();
+    const games: CoversScheduleGame[] = [];
+
+    for (const rowElement of rows) {
+      const row = $(rowElement);
+      const cells = row.find("td");
+      if (cells.length < 3) continue;
+
+      const gameDateEt = parseCoversDate($(cells[0]).text(), targetDateEt);
+      const opponentText = $(cells[1]).text().replace(/\s+/g, " ").trim().toUpperCase();
+      const boxscoreHref = $(cells[2]).find('a[href*="/boxscore/"]').attr("href") ?? "";
+      const boxscoreMatch = boxscoreHref.match(/\/boxscore\/(\d+)/);
+      if (!gameDateEt || !boxscoreMatch) continue;
+
+      const isAway = opponentText.startsWith("@");
+      const opponentCode = canonicalTeamCode(opponentText.replace(/^@\s*/, "").trim());
+      if (!opponentCode) continue;
+
+      const awayCode = isAway ? normalizedTeamCode : opponentCode;
+      const homeCode = isAway ? opponentCode : normalizedTeamCode;
+      games.push({
+        boxscoreId: boxscoreMatch[1],
+        gameDateEt,
+        awayCode,
+        homeCode,
+        matchupKey: `${awayCode}@${homeCode}`,
+      });
+    }
+
+    return games;
+  })();
+
+  COVERS_SCHEDULE_CACHE.set(seasonKey, task);
+  return task;
+}
+
+function parseAllCoversMarketPage(html: string): CoversMarketRow[] {
+  const $ = load(html);
+  const rows: CoversMarketRow[] = [];
+
+  $("article.player-prop-article").each((_, articleElement) => {
+    const article = $(articleElement);
+    const playerName = normalizeSearchText(
+      article.find("a.player-link-modal h3").first().text() || article.find("h3").first().text(),
+    );
+    if (!playerName) return;
+
+    const overEntries: Array<{ slug: string; value: number; price: number | null }> = [];
+    const underEntries: Array<{ slug: string; value: number; price: number | null }> = [];
+
+    article.find(".collapse .other-odds-row").each((__, rowElement) => {
+      const row = $(rowElement);
+      const bookSlug =
+        parseCoversBookSlug(row.find(".other-odds-label img").attr("src")) ??
+        normalizeSearchText(row.find(".other-odds-label").text()) ??
+        "covers-book";
+
+      const overCell = parseCoversOddsCell(row.find(".other-over-odds").first().text());
+      if (overCell) {
+        overEntries.push({ slug: bookSlug, value: overCell.line, price: overCell.price });
+      }
+
+      const underCell = parseCoversOddsCell(row.find(".other-under-odds").first().text());
+      if (underCell) {
+        underEntries.push({ slug: bookSlug, value: underCell.line, price: underCell.price });
+      }
+    });
+
+    if (overEntries.length === 0 && underEntries.length === 0) return;
+
+    rows.push({
+      playerName,
+      line: medianNumber([...overEntries, ...underEntries].map((entry) => entry.value)),
+      overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+      underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+      sportsbookCount: Math.max(overEntries.length, underEntries.length),
+    });
+  });
+
+  return rows;
+}
+
+async function fetchCoversPropLineMap(
+  dateEt: string,
+  market: SnapshotMarket,
+  matchupHints: DailyMatchupHint[] | null | undefined,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const propEvent = COVERS_PROP_EVENT[market];
+  if (!propEvent || !matchupHints || matchupHints.length === 0) return new Map();
+
+  const uniqueHomeCodes = [...new Set(matchupHints.map((hint) => hint.homeCode))];
+  const result = new Map<string, DailyPlayerPropLine>();
+
+  await mapLimit(uniqueHomeCodes, 3, async (homeCode) => {
+    const coversGames = await fetchCoversScheduleByTeam(homeCode, dateEt).catch(() => []);
+    const matchingHints = matchupHints.filter((hint) => hint.homeCode === homeCode);
+
+    await mapLimit(matchingHints, 2, async (hint) => {
+      const coversGame =
+        coversGames.find(
+          (entry) => entry.gameDateEt === dateEt && entry.awayCode === hint.awayCode && entry.homeCode === hint.homeCode,
+        ) ?? null;
+      if (!coversGame) return;
+
+      const coversUrl =
+        `https://www.covers.com/sport/player-props/matchup/nba/${coversGame.boxscoreId}` +
+        `?propEvent=${encodeURIComponent(propEvent)}&countryCode=US&stateProv=NY&isLeagueVersion=false&isTeamVersion=true`;
+      const coversHtml = await fetchTextWithRetry(coversUrl).catch(() => "");
+      if (!coversHtml) return;
+
+      parseAllCoversMarketPage(coversHtml).forEach((row) => {
+        if (row.line == null) return;
+        result.set(`${hint.matchupKey}|${row.playerName}`, {
+          line: row.line,
+          sportsbookCount: row.sportsbookCount,
+          overPrice: row.overPrice,
+          underPrice: row.underPrice,
+          source: "covers",
+        });
+      });
+    });
+  });
+
+  return result;
+}
+
 async function fetchScoresAndOddsEventsByDate(dateEt: string): Promise<ScoresAndOddsEvent[]> {
   const cached = SCORES_AND_ODDS_EVENT_CACHE.get(dateEt);
   if (cached) return cached;
@@ -339,6 +621,10 @@ async function fetchScoresAndOddsEventsByDate(dateEt: string): Promise<ScoresAnd
           awayCode,
           homeCode,
           matchupKey: `${awayCode}@${homeCode}`,
+          pageUrl:
+            typeof payload.url === "string" && payload.url.trim()
+              ? payload.url.trim()
+              : `https://www.scoresandodds.com/nba/${homeCode.toLowerCase()}-vs-${awayCode.toLowerCase()}`,
         });
       } catch {
         continue;
@@ -404,6 +690,146 @@ function parseScoresAndOddsMarketRow(market: ScoresAndOddsMarket): {
     overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
     underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
   };
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/gi, " ")
+    .toLowerCase()
+    .trim();
+}
+
+function parseAmericanOddsText(value: string | null | undefined): number | null {
+  const raw = (value ?? "").trim().toLowerCase();
+  if (!raw) return null;
+  if (raw === "even" || raw === "ev" || raw === "evs") return 100;
+  const normalized = raw.replace(/\u2212/g, "-").replace(/[^\d+-]/g, "").trim();
+  if (!normalized) return null;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function deriveLine(overLine: number | null, underLine: number | null): number | null {
+  if (overLine != null && underLine != null) {
+    return round((overLine + underLine) / 2, 2);
+  }
+  return overLine ?? underLine ?? null;
+}
+
+function parseGamePageLineText(value: string | null | undefined): { side: "OVER" | "UNDER"; line: number } | null {
+  const normalized = (value ?? "").trim().toLowerCase();
+  const match = normalized.match(/^([ou])\s*(-?\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+  const line = Number(match[2]);
+  if (!Number.isFinite(line)) return null;
+  return {
+    side: match[1] === "o" ? "OVER" : "UNDER",
+    line,
+  };
+}
+
+function countSharedBooks(
+  overEntries: Array<{ slug: string }>,
+  underEntries: Array<{ slug: string }>,
+): number {
+  const underBooks = new Set(underEntries.map((entry) => entry.slug));
+  const matches = new Set<string>();
+  overEntries.forEach((entry) => {
+    if (underBooks.has(entry.slug)) {
+      matches.add(entry.slug);
+    }
+  });
+  return matches.size;
+}
+
+function parseScoresAndOddsGamePageRows(
+  html: string,
+  eventId: number,
+  marketPageSlug: string,
+): Array<{
+  playerName: string;
+  line: number | null;
+  overPrice: number | null;
+  underPrice: number | null;
+  sportsbookCount: number;
+}> {
+  const $ = load(html);
+  const tableKey = `odds-table--${marketPageSlug}-p-${eventId}`;
+  const fallbackPrefix = `odds-table--${marketPageSlug}-p-`;
+  const tbodyCandidates = [
+    ...$(`tbody[data-key="${tableKey}"]`).toArray(),
+    ...$(`tbody[data-key^="${fallbackPrefix}"]`).toArray(),
+  ];
+  const uniqueCandidates = Array.from(new Set(tbodyCandidates));
+  if (uniqueCandidates.length === 0) return [];
+
+  const parsedRows = new Map<
+    string,
+    {
+      playerName: string;
+      line: number | null;
+      overPrice: number | null;
+      underPrice: number | null;
+      sportsbookCount: number;
+    }
+  >();
+
+  for (const tbodyElement of uniqueCandidates) {
+    const tbody = $(tbodyElement);
+    const bookOrder = tbody
+      .closest("table")
+      .find("thead th.book-logo img")
+      .toArray()
+      .map((element) => normalizeSearchText($(element).attr("alt") ?? ""))
+      .filter(Boolean);
+
+    const rows = tbody.find("tr").toArray();
+    for (let index = 0; index < rows.length; index += 2) {
+      const row = $(rows[index]);
+      const rawPlayerName = row.attr("data-name") ?? row.find('td.bet-type a[href^="/prop-bets/"]').first().text();
+      const playerName = normalizePlayerName(rawPlayerName);
+      if (!playerName) continue;
+
+      const overEntries: Array<{ slug: string; value: number; price: number | null }> = [];
+      const underEntries: Array<{ slug: string; value: number; price: number | null }> = [];
+      const pair = [row, rows[index + 1] ? $(rows[index + 1]) : null];
+
+      pair.forEach((entryRow) => {
+        if (!entryRow) return;
+        entryRow.find("td.game-odds").each((cellIndex, cell) => {
+          const parsedLine = parseGamePageLineText($(cell).find("span.data-value").first().text());
+          if (!parsedLine) return;
+          const bookSlug = bookOrder[cellIndex] ?? `book-${cellIndex + 1}`;
+          const parsedPrice = parseAmericanOddsText($(cell).find("small.data-odds").first().text());
+          const parsedEntry = {
+            slug: bookSlug,
+            value: parsedLine.line,
+            price: parsedPrice,
+          };
+          if (parsedLine.side === "OVER") {
+            overEntries.push(parsedEntry);
+          } else {
+            underEntries.push(parsedEntry);
+          }
+        });
+      });
+
+      if (overEntries.length === 0 && underEntries.length === 0) continue;
+
+      const sportsbookCount = countSharedBooks(overEntries, underEntries);
+      parsedRows.set(playerName, {
+        playerName,
+        line: deriveLine(medianNumber(overEntries.map((entry) => entry.value)), medianNumber(underEntries.map((entry) => entry.value))),
+        overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+        underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+        sportsbookCount: sportsbookCount > 0 ? sportsbookCount : Math.max(overEntries.length, underEntries.length, 1),
+      });
+    }
+  }
+
+  return Array.from(parsedRows.values());
 }
 
 function isCompatiblePosition(playerTokens: Set<PositionToken>, candidatePosition: string | null | undefined): boolean {
@@ -616,9 +1042,12 @@ function matchesBetTypeName(name: string, aliases: string[]): boolean {
 
 async function fetchDailyPropLineMap(
   dateEt: string,
+  market: SnapshotMarket,
   betTypeNames: string[],
   fallbackBetTypeId: number | null,
-  publicMarketSlug: string | null,
+  publicMarketAliases: string[] | null,
+  scoresAndOddsPageMarketSlug: string | null,
+  coversMatchupHints?: DailyMatchupHint[] | null,
 ): Promise<Map<string, DailyPlayerPropLine>> {
   const cacheKey = `${dateEt}|${betTypeNames.join("|").toLowerCase()}`;
   const now = Date.now();
@@ -628,13 +1057,14 @@ async function fetchDailyPropLineMap(
   }
 
   const task = (async () => {
-    const metadata = (await sportsDataClient.fetchBettingMetadata().catch(() => null)) as
+    const client = getSportsDataClient();
+    const metadata = (client ? await client.fetchBettingMetadata().catch(() => null) : null) as
       | { BettingBetTypes?: Array<Record<string, unknown>> }
       | null;
     const betTypeId =
       metadata?.BettingBetTypes?.find((entry) => matchesBetTypeName(String(entry.Name ?? ""), betTypeNames))?.RecordId ??
       fallbackBetTypeId;
-    const eventsRaw = await sportsDataClient.fetchBettingEventsByDate(dateEt).catch(() => []);
+    const eventsRaw = client ? await client.fetchBettingEventsByDate(dateEt).catch(() => []) : [];
     const events = eventsRaw
       .map((row) => {
         const record = row as Record<string, unknown>;
@@ -648,7 +1078,7 @@ async function fetchDailyPropLineMap(
 
     const result = new Map<string, DailyPlayerPropLine>();
     await mapLimit(events, 4, async (event) => {
-      const props = await sportsDataClient.fetchBettingPlayerPropsByGameId(event.gameId).catch(() => []);
+      const props = client ? await client.fetchBettingPlayerPropsByGameId(event.gameId).catch(() => []) : [];
       props.forEach((row) => {
         const record = row as Record<string, unknown>;
         if (betTypeId == null) return;
@@ -720,10 +1150,52 @@ async function fetchDailyPropLineMap(
       });
     });
 
-    if (publicMarketSlug) {
-      const fallbackMap = await fetchScoresAndOddsPropLineMap(dateEt, publicMarketSlug).catch(() => new Map());
-      fallbackMap.forEach((value, key) => {
-        if (!result.has(key)) {
+    const publicFallbackTask =
+      publicMarketAliases && publicMarketAliases.length > 0
+        ? (async () => {
+            for (const marketAlias of publicMarketAliases) {
+              const fallbackMap = await withTimeoutValue(
+                fetchScoresAndOddsPropLineMap(dateEt, marketAlias).catch(() => new Map()),
+                new Map<string, DailyPlayerPropLine>(),
+                SCORES_AND_ODDS_SOURCE_TIMEOUT_MS,
+              );
+              if (fallbackMap.size > 0) return fallbackMap;
+            }
+            return new Map<string, DailyPlayerPropLine>();
+          })()
+        : Promise.resolve(new Map<string, DailyPlayerPropLine>());
+
+    const coversFallbackTask =
+      coversMatchupHints && coversMatchupHints.length > 0 && COVERS_PROP_EVENT[market]
+        ? withTimeoutValue(
+            fetchCoversPropLineMap(dateEt, market, coversMatchupHints).catch(() => new Map()),
+            new Map<string, DailyPlayerPropLine>(),
+            COVERS_SOURCE_TIMEOUT_MS,
+          )
+        : Promise.resolve(new Map<string, DailyPlayerPropLine>());
+
+    const [publicFallbackMap, coversFallbackMap] = await Promise.all([publicFallbackTask, coversFallbackTask]);
+    publicFallbackMap.forEach((value, key) => {
+      if (!result.has(key)) {
+        result.set(key, value);
+      }
+    });
+    coversFallbackMap.forEach((value, key) => {
+      if (!result.has(key)) {
+        result.set(key, value);
+      }
+    });
+
+    const scoresAndOddsCoverageFloor = Math.max(events.length * 3, 24);
+    if (scoresAndOddsPageMarketSlug && result.size < scoresAndOddsCoverageFloor) {
+      const pageMap = await withTimeoutValue(
+        fetchScoresAndOddsPropLineMapFromGamePages(dateEt, scoresAndOddsPageMarketSlug).catch(() => new Map()),
+        new Map<string, DailyPlayerPropLine>(),
+        SCORES_AND_ODDS_SOURCE_TIMEOUT_MS,
+      );
+      pageMap.forEach((value, key) => {
+        const existing = result.get(key);
+        if (!existing || (existing.source === "scoresandodds" && value.sportsbookCount > existing.sportsbookCount)) {
           result.set(key, value);
         }
       });
@@ -765,21 +1237,62 @@ async function fetchScoresAndOddsPropLineMap(
   return result;
 }
 
-export function fetchDailyPtsLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(dateEt, ["total points"], 3, "points");
+async function fetchScoresAndOddsPropLineMapFromGamePages(
+  dateEt: string,
+  marketPageSlug: string,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const events = await fetchScoresAndOddsEventsByDate(dateEt);
+  const result = new Map<string, DailyPlayerPropLine>();
+
+  await mapLimit(events, 4, async (event) => {
+    if (!event.pageUrl) return;
+    const html = await fetchTextWithRetry(event.pageUrl).catch(() => "");
+    if (!html) return;
+    const rows = parseScoresAndOddsGamePageRows(html, event.identifier, marketPageSlug);
+    rows.forEach((row) => {
+      if (row.line == null) return;
+      const key = `${event.matchupKey}|${row.playerName}`;
+      result.set(key, {
+        line: row.line,
+        sportsbookCount: row.sportsbookCount,
+        overPrice: row.overPrice,
+        underPrice: row.underPrice,
+        source: "scoresandodds",
+      });
+    });
+  });
+
+  return result;
 }
 
-export function fetchDailyRebLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(dateEt, ["total rebounds"], 4, "rebounds");
+export function fetchDailyPtsLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  return fetchDailyPropLineMap(dateEt, "PTS", ["total points"], 3, ["points"], "points", coversMatchupHints);
 }
 
-export function fetchDailyAstLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(dateEt, ["total assists"], 5, "assists");
+export function fetchDailyRebLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  return fetchDailyPropLineMap(dateEt, "REB", ["total rebounds"], 4, ["rebounds"], "rebounds", coversMatchupHints);
 }
 
-export function fetchDailyThreesLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
+export function fetchDailyAstLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  return fetchDailyPropLineMap(dateEt, "AST", ["total assists", "assists"], 5, ["assists"], "assists", coversMatchupHints);
+}
+
+export function fetchDailyThreesLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
   return fetchDailyPropLineMap(
     dateEt,
+    "THREES",
     [
       "three-pointers made",
       "total three-pointers made",
@@ -789,13 +1302,16 @@ export function fetchDailyThreesLineMap(dateEt: string): Promise<Map<string, Dai
       "total threes made",
     ],
     null,
+    ["3 pointers", "3-pointers"],
     "3-pointers",
+    coversMatchupHints,
   );
 }
 
 export function fetchDailyPraLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
   return fetchDailyPropLineMap(
     dateEt,
+    "PRA",
     [
       "points, rebounds & assists",
       "points + rebounds + assists",
@@ -804,6 +1320,7 @@ export function fetchDailyPraLineMap(dateEt: string): Promise<Map<string, DailyP
       "pts + reb + ast",
     ],
     null,
+    ["points, rebounds, & assists", "points,-rebounds,-&-assists"],
     "points,-rebounds,-&-assists",
   );
 }
@@ -811,8 +1328,10 @@ export function fetchDailyPraLineMap(dateEt: string): Promise<Map<string, DailyP
 export function fetchDailyPaLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
   return fetchDailyPropLineMap(
     dateEt,
+    "PA",
     ["points & assists", "points + assists", "total points and assists", "pts + ast"],
     null,
+    ["points & assists", "points-&-assists"],
     "points-&-assists",
   );
 }
@@ -820,8 +1339,10 @@ export function fetchDailyPaLineMap(dateEt: string): Promise<Map<string, DailyPl
 export function fetchDailyPrLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
   return fetchDailyPropLineMap(
     dateEt,
+    "PR",
     ["points & rebounds", "points + rebounds", "total points and rebounds", "pts + reb"],
     null,
+    ["points & rebounds", "points-&-rebounds"],
     "points-&-rebounds",
   );
 }
@@ -829,8 +1350,10 @@ export function fetchDailyPrLineMap(dateEt: string): Promise<Map<string, DailyPl
 export function fetchDailyRaLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
   return fetchDailyPropLineMap(
     dateEt,
+    "RA",
     ["rebounds & assists", "rebounds + assists", "total rebounds and assists", "reb + ast"],
     null,
+    ["rebounds & assists", "rebounds-&-assists"],
     "rebounds-&-assists",
   );
 }
@@ -884,9 +1407,11 @@ function confidenceTier(confidence: number | null): SnapshotPtsConfidenceTier | 
 function lineupTimingConfidence(input: {
   lineupStatus: LineupStatus | null;
   lineupStarter: boolean | null;
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
   starterRateLast10: number | null;
 }): number | null {
-  if (input.lineupStatus == null && input.starterRateLast10 == null) return null;
+  if (input.lineupStatus == null && input.starterRateLast10 == null && input.availabilityStatus == null) return null;
 
   let confidence =
     input.lineupStatus === "CONFIRMED"
@@ -904,6 +1429,12 @@ function lineupTimingConfidence(input: {
     if (input.lineupStarter === false && input.starterRateLast10 <= 0.3) confidence += 0.05;
   }
 
+  const availabilityImpact = deriveRotowireAvailabilityImpact(
+    input.availabilityStatus,
+    input.availabilityPercentPlay,
+  );
+  confidence -= availabilityImpact.lineupConfidencePenalty;
+
   return round(clamp(confidence, 0.35, 1), 2);
 }
 
@@ -915,6 +1446,8 @@ function computeMinutesRisk(input: {
   starterRateLast10: number | null;
   lineupTimingConfidence: number | null;
   openingTeamSpread: number | null;
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
 }): number | null {
   if (
     input.projectedMinutes == null &&
@@ -944,8 +1477,30 @@ function computeMinutesRisk(input: {
     input.openingTeamSpread == null
       ? 0
       : clamp(Math.max(0, Math.abs(input.openingTeamSpread) - 6) / 8, 0, 1) * 0.26;
+  const availabilityRisk = deriveRotowireAvailabilityImpact(
+    input.availabilityStatus,
+    input.availabilityPercentPlay,
+  ).minutesRiskBoost;
 
-  return round(clamp(lowMinutesRisk + bandRisk + volatilityRisk + starterUncertainty + lineupPenalty + blowoutRisk, 0, 1), 3);
+  return round(
+    clamp(lowMinutesRisk + bandRisk + volatilityRisk + starterUncertainty + lineupPenalty + blowoutRisk + availabilityRisk, 0, 1),
+    3,
+  );
+}
+
+function buildAvailabilityPassReasons(input: {
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
+}): string[] {
+  const impact = deriveRotowireAvailabilityImpact(input.availabilityStatus, input.availabilityPercentPlay);
+  if (input.availabilityStatus == null || input.availabilityStatus === "ACTIVE") return [];
+  if (impact.hardBlock) {
+    return [`Player tagged ${input.availabilityStatus} in live lineup feed.`];
+  }
+  if (impact.likelyOut) {
+    return [`Player only ${input.availabilityPercentPlay ?? 0}% to play in live lineup feed.`];
+  }
+  return [];
 }
 
 function buildPassReasons(input: {
@@ -1266,6 +1821,8 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
   const liveLineupTimingConfidence = lineupTimingConfidence({
     lineupStatus: input.lineupStatus,
     lineupStarter: input.lineupStarter,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
     starterRateLast10: input.starterRateLast10,
   });
   const minutesRisk = computeMinutesRisk({
@@ -1276,6 +1833,8 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     starterRateLast10: input.starterRateLast10,
     lineupTimingConfidence: liveLineupTimingConfidence,
     openingTeamSpread: input.openingTeamSpread,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
 
   let overScore = projectionGap == null ? 0 : projectionGap * 1.65;
@@ -1429,6 +1988,7 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     }
   }
 
+  const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
     market: "PTS",
     projectedValue: input.projection,
@@ -1436,8 +1996,12 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
     finalSide: side,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability: input.benchBigRoleStability ?? null,
     starterRateLast10: input.starterRateLast10,
     archetypeExpectedMinutes: input.archetypeExpectedMinutes ?? null,
     openingTeamSpread: input.openingTeamSpread,
@@ -1488,11 +2052,18 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     minutesRisk,
     openingTeamSpread: input.openingTeamSpread,
   });
+  passReasons.push(
+    ...buildAvailabilityPassReasons({
+      availabilityStatus: input.availabilityStatus ?? null,
+      availabilityPercentPlay: input.availabilityPercentPlay ?? null,
+    }),
+  );
 
   return {
     marketLine,
     sportsbookCount: input.marketLine?.sportsbookCount ?? 0,
     side,
+    baselineSide,
     confidence,
     confidenceTier: confidenceTier(confidence),
     projectionGap,
@@ -1512,6 +2083,8 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
   const liveLineupTimingConfidence = lineupTimingConfidence({
     lineupStatus: input.lineupStatus,
     lineupStarter: input.lineupStarter,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
     starterRateLast10: input.starterRateLast10,
   });
   const minutesRisk = computeMinutesRisk({
@@ -1522,6 +2095,8 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     starterRateLast10: input.starterRateLast10,
     lineupTimingConfidence: liveLineupTimingConfidence,
     openingTeamSpread: input.openingTeamSpread,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
 
   const marketSignal = resolveMarketFavoredSide({
@@ -1551,6 +2126,7 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
   }
 
+  const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
     market: "REB",
     projectedValue: input.projection,
@@ -1558,8 +2134,12 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
     finalSide: side,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability: input.benchBigRoleStability ?? null,
     starterRateLast10: input.starterRateLast10,
     archetypeExpectedMinutes: input.archetypeExpectedMinutes ?? null,
     openingTeamSpread: input.openingTeamSpread,
@@ -1629,11 +2209,18 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     projectionGap,
     minutesRisk,
   });
+  passReasons.push(
+    ...buildAvailabilityPassReasons({
+      availabilityStatus: input.availabilityStatus ?? null,
+      availabilityPercentPlay: input.availabilityPercentPlay ?? null,
+    }),
+  );
 
   return {
     marketLine,
     sportsbookCount: input.marketLine?.sportsbookCount ?? 0,
     side,
+    baselineSide,
     confidence,
     confidenceTier: confidenceTier(confidence),
     projectionGap,
@@ -1653,6 +2240,8 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
   const liveLineupTimingConfidence = lineupTimingConfidence({
     lineupStatus: input.lineupStatus,
     lineupStarter: input.lineupStarter,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
     starterRateLast10: input.starterRateLast10,
   });
   const minutesRisk = computeMinutesRisk({
@@ -1663,6 +2252,8 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     starterRateLast10: input.starterRateLast10,
     lineupTimingConfidence: liveLineupTimingConfidence,
     openingTeamSpread: input.openingTeamSpread,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
   const marketSignal = resolveMarketFavoredSide({
     overPrice: input.marketLine?.overPrice ?? null,
@@ -1691,6 +2282,7 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
   }
 
+  const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
     market: "AST",
     projectedValue: input.projection,
@@ -1698,8 +2290,12 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
     finalSide: side,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability: input.benchBigRoleStability ?? null,
     starterRateLast10: input.starterRateLast10,
     archetypeExpectedMinutes: input.archetypeExpectedMinutes ?? null,
     openingTeamSpread: input.openingTeamSpread,
@@ -1788,11 +2384,18 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     projectionGap,
     minutesRisk,
   });
+  passReasons.push(
+    ...buildAvailabilityPassReasons({
+      availabilityStatus: input.availabilityStatus ?? null,
+      availabilityPercentPlay: input.availabilityPercentPlay ?? null,
+    }),
+  );
 
   return {
     marketLine,
     sportsbookCount: input.marketLine?.sportsbookCount ?? 0,
     side,
+    baselineSide,
     confidence,
     confidenceTier: confidenceTier(confidence),
     projectionGap,
@@ -1812,6 +2415,8 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
   const liveLineupTimingConfidence = lineupTimingConfidence({
     lineupStatus: input.lineupStatus,
     lineupStarter: input.lineupStarter,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
     starterRateLast10: input.starterRateLast10,
   });
   const minutesRisk = computeMinutesRisk({
@@ -1822,6 +2427,8 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     starterRateLast10: input.starterRateLast10,
     lineupTimingConfidence: liveLineupTimingConfidence,
     openingTeamSpread: input.openingTeamSpread,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
   const marketSignal = resolveMarketFavoredSide({
     overPrice: input.marketLine?.overPrice ?? null,
@@ -1837,6 +2444,7 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
           ? "UNDER"
           : "NEUTRAL";
 
+  const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
     market: "THREES",
     projectedValue: input.projection,
@@ -1844,8 +2452,12 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
     finalSide: side,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability: input.benchBigRoleStability ?? null,
     starterRateLast10: input.starterRateLast10,
     archetypeExpectedMinutes: input.archetypeExpectedMinutes ?? null,
     openingTeamSpread: input.openingTeamSpread,
@@ -1921,11 +2533,18 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     projectionGap,
     minutesRisk,
   });
+  passReasons.push(
+    ...buildAvailabilityPassReasons({
+      availabilityStatus: input.availabilityStatus ?? null,
+      availabilityPercentPlay: input.availabilityPercentPlay ?? null,
+    }),
+  );
 
   return {
     marketLine,
     sportsbookCount: input.marketLine?.sportsbookCount ?? 0,
     side,
+    baselineSide,
     confidence,
     confidenceTier: confidenceTier(confidence),
     projectionGap,
@@ -1952,6 +2571,8 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
   const liveLineupTimingConfidence = lineupTimingConfidence({
     lineupStatus: input.lineupStatus,
     lineupStarter: input.lineupStarter,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
     starterRateLast10: input.starterRateLast10,
   });
   const minutesRisk = computeMinutesRisk({
@@ -1962,6 +2583,8 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     starterRateLast10: input.starterRateLast10,
     lineupTimingConfidence: liveLineupTimingConfidence,
     openingTeamSpread: input.openingTeamSpread,
+    availabilityStatus: input.availabilityStatus ?? null,
+    availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
   const marketSignal = resolveMarketFavoredSide({
     overPrice: input.marketLine?.overPrice ?? null,
@@ -2057,6 +2680,7 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
   }
 
+  const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
     market: input.market,
     projectedValue: input.projection,
@@ -2064,8 +2688,12 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
     finalSide: side,
+    l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
+    l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
+    l5MinutesAvg: input.l5MinutesAvg ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
+    benchBigRoleStability: input.benchBigRoleStability ?? null,
     starterRateLast10: input.starterRateLast10,
     archetypeExpectedMinutes: input.archetypeExpectedMinutes ?? null,
     openingTeamSpread: input.openingTeamSpread,
@@ -2171,11 +2799,18 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     minutesRisk,
     rule,
   });
+  passReasons.push(
+    ...buildAvailabilityPassReasons({
+      availabilityStatus: input.availabilityStatus ?? null,
+      availabilityPercentPlay: input.availabilityPercentPlay ?? null,
+    }),
+  );
 
   return {
     marketLine,
     sportsbookCount: input.marketLine?.sportsbookCount ?? 0,
     side,
+    baselineSide,
     confidence: playerAdjustedConfidence,
     confidenceTier: confidenceTier(playerAdjustedConfidence),
     projectionGap,
@@ -2245,6 +2880,12 @@ export function applyEnhancedPointsProjection(input: EnhancedPointsProjectionInp
           : 0.12;
     projection = projection * (1 - anchorWeight) + input.marketLine.line * anchorWeight;
   }
+
+  const availabilityImpact = deriveRotowireAvailabilityImpact(
+    input.availabilityStatus ?? null,
+    input.availabilityPercentPlay ?? null,
+  );
+  projection *= availabilityImpact.projectionMultiplier;
 
   return round(Math.max(0, projection), 2);
 }

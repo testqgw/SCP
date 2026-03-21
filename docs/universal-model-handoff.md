@@ -254,7 +254,10 @@ Current archetypes in `lib/snapshot/liveUniversalSideModels.ts`:
 - `WING`
 - `CONNECTOR_WING`
 - `SPOTUP_WING`
-- `BENCH_GUARD`
+- `BENCH_SHOOTING_GUARD`
+- `BENCH_PASS_FIRST_GUARD`
+- `BENCH_LOW_USAGE_GUARD`
+- `BENCH_TRADITIONAL_GUARD`
 - `BENCH_WING`
 - `BENCH_LOW_USAGE_WING`
 - `BENCH_MIDRANGE_SCORER`
@@ -262,7 +265,9 @@ Current archetypes in `lib/snapshot/liveUniversalSideModels.ts`:
 - `BENCH_CREATOR_SCORER`
 - `BENCH_REBOUNDING_SCORER`
 - `BENCH_SPACER_SCORER`
-- `BENCH_BIG`
+- `BENCH_STRETCH_BIG`
+- `BENCH_LOW_USAGE_BIG`
+- `BENCH_TRADITIONAL_BIG`
 - `TWO_WAY_MARKET_WING`
 - `SCORER_CREATOR_WING`
 - `SHOT_CREATING_WING`
@@ -274,22 +279,18 @@ Current archetypes in `lib/snapshot/liveUniversalSideModels.ts`:
 
 ### 6.2 Most recent archetype split
 
-The latest model improvement targeted the remaining weak reserve scorer bucket `BENCH_SCORING_WING`, splitting it into three granular groups while adding `assistRate` and `astToLineRatio` variables for AST markets.
+The latest model improvement aggressively targeted the largest and weakest remaining catch-all buckets: `BENCH_BIG` and `BENCH_GUARD`. By splitting these into 7 granular sub-labels, the decision trees avoid muddying stretch bigs with traditional rim-runners, or pass-first guards with low-usage guards.
 
-New reserve subtypes:
+New Bench Bigs:
+- `BENCH_STRETCH_BIG`
+- `BENCH_LOW_USAGE_BIG`
+- `BENCH_TRADITIONAL_BIG`
 
-- `BENCH_LOW_USAGE_WING`
-- `BENCH_MIDRANGE_SCORER`
-- `BENCH_VOLUME_SCORER`
-
-Current split logic inside `classifyBenchArchetype(...)`:
-
-- if scoring reserve and `ast >= 3.2` -> `BENCH_CREATOR_SCORER`
-- else if `reb >= 5.2` -> `BENCH_REBOUNDING_SCORER`
-- else if `threes >= 1.9 || pts >= 15.5` -> `BENCH_SPACER_SCORER`
-- else if `pts < 10 && threes < 1.0` -> `BENCH_LOW_USAGE_WING`
-- else if `pts >= 10 && threes < 1.3` -> `BENCH_MIDRANGE_SCORER`
-- else fallback -> `BENCH_VOLUME_SCORER`
+New Bench Guards:
+- `BENCH_SHOOTING_GUARD`
+- `BENCH_PASS_FIRST_GUARD`
+- `BENCH_LOW_USAGE_GUARD`
+- `BENCH_TRADITIONAL_GUARD`
 
 Why this mattered:
 

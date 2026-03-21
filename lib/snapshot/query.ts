@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import {
   canonicalTeamCode,
+  deriveRotowireAvailabilityImpact,
+  formatRotowireAvailabilityLabel,
   normalizePlayerName,
+  parseStoredRotowireLineupSnapshot,
   type LineupStatus,
   type RotowireLineupSnapshot,
-  type RotowireTeamLineup,
+  type RotowireAvailabilityStatus,
 } from "@/lib/lineups/rotowire";
 import {
   applyPointsGameOddsAdjustment,
@@ -34,12 +37,21 @@ import {
   resolveOpponentShotVolumeMetrics,
 } from "@/lib/snapshot/pointsContext";
 import {
+  buildPrecision80Pick,
+  PRECISION_80_SYSTEM_SUMMARY,
+} from "@/lib/snapshot/precisionPickSystem";
+import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
+import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
   projectMinutesProfile,
   projectTonightMetrics,
+  type MinutesProjectionProfile,
+  type TeamSynergyInput,
 } from "@/lib/snapshot/projection";
+import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
+import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -51,6 +63,7 @@ import type {
   SnapshotMatchupOption,
   SnapshotMetricRecord,
   SnapshotPlayerLookupData,
+  SnapshotPrecisionPickSignal,
   SnapshotPrimaryDefender,
   SnapshotRow,
   SnapshotStatLog,
@@ -136,7 +149,11 @@ type PlayerProfile = {
   positionTokens: Set<PositionToken>;
 };
 
-const LIVE_FEED_TIMEOUT_MS = 8000;
+const LIVE_FEED_TIMEOUT_MS = (() => {
+  const parsed = Number(process.env.SNAPSHOT_LIVE_FEED_TIMEOUT_MS);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 6_000;
+  return Math.min(Math.max(3_000, Math.floor(parsed)), 25_000);
+})();
 
 async function withTimeoutFallback<T>(promise: Promise<T>, fallback: T, timeoutMs = LIVE_FEED_TIMEOUT_MS): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
@@ -157,12 +174,24 @@ async function withTimeoutFallback<T>(promise: Promise<T>, fallback: T, timeoutM
 
 type LineupTeamSignal = {
   status: LineupStatus;
+  hasStarterData: boolean;
   starterNames: Set<string>;
+  availabilityByName: Map<
+    string,
+    {
+      status: RotowireAvailabilityStatus;
+      percentPlay: number | null;
+      title: string | null;
+    }
+  >;
 };
 
 type LineupPlayerSignal = {
   lineupStarter: boolean | null;
   status: LineupStatus;
+  availabilityStatus: RotowireAvailabilityStatus | null;
+  availabilityPercentPlay: number | null;
+  availabilityTitle: string | null;
 };
 
 const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
@@ -179,6 +208,39 @@ type SnapshotBoardCacheEntry = {
 };
 
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
+const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
+
+type PersistedSnapshotBoardSetting = {
+  sourceSignal: string;
+  data: SnapshotBoardData;
+};
+
+function getSnapshotBoardSettingKey(dateEt: string): string {
+  return `${SNAPSHOT_BOARD_SETTING_KEY_PREFIX}${dateEt}`;
+}
+
+function isSnapshotBoardData(value: unknown): value is SnapshotBoardData {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<SnapshotBoardData>;
+  return (
+    typeof candidate.dateEt === "string" &&
+    Array.isArray(candidate.matchups) &&
+    Array.isArray(candidate.teamMatchups) &&
+    Array.isArray(candidate.rows)
+  );
+}
+
+function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoardSetting | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Partial<PersistedSnapshotBoardSetting>;
+  if (typeof candidate.sourceSignal !== "string" || !isSnapshotBoardData(candidate.data)) {
+    return null;
+  }
+  return {
+    sourceSignal: candidate.sourceSignal,
+    data: candidate.data,
+  };
+}
 
 function normalizeSearchText(value: string): string {
   return value
@@ -213,42 +275,69 @@ function blankMetricRecord(): SnapshotMetricRecord {
   };
 }
 
-function isLineupStatus(value: string): value is LineupStatus {
-  return value === "CONFIRMED" || value === "EXPECTED" || value === "UNKNOWN";
+function toBoardPrecisionSignal(signal: SnapshotPrecisionPickSignal | null | undefined): SnapshotPrecisionPickSignal | undefined {
+  if (!signal) return undefined;
+  return {
+    side: signal.side,
+    qualified: signal.qualified ?? signal.side !== "NEUTRAL",
+    historicalAccuracy: signal.historicalAccuracy,
+    historicalPicks: signal.historicalPicks,
+    historicalCoveragePct: signal.historicalCoveragePct,
+    bucketRecentAccuracy: signal.bucketRecentAccuracy,
+    leafAccuracy: signal.leafAccuracy,
+    absLineGap: signal.absLineGap,
+    projectionWinProbability: signal.projectionWinProbability,
+    projectionPriceEdge: signal.projectionPriceEdge,
+  };
+}
+
+function toBoardPrecisionSignals(
+  signals: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> | undefined,
+): Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> | undefined {
+  if (!signals) return undefined;
+
+  const entries = Object.entries(signals)
+    .map(([market, signal]) => {
+      const boardSignal = toBoardPrecisionSignal(signal);
+      return boardSignal ? ([market, boardSignal] as const) : null;
+    })
+    .filter((entry): entry is readonly [string, SnapshotPrecisionPickSignal] => entry !== null);
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>>;
+}
+
+function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
+  return {
+    ...row,
+    detailLevel: "BOARD",
+    precisionSignals: toBoardPrecisionSignals(row.precisionSignals),
+    recentLogs: [],
+    analysisLogs: [],
+    playerContext: {
+      ...row.playerContext,
+      primaryDefender: null,
+      teammateCore: [],
+    },
+    gameIntel: {
+      generatedAt: "",
+      modules: [],
+    },
+  };
+}
+
+function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
+  return {
+    ...data,
+    rows: data.rows.map((row) => toBoardSnapshotRow(row)),
+  };
 }
 
 function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const record = value as Record<string, unknown>;
-  if (typeof record.dateEt === "string" && record.dateEt !== dateEt) return null;
-  if (!Array.isArray(record.teams)) return null;
-
-  const teams: RotowireTeamLineup[] = [];
-  record.teams.forEach((team) => {
-    if (!team || typeof team !== "object" || Array.isArray(team)) return;
-    const row = team as Record<string, unknown>;
-    const teamCode = typeof row.teamCode === "string" ? canonicalTeamCode(row.teamCode) : null;
-    if (!teamCode) return;
-    const status = typeof row.status === "string" && isLineupStatus(row.status) ? row.status : "UNKNOWN";
-    const starters = Array.isArray(row.starters)
-      ? row.starters
-          .filter((name): name is string => typeof name === "string")
-          .map((name) => name.trim())
-          .filter(Boolean)
-      : [];
-    if (starters.length === 0) return;
-    teams.push({ teamCode, status, starters });
-  });
-
-  if (teams.length === 0) return null;
-
-  return {
-    source: "rotowire",
-    sourceUrl: typeof record.sourceUrl === "string" ? record.sourceUrl : "",
-    fetchedAt: typeof record.fetchedAt === "string" ? record.fetchedAt : "",
-    pageDateLabel: typeof record.pageDateLabel === "string" ? record.pageDateLabel : null,
-    teams,
-  };
+  return parseStoredRotowireLineupSnapshot(value, dateEt);
 }
 
 function buildLineupSignalMap(snapshot: RotowireLineupSnapshot | null): Map<string, LineupTeamSignal> {
@@ -259,7 +348,18 @@ function buildLineupSignalMap(snapshot: RotowireLineupSnapshot | null): Map<stri
     const code = canonicalTeamCode(team.teamCode);
     map.set(code, {
       status: team.status,
+      hasStarterData: team.starters.length > 0,
       starterNames: new Set(team.starters.map((name) => normalizePlayerName(name))),
+      availabilityByName: new Map(
+        team.availabilityPlayers.map((player) => [
+          normalizePlayerName(player.playerName),
+          {
+            status: player.status,
+            percentPlay: player.percentPlay,
+            title: player.title,
+          },
+        ]),
+      ),
     });
   });
 
@@ -274,14 +374,124 @@ function readLineupSignal(
   const teamSignal = lineupMap.get(canonicalTeamCode(teamCode));
   if (!teamSignal) return null;
   const normalized = normalizePlayerName(playerName);
+  const availability = teamSignal.availabilityByName.get(normalized);
   return {
-    lineupStarter: teamSignal.starterNames.has(normalized),
+    lineupStarter: teamSignal.hasStarterData ? teamSignal.starterNames.has(normalized) : null,
     status: teamSignal.status,
+    availabilityStatus: availability?.status ?? null,
+    availabilityPercentPlay: availability?.percentPlay ?? null,
+    availabilityTitle: availability?.title ?? null,
+  };
+}
+
+function applyAvailabilityToMinutesProfile(
+  profile: MinutesProjectionProfile,
+  signal: LineupPlayerSignal | null,
+): MinutesProjectionProfile {
+  const impact = deriveRotowireAvailabilityImpact(signal?.availabilityStatus ?? null, signal?.availabilityPercentPlay ?? null);
+  if (impact.severity <= 0) return profile;
+
+  const scale = (value: number | null): number | null =>
+    value == null ? null : round(Math.max(0, value * impact.minutesMultiplier), 2);
+
+  return {
+    expected: scale(profile.expected),
+    floor: scale(profile.floor),
+    ceiling: scale(profile.ceiling),
+  };
+}
+
+function applyAvailabilityToMetricRecord(
+  metrics: SnapshotMetricRecord,
+  signal: LineupPlayerSignal | null,
+): SnapshotMetricRecord {
+  const impact = deriveRotowireAvailabilityImpact(signal?.availabilityStatus ?? null, signal?.availabilityPercentPlay ?? null);
+  if (impact.severity <= 0) return metrics;
+
+  const scaled = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    const value = metrics[market];
+    if (market === "PTS" || market === "AST") {
+      scaled[market] = value;
+      return;
+    }
+    scaled[market] = value == null ? null : round(Math.max(0, value * impact.projectionMultiplier), 2);
+  });
+  return scaled;
+}
+
+function averageMetricRecordFromProfiles(profiles: PlayerProfile[]): SnapshotMetricRecord {
+  const result = blankMetricRecord();
+  MARKETS.forEach((market) => {
+    const values = profiles
+      .map((profile) => profile.last10Average[market])
+      .filter((value): value is number => value != null && Number.isFinite(value));
+    result[market] = average(values);
+  });
+  return result;
+}
+
+function isLikelyMissingCoreTeammate(input: {
+  profile: PlayerProfile;
+  teamCode: string;
+  lineupMap: Map<string, LineupTeamSignal>;
+  statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
+}): boolean {
+  const lineupSignal = readLineupSignal(input.lineupMap, input.teamCode, input.profile.playerName);
+  const availabilityImpact = deriveRotowireAvailabilityImpact(
+    lineupSignal?.availabilityStatus ?? null,
+    lineupSignal?.availabilityPercentPlay ?? null,
+  );
+  if (availabilityImpact.likelyOut) {
+    return true;
+  }
+  if (
+    lineupSignal?.status !== "UNKNOWN" &&
+    lineupSignal?.lineupStarter === false &&
+    (input.profile.starterRateLast10 ?? 0) >= 0.55 &&
+    (input.profile.minutesLast10Avg ?? 0) >= 24
+  ) {
+    return true;
+  }
+
+  const latestStatus = input.statusLogsByPlayerId.get(input.profile.playerId)?.[0];
+  return latestStatus?.played === false && (input.profile.minutesLast10Avg ?? 0) >= 24;
+}
+
+function buildTeammateSynergyInput(input: {
+  playerId: string;
+  teamCode: string;
+  teamProfiles: PlayerProfile[];
+  lineupMap: Map<string, LineupTeamSignal>;
+  statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
+}): TeamSynergyInput | null {
+  const coreProfiles = input.teamProfiles.filter((profile) => profile.playerId !== input.playerId).slice(0, 4);
+  if (coreProfiles.length === 0) return null;
+
+  const missingCoreIds = new Set(
+    coreProfiles
+      .filter((profile) =>
+        isLikelyMissingCoreTeammate({
+          profile,
+          teamCode: input.teamCode,
+          lineupMap: input.lineupMap,
+          statusLogsByPlayerId: input.statusLogsByPlayerId,
+        }),
+      )
+      .map((profile) => profile.playerId),
+  );
+
+  return {
+    activeCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId))),
+    missingCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId))),
   };
 }
 
 function applyLineupStarterLabel(baseLabel: string, signal: LineupPlayerSignal | null): string {
   if (!signal) return baseLabel;
+  if (signal.availabilityStatus === "OUT" || signal.availabilityStatus === "DOUBTFUL") {
+    return `${signal.availabilityStatus} (Lineup Feed)`;
+  }
   if (signal.lineupStarter === true) {
     return signal.status === "CONFIRMED" ? "Confirmed Starter (Lineup Feed)" : "Expected Starter (Lineup Feed)";
   }
@@ -289,6 +499,14 @@ function applyLineupStarterLabel(baseLabel: string, signal: LineupPlayerSignal |
     return signal.status === "CONFIRMED" ? "Confirmed Bench (Lineup Feed)" : "Projected Bench (Lineup Feed)";
   }
   return baseLabel;
+}
+
+function describeLineupSignal(signal: LineupPlayerSignal | null): string {
+  if (!signal) return "-";
+  const role =
+    signal.lineupStarter == null ? "Role Unknown" : signal.lineupStarter ? "Starter" : "Bench";
+  const availability = formatRotowireAvailabilityLabel(signal.availabilityStatus, signal.availabilityPercentPlay);
+  return availability ? `${signal.status} / ${role} / ${availability}` : `${signal.status} / ${role}`;
 }
 
 type CompletenessInput = {
@@ -548,6 +766,9 @@ type IntelBuildInput = {
   last10Logs: SnapshotStatLog[];
   last5Logs: SnapshotStatLog[];
   statusLast10: PlayerStatusLog[];
+  playerLineupSignal: LineupPlayerSignal | null;
+  liveTaggedCoreTeammates: string[];
+  liveUnavailableCoreCount: number;
   teammateUnavailableLastGame: number;
   teammateUnknownStatusLastGame: number;
   opponentStarterShareTop5: number | null;
@@ -822,6 +1043,10 @@ function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
 
   const newsItems: SnapshotIntelItem[] = [];
   const latestStatus = statusLogs[0] ?? null;
+  const liveAvailabilityLabel = formatRotowireAvailabilityLabel(
+    input.playerLineupSignal?.availabilityStatus ?? null,
+    input.playerLineupSignal?.availabilityPercentPlay ?? null,
+  );
   const latestStatusLabel =
     latestStatus == null
       ? "Unknown"
@@ -839,7 +1064,16 @@ function buildGameIntel(input: IntelBuildInput): SnapshotGameIntel {
   addIntelItem(newsItems, "Played Last 10", `${playedLast10}/10`);
   addIntelItem(newsItems, "Started Last 10", `${startsLast10}/10`);
   addIntelItem(newsItems, "Latest Status", latestStatusLabel);
+  addIntelItem(newsItems, "Live Lineup Feed", describeLineupSignal(input.playerLineupSignal));
+  addIntelItem(newsItems, "Live Injury Tag", liveAvailabilityLabel ?? "-");
   addIntelItem(newsItems, "Availability Signal", availabilitySignal);
+  addIntelItem(newsItems, "Core Teammates Tagged (Live)", `${input.liveTaggedCoreTeammates.length}/${input.teammateCore.length}`);
+  addIntelItem(newsItems, "Core Teammates Likely Out (Live)", `${input.liveUnavailableCoreCount}/${input.teammateCore.length}`);
+  addIntelItem(
+    newsItems,
+    "Tagged Core Teammates",
+    input.liveTaggedCoreTeammates.length > 0 ? input.liveTaggedCoreTeammates.join(" | ") : "-",
+  );
   addIntelItem(
     newsItems,
     "Core Teammates Out (Last Game)",
@@ -1208,7 +1442,7 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
     isTodayEt
       ? prisma.systemSetting.findUnique({
           where: { key: "snapshot_lineups_today" },
-          select: { value: true },
+          select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
   ]);
@@ -1249,7 +1483,24 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
           isHome: false,
         };
 
-  const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
+  const lineupSnapshot = (
+    isTodayEt
+      ? await withTimeoutFallback(
+          maybeRefreshTodayLineupSnapshot({
+            dateEt,
+            currentValue: lineupSetting?.value ?? null,
+            currentUpdatedAt: lineupSetting?.updatedAt ?? null,
+          }),
+          {
+            snapshot: parseLineupSnapshot(lineupSetting?.value ?? null, dateEt),
+            updatedAt: lineupSetting?.updatedAt ?? null,
+          },
+        )
+      : {
+          snapshot: parseLineupSnapshot(lineupSetting?.value ?? null, dateEt),
+          updatedAt: lineupSetting?.updatedAt ?? null,
+        }
+  ).snapshot;
   const lineupMap = buildLineupSignalMap(lineupSnapshot);
   const [selectedLogs, selectedStatusLogs, opponentGames, leagueAverageRaw] = await Promise.all([
     prisma.playerGameLog.findMany({
@@ -1411,6 +1662,10 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
   const blocksLast10Avg = average(last10Logs.map((log) => log.blocks));
   const minutesLast3Avg = average(last3Logs.map((log) => log.minutes));
   const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
+  const availabilitySeverity = deriveRotowireAvailabilityImpact(
+    lineupSignal?.availabilityStatus ?? null,
+    lineupSignal?.availabilityPercentPlay ?? null,
+  ).severity;
   const minutesLast10Avg = average(last10Logs.map((log) => log.minutes));
   const minutesVolatility = standardDeviation(last10Logs.map((log) => log.minutes));
   const stocksPer36Last10 =
@@ -1437,37 +1692,53 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
   };
   const primaryDefender: SnapshotPrimaryDefender | null = null;
   const teammateCore: SnapshotTeammateCore[] = [];
-  const minutesProfile = projectMinutesProfile({
-    minutesLast3Avg,
-    minutesLast10Avg,
-    minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
-    minutesCurrentTeamLast5Avg,
-    minutesCurrentTeamGames: sameTeamLogs.length,
-    lineupStarter: lineupSignal?.lineupStarter ?? null,
-    starterRateLast10: computedStarterRateLast10,
-  });
-  const projectedTonight = projectTonightMetrics({
-    last3Average,
-    last10Average,
-    seasonAverage,
-    homeAwayAverage,
-    opponentAllowance,
-    opponentAllowanceDelta,
-    last10ByMarket,
-    historyByMarket: seasonByMarketRecent,
-    historyMinutes: historyMinutesRecent,
-    sampleSize: logsForPlayer.length,
-    personalModels,
-    minutesSeasonAvg,
-    minutesLast3Avg,
-    minutesLast10Avg,
-    minutesVolatility,
-    minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
-    minutesCurrentTeamLast5Avg,
-    minutesCurrentTeamGames: sameTeamLogs.length,
-    lineupStarter: lineupSignal?.lineupStarter ?? null,
-    starterRateLast10: computedStarterRateLast10,
-  });
+  const projectedRestDays = statusLast10[0]
+    ? daysBetweenEt(statusLast10[0].gameDateEt, dateEt)
+    : last10Logs[0]
+      ? daysBetweenEt(last10Logs[0].gameDateEt, dateEt)
+      : null;
+  const minutesProfile = applyAvailabilityToMinutesProfile(
+    projectMinutesProfile({
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10: computedStarterRateLast10,
+    }),
+    lineupSignal,
+  );
+  const projectedTonight = applyAvailabilityToMetricRecord(
+    projectTonightMetrics({
+      last3Average,
+      last10Average,
+      seasonAverage,
+      homeAwayAverage,
+      opponentAllowance,
+      opponentAllowanceDelta,
+      last10ByMarket,
+      historyByMarket: seasonByMarketRecent,
+      historyMinutes: historyMinutesRecent,
+      sampleSize: logsForPlayer.length,
+      personalModels,
+      minutesSeasonAvg,
+      minutesLast3Avg,
+      minutesLast10Avg,
+      minutesVolatility,
+      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+      minutesCurrentTeamLast5Avg,
+      minutesCurrentTeamGames: sameTeamLogs.length,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      starterRateLast10: computedStarterRateLast10,
+      isHome: matchup.isHome,
+      playerPosition: player.position,
+      restDays: projectedRestDays,
+      openingTeamSpread: null,
+      availabilitySeverity,
+    }),
+    lineupSignal,
+  );
   const dataCompleteness = computeDataCompleteness({
     last10Logs,
     statusLast10,
@@ -1519,6 +1790,7 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
   };
 
   return {
+    detailLevel: "FULL",
     playerId: player.id,
     playerName: player.fullName,
     position: player.position,
@@ -1560,6 +1832,10 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
         }),
         lineupSignal,
       ),
+      lineupStatus: lineupSignal?.status ?? null,
+      lineupStarter: lineupSignal?.lineupStarter ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       startedLastGame: playerProfile.startedLastGame,
       startsLast10: playerProfile.startsLast10,
       starterRateLast10: playerProfile.starterRateLast10,
@@ -1651,7 +1927,7 @@ export async function getSnapshotPlayerLookupData(input: {
 
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
   const isTodayEt = dateEt === getTodayEtDateString();
-  const [games, latestDataWrite, lineupSetting, dailyOddsMap] = await Promise.all([
+  const [games, latestDataWrite, lineupSetting] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
       include: {
@@ -1669,19 +1945,34 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
-    withTimeoutFallback(fetchDailyGameOddsMap(dateEt), new Map()),
   ]);
 
   const sourceUpdatedAtIso = latestDataWrite._max.updatedAt?.toISOString() ?? null;
+  const parsedLineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
   const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
   const sourceSignal = `${sourceUpdatedAtIso ?? "none"}|${lineupUpdatedAtIso ?? "none"}`;
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
   if (cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
-    return cached.data;
+    return toBoardSnapshotData(cached.data);
   }
 
-  const lineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
+  const persistedBoardSetting = await prisma.systemSetting.findUnique({
+    where: { key: getSnapshotBoardSettingKey(dateEt) },
+    select: { value: true },
+  });
+  const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
+  if (persistedBoard && persistedBoard.sourceSignal === sourceSignal) {
+    const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
+    snapshotBoardCache.set(cacheKey, {
+      data: normalizedPersistedBoard,
+      sourceSignal,
+      expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
+    });
+    return normalizedPersistedBoard;
+  }
+
+  const lineupSnapshot = parsedLineupSnapshot;
   const lineupMap = buildLineupSignalMap(lineupSnapshot);
 
   if (games.length === 0) {
@@ -1697,8 +1988,26 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       sourceSignal,
       expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
     });
+    await prisma.systemSetting.upsert({
+      where: { key: getSnapshotBoardSettingKey(dateEt) },
+      update: {
+        value: {
+          sourceSignal,
+          data: emptyData,
+        },
+      },
+      create: {
+        key: getSnapshotBoardSettingKey(dateEt),
+        value: {
+          sourceSignal,
+          data: emptyData,
+        },
+      },
+    });
     return emptyData;
   }
+
+  const dailyOddsMap = await withTimeoutFallback(fetchDailyGameOddsMap(dateEt), new Map());
 
   const matchupByTeamId = new Map<string, TeamMatchup>();
   const matchupOptionsByKey = new Map<string, SnapshotMatchupOption>();
@@ -1851,6 +2160,12 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     })
     .sort((a, b) => a.matchupKey.localeCompare(b.matchupKey));
 
+  const dailyMatchupHints = Array.from(matchupMetaByKey.values()).map((meta) => ({
+    awayCode: meta.awayTeamCode,
+    homeCode: meta.homeTeamCode,
+    matchupKey: meta.matchupKey,
+  }));
+
   const teamIds = Array.from(matchupByTeamId.keys());
   const players = await prisma.player.findMany({
     where: {
@@ -1900,10 +2215,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         select: { externalId: true, position: true },
       }),
       withTimeoutFallback(fetchSeasonVolumeLogs(dateEt), []),
-      withTimeoutFallback(fetchDailyPtsLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyRebLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyAstLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyThreesLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyPtsLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyRebLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyAstLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyThreesLineMap(dateEt, dailyMatchupHints), new Map()),
       withTimeoutFallback(fetchDailyPraLineMap(dateEt), new Map()),
       withTimeoutFallback(fetchDailyPaLineMap(dateEt), new Map()),
       withTimeoutFallback(fetchDailyPrLineMap(dateEt), new Map()),
@@ -2186,6 +2501,13 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         avgPRA10: profile.last10Average.PRA,
         avgAST10: profile.last10Average.AST,
       }));
+    const teammateSynergy = buildTeammateSynergyInput({
+      playerId: player.id,
+      teamCode: matchup.teamCode,
+      teamProfiles,
+      lineupMap,
+      statusLogsByPlayerId,
+    });
     const teammateUnavailableLastGame = teammateCore.reduce((count, teammate) => {
       const latest = statusLogsByPlayerId.get(teammate.playerId)?.[0];
       return count + (latest?.played === false ? 1 : 0);
@@ -2207,43 +2529,100 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       statusLast10.length > 0 ? round(computedStartsLast10 / statusLast10.length, 2) : null;
     const computedStartedLastGame = statusLast10[0]?.starter ?? null;
     const lineupSignal = readLineupSignal(lineupMap, matchup.teamCode, player.fullName);
+    const availabilitySeverity = deriveRotowireAvailabilityImpact(
+      lineupSignal?.availabilityStatus ?? null,
+      lineupSignal?.availabilityPercentPlay ?? null,
+    ).severity;
+    const liveTaggedCoreSignals = teammateCore
+      .map((teammate) => ({
+        teammate,
+        signal: readLineupSignal(lineupMap, matchup.teamCode, teammate.playerName),
+      }))
+      .filter(
+        (entry) =>
+          entry.signal?.availabilityStatus != null &&
+          entry.signal.availabilityStatus !== "ACTIVE",
+      );
+    const liveTaggedCoreTeammates = liveTaggedCoreSignals.map((entry) => {
+      const availability = formatRotowireAvailabilityLabel(
+        entry.signal?.availabilityStatus ?? null,
+        entry.signal?.availabilityPercentPlay ?? null,
+      );
+      return availability ? `${entry.teammate.playerName} (${availability})` : entry.teammate.playerName;
+    });
+    const liveUnavailableCoreCount = liveTaggedCoreSignals.reduce(
+      (count, entry) =>
+        count +
+        (deriveRotowireAvailabilityImpact(
+          entry.signal?.availabilityStatus ?? null,
+          entry.signal?.availabilityPercentPlay ?? null,
+        ).likelyOut
+          ? 1
+          : 0),
+      0,
+    );
     const dailyOdds = dailyOddsMap.get(matchup.matchupKey) ?? null;
     const openingTeamSpread = resolveTeamSpreadForMatchup(dailyOdds, matchup.isHome);
     const openingTotal = dailyOdds?.openingTotal ?? null;
+    const projectedRestDays = statusLast10[0]
+      ? daysBetweenEt(statusLast10[0].gameDateEt, dateEt)
+      : last10Logs[0]
+        ? daysBetweenEt(last10Logs[0].gameDateEt, dateEt)
+        : null;
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
     const minutesVolatility =
       playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes));
-    const minutesProfile = projectMinutesProfile({
-      minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
-      minutesLast10Avg,
-      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
-      minutesCurrentTeamLast5Avg,
-      minutesCurrentTeamGames: sameTeamLogs.length,
-      lineupStarter: lineupSignal?.lineupStarter ?? null,
-      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
-    });
-    const projectedTonight = projectTonightMetrics({
-      last3Average,
-      last10Average,
-      seasonAverage,
-      homeAwayAverage,
-      opponentAllowance,
-      opponentAllowanceDelta,
-      last10ByMarket,
-      historyByMarket: seasonByMarketRecent,
-      historyMinutes: historyMinutesRecent,
-      sampleSize: logsForPlayer.length,
-      personalModels,
-      minutesSeasonAvg,
-      minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
-      minutesLast10Avg,
+    const missingFrontcourtLoad = computeMissingFrontcourtLoad(teammateSynergy?.missingCoreAverage ?? null);
+    const benchBigRoleStability = computeBenchBigRoleStability({
+      archetype: playerProfile?.archetype ?? null,
       minutesVolatility,
-      minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
-      minutesCurrentTeamLast5Avg,
-      minutesCurrentTeamGames: sameTeamLogs.length,
-      lineupStarter: lineupSignal?.lineupStarter ?? null,
-      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      availabilitySeverity,
+      missingFrontcourtLoad,
     });
+    const minutesProfile = applyAvailabilityToMinutesProfile(
+      projectMinutesProfile({
+        minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
+        minutesLast10Avg,
+        minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+        minutesCurrentTeamLast5Avg,
+        minutesCurrentTeamGames: sameTeamLogs.length,
+        lineupStarter: lineupSignal?.lineupStarter ?? null,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      }),
+      lineupSignal,
+    );
+    const projectedTonight = applyAvailabilityToMetricRecord(
+      projectTonightMetrics({
+        last3Average,
+        last10Average,
+        seasonAverage,
+        homeAwayAverage,
+        opponentAllowance,
+        opponentAllowanceDelta,
+        last10ByMarket,
+        historyByMarket: seasonByMarketRecent,
+        historyMinutes: historyMinutesRecent,
+        sampleSize: logsForPlayer.length,
+        personalModels,
+        minutesSeasonAvg,
+        minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
+        minutesLast10Avg,
+        minutesVolatility,
+        minutesHomeAwayAvg: average(homeAwayLogs.map((log) => log.minutes)),
+        minutesCurrentTeamLast5Avg,
+        minutesCurrentTeamGames: sameTeamLogs.length,
+        lineupStarter: lineupSignal?.lineupStarter ?? null,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+        isHome: matchup.isHome,
+        playerPosition: player.position,
+        restDays: projectedRestDays,
+        openingTeamSpread,
+        openingTotal,
+        availabilitySeverity,
+        teammateSynergy,
+      }),
+      lineupSignal,
+    );
     const playerShotPressure = buildShotPressureSummary(seasonVolumeLogs, player.externalId, dateEt);
     const opponentShotVolume = resolveOpponentShotVolumeMetrics({
       opponentCode: matchup.opponentCode,
@@ -2262,12 +2641,55 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const paMarketLine = dailyPaLineMap.get(marketKey) ?? null;
     const prMarketLine = dailyPrLineMap.get(marketKey) ?? null;
     const raMarketLine = dailyRaLineMap.get(marketKey) ?? null;
+    const recentMinutes = last5Logs.map((entry) => entry.minutes);
+    const ptsCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.PTS,
+      recentMinutes,
+      currentLine: ptsMarketLine?.line ?? null,
+    });
+    const rebCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.REB,
+      recentMinutes,
+      currentLine: rebMarketLine?.line ?? null,
+    });
+    const astCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.AST,
+      recentMinutes,
+      currentLine: astMarketLine?.line ?? null,
+    });
+    const threesCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.THREES,
+      recentMinutes,
+      currentLine: threesMarketLine?.line ?? null,
+    });
+    const praCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.PRA,
+      recentMinutes,
+      currentLine: praMarketLine?.line ?? null,
+    });
+    const paCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.PA,
+      recentMinutes,
+      currentLine: paMarketLine?.line ?? null,
+    });
+    const prCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.PR,
+      recentMinutes,
+      currentLine: prMarketLine?.line ?? null,
+    });
+    const raCurrentLineRecency = computeCurrentLineRecencyMetrics({
+      recentActualValues: last5ByMarket.RA,
+      recentMinutes,
+      currentLine: raMarketLine?.line ?? null,
+    });
     projectedTonight.PTS = applyEnhancedPointsProjection({
       baseProjection: applyPointsGameOddsAdjustment(projectedTonight.PTS, openingTotal, openingTeamSpread),
       openingTotal,
       openingTeamSpread,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       playerShotPressure,
       opponentShotVolume,
@@ -2305,12 +2727,16 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       openingTeamSpread,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       archetypeExpectedMinutes: minutesLast10Avg,
       projectedMinutes: minutesProfile.expected,
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      benchBigRoleStability,
+      ...ptsCurrentLineRecency,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
@@ -2328,12 +2754,16 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       openingTeamSpread,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       archetypeExpectedMinutes: minutesLast10Avg,
       projectedMinutes: minutesProfile.expected,
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      benchBigRoleStability,
+      ...rebCurrentLineRecency,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
@@ -2351,12 +2781,16 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       openingTeamSpread,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       archetypeExpectedMinutes: minutesLast10Avg,
       projectedMinutes: minutesProfile.expected,
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      benchBigRoleStability,
+      ...astCurrentLineRecency,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
@@ -2374,12 +2808,16 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       openingTeamSpread,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       archetypeExpectedMinutes: minutesLast10Avg,
       projectedMinutes: minutesProfile.expected,
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      benchBigRoleStability,
+      ...threesCurrentLineRecency,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
@@ -2393,12 +2831,15 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       playerPosition: player.position,
       lineupStarter: lineupSignal?.lineupStarter ?? null,
       lineupStatus: lineupSignal?.status ?? null,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
       starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       archetypeExpectedMinutes: minutesLast10Avg,
       projectedMinutes: minutesProfile.expected,
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      benchBigRoleStability,
       completenessScore: dataCompleteness.score,
       assistProjection: projectedTonight.AST,
       projectedPoints: projectedTonight.PTS,
@@ -2412,22 +2853,162 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       ...comboSignalInput,
       projection: projectedTonight.PRA,
       marketLine: praMarketLine,
+      ...praCurrentLineRecency,
     });
     const paSignal = buildLivePaSignal({
       ...comboSignalInput,
       projection: projectedTonight.PA,
       marketLine: paMarketLine,
+      ...paCurrentLineRecency,
     });
     const prSignal = buildLivePrSignal({
       ...comboSignalInput,
       projection: projectedTonight.PR,
       marketLine: prMarketLine,
+      ...prCurrentLineRecency,
     });
     const raSignal = buildLiveRaSignal({
       ...comboSignalInput,
       projection: projectedTonight.RA,
       marketLine: raMarketLine,
+      ...raCurrentLineRecency,
     });
+    const precisionCommonInput = {
+      expectedMinutes: minutesProfile.expected,
+      minutesVolatility,
+      benchBigRoleStability,
+      starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      archetypeExpectedMinutes: minutesLast10Avg,
+      archetypeStarterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      openingTeamSpread,
+      openingTotal,
+      completenessScore: dataCompleteness.score,
+      playerPosition: player.position,
+      pointsProjection: projectedTonight.PTS,
+      reboundsProjection: projectedTonight.REB,
+      assistProjection: projectedTonight.AST,
+      threesProjection: projectedTonight.THREES,
+      availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+      availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
+    };
+    const precisionSignals = Object.fromEntries(
+      (
+        [
+          [
+            "PTS",
+            buildPrecision80Pick({
+              market: "PTS",
+              projectedValue: projectedTonight.PTS,
+              line: ptsMarketLine?.line ?? null,
+              overPrice: ptsMarketLine?.overPrice ?? null,
+              underPrice: ptsMarketLine?.underPrice ?? null,
+              finalSide: ptsSignal?.baselineSide ?? modelLines.PTS.modelSide,
+              lineupTimingConfidence: ptsSignal?.lineupTimingConfidence ?? null,
+              ...ptsCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "REB",
+            buildPrecision80Pick({
+              market: "REB",
+              projectedValue: projectedTonight.REB,
+              line: rebMarketLine?.line ?? null,
+              overPrice: rebMarketLine?.overPrice ?? null,
+              underPrice: rebMarketLine?.underPrice ?? null,
+              finalSide: rebSignal?.baselineSide ?? modelLines.REB.modelSide,
+              lineupTimingConfidence: rebSignal?.lineupTimingConfidence ?? null,
+              ...rebCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "AST",
+            buildPrecision80Pick({
+              market: "AST",
+              projectedValue: projectedTonight.AST,
+              line: astMarketLine?.line ?? null,
+              overPrice: astMarketLine?.overPrice ?? null,
+              underPrice: astMarketLine?.underPrice ?? null,
+              finalSide: astSignal?.baselineSide ?? modelLines.AST.modelSide,
+              lineupTimingConfidence: astSignal?.lineupTimingConfidence ?? null,
+              ...astCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "THREES",
+            buildPrecision80Pick({
+              market: "THREES",
+              projectedValue: projectedTonight.THREES,
+              line: threesMarketLine?.line ?? null,
+              overPrice: threesMarketLine?.overPrice ?? null,
+              underPrice: threesMarketLine?.underPrice ?? null,
+              finalSide: threesSignal?.baselineSide ?? modelLines.THREES.modelSide,
+              lineupTimingConfidence: threesSignal?.lineupTimingConfidence ?? null,
+              ...threesCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "PRA",
+            buildPrecision80Pick({
+              market: "PRA",
+              projectedValue: projectedTonight.PRA,
+              line: praMarketLine?.line ?? null,
+              overPrice: praMarketLine?.overPrice ?? null,
+              underPrice: praMarketLine?.underPrice ?? null,
+              finalSide: praSignal?.baselineSide ?? modelLines.PRA.modelSide,
+              lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+              ...praCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "PA",
+            buildPrecision80Pick({
+              market: "PA",
+              projectedValue: projectedTonight.PA,
+              line: paMarketLine?.line ?? null,
+              overPrice: paMarketLine?.overPrice ?? null,
+              underPrice: paMarketLine?.underPrice ?? null,
+              finalSide: paSignal?.baselineSide ?? modelLines.PA.modelSide,
+              lineupTimingConfidence: paSignal?.lineupTimingConfidence ?? null,
+              ...paCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "PR",
+            buildPrecision80Pick({
+              market: "PR",
+              projectedValue: projectedTonight.PR,
+              line: prMarketLine?.line ?? null,
+              overPrice: prMarketLine?.overPrice ?? null,
+              underPrice: prMarketLine?.underPrice ?? null,
+              finalSide: prSignal?.baselineSide ?? modelLines.PR.modelSide,
+              lineupTimingConfidence: prSignal?.lineupTimingConfidence ?? null,
+              ...prCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+          [
+            "RA",
+            buildPrecision80Pick({
+              market: "RA",
+              projectedValue: projectedTonight.RA,
+              line: raMarketLine?.line ?? null,
+              overPrice: raMarketLine?.overPrice ?? null,
+              underPrice: raMarketLine?.underPrice ?? null,
+              finalSide: raSignal?.baselineSide ?? modelLines.RA.modelSide,
+              lineupTimingConfidence: raSignal?.lineupTimingConfidence ?? null,
+              ...raCurrentLineRecency,
+              ...precisionCommonInput,
+            }),
+          ],
+        ] as const
+      ).filter((entry) => entry[1] != null),
+    );
 
     const gameIntel = buildGameIntel({
       dateEt,
@@ -2444,6 +3025,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       last10Logs,
       last5Logs,
       statusLast10,
+      playerLineupSignal: lineupSignal,
+      liveTaggedCoreTeammates,
+      liveUnavailableCoreCount,
       teammateUnavailableLastGame,
       teammateUnknownStatusLastGame,
       opponentStarterShareTop5,
@@ -2644,7 +3228,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
 
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
-      row: {
+      row: toBoardSnapshotRow({
+        detailLevel: "FULL",
         playerId: player.id,
         playerName: player.fullName,
         position: player.position,
@@ -2672,6 +3257,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         paSignal,
         prSignal,
         raSignal,
+        precisionSignals,
         recentLogs: last10Logs,
         analysisLogs: logsForPlayer,
         dataCompleteness,
@@ -2686,6 +3272,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
             }),
             lineupSignal,
           ),
+          lineupStatus: lineupSignal?.status ?? null,
+          lineupStarter: lineupSignal?.lineupStarter ?? null,
+          availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+          availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
           startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
           startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
           starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
@@ -2703,7 +3293,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           teammateCore,
         },
         gameIntel,
-      },
+      }),
     });
   }
 
@@ -2717,17 +3307,34 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     return a.row.playerName.localeCompare(b.row.playerName);
   });
 
-  const result = {
+  const result = toBoardSnapshotData({
     dateEt,
     lastUpdatedAt: sourceUpdatedAtIso,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
-  };
+    precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
+  });
   snapshotBoardCache.set(cacheKey, {
     data: result,
     sourceSignal,
     expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
+  });
+  await prisma.systemSetting.upsert({
+    where: { key: getSnapshotBoardSettingKey(dateEt) },
+    update: {
+      value: {
+        sourceSignal,
+        data: result,
+      },
+    },
+    create: {
+      key: getSnapshotBoardSettingKey(dateEt),
+      value: {
+        sourceSignal,
+        data: result,
+      },
+    },
   });
   return result;
 }

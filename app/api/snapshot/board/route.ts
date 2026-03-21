@@ -14,9 +14,13 @@ export async function GET(request: Request): Promise<NextResponse> {
     const { searchParams } = new URL(request.url);
     const dateEt = isValidEtDate(searchParams.get("date")) ? (searchParams.get("date") as string) : getTodayEtDateString();
     const result = await getSnapshotBoardData(dateEt);
-    return NextResponse.json({ ok: true, result });
+    const response = NextResponse.json({ ok: true, result });
+    response.headers.set("Cache-Control", "public, s-maxage=15, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Board load failed.";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const response = NextResponse.json({ ok: false, error: message }, { status: 500 });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

@@ -27,6 +27,7 @@ type PlayerMarketRow = {
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -480,6 +481,7 @@ async function main(): Promise<void> {
         finalSide: row.finalSide,
         expectedMinutes: row.expectedMinutes,
         minutesVolatility: row.minutesVolatility,
+        benchBigRoleStability: row.benchBigRoleStability ?? null,
         starterRateLast10: row.starterRateLast10,
         openingTeamSpread: row.openingTeamSpread ?? null,
         openingTotal: row.openingTotal ?? null,

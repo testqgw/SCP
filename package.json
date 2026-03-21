@@ -28,9 +28,13 @@
     "projection:train:universal-models": "tsx --env-file=.env.local --env-file=.env scripts/train-universal-archetype-side-models.ts",
     "projection:build:universal-hybrid": "tsx --env-file=.env.local --env-file=.env scripts/build-universal-hybrid-model.ts",
     "projection:build:universal-calibration": "tsx --env-file=.env.local --env-file=.env scripts/build-universal-residual-calibration.ts",
+    "projection:build:universal-projection-distribution": "tsx --env-file=.env.local --env-file=.env scripts/build-universal-projection-distribution.ts",
     "projection:lines:export:all-markets": "tsx --env-file=.env.local --env-file=.env scripts/export-historical-all-player-lines.ts",
     "projection:evaluate:universal-qualification": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-universal-model-qualification.ts",
-    "projection:retrain:universal-live": "tsx --env-file=.env.local --env-file=.env scripts/retrain-live-universal-model.ts"
+    "projection:evaluate:precision-picks": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-precision-pick-system.ts",
+    "projection:search:daily6": "tsx --env-file=.env.local --env-file=.env scripts/search-daily6-one-pick-per-player.ts",
+    "projection:retrain:universal-live": "tsx --env-file=.env.local --env-file=.env scripts/retrain-live-universal-model.ts",
+    "monitor-weak-buckets": "tsx --env-file=.env.local --env-file=.env scripts/monitor-weak-buckets.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

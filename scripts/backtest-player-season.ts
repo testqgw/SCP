@@ -1,6 +1,7 @@
 import { load } from "cheerio";
 import fs from "node:fs";
 import path from "node:path";
+import { deriveRotowireAvailabilityImpact } from "../lib/lineups/rotowire";
 import { prisma } from "../lib/prisma";
 import {
   SNAPSHOT_MARKETS,
@@ -4761,6 +4762,13 @@ async function main(): Promise<void> {
       playerStartedFromRotowire != null
         ? `rotowire-${rotowireTeamSignal?.status.toLowerCase()}`
         : historicalStarters?.source ?? null;
+    const historicalAvailability = rotowireTeamSignal?.unavailablePlayers.find(
+      (entry) => normalizePersonName(entry.playerName) === normalizePersonName(player.fullName),
+    );
+    const availabilitySeverity = deriveRotowireAvailabilityImpact(
+      historicalAvailability?.status ?? null,
+      historicalAvailability?.percentPlay ?? null,
+    ).severity;
     const personalModels = buildPlayerPersonalModels({
       historyByMarket,
       minutesSeasonAvg,
@@ -4774,6 +4782,7 @@ async function main(): Promise<void> {
       lineupStarter: playerStarted,
       starterRateLast10,
     });
+    const scheduleLoad = recentGameLoad(priorLogs, target.gameDateEt);
     const projectedTonight = projectTonightMetrics({
       last3Average,
       last10Average,
@@ -4795,8 +4804,17 @@ async function main(): Promise<void> {
       minutesCurrentTeamGames: sameTeamLogs.length,
       lineupStarter: playerStarted,
       starterRateLast10,
+      playerPosition: player.position,
+      restDays: scheduleLoad.restDays,
+      openingTeamSpread:
+        historicalPregame?.openingHomeSpread == null
+          ? null
+          : target.isHome === true
+            ? historicalPregame.openingHomeSpread
+            : round(-historicalPregame.openingHomeSpread, 2),
+      openingTotal: historicalPregame?.openingTotal ?? null,
+      availabilitySeverity,
     });
-    const scheduleLoad = recentGameLoad(priorLogs, target.gameDateEt);
     const heuristicUnavailableTeammatePts = computeTeammateUnavailablePtsLoad(
       target.teamId,
       target.gameDateEt,
