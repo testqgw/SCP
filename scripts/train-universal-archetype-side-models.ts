@@ -8,6 +8,8 @@ import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
   resolveProjectPath,
 } from "../lib/snapshot/universalArtifactPaths";
+import { buildPRAComboState } from "../lib/snapshot/praComboState";
+import { gateShapeNumber, shouldExposeShapeContext } from "../lib/snapshot/shapeRegime";
 import { round } from "../lib/utils";
 import { loadPlayerMetaWithCache } from "./utils/playerMetaCache";
 
@@ -50,6 +52,8 @@ type Archetype =
 const ENABLE_BENCH_BIG_ROLE_STABILITY = process.env.SNAPSHOT_ENABLE_BENCH_BIG_ROLE_STABILITY?.trim() === "1";
 const ENABLE_CURRENT_LINE_MOMENTUM = process.env.SNAPSHOT_ENABLE_CURRENT_LINE_MOMENTUM?.trim() === "1";
 const ENABLE_L5_MARKET_MOMENTUM = process.env.SNAPSHOT_ENABLE_L5_MARKET_MOMENTUM?.trim() === "1";
+const SHAPE_SPECIALIZATION_MODE =
+  process.env.SNAPSHOT_SHAPE_SPECIALIZATION_MODE?.trim().toLowerCase() === "off" ? "off" : "targeted";
 const L5_MOMENTUM_RHYTHM_MARKETS = new Set<Market>(["PTS", "THREES", "PRA"]);
 const ENABLE_L5_CREATOR_FAMILY = process.env.SNAPSHOT_ENABLE_L5_CREATOR_FAMILY?.trim() === "1";
 const L5_CREATOR_ARCHETYPE_FAMILY = new Set<Archetype>([
@@ -96,6 +100,88 @@ const WING_SPECIALIST_ARCHETYPE_SET = new Set<Archetype>([
   "TWO_WAY_MARKET_WING",
 ]);
 const WING_SPECIALIST_MARKET_SET = new Set<Market>(["PRA", "PA", "PTS", "THREES", "RA"]);
+const RECENCY_PRIORITY_MARKETS = new Set<Market>(["PTS", "REB", "AST", "PRA", "PA", "PR", "RA"]);
+const RECENCY_PRIORITY_ARCHETYPES = new Set<Archetype>([
+  "BENCH_CREATOR_SCORER",
+  "BENCH_REBOUNDING_SCORER",
+  "BENCH_SPACER_SCORER",
+  "BENCH_VOLUME_SCORER",
+  "BENCH_PASS_FIRST_GUARD",
+  "BENCH_LOW_USAGE_WING",
+  "SCORE_FIRST_LEAD_GUARD",
+  "CENTER",
+  "STRETCH_RIM_PROTECTOR_CENTER",
+  "CONNECTOR_WING",
+]);
+
+const USAGE_CONTEXT_PRIORITY_MARKETS = new Set<Market>(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
+const USAGE_CONTEXT_PRIORITY_ARCHETYPES = new Set<Archetype>([
+  "SCORE_FIRST_LEAD_GUARD",
+  "SCORING_GUARD_CREATOR",
+  "POINT_FORWARD",
+  "BENCH_CREATOR_SCORER",
+  "BENCH_REBOUNDING_SCORER",
+  "BENCH_SPACER_SCORER",
+  "BENCH_VOLUME_SCORER",
+  "CENTER",
+  "STRETCH_RIM_PROTECTOR_CENTER",
+]);
+
+const SHAPE_PRIORITY_MARKETS = new Set<Market>(["PRA", "PR"]);
+const SHAPE_PRIORITY_ARCHETYPES = new Set<Archetype>([
+  "MARKET_SHAPED_SCORING_WING",
+  "HELIOCENTRIC_GUARD",
+  "POINT_FORWARD",
+  "BENCH_PASS_FIRST_GUARD",
+  "SCORING_GUARD_CREATOR",
+]);
+const SHAPE_PRIORITY_FEATURES: FeatureName[] = [
+  "l15ValueSkew",
+  "projectionMedianDelta",
+  "competitivePaceFactor",
+  "blowoutRisk",
+];
+const MEDIAN_AWARE_BLOCKED_FEATURES = new Set<FeatureName>([
+  "lineGap",
+  "absLineGap",
+  "projectedValue",
+  "projectionPerMinute",
+  "projectionToLineRatio",
+  "projectionMarketAgreement",
+  "comboGapPressure",
+]);
+// Targeted PRA combo features - only for specific bad buckets (SCORE_FIRST_LEAD_GUARD, LEAD_GUARD, WING)
+// Using orthogonal subset instead of all 18 features to avoid overfitting
+const PRA_COMBO_STATE_BUCKETS = new Set([
+  "PRA|SCORE_FIRST_LEAD_GUARD",
+  "PRA|LEAD_GUARD",
+  "PRA|WING",
+]);
+
+// Smaller orthogonal subset - avoid cross-interactions and redundant share features
+const PRA_COMBO_STATE_FEATURES: FeatureName[] = [
+  "guardWingArchetypeFlag",
+  "closeGameFlag",
+  "lateSeasonFlag",
+  "highLinePRAFlag",
+];
+
+function isRecencyPriorityBucket(market: Market, archetype: Archetype): boolean {
+  return RECENCY_PRIORITY_MARKETS.has(market) || RECENCY_PRIORITY_ARCHETYPES.has(archetype);
+}
+
+function isUsageContextPriorityBucket(market: Market, archetype: Archetype): boolean {
+  return USAGE_CONTEXT_PRIORITY_MARKETS.has(market) || USAGE_CONTEXT_PRIORITY_ARCHETYPES.has(archetype);
+}
+
+function isShapePriorityBucket(market: Market, archetype: Archetype): boolean {
+  if (SHAPE_SPECIALIZATION_MODE === "off") return false;
+  return SHAPE_PRIORITY_MARKETS.has(market) && SHAPE_PRIORITY_ARCHETYPES.has(archetype);
+}
+
+function isMedianAwareBucket(market: Market, archetype: Archetype): boolean {
+  return isShapePriorityBucket(market, archetype);
+}
 
 function isBigManArchetype(archetype: Archetype): boolean {
   return BIG_MAN_ARCHETYPE_SET.has(archetype);
@@ -126,6 +212,10 @@ type TrainingRow = {
   market: Market;
   gameDateEt: string;
   projectedValue: number;
+  pointsProjection?: number | null;
+  reboundsProjection?: number | null;
+  assistProjection?: number | null;
+  threesProjection?: number | null;
   actualValue: number;
   line: number;
   overPrice: number | null;
@@ -137,6 +227,14 @@ type TrainingRow = {
   finalCorrect: boolean;
   priceLean: number | null;
   favoredSide: "OVER" | "UNDER" | "NEUTRAL";
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
@@ -146,6 +244,13 @@ type TrainingRow = {
   l5MinutesAvg?: number | null;
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -189,6 +294,24 @@ type EnrichedRow = TrainingRow & {
   contextQuality: number | null;
   roleStability: number | null;
   projectionMarketAgreement: number | null;
+  minutesShiftDelta: number | null;
+  minutesShiftAbsDelta: number | null;
+  l15ValueMean: number | null;
+  l15ValueMedian: number | null;
+  l15ValueStdDev: number | null;
+  l15ValueSkew: number | null;
+  projectionMedianDelta: number | null;
+  medianLineGap: number | null;
+  competitivePaceFactor: number | null;
+  blowoutRisk: number | null;
+  seasonMinutesAvg: number | null;
+  minutesLiftPct: number | null;
+  activeCorePts: number | null;
+  activeCoreAst: number | null;
+  missingCorePts: number | null;
+  missingCoreAst: number | null;
+  missingCoreShare: number | null;
+  stepUpRoleFlag: number | null;
   openingSpreadAbs: number | null;
   favoriteFlag: number | null;
   bigFavoriteFlag: number | null;
@@ -201,6 +324,25 @@ type EnrichedRow = TrainingRow & {
   comboGapPressure: number | null;
   assistRate: number | null;
   astToLineRatio: number | null;
+  ptsShareOfPRA: number | null;
+  rebShareOfPRA: number | null;
+  astShareOfPRA: number | null;
+  maxLegShareOfCombo: number | null;
+  comboEntropy: number | null;
+  comboBalanceScore: number | null;
+  ptsLedPRAFlag: number;
+  highLinePRAFlag: number;
+  veryHighLinePRAFlag: number;
+  lateSeasonFlag: number;
+  lateSeasonHighLinePRAFlag: number;
+  guardWingArchetypeFlag: number;
+  ptsLedPRAxGuardWing: number;
+  highLinePRAxGuardWing: number;
+  lateSeasonxGuardWing: number;
+  closeGamexGuardWing: number;
+  ptsLedPRAxCloseGame: number;
+  ptsLedPRAxLateSeason: number;
+  ptsLedPRAxHighLine: number;
 };
 
 type FeatureName =
@@ -214,6 +356,27 @@ type FeatureName =
   | "l5MarketDeltaAvg"
   | "l5OverRate"
   | "l5MinutesAvg"
+  | "emaCurrentLineDelta"
+  | "emaCurrentLineOverRate"
+  | "emaMinutesAvg"
+  | "l15ValueMean"
+  | "l15ValueMedian"
+  | "l15ValueStdDev"
+  | "l15ValueSkew"
+  | "projectionMedianDelta"
+  | "medianLineGap"
+  | "competitivePaceFactor"
+  | "blowoutRisk"
+  | "minutesShiftDelta"
+  | "minutesShiftAbsDelta"
+  | "seasonMinutesAvg"
+  | "minutesLiftPct"
+  | "activeCorePts"
+  | "activeCoreAst"
+  | "missingCorePts"
+  | "missingCoreAst"
+  | "missingCoreShare"
+  | "stepUpRoleFlag"
   | "starterRateLast10"
   | "priceLean"
   | "priceAbsLean"
@@ -247,7 +410,26 @@ type FeatureName =
   | "overProbability"
   | "underProbability"
   | "assistRate"
-  | "astToLineRatio";
+  | "astToLineRatio"
+  | "ptsShareOfPRA"
+  | "rebShareOfPRA"
+  | "astShareOfPRA"
+  | "maxLegShareOfCombo"
+  | "comboEntropy"
+  | "comboBalanceScore"
+  | "ptsLedPRAFlag"
+  | "highLinePRAFlag"
+  | "veryHighLinePRAFlag"
+  | "lateSeasonFlag"
+  | "lateSeasonHighLinePRAFlag"
+  | "guardWingArchetypeFlag"
+  | "ptsLedPRAxGuardWing"
+  | "highLinePRAxGuardWing"
+  | "lateSeasonxGuardWing"
+  | "closeGamexGuardWing"
+  | "ptsLedPRAxCloseGame"
+  | "ptsLedPRAxLateSeason"
+  | "ptsLedPRAxHighLine";
 
 type LeafNode = {
   kind: "leaf";
@@ -791,6 +973,48 @@ function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
     case "l5MinutesAvg":
       if (creatorFamilyMomentumBlocked) return null;
       return row.l5MinutesAvg ?? null;
+    case "emaCurrentLineDelta":
+      return row.emaCurrentLineDelta ?? null;
+    case "emaCurrentLineOverRate":
+      return row.emaCurrentLineOverRate ?? null;
+    case "emaMinutesAvg":
+      return row.emaMinutesAvg ?? null;
+    case "l15ValueMean":
+      return row.l15ValueMean;
+    case "l15ValueMedian":
+      return row.l15ValueMedian;
+    case "l15ValueStdDev":
+      return row.l15ValueStdDev;
+    case "l15ValueSkew":
+      return row.l15ValueSkew;
+    case "projectionMedianDelta":
+      return row.projectionMedianDelta;
+    case "medianLineGap":
+      return row.medianLineGap;
+    case "competitivePaceFactor":
+      return row.competitivePaceFactor;
+    case "blowoutRisk":
+      return row.blowoutRisk;
+    case "minutesShiftDelta":
+      return row.minutesShiftDelta;
+    case "minutesShiftAbsDelta":
+      return row.minutesShiftAbsDelta;
+    case "seasonMinutesAvg":
+      return row.seasonMinutesAvg;
+    case "minutesLiftPct":
+      return row.minutesLiftPct;
+    case "activeCorePts":
+      return row.activeCorePts;
+    case "activeCoreAst":
+      return row.activeCoreAst;
+    case "missingCorePts":
+      return row.missingCorePts;
+    case "missingCoreAst":
+      return row.missingCoreAst;
+    case "missingCoreShare":
+      return row.missingCoreShare;
+    case "stepUpRoleFlag":
+      return row.stepUpRoleFlag;
     case "starterRateLast10":
       return row.starterRateLast10;
     case "priceLean":
@@ -859,6 +1083,44 @@ function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
       return row.assistRate;
     case "astToLineRatio":
       return row.astToLineRatio;
+    case "ptsShareOfPRA":
+      return row.ptsShareOfPRA;
+    case "rebShareOfPRA":
+      return row.rebShareOfPRA;
+    case "astShareOfPRA":
+      return row.astShareOfPRA;
+    case "maxLegShareOfCombo":
+      return row.maxLegShareOfCombo;
+    case "comboEntropy":
+      return row.comboEntropy;
+    case "comboBalanceScore":
+      return row.comboBalanceScore;
+    case "ptsLedPRAFlag":
+      return row.ptsLedPRAFlag;
+    case "highLinePRAFlag":
+      return row.highLinePRAFlag;
+    case "veryHighLinePRAFlag":
+      return row.veryHighLinePRAFlag;
+    case "lateSeasonFlag":
+      return row.lateSeasonFlag;
+    case "lateSeasonHighLinePRAFlag":
+      return row.lateSeasonHighLinePRAFlag;
+    case "guardWingArchetypeFlag":
+      return row.guardWingArchetypeFlag;
+    case "ptsLedPRAxGuardWing":
+      return row.ptsLedPRAxGuardWing;
+    case "highLinePRAxGuardWing":
+      return row.highLinePRAxGuardWing;
+    case "lateSeasonxGuardWing":
+      return row.lateSeasonxGuardWing;
+    case "closeGamexGuardWing":
+      return row.closeGamexGuardWing;
+    case "ptsLedPRAxCloseGame":
+      return row.ptsLedPRAxCloseGame;
+    case "ptsLedPRAxLateSeason":
+      return row.ptsLedPRAxLateSeason;
+    case "ptsLedPRAxHighLine":
+      return row.ptsLedPRAxHighLine;
     default:
       return null;
   }
@@ -1735,10 +1997,38 @@ function trainTree(rows: EnrichedRow[], maxDepth: number, minLeaf: number, marke
   let bestAccuracy = baseLeaf.accuracy;
 
   const archetype = rows[0]?.archetype ?? "LOW_MINUTE_BENCH";
-  const featurePool = featuresForMarket(market, archetype);
+  let featurePool = featuresForMarket(market, archetype);
   const bucketKey = `${market}|${archetype}`;
   if (ENABLE_BENCH_BIG_ROLE_STABILITY && !featurePool.includes("benchBigRoleStability")) {
     featurePool.push("benchBigRoleStability");
+  }
+  // Targeted PRA combo features only for specific bad buckets that regressed
+  if (market === "PRA" && PRA_COMBO_STATE_BUCKETS.has(bucketKey)) {
+    PRA_COMBO_STATE_FEATURES.forEach((feature) => {
+      if (!featurePool.includes(feature)) featurePool.push(feature);
+    });
+  }
+  if (isRecencyPriorityBucket(market, archetype)) {
+    if (!featurePool.includes("emaCurrentLineDelta")) featurePool.push("emaCurrentLineDelta");
+    if (!featurePool.includes("emaCurrentLineOverRate")) featurePool.push("emaCurrentLineOverRate");
+    if (!featurePool.includes("emaMinutesAvg")) featurePool.push("emaMinutesAvg");
+    if (!featurePool.includes("minutesShiftDelta")) featurePool.push("minutesShiftDelta");
+    if (!featurePool.includes("minutesShiftAbsDelta")) featurePool.push("minutesShiftAbsDelta");
+  }
+  if (isUsageContextPriorityBucket(market, archetype)) {
+    if (!featurePool.includes("seasonMinutesAvg")) featurePool.push("seasonMinutesAvg");
+    if (!featurePool.includes("minutesLiftPct")) featurePool.push("minutesLiftPct");
+    if (!featurePool.includes("activeCorePts")) featurePool.push("activeCorePts");
+    if (!featurePool.includes("activeCoreAst")) featurePool.push("activeCoreAst");
+    if (!featurePool.includes("missingCorePts")) featurePool.push("missingCorePts");
+    if (!featurePool.includes("missingCoreAst")) featurePool.push("missingCoreAst");
+    if (!featurePool.includes("missingCoreShare")) featurePool.push("missingCoreShare");
+    if (!featurePool.includes("stepUpRoleFlag")) featurePool.push("stepUpRoleFlag");
+  }
+  if (isShapePriorityBucket(market, archetype)) {
+    SHAPE_PRIORITY_FEATURES.forEach((feature) => {
+      if (!featurePool.includes(feature)) featurePool.push(feature);
+    });
   }
   if (ENABLE_CURRENT_LINE_MOMENTUM) {
     if (!featurePool.includes("l5CurrentLineDeltaAvg")) featurePool.push("l5CurrentLineDeltaAvg");
@@ -1758,6 +2048,12 @@ function trainTree(rows: EnrichedRow[], maxDepth: number, minLeaf: number, marke
     if (!featurePool.includes("l5MarketDeltaAvg")) featurePool.push("l5MarketDeltaAvg");
     if (!featurePool.includes("l5OverRate")) featurePool.push("l5OverRate");
     if (!featurePool.includes("l5MinutesAvg")) featurePool.push("l5MinutesAvg");
+  }
+  if (isMedianAwareBucket(market, archetype)) {
+    featurePool = featurePool.filter((feature) => !MEDIAN_AWARE_BLOCKED_FEATURES.has(feature));
+    SHAPE_PRIORITY_FEATURES.forEach((feature) => {
+      if (!featurePool.includes(feature)) featurePool.push(feature);
+    });
   }
 
   for (const feature of featurePool) {
@@ -1952,66 +2248,73 @@ function splitTemporalHoldout(
 
 function buildCandidateVariants(rows: EnrichedRow[], market: Market, maxDepth: number): ModelVariant[] {
   const archetype = rows[0]?.archetype;
+  const medianAwareBucket = archetype != null && isMedianAwareBucket(market, archetype);
   const bigManSpecialistBucket =
     archetype != null &&
     isBigManSpecialistBucket(archetype, market);
   const wingSpecialistBucket =
     archetype != null &&
     isWingSpecialistBucket(archetype, market);
-  const candidates: ModelVariant[] = [
-    { kind: "projection" },
-    { kind: "finalOverride" },
-    { kind: "marketFavored" },
-    { kind: "constant", side: "OVER" },
-    { kind: "constant", side: "UNDER" },
-  ];
+  const candidates: ModelVariant[] = medianAwareBucket
+    ? [{ kind: "marketFavored" }, { kind: "constant", side: "OVER" }, { kind: "constant", side: "UNDER" }]
+    : [
+        { kind: "projection" },
+        { kind: "finalOverride" },
+        { kind: "marketFavored" },
+        { kind: "constant", side: "OVER" },
+        { kind: "constant", side: "UNDER" },
+      ];
 
-  const thresholds = market === "THREES" ? [0.15, 0.25, 0.35, 0.5, 0.75, 1] : [0.15, 0.25, 0.35, 0.5, 0.75, 1, 1.25, 1.5, 2];
-  thresholds.forEach((threshold) => {
-    candidates.push({ kind: "gapThenProjection", threshold });
-    candidates.push({ kind: "gapThenMarket", threshold });
-  });
-  if (market === "PA" && rows[0]?.archetype === "BENCH_VOLUME_SCORER") {
-    [1.5, 1.75, 2, 2.25, 2.5, 3].forEach((threshold) => {
-      candidates.push({ kind: "overGapThenMarket", threshold });
+  if (!medianAwareBucket) {
+    const thresholds = market === "THREES" ? [0.15, 0.25, 0.35, 0.5, 0.75, 1] : [0.15, 0.25, 0.35, 0.5, 0.75, 1, 1.25, 1.5, 2];
+    thresholds.forEach((threshold) => {
+      candidates.push({ kind: "gapThenProjection", threshold });
+      candidates.push({ kind: "gapThenMarket", threshold });
+    });
+    if (market === "PA" && rows[0]?.archetype === "BENCH_VOLUME_SCORER") {
+      [1.5, 1.75, 2, 2.25, 2.5, 3].forEach((threshold) => {
+        candidates.push({ kind: "overGapThenMarket", threshold });
+      });
+    }
+    [14, 16, 18, 20, 22, 24].forEach((threshold) => {
+      candidates.push({ kind: "lowMinutesThenFinal", threshold });
+      candidates.push({ kind: "lowMinutesDisagreementThenFinal", threshold });
+    });
+    if (market === "PRA" && rows[0]?.archetype === "BENCH_STRETCH_BIG") {
+      [18, 20, 22, 24, 26].forEach((threshold) => {
+        candidates.push({ kind: "lowMinutesThenFinalElseConstant", threshold, side: "OVER" });
+      });
+      [0.5, 1, 1.5, 2, 2.5, 3].forEach((threshold) => {
+        candidates.push({ kind: "underGapThenFinalElseConstant", threshold, side: "OVER" });
+      });
+    }
+    const nearLineThresholds =
+      market === "THREES" ? [0.15, 0.25, 0.35, 0.5] : market === "PRA" ? [0.5, 1, 1.5, 2] : [0.25, 0.5, 0.75, 1, 1.25];
+    nearLineThresholds.forEach((threshold) => {
+      candidates.push({ kind: "nearLineThenMarket", threshold });
     });
   }
-  [14, 16, 18, 20, 22, 24].forEach((threshold) => {
-    candidates.push({ kind: "lowMinutesThenFinal", threshold });
-    candidates.push({ kind: "lowMinutesDisagreementThenFinal", threshold });
-  });
-  if (market === "PRA" && rows[0]?.archetype === "BENCH_STRETCH_BIG") {
-    [18, 20, 22, 24, 26].forEach((threshold) => {
-      candidates.push({ kind: "lowMinutesThenFinalElseConstant", threshold, side: "OVER" });
-    });
-    [0.5, 1, 1.5, 2, 2.5, 3].forEach((threshold) => {
-      candidates.push({ kind: "underGapThenFinalElseConstant", threshold, side: "OVER" });
-    });
-  }
-  const nearLineThresholds =
-    market === "THREES" ? [0.15, 0.25, 0.35, 0.5] : market === "PRA" ? [0.5, 1, 1.5, 2] : [0.25, 0.5, 0.75, 1, 1.25];
-  nearLineThresholds.forEach((threshold) => {
-    candidates.push({ kind: "nearLineThenMarket", threshold });
-  });
   [0.02, 0.04, 0.06, 0.08, 0.12].forEach((threshold) => {
     candidates.push({ kind: "strongPriceThenMarket", threshold });
   });
-  [0, 0.5, 1].forEach((threshold) => {
-    candidates.push({ kind: "agreementThenProjection", threshold });
-  });
-  [-8.5, -6.5, -5.5].forEach((spreadThreshold) => {
-    [0.5, 1, 1.5].forEach((gapThreshold) => {
-      candidates.push({ kind: "favoriteOverSuppress", spreadThreshold, gapThreshold });
+  if (!medianAwareBucket) {
+    [0, 0.5, 1].forEach((threshold) => {
+      candidates.push({ kind: "agreementThenProjection", threshold });
     });
-  });
-  if (market === "PA" && rows[0]?.archetype === "CENTER") {
     [-8.5, -6.5, -5.5].forEach((spreadThreshold) => {
       [0.5, 1, 1.5].forEach((gapThreshold) => {
-        [27, 28, 29, 30].forEach((minExpectedMinutes) => {
-          candidates.push({ kind: "favoriteOverSuppressPositiveGap", spreadThreshold, gapThreshold, minExpectedMinutes });
-        });
+        candidates.push({ kind: "favoriteOverSuppress", spreadThreshold, gapThreshold });
       });
     });
+    if (market === "PA" && rows[0]?.archetype === "CENTER") {
+      [-8.5, -6.5, -5.5].forEach((spreadThreshold) => {
+        [0.5, 1, 1.5].forEach((gapThreshold) => {
+          [27, 28, 29, 30].forEach((minExpectedMinutes) => {
+            candidates.push({ kind: "favoriteOverSuppressPositiveGap", spreadThreshold, gapThreshold, minExpectedMinutes });
+          });
+        });
+      });
+    }
   }
   [0.45, 0.55, 0.65].forEach((threshold) => {
     candidates.push({ kind: "lowQualityThenMarket", threshold });
@@ -2572,6 +2875,16 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
     const summaryRebounds = summary?.rebProjectionAvg ?? 0;
     const summaryAssists = summary?.astProjectionAvg ?? 0;
     const summaryThrees = summary?.threesProjectionAvg ?? 0;
+    const praComboState = buildPRAComboState({
+      market: row.market,
+      gameDateEt: row.gameDateEt,
+      line: row.line,
+      openingTeamSpread: row.openingTeamSpread,
+      archetype,
+      pointsProjection: row.pointsProjection ?? (row.market === "PTS" ? row.projectedValue : null),
+      reboundsProjection: row.reboundsProjection ?? (row.market === "REB" ? row.projectedValue : null),
+      assistProjection: row.assistProjection ?? (row.market === "AST" ? row.projectedValue : null),
+    });
     const pointForwardFlag = archetype === "POINT_FORWARD" ? 1 : 0;
     const heliocentricGuardFlag = archetype === "HELIOCENTRIC_GUARD" ? 1 : 0;
     const stretchRimProtectorCenterFlag = archetype === "STRETCH_RIM_PROTECTOR_CENTER" ? 1 : 0;
@@ -2588,6 +2901,43 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
       row.completenessScore == null ? 0 : Math.max(0, Math.min(row.completenessScore / 100, 1));
     const timingNormalized =
       row.lineupTimingConfidence == null ? 0 : Math.max(0, Math.min(row.lineupTimingConfidence, 1));
+    const emaMinutesAvg = row.emaMinutesAvg ?? null;
+    const minutesShiftDelta =
+      row.expectedMinutes == null || emaMinutesAvg == null ? null : round(row.expectedMinutes - emaMinutesAvg, 4);
+    const openingSpreadAbs = row.openingTeamSpread == null ? null : round(Math.abs(row.openingTeamSpread), 3);
+    const l15ValueMedian = row.l15ValueMedian ?? null;
+    const minutesLiftPct =
+      row.minutesLiftPct != null
+        ? round(row.minutesLiftPct, 4)
+        : row.expectedMinutes == null || row.seasonMinutesAvg == null || row.seasonMinutesAvg <= 0
+          ? null
+          : round(row.expectedMinutes / row.seasonMinutesAvg - 1, 4);
+    const stepUpRoleFlag =
+      row.stepUpRoleFlag != null
+        ? row.stepUpRoleFlag
+        : row.missingCoreShare != null && minutesLiftPct != null && row.missingCoreShare > 0.2 && minutesLiftPct >= 0.15
+          ? 1
+          : 0;
+    const minutesShiftAbsDelta = minutesShiftDelta == null ? null : round(Math.abs(minutesShiftDelta), 4);
+    const projectionMedianDelta =
+      l15ValueMedian == null ? null : round(row.projectedValue - l15ValueMedian, 4);
+    const medianLineGap = l15ValueMedian == null ? null : round(l15ValueMedian - row.line, 4);
+    const competitivePaceFactor =
+      row.openingTotal == null ? null : round(row.openingTotal / Math.max(openingSpreadAbs ?? 0, 1), 4);
+    const blowoutRisk =
+      row.openingTotal == null || openingSpreadAbs == null ? null : round(openingSpreadAbs / Math.max(row.openingTotal, 1), 4);
+    const shapeContextEnabled =
+      SHAPE_SPECIALIZATION_MODE === "off"
+        ? false
+        : shouldExposeShapeContext({
+            dateEt: row.gameDateEt,
+            stepUpRoleFlag,
+            expectedMinutes: row.expectedMinutes,
+            emaMinutesAvg,
+            minutesShiftAbsDelta,
+            missingCoreShare: row.missingCoreShare ?? null,
+            minutesLiftPct,
+          });
     const contextQuality = round(
       Math.max(
         0,
@@ -2628,7 +2978,25 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
       roleStability,
       projectionMarketAgreement:
         row.favoredSide === "NEUTRAL" ? 0 : row.projectionSide === row.favoredSide ? 1 : -1,
-      openingSpreadAbs: row.openingTeamSpread == null ? null : round(Math.abs(row.openingTeamSpread), 3),
+      minutesShiftDelta,
+      minutesShiftAbsDelta,
+      l15ValueMean: gateShapeNumber(row.l15ValueMean ?? null, shapeContextEnabled),
+      l15ValueMedian: gateShapeNumber(l15ValueMedian, shapeContextEnabled),
+      l15ValueStdDev: gateShapeNumber(row.l15ValueStdDev ?? null, shapeContextEnabled),
+      l15ValueSkew: gateShapeNumber(row.l15ValueSkew ?? null, shapeContextEnabled),
+      projectionMedianDelta: gateShapeNumber(projectionMedianDelta, shapeContextEnabled),
+      medianLineGap: gateShapeNumber(medianLineGap, shapeContextEnabled),
+      competitivePaceFactor: gateShapeNumber(competitivePaceFactor, shapeContextEnabled),
+      blowoutRisk: gateShapeNumber(blowoutRisk, shapeContextEnabled),
+      seasonMinutesAvg: row.seasonMinutesAvg ?? null,
+      minutesLiftPct,
+      activeCorePts: row.activeCorePts ?? null,
+      activeCoreAst: row.activeCoreAst ?? null,
+      missingCorePts: row.missingCorePts ?? null,
+      missingCoreAst: row.missingCoreAst ?? null,
+      missingCoreShare: row.missingCoreShare ?? null,
+      stepUpRoleFlag,
+      openingSpreadAbs,
       favoriteFlag:
         row.openingTeamSpread == null ? null : row.openingTeamSpread < 0 ? 1 : row.openingTeamSpread > 0 ? -1 : 0,
       bigFavoriteFlag: row.openingTeamSpread != null && row.openingTeamSpread <= -6.5 ? 1 : 0,
@@ -2658,6 +3026,25 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
         row.market === "AST" && row.line > 0
           ? round(row.projectedValue / row.line, 4)
           : null,
+      ptsShareOfPRA: praComboState.ptsShareOfPRA,
+      rebShareOfPRA: praComboState.rebShareOfPRA,
+      astShareOfPRA: praComboState.astShareOfPRA,
+      maxLegShareOfCombo: praComboState.maxLegShareOfCombo,
+      comboEntropy: praComboState.comboEntropy,
+      comboBalanceScore: praComboState.comboBalanceScore,
+      ptsLedPRAFlag: praComboState.ptsLedPRAFlag,
+      highLinePRAFlag: praComboState.highLinePRAFlag,
+      veryHighLinePRAFlag: praComboState.veryHighLinePRAFlag,
+      lateSeasonFlag: praComboState.lateSeasonFlag,
+      lateSeasonHighLinePRAFlag: praComboState.lateSeasonHighLinePRAFlag,
+      guardWingArchetypeFlag: praComboState.guardWingArchetypeFlag,
+      ptsLedPRAxGuardWing: praComboState.ptsLedPRAxGuardWing,
+      highLinePRAxGuardWing: praComboState.highLinePRAxGuardWing,
+      lateSeasonxGuardWing: praComboState.lateSeasonxGuardWing,
+      closeGamexGuardWing: praComboState.closeGamexGuardWing,
+      ptsLedPRAxCloseGame: praComboState.ptsLedPRAxCloseGame,
+      ptsLedPRAxLateSeason: praComboState.ptsLedPRAxLateSeason,
+      ptsLedPRAxHighLine: praComboState.ptsLedPRAxHighLine,
     };
   });
 }
@@ -2852,3 +3239,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

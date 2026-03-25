@@ -6,6 +6,7 @@ export const maxDuration = 300;
 
 type RefreshRequestBody = {
   mode?: "DELTA" | "FULL" | "FAST" | "delta" | "full" | "fast";
+  source?: "manual" | "visit" | "cron";
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -13,7 +14,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = ((await request.json().catch(() => ({}))) as RefreshRequestBody) ?? {};
     const normalizedMode = body.mode?.toUpperCase();
     const mode = normalizedMode === "FULL" ? "FULL" : normalizedMode === "FAST" ? "FAST" : "DELTA";
-    const result = await runRefresh(mode);
+    const result = await runRefresh(mode, { source: body.source ?? "manual" });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Refresh failed";

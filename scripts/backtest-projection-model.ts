@@ -198,6 +198,14 @@ type PlayerMarketTrainingRow = {
   finalCorrect: boolean;
   priceLean: number | null;
   favoredSide: SnapshotModelSide;
+  seasonMinutesAvg: number | null;
+  minutesLiftPct: number | null;
+  activeCorePts: number | null;
+  activeCoreAst: number | null;
+  missingCorePts: number | null;
+  missingCoreAst: number | null;
+  missingCoreShare: number | null;
+  stepUpRoleFlag: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
@@ -2897,6 +2905,15 @@ function averageMetricRecordFromProfiles(profiles: BacktestPlayerProfile[]): Sna
   return result;
 }
 
+function sumProjectedRotationPoints(profiles: BacktestPlayerProfile[], take = 8): number | null {
+  const values = profiles
+    .slice(0, take)
+    .map((profile) => profile.last10Average.PTS)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  if (values.length === 0) return null;
+  return round(values.reduce((sum, value) => sum + value, 0), 2);
+}
+
 function buildBacktestTeamProfiles(
   playerHistory: Map<string, HistoryLog[]>,
   playerNameById: Map<string, string>,
@@ -2981,6 +2998,8 @@ function buildBacktestTeammateSynergyInput(input: {
   return {
     activeCoreAverage: averageMetricRecordFromProfiles(activeProfiles),
     missingCoreAverage: averageMetricRecordFromProfiles(missingProfiles),
+    activeCoreCount: activeProfiles.length,
+    missingCoreCount: missingProfiles.length,
   };
 }
 
@@ -3395,6 +3414,36 @@ async function main(): Promise<void> {
         const expectedMinutesForRow = minutesLast10Avg ?? minutesLast3Avg ?? minutesSeasonAvg ?? null;
         const starterRateLast10ForRow =
           lineupStarterSignal.starterRateLast10 == null ? null : round(lineupStarterSignal.starterRateLast10, 3);
+        const activeCorePts =
+          teammateSynergy == null
+            ? null
+            : round((teammateSynergy.activeCoreAverage.PTS ?? 0) * teammateSynergy.activeCoreCount, 2);
+        const activeCoreAst =
+          teammateSynergy == null
+            ? null
+            : round((teammateSynergy.activeCoreAverage.AST ?? 0) * teammateSynergy.activeCoreCount, 2);
+        const missingCorePts =
+          teammateSynergy == null
+            ? null
+            : round((teammateSynergy.missingCoreAverage.PTS ?? 0) * teammateSynergy.missingCoreCount, 2);
+        const missingCoreAst =
+          teammateSynergy == null
+            ? null
+            : round((teammateSynergy.missingCoreAverage.AST ?? 0) * teammateSynergy.missingCoreCount, 2);
+        const teamRotationProjectedPts =
+          log.teamId == null || !teamProfilesByTeamId
+            ? null
+            : sumProjectedRotationPoints(teamProfilesByTeamId.get(log.teamId) ?? []);
+        const missingCoreShare =
+          missingCorePts == null || teamRotationProjectedPts == null || teamRotationProjectedPts <= 0
+            ? null
+            : round(Math.max(0, Math.min(1, missingCorePts / teamRotationProjectedPts)), 4);
+        const minutesLiftPct =
+          expectedMinutesForRow == null || minutesSeasonAvg == null || minutesSeasonAvg <= 0
+            ? null
+            : round(expectedMinutesForRow / minutesSeasonAvg - 1, 4);
+        const stepUpRoleFlag =
+          missingCoreShare != null && minutesLiftPct != null && missingCoreShare > 0.2 && minutesLiftPct >= 0.15 ? 1 : 0;
         const resolveSideOverrideForMarket = (
           market: SnapshotMarket,
           projectedValue: number,
@@ -3509,6 +3558,14 @@ async function main(): Promise<void> {
             finalCorrect: finalSide === actualSide,
             priceLean: signal.priceLean,
             favoredSide: signal.favoredSide,
+            seasonMinutesAvg: minutesSeasonAvg == null ? null : round(minutesSeasonAvg, 3),
+            minutesLiftPct,
+            activeCorePts,
+            activeCoreAst,
+            missingCorePts,
+            missingCoreAst,
+            missingCoreShare,
+            stepUpRoleFlag,
             expectedMinutes: expectedMinutesForRow == null ? null : round(expectedMinutesForRow, 3),
             minutesVolatility: minutesVolatility == null ? null : round(minutesVolatility, 3),
             starterRateLast10: starterRateLast10ForRow,

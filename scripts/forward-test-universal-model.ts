@@ -53,6 +53,11 @@ type Candidate = {
   eval: EvalSummary;
 };
 
+type EvalArtifacts = {
+  calibrationFile: string | null;
+  projectionDistributionFile: string | null;
+};
+
 type ModelSelectionStrategy = "in_sample" | "temporal_holdout";
 
 type Args = {
@@ -71,6 +76,7 @@ type Args = {
   keepTemp: boolean;
   fixedModelFile: string | null;
   fixedCalibrationFile: string | null;
+  fixedProjectionDistributionFile: string | null;
 };
 
 const require = createRequire(import.meta.url);
@@ -100,6 +106,7 @@ function parseArgs(): Args {
   let keepTemp = false;
   let fixedModelFile: string | null = null;
   let fixedCalibrationFile: string | null = null;
+  let fixedProjectionDistributionFile: string | null = null;
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -240,6 +247,15 @@ function parseArgs(): Args {
     }
     if (token.startsWith("--fixed-calibration-file=")) {
       fixedCalibrationFile = token.slice("--fixed-calibration-file=".length);
+      continue;
+    }
+    if (token === "--fixed-projection-distribution-file" && next) {
+      fixedProjectionDistributionFile = next;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--fixed-projection-distribution-file=")) {
+      fixedProjectionDistributionFile = token.slice("--fixed-projection-distribution-file=".length);
     }
   }
 
@@ -259,6 +275,7 @@ function parseArgs(): Args {
     keepTemp,
     fixedModelFile,
     fixedCalibrationFile,
+    fixedProjectionDistributionFile,
   };
 }
 
@@ -338,28 +355,69 @@ async function evaluateModel(
   rowsFile: string,
   modelFile: string,
   outFile: string,
-  calibrationFile: string | null = null,
+  artifacts: EvalArtifacts,
 ): Promise<EvalSummary> {
   if (!fs.existsSync(outFile)) {
     const evalArgs = ["--input", rowsFile, "--out", outFile];
-    if (!calibrationFile) {
+    if (!artifacts.calibrationFile) {
       evalArgs.splice(2, 0, "--disable-live-calibration");
+    }
+    if (!artifacts.projectionDistributionFile) {
+      evalArgs.splice(2, 0, "--disable-live-projection-distribution");
     }
     await runTsxScript(
       "scripts/evaluate-universal-model-qualification.ts",
       evalArgs,
-      calibrationFile
-        ? {
-            SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
-            SNAPSHOT_UNIVERSAL_CALIBRATION_FILE: calibrationFile,
-          }
-        : {
-            SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
-            SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION: "1",
-          },
+      {
+        SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
+        ...(artifacts.calibrationFile
+          ? { SNAPSHOT_UNIVERSAL_CALIBRATION_FILE: artifacts.calibrationFile }
+          : { SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION: "1" }),
+        ...(artifacts.projectionDistributionFile
+          ? { SNAPSHOT_UNIVERSAL_PROJECTION_DISTRIBUTION_FILE: artifacts.projectionDistributionFile }
+          : { SNAPSHOT_UNIVERSAL_DISABLE_PROJECTION_DISTRIBUTION: "1" }),
+      },
     );
   }
   return readJsonFile<EvalSummary>(outFile);
+}
+
+async function buildCalibration(
+  rowsFile: string,
+  modelFile: string,
+  outFile: string,
+): Promise<string> {
+  if (!fs.existsSync(outFile)) {
+    await runTsxScript("scripts/build-universal-residual-calibration.ts", [
+      "--input",
+      rowsFile,
+      "--model-file",
+      modelFile,
+      "--out",
+      outFile,
+      "--adjustment-mode",
+      "penalties_only",
+    ]);
+  }
+  return outFile;
+}
+
+async function buildProjectionDistribution(
+  rowsFile: string,
+  modelFile: string,
+  outFile: string,
+): Promise<string> {
+  if (!fs.existsSync(outFile)) {
+    await runTsxScript("scripts/build-universal-projection-distribution.ts", [
+      "--input",
+      rowsFile,
+      "--model-file",
+      modelFile,
+      "--out",
+      outFile,
+    ]);
+  }
+  return outFile;
 }
 
 async function main(): Promise<void> {
@@ -378,8 +436,10 @@ async function main(): Promise<void> {
     );
   }
 
-    const fixedModelFile = args.fixedModelFile == null ? null : path.resolve(args.fixedModelFile);
-    const fixedCalibrationFile = args.fixedCalibrationFile == null ? null : path.resolve(args.fixedCalibrationFile);
+  const fixedModelFile = args.fixedModelFile == null ? null : path.resolve(args.fixedModelFile);
+  const fixedCalibrationFile = args.fixedCalibrationFile == null ? null : path.resolve(args.fixedCalibrationFile);
+  const fixedProjectionDistributionFile =
+    args.fixedProjectionDistributionFile == null ? null : path.resolve(args.fixedProjectionDistributionFile);
 
     const baselineLabel =
       `baseline-${args.baselineSelectionStrategy}-d${args.baselineMaxDepth}` +
@@ -393,7 +453,11 @@ async function main(): Promise<void> {
         "exports",
         `tmp-universal-forward-${path.basename(args.out, path.extname(args.out)).replace(/[^a-z0-9._-]+/gi, "-")}`,
       )
-    : path.join(process.cwd(), "exports", `tmp-universal-forward-${Date.now()}`);
+    : path.join(
+        process.cwd(),
+        "exports",
+        `tmp-universal-forward-${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`,
+      );
   await mkdir(tempDir, { recursive: true });
 
   try {
@@ -409,6 +473,31 @@ async function main(): Promise<void> {
     const baselineModelFile = fixedModelFile ?? path.join(tempDir, `${baselineLabel}.json`);
     const candidateModelFile = fixedModelFile ?? path.join(tempDir, `${candidateLabel}.json`);
     const hybridModelFile = path.join(tempDir, `hybrid-${baselineLabel}-vs-${candidateLabel}.json`);
+    const baselineArtifacts: EvalArtifacts = fixedModelFile
+      ? {
+          calibrationFile: fixedCalibrationFile,
+          projectionDistributionFile: fixedProjectionDistributionFile,
+        }
+      : {
+          calibrationFile: path.join(tempDir, `${baselineLabel}-calibration.json`),
+          projectionDistributionFile: path.join(tempDir, `${baselineLabel}-projection-distribution.json`),
+        };
+    const candidateArtifacts: EvalArtifacts = fixedModelFile
+      ? {
+          calibrationFile: fixedCalibrationFile,
+          projectionDistributionFile: fixedProjectionDistributionFile,
+        }
+      : {
+          calibrationFile: path.join(tempDir, `${candidateLabel}-calibration.json`),
+          projectionDistributionFile: path.join(tempDir, `${candidateLabel}-projection-distribution.json`),
+        };
+    const hybridArtifacts: EvalArtifacts = {
+      calibrationFile: path.join(tempDir, `hybrid-${baselineLabel}-vs-${candidateLabel}-calibration.json`),
+      projectionDistributionFile: path.join(
+        tempDir,
+        `hybrid-${baselineLabel}-vs-${candidateLabel}-projection-distribution.json`,
+      ),
+    };
 
     if (!fixedModelFile && !fs.existsSync(baselineModelFile)) {
       await runTsxScript("scripts/train-universal-archetype-side-models.ts", [
@@ -452,6 +541,28 @@ async function main(): Promise<void> {
         hybridModelFile,
       ]);
     }
+    if (!fixedModelFile) {
+      await buildCalibration(trainFile, baselineModelFile, baselineArtifacts.calibrationFile!);
+      await buildProjectionDistribution(
+        trainFile,
+        baselineModelFile,
+        baselineArtifacts.projectionDistributionFile!,
+      );
+      await buildCalibration(trainFile, candidateModelFile, candidateArtifacts.calibrationFile!);
+      await buildProjectionDistribution(
+        trainFile,
+        candidateModelFile,
+        candidateArtifacts.projectionDistributionFile!,
+      );
+    }
+    if (!fixedModelFile && !args.skipHybrid) {
+      await buildCalibration(trainFile, hybridModelFile, hybridArtifacts.calibrationFile!);
+      await buildProjectionDistribution(
+        trainFile,
+        hybridModelFile,
+        hybridArtifacts.projectionDistributionFile!,
+      );
+    }
 
     const trainCandidates: Candidate[] = [
       {
@@ -461,7 +572,7 @@ async function main(): Promise<void> {
           trainFile,
           baselineModelFile,
           path.join(tempDir, `train-${fixedModelFile ? "fixed-live-model" : baselineLabel}-eval.json`),
-          fixedCalibrationFile,
+          baselineArtifacts,
         ),
       },
     ];
@@ -469,7 +580,12 @@ async function main(): Promise<void> {
       trainCandidates.push({
         label: candidateLabel,
         modelFile: candidateModelFile,
-        eval: await evaluateModel(trainFile, candidateModelFile, path.join(tempDir, `train-${candidateLabel}-eval.json`)),
+        eval: await evaluateModel(
+          trainFile,
+          candidateModelFile,
+          path.join(tempDir, `train-${candidateLabel}-eval.json`),
+          candidateArtifacts,
+        ),
       });
     }
     if (!fixedModelFile && !args.skipHybrid) {
@@ -480,6 +596,7 @@ async function main(): Promise<void> {
           trainFile,
           hybridModelFile,
           path.join(tempDir, `train-hybrid-${baselineLabel}-vs-${candidateLabel}-eval.json`),
+          hybridArtifacts,
         ),
       });
     }
@@ -493,7 +610,7 @@ async function main(): Promise<void> {
           holdoutFile,
           baselineModelFile,
           path.join(tempDir, `holdout-${fixedModelFile ? "fixed-live-model" : baselineLabel}-eval.json`),
-          fixedCalibrationFile,
+          baselineArtifacts,
         ),
       },
     ];
@@ -505,6 +622,7 @@ async function main(): Promise<void> {
           holdoutFile,
           candidateModelFile,
           path.join(tempDir, `holdout-${candidateLabel}-eval.json`),
+          candidateArtifacts,
         ),
       });
     }
@@ -516,6 +634,7 @@ async function main(): Promise<void> {
           holdoutFile,
           hybridModelFile,
           path.join(tempDir, `holdout-hybrid-${baselineLabel}-vs-${candidateLabel}-eval.json`),
+          hybridArtifacts,
         ),
       });
     }

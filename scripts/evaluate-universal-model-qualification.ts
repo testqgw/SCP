@@ -27,6 +27,10 @@ type TrainingRow = {
   market: Market;
   gameDateEt: string;
   projectedValue: number;
+  pointsProjection?: number | null;
+  reboundsProjection?: number | null;
+  assistProjection?: number | null;
+  threesProjection?: number | null;
   actualValue: number;
   line: number;
   overPrice: number | null;
@@ -36,6 +40,14 @@ type TrainingRow = {
   actualSide: Side;
   priceLean: number | null;
   favoredSide: "OVER" | "UNDER" | "NEUTRAL";
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
@@ -43,6 +55,13 @@ type TrainingRow = {
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -76,7 +95,51 @@ type PlayerSummary = {
 };
 
 type EvaluatedRow = {
+  playerId: string;
+  playerName: string;
+  gameDateEt: string;
   market: Market;
+  projectedValue: number;
+  pointsProjection: number | null;
+  reboundsProjection: number | null;
+  assistProjection: number | null;
+  threesProjection: number | null;
+  actualValue: number;
+  line: number;
+  overPrice: number | null;
+  underPrice: number | null;
+  priceLean: number | null;
+  favoredSide: "OVER" | "UNDER" | "NEUTRAL";
+  seasonMinutesAvg: number | null;
+  minutesLiftPct: number | null;
+  activeCorePts: number | null;
+  activeCoreAst: number | null;
+  missingCorePts: number | null;
+  missingCoreAst: number | null;
+  missingCoreShare: number | null;
+  stepUpRoleFlag: number | null;
+  expectedMinutes: number | null;
+  minutesVolatility: number | null;
+  starterRateLast10: number | null;
+  benchBigRoleStability: number | null;
+  l5CurrentLineDeltaAvg: number | null;
+  l5CurrentLineOverRate: number | null;
+  l5MinutesAvg: number | null;
+  emaCurrentLineDelta: number | null;
+  emaCurrentLineOverRate: number | null;
+  emaMinutesAvg: number | null;
+  l15ValueMean: number | null;
+  l15ValueMedian: number | null;
+  l15ValueStdDev: number | null;
+  l15ValueSkew: number | null;
+  actualMinutes: number;
+  lineGap: number;
+  absLineGap: number;
+  openingTeamSpread: number | null;
+  openingTotal: number | null;
+  lineupTimingConfidence: number | null;
+  completenessScore: number | null;
+  spreadResolved: boolean;
   actualSide: Side;
   finalSide: Side;
   rawDecision: RawLiveUniversalModelDecision;
@@ -104,6 +167,7 @@ type SweepResult = SummaryStats & LiveUniversalQualificationSettings;
 type Args = {
   input: string;
   out: string | null;
+  detailsOut: string | null;
   minActualMinutes: number;
   minBucketLateAccuracy: number;
   minBucketSamples: number;
@@ -129,6 +193,7 @@ function parseArgs(): Args {
   const raw = process.argv.slice(2);
   let input = resolveDefaultInputPath();
   let out: string | null = path.join("exports", "universal-model-qualification-eval.json");
+  let detailsOut: string | null = null;
   let minActualMinutes = 15;
   let minBucketLateAccuracy = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minBucketLateAccuracy;
   let minBucketSamples = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS.minBucketSamples;
@@ -164,6 +229,17 @@ function parseArgs(): Args {
     }
     if (token === "--no-out") {
       out = null;
+      continue;
+    }
+    if ((token === "--details-out" || token === "--row-details-out") && next) {
+      detailsOut = next;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--details-out=") || token.startsWith("--row-details-out=")) {
+      detailsOut = token.includes("--row-details-out=")
+        ? token.slice("--row-details-out=".length)
+        : token.slice("--details-out=".length);
       continue;
     }
     if (token === "--no-market-overrides") {
@@ -264,6 +340,7 @@ function parseArgs(): Args {
   return {
     input,
     out,
+    detailsOut,
     minActualMinutes,
     minBucketLateAccuracy,
     minBucketSamples,
@@ -376,6 +453,30 @@ function evaluateRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>
         l5CurrentLineDeltaAvg: row.l5CurrentLineDeltaAvg ?? null,
         l5CurrentLineOverRate: row.l5CurrentLineOverRate ?? null,
         l5MinutesAvg: row.l5MinutesAvg ?? null,
+        emaCurrentLineDelta: row.emaCurrentLineDelta ?? null,
+        emaCurrentLineOverRate: row.emaCurrentLineOverRate ?? null,
+        emaMinutesAvg: row.emaMinutesAvg ?? null,
+        l15ValueMean: row.l15ValueMean ?? null,
+        l15ValueMedian: row.l15ValueMedian ?? null,
+        l15ValueStdDev: row.l15ValueStdDev ?? null,
+        l15ValueSkew: row.l15ValueSkew ?? null,
+        projectionMedianDelta:
+          row.l15ValueMedian == null ? null : round(row.projectedValue - row.l15ValueMedian, 4),
+        medianLineGap: row.l15ValueMedian == null ? null : round(row.l15ValueMedian - row.line, 4),
+        competitivePaceFactor:
+          row.openingTotal == null ? null : round(row.openingTotal / Math.max(Math.abs(row.openingTeamSpread ?? 0), 1), 4),
+        blowoutRisk:
+          row.openingTotal == null || row.openingTeamSpread == null
+            ? null
+            : round(Math.abs(row.openingTeamSpread) / Math.max(row.openingTotal, 1), 4),
+        seasonMinutesAvg: row.seasonMinutesAvg ?? null,
+        minutesLiftPct: row.minutesLiftPct ?? null,
+        activeCorePts: row.activeCorePts ?? null,
+        activeCoreAst: row.activeCoreAst ?? null,
+        missingCorePts: row.missingCorePts ?? null,
+        missingCoreAst: row.missingCoreAst ?? null,
+        missingCoreShare: row.missingCoreShare ?? null,
+        stepUpRoleFlag: row.stepUpRoleFlag ?? null,
         expectedMinutes: row.expectedMinutes,
         minutesVolatility: row.minutesVolatility,
         benchBigRoleStability: row.benchBigRoleStability ?? null,
@@ -387,16 +488,60 @@ function evaluateRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>
         lineupTimingConfidence: row.lineupTimingConfidence,
         completenessScore: row.completenessScore,
         playerPosition: summary?.position ?? null,
-        pointsProjection: summary?.ptsProjectionAvg ?? null,
-        reboundsProjection: summary?.rebProjectionAvg ?? null,
-        assistProjection: summary?.astProjectionAvg ?? null,
-        threesProjection: summary?.threesProjectionAvg ?? null,
+        pointsProjection: row.pointsProjection ?? summary?.ptsProjectionAvg ?? null,
+        reboundsProjection: row.reboundsProjection ?? summary?.rebProjectionAvg ?? null,
+        assistProjection: row.assistProjection ?? summary?.astProjectionAvg ?? null,
+        threesProjection: row.threesProjection ?? summary?.threesProjectionAvg ?? null,
       }),
       ungatedSettings,
     );
 
     return {
+      playerId: row.playerId,
+      playerName: row.playerName,
+      gameDateEt: row.gameDateEt,
       market: row.market,
+      projectedValue: row.projectedValue,
+      pointsProjection: row.pointsProjection ?? null,
+      reboundsProjection: row.reboundsProjection ?? null,
+      assistProjection: row.assistProjection ?? null,
+      threesProjection: row.threesProjection ?? null,
+      actualValue: row.actualValue,
+      line: row.line,
+      overPrice: row.overPrice,
+      underPrice: row.underPrice,
+      priceLean: row.priceLean,
+      favoredSide: row.favoredSide,
+      seasonMinutesAvg: row.seasonMinutesAvg ?? null,
+      minutesLiftPct: row.minutesLiftPct ?? null,
+      activeCorePts: row.activeCorePts ?? null,
+      activeCoreAst: row.activeCoreAst ?? null,
+      missingCorePts: row.missingCorePts ?? null,
+      missingCoreAst: row.missingCoreAst ?? null,
+      missingCoreShare: row.missingCoreShare ?? null,
+      stepUpRoleFlag: row.stepUpRoleFlag ?? null,
+      expectedMinutes: row.expectedMinutes,
+      minutesVolatility: row.minutesVolatility,
+      starterRateLast10: row.starterRateLast10,
+      benchBigRoleStability: row.benchBigRoleStability ?? null,
+      l5CurrentLineDeltaAvg: row.l5CurrentLineDeltaAvg ?? null,
+      l5CurrentLineOverRate: row.l5CurrentLineOverRate ?? null,
+      l5MinutesAvg: row.l5MinutesAvg ?? null,
+      emaCurrentLineDelta: row.emaCurrentLineDelta ?? null,
+      emaCurrentLineOverRate: row.emaCurrentLineOverRate ?? null,
+      emaMinutesAvg: row.emaMinutesAvg ?? null,
+      l15ValueMean: row.l15ValueMean ?? null,
+      l15ValueMedian: row.l15ValueMedian ?? null,
+      l15ValueStdDev: row.l15ValueStdDev ?? null,
+      l15ValueSkew: row.l15ValueSkew ?? null,
+      actualMinutes: row.actualMinutes,
+      lineGap: row.lineGap,
+      absLineGap: row.absLineGap,
+      openingTeamSpread: row.openingTeamSpread,
+      openingTotal: row.openingTotal,
+      lineupTimingConfidence: row.lineupTimingConfidence,
+      completenessScore: row.completenessScore,
+      spreadResolved: row.spreadResolved,
       actualSide: row.actualSide,
       finalSide: row.finalSide,
       rawDecision,
@@ -550,6 +695,11 @@ async function main(): Promise<void> {
     const outPath = path.resolve(args.out);
     await mkdir(path.dirname(outPath), { recursive: true });
     await writeFile(outPath, `${JSON.stringify(output, null, 2)}\n`, "utf8");
+  }
+  if (args.detailsOut) {
+    const detailsOutPath = path.resolve(args.detailsOut);
+    await mkdir(path.dirname(detailsOutPath), { recursive: true });
+    await writeFile(detailsOutPath, `${JSON.stringify(evaluatedRows, null, 2)}\n`, "utf8");
   }
 
   console.log(JSON.stringify(output, null, 2));

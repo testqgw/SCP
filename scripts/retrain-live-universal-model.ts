@@ -33,6 +33,22 @@ type EvalSummary = {
   };
 };
 
+type WalkForwardSummary = {
+  bestCandidate?: {
+    label: string;
+    overall: EvalSummary["overall"];
+  };
+};
+
+type ForwardTestSummary = {
+  holdout?: {
+    promotedWinner?: {
+      label: string;
+      metrics: EvalSummary["overall"];
+    };
+  };
+};
+
 type BacktestRowsFile = {
   playerMarketRows?: Array<{
     playerId: string;
@@ -194,6 +210,11 @@ function runTsxScript(scriptPath: string, args: string[], envOverrides: Record<s
 
 async function readJsonFile<T>(filePath: string): Promise<T> {
   return JSON.parse(await readFile(filePath, "utf8")) as T;
+}
+
+async function readOptionalJsonFile<T>(filePath: string): Promise<T | null> {
+  if (!fs.existsSync(filePath)) return null;
+  return readJsonFile<T>(filePath);
 }
 
 async function writeNeutralCalibration(outPath: string, modelFile: string, inputFile: string): Promise<void> {
@@ -414,9 +435,7 @@ async function main(): Promise<void> {
     String(args.lateWindowRatio),
     "--out",
     directModelFile,
-  ], {
-    SNAPSHOT_ENABLE_CURRENT_LINE_MOMENTUM: "1",
-  });
+  ]);
   if (USE_HYBRID_CANDIDATES) {
     const previousModelCandidate = fs.existsSync(liveModelFile)
       ? liveModelFile
@@ -567,6 +586,16 @@ async function main(): Promise<void> {
   await copyFile(winner.projectionDistributionFile, liveProjectionDistributionFile);
   await copyFile(winner.evalFile, path.join(process.cwd(), "exports", "universal-model-qualification-eval.json"));
 
+  const walkForwardSummary = await readOptionalJsonFile<WalkForwardSummary>(
+    path.join(process.cwd(), "exports", "universal-model-walk-forward.json"),
+  );
+  const forwardTest14Summary = await readOptionalJsonFile<ForwardTestSummary>(
+    path.join(process.cwd(), "exports", "universal-model-forward-test-14d.json"),
+  );
+  const forwardTest30Summary = await readOptionalJsonFile<ForwardTestSummary>(
+    path.join(process.cwd(), "exports", "universal-model-forward-test-30d.json"),
+  );
+
   const promotionSummaryPath = path.join(process.cwd(), "exports", "universal-live-promotion.json");
   await writeFile(
     promotionSummaryPath,
@@ -579,6 +608,18 @@ async function main(): Promise<void> {
         lateWindowRatio: args.lateWindowRatio,
         rowsFile,
         lineFile,
+        audit: {
+          note:
+            "headlineMetrics are replay metrics from the promoted rebuild. Use walkForwardMetrics as the stricter forward-style audit when comparing expected live performance.",
+          walkForward: walkForwardSummary?.bestCandidate
+            ? {
+                label: walkForwardSummary.bestCandidate.label,
+                metrics: walkForwardSummary.bestCandidate.overall,
+              }
+            : null,
+          forwardTest14: forwardTest14Summary?.holdout?.promotedWinner ?? null,
+          forwardTest30: forwardTest30Summary?.holdout?.promotedWinner ?? null,
+        },
         winner: {
           label: winner.label,
           calibrated: winner.calibrated,

@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import fs from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { attachCurrentLineRecencyMetrics } from "../lib/snapshot/currentLineRecency";
+import { gateShapeNumber, shouldExposeShapeContext } from "../lib/snapshot/shapeRegime";
 import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
@@ -58,11 +60,34 @@ type TrainingRow = {
   projectionSide: Side;
   finalSide: Side;
   actualSide: Side;
+  projectionCorrect?: boolean;
+  finalCorrect?: boolean;
   priceLean: number | null;
   favoredSide: "OVER" | "UNDER" | "NEUTRAL";
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
+  benchBigRoleStability?: number | null;
+  l5MarketDeltaAvg?: number | null;
+  l5OverRate?: number | null;
+  l5MinutesAvg?: number | null;
+  l5CurrentLineDeltaAvg?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
   actualMinutes: number;
   lineGap: number;
   absLineGap: number;
@@ -106,6 +131,24 @@ type EnrichedRow = TrainingRow & {
   contextQuality: number | null;
   roleStability: number | null;
   projectionMarketAgreement: number | null;
+  minutesShiftDelta: number | null;
+  minutesShiftAbsDelta: number | null;
+  l15ValueMean: number | null;
+  l15ValueMedian: number | null;
+  l15ValueStdDev: number | null;
+  l15ValueSkew: number | null;
+  projectionMedianDelta: number | null;
+  medianLineGap: number | null;
+  competitivePaceFactor: number | null;
+  blowoutRisk: number | null;
+  seasonMinutesAvg: number | null;
+  minutesLiftPct: number | null;
+  activeCorePts: number | null;
+  activeCoreAst: number | null;
+  missingCorePts: number | null;
+  missingCoreAst: number | null;
+  missingCoreShare: number | null;
+  stepUpRoleFlag: number | null;
   openingSpreadAbs: number | null;
   favoriteFlag: number | null;
   bigFavoriteFlag: number | null;
@@ -123,8 +166,33 @@ type EnrichedRow = TrainingRow & {
 type FeatureName =
   | "lineGap"
   | "absLineGap"
+  | "l5CurrentLineDeltaAvg"
+  | "l5CurrentLineOverRate"
+  | "l5MinutesAvg"
+  | "emaCurrentLineDelta"
+  | "emaCurrentLineOverRate"
+  | "emaMinutesAvg"
+  | "l15ValueMean"
+  | "l15ValueMedian"
+  | "l15ValueStdDev"
+  | "l15ValueSkew"
+  | "projectionMedianDelta"
+  | "medianLineGap"
+  | "competitivePaceFactor"
+  | "blowoutRisk"
+  | "minutesShiftDelta"
+  | "minutesShiftAbsDelta"
+  | "seasonMinutesAvg"
+  | "minutesLiftPct"
+  | "activeCorePts"
+  | "activeCoreAst"
+  | "missingCorePts"
+  | "missingCoreAst"
+  | "missingCoreShare"
+  | "stepUpRoleFlag"
   | "expectedMinutes"
   | "minutesVolatility"
+  | "benchBigRoleStability"
   | "starterRateLast10"
   | "priceLean"
   | "priceAbsLean"
@@ -180,12 +248,18 @@ type ModelVariant =
   | { kind: "finalOverride" }
   | { kind: "marketFavored" }
   | { kind: "constant"; side: Side }
+  | { kind: "lowMinutesThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "underGapThenFinalElseConstant"; threshold: number; side: Side }
+  | { kind: "lowMinutesThenFinal"; threshold: number }
+  | { kind: "lowMinutesDisagreementThenFinal"; threshold: number }
   | { kind: "gapThenProjection"; threshold: number }
   | { kind: "gapThenMarket"; threshold: number }
+  | { kind: "overGapThenMarket"; threshold: number }
   | { kind: "strongPriceThenMarket"; threshold: number }
   | { kind: "nearLineThenMarket"; threshold: number }
   | { kind: "agreementThenProjection"; threshold: number }
   | { kind: "favoriteOverSuppress"; spreadThreshold: number; gapThreshold: number }
+  | { kind: "favoriteOverSuppressPositiveGap"; spreadThreshold: number; gapThreshold: number; minExpectedMinutes: number }
   | { kind: "lowQualityThenMarket"; threshold: number }
   | { kind: "lowVolatilityHelioOver"; volatilityThreshold: number; gapThreshold: number }
   | { kind: "tree"; tree: TreeNode; maxDepth: number; minLeaf: number };
@@ -248,6 +322,8 @@ type Args = {
 };
 
 const prisma = new PrismaClient();
+const ENABLE_MISSING_POSITION_STARTER_FALLBACK =
+  process.env.SNAPSHOT_DISABLE_MISSING_POSITION_STARTER_FALLBACK?.trim() !== "1";
 
 function resolveDefaultInputPath(): string {
   const preferred = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH);
@@ -350,7 +426,61 @@ function mean(values: Array<number | null | undefined>): number | null {
   return round(filtered.reduce((sum, value) => sum + value, 0) / filtered.length, 3);
 }
 
-function classifyBenchArchetype(summary: PlayerSummary): Archetype {
+function resolveBenchReboundingScorerArchetype(summary: PlayerSummary, market?: Market): Archetype {
+  if (
+    market === "PTS" &&
+    !summary.position &&
+    (summary.avgExpectedMinutes ?? 0) >= 20 &&
+    (summary.avgStarterRate ?? 0) <= 0.3 &&
+    (summary.ptsProjectionAvg ?? 0) >= 12 &&
+    (summary.rebProjectionAvg ?? 0) >= 5.2 &&
+    (summary.rebProjectionAvg ?? 0) <= 6.4 &&
+    (summary.astProjectionAvg ?? 0) < 3.2 &&
+    (summary.threesProjectionAvg ?? 0) <= 1.2
+  ) {
+    return "BENCH_VOLUME_SCORER";
+  }
+  return "BENCH_REBOUNDING_SCORER";
+}
+
+function shouldUsePositionlessStarterArchetype(summary: PlayerSummary): boolean {
+  if (!ENABLE_MISSING_POSITION_STARTER_FALLBACK) return false;
+  if (summary.position) return false;
+  const minutes = summary.avgExpectedMinutes ?? 0;
+  const starterRate = summary.avgStarterRate ?? 0;
+  const pts = summary.ptsProjectionAvg ?? 0;
+  const reb = summary.rebProjectionAvg ?? 0;
+  const ast = summary.astProjectionAvg ?? 0;
+  const threes = summary.threesProjectionAvg ?? 0;
+
+  if (minutes < 28) return false;
+  const frontcourtLike = reb >= 8 || (reb >= 7.25 && threes >= 1.25);
+  if (frontcourtLike) {
+    if (starterRate >= 0.35) return true;
+    return pts >= 14 || ast >= 2.5 || threes >= 0.8;
+  }
+  if (minutes < 31 || threes < 2 || pts < 16.5 || ast < 3.4 || ast > 5.5) return false;
+  if (starterRate >= 0.35) return true;
+  return reb >= 5 || ast >= 3.8;
+}
+
+function classifyPositionlessStarterArchetype(summary: PlayerSummary): Archetype {
+  const minutes = summary.avgExpectedMinutes ?? 0;
+  const pts = summary.ptsProjectionAvg ?? 0;
+  const reb = summary.rebProjectionAvg ?? 0;
+  const ast = summary.astProjectionAvg ?? 0;
+  const threes = summary.threesProjectionAvg ?? 0;
+
+  if (minutes >= 26 && reb >= 9 && (threes >= 1.5 || pts >= 20)) {
+    return "STRETCH_RIM_PROTECTOR_CENTER";
+  }
+  if (minutes >= 31 && threes >= 2 && pts >= 16.5 && ast >= 3.4 && ast <= 5.5 && (reb >= 5 || ast >= 3.8)) {
+    return "CONNECTOR_WING";
+  }
+  return "CENTER";
+}
+
+function classifyBenchArchetype(summary: PlayerSummary, market?: Market): Archetype {
   const position = (summary.position ?? "").toUpperCase();
   const pts = summary.ptsProjectionAvg ?? 0;
   const reb = summary.rebProjectionAvg ?? 0;
@@ -373,7 +503,7 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
     (pts >= 16 || threes >= 1.8)
   ) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -384,11 +514,16 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   }
   if (pts >= 15 || threes >= 1.8) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
     return "BENCH_VOLUME_SCORER";
+  }
+  if (!position && ast >= 3 && ast >= reb + 1 && pts <= 9 && reb <= 3.75) {
+    if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
+    if (ast >= 4.5) return "BENCH_PASS_FIRST_GUARD";
+    return "BENCH_TRADITIONAL_GUARD";
   }
   if (ast >= reb && ast >= 3.5) {
     if (threes >= 1.5) return "BENCH_SHOOTING_GUARD";
@@ -403,7 +538,7 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   }
   if (pts >= reb && pts >= ast) {
     if (ast >= 3.2) return "BENCH_CREATOR_SCORER";
-    if (reb >= 5.2) return "BENCH_REBOUNDING_SCORER";
+    if (reb >= 5.2) return resolveBenchReboundingScorerArchetype(summary, market);
     if (threes >= 1.9 || pts >= 15.5) return "BENCH_SPACER_SCORER";
     if (pts < 10 && threes < 1.0) return "BENCH_LOW_USAGE_WING";
     if (pts >= 10 && threes < 1.3) return "BENCH_MIDRANGE_SCORER";
@@ -412,7 +547,7 @@ function classifyBenchArchetype(summary: PlayerSummary): Archetype {
   return "LOW_MINUTE_BENCH";
 }
 
-function classifyArchetype(summary: PlayerSummary): Archetype {
+function classifyArchetype(summary: PlayerSummary, market?: Market): Archetype {
   const minutes = summary.avgExpectedMinutes ?? 0;
   const starterRate = summary.avgStarterRate ?? 0;
   const position = (summary.position ?? "").toUpperCase();
@@ -420,8 +555,14 @@ function classifyArchetype(summary: PlayerSummary): Archetype {
   const reb = summary.rebProjectionAvg ?? 0;
   const ast = summary.astProjectionAvg ?? 0;
   const threes = summary.threesProjectionAvg ?? 0;
+  const usePositionlessStarterArchetype = shouldUsePositionlessStarterArchetype(summary);
 
-  if (minutes < 24 || starterRate < 0.35) return classifyBenchArchetype(summary);
+  if (minutes < 24 || (starterRate < 0.35 && !usePositionlessStarterArchetype)) {
+    return classifyBenchArchetype(summary, market);
+  }
+  if (!position && usePositionlessStarterArchetype) {
+    return classifyPositionlessStarterArchetype(summary);
+  }
   if (position.includes("C") && minutes >= 26 && reb >= 9 && (threes >= 1.5 || pts >= 20)) {
     return "STRETCH_RIM_PROTECTOR_CENTER";
   }
@@ -518,6 +659,22 @@ function classifyArchetype(summary: PlayerSummary): Archetype {
     if (pts >= 19 || threes >= 2.4) return "SCORE_FIRST_LEAD_GUARD";
     return "LEAD_GUARD";
   }
+  if (
+    market === "PR" &&
+    !position &&
+    minutes >= 28 &&
+    starterRate >= 0.5 &&
+    pts >= 14 &&
+    pts <= 17.5 &&
+    reb >= 4.2 &&
+    reb < 5.6 &&
+    ast >= 2.6 &&
+    ast < 3.4 &&
+    threes >= 1.6 &&
+    threes <= 2.2
+  ) {
+    return "CONNECTOR_WING";
+  }
   if (ast >= 3.4 || reb >= 5.6) return "CONNECTOR_WING";
   if (pts >= 15 || threes >= 2) return "SPOTUP_WING";
   return "WING";
@@ -564,10 +721,60 @@ function getFeature(row: EnrichedRow, feature: FeatureName): number | null {
       return row.lineGap;
     case "absLineGap":
       return row.absLineGap;
+    case "l5CurrentLineDeltaAvg":
+      return row.l5CurrentLineDeltaAvg ?? null;
+    case "l5CurrentLineOverRate":
+      return row.l5CurrentLineOverRate ?? null;
+    case "l5MinutesAvg":
+      return row.l5MinutesAvg ?? null;
+    case "emaCurrentLineDelta":
+      return row.emaCurrentLineDelta ?? null;
+    case "emaCurrentLineOverRate":
+      return row.emaCurrentLineOverRate ?? null;
+    case "emaMinutesAvg":
+      return row.emaMinutesAvg ?? null;
+    case "l15ValueMean":
+      return row.l15ValueMean;
+    case "l15ValueMedian":
+      return row.l15ValueMedian;
+    case "l15ValueStdDev":
+      return row.l15ValueStdDev;
+    case "l15ValueSkew":
+      return row.l15ValueSkew;
+    case "projectionMedianDelta":
+      return row.projectionMedianDelta;
+    case "medianLineGap":
+      return row.medianLineGap;
+    case "competitivePaceFactor":
+      return row.competitivePaceFactor;
+    case "blowoutRisk":
+      return row.blowoutRisk;
+    case "minutesShiftDelta":
+      return row.minutesShiftDelta;
+    case "minutesShiftAbsDelta":
+      return row.minutesShiftAbsDelta;
+    case "seasonMinutesAvg":
+      return row.seasonMinutesAvg;
+    case "minutesLiftPct":
+      return row.minutesLiftPct;
+    case "activeCorePts":
+      return row.activeCorePts;
+    case "activeCoreAst":
+      return row.activeCoreAst;
+    case "missingCorePts":
+      return row.missingCorePts;
+    case "missingCoreAst":
+      return row.missingCoreAst;
+    case "missingCoreShare":
+      return row.missingCoreShare;
+    case "stepUpRoleFlag":
+      return row.stepUpRoleFlag;
     case "expectedMinutes":
       return row.expectedMinutes;
     case "minutesVolatility":
       return row.minutesVolatility;
+    case "benchBigRoleStability":
+      return row.benchBigRoleStability ?? null;
     case "starterRateLast10":
       return row.starterRateLast10;
     case "priceLean":
@@ -660,6 +867,16 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
       return row.favoredSide === "NEUTRAL" ? row.finalSide : row.favoredSide;
     case "constant":
       return model.side;
+    case "lowMinutesThenFinalElseConstant":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold ? row.finalSide : model.side;
+    case "underGapThenFinalElseConstant":
+      return row.lineGap <= -model.threshold ? row.finalSide : model.side;
+    case "lowMinutesThenFinal":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold ? row.finalSide : row.projectionSide;
+    case "lowMinutesDisagreementThenFinal":
+      return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold && row.finalSide !== row.projectionSide
+        ? row.finalSide
+        : row.projectionSide;
     case "gapThenProjection":
       return row.absLineGap >= model.threshold
         ? row.projectionSide
@@ -668,6 +885,12 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
           : row.favoredSide;
     case "gapThenMarket":
       return row.absLineGap >= model.threshold
+        ? row.favoredSide === "NEUTRAL"
+          ? row.finalSide
+          : row.favoredSide
+        : row.projectionSide;
+    case "overGapThenMarket":
+      return row.lineGap >= model.threshold
         ? row.favoredSide === "NEUTRAL"
           ? row.finalSide
           : row.favoredSide
@@ -692,6 +915,18 @@ function predictVariant(model: ModelVariant, row: EnrichedRow): Side {
         row.openingTeamSpread != null &&
         row.openingTeamSpread <= model.spreadThreshold &&
         row.absLineGap <= model.gapThreshold
+      ) {
+        return "UNDER";
+      }
+      return row.finalSide;
+    case "favoriteOverSuppressPositiveGap":
+      if (
+        row.finalSide === "OVER" &&
+        row.openingTeamSpread != null &&
+        row.openingTeamSpread <= model.spreadThreshold &&
+        row.absLineGap <= model.gapThreshold &&
+        row.lineGap >= 0 &&
+        (row.expectedMinutes ?? 0) >= model.minExpectedMinutes
       ) {
         return "UNDER";
       }
@@ -774,7 +1009,7 @@ function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMet
 function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>): EnrichedRow[] {
   return rows.map((row) => {
     const summary = summaries.get(row.playerId);
-    const archetype = summary ? classifyArchetype(summary) : "LOW_MINUTE_BENCH";
+    const archetype = summary ? classifyArchetype(summary, row.market) : "LOW_MINUTE_BENCH";
     const summaryMinutes = summary?.avgExpectedMinutes ?? row.expectedMinutes ?? 0;
     const summaryPoints = summary?.ptsProjectionAvg ?? 0;
     const summaryRebounds = summary?.rebProjectionAvg ?? 0;
@@ -796,6 +1031,40 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
       row.completenessScore == null ? 0 : Math.max(0, Math.min(row.completenessScore / 100, 1));
     const timingNormalized =
       row.lineupTimingConfidence == null ? 0 : Math.max(0, Math.min(row.lineupTimingConfidence, 1));
+    const emaMinutesAvg = row.emaMinutesAvg ?? null;
+    const minutesShiftDelta =
+      row.expectedMinutes == null || emaMinutesAvg == null ? null : round(row.expectedMinutes - emaMinutesAvg, 4);
+    const openingSpreadAbs = row.openingTeamSpread == null ? null : round(Math.abs(row.openingTeamSpread), 3);
+    const l15ValueMedian = row.l15ValueMedian ?? null;
+    const minutesLiftPct =
+      row.minutesLiftPct != null
+        ? round(row.minutesLiftPct, 4)
+        : row.expectedMinutes == null || row.seasonMinutesAvg == null || row.seasonMinutesAvg <= 0
+          ? null
+          : round(row.expectedMinutes / row.seasonMinutesAvg - 1, 4);
+    const stepUpRoleFlag =
+      row.stepUpRoleFlag != null
+        ? row.stepUpRoleFlag
+        : row.missingCoreShare != null && minutesLiftPct != null && row.missingCoreShare > 0.2 && minutesLiftPct >= 0.15
+          ? 1
+          : 0;
+    const minutesShiftAbsDelta = minutesShiftDelta == null ? null : round(Math.abs(minutesShiftDelta), 4);
+    const projectionMedianDelta =
+      l15ValueMedian == null ? null : round(row.projectedValue - l15ValueMedian, 4);
+    const medianLineGap = l15ValueMedian == null ? null : round(l15ValueMedian - row.line, 4);
+    const competitivePaceFactor =
+      row.openingTotal == null ? null : round(row.openingTotal / Math.max(openingSpreadAbs ?? 0, 1), 4);
+    const blowoutRisk =
+      row.openingTotal == null || openingSpreadAbs == null ? null : round(openingSpreadAbs / Math.max(row.openingTotal, 1), 4);
+    const shapeContextEnabled = shouldExposeShapeContext({
+      dateEt: row.gameDateEt,
+      stepUpRoleFlag,
+      expectedMinutes: row.expectedMinutes,
+      emaMinutesAvg,
+      minutesShiftAbsDelta,
+      missingCoreShare: row.missingCoreShare ?? null,
+      minutesLiftPct,
+    });
     const contextQuality = round(
       Math.max(
         0,
@@ -836,7 +1105,25 @@ function enrichRows(rows: TrainingRow[], summaries: Map<string, PlayerSummary>):
       contextQuality,
       roleStability,
       projectionMarketAgreement: row.favoredSide === "NEUTRAL" ? 0 : row.projectionSide === row.favoredSide ? 1 : -1,
-      openingSpreadAbs: row.openingTeamSpread == null ? null : round(Math.abs(row.openingTeamSpread), 3),
+      minutesShiftDelta,
+      minutesShiftAbsDelta,
+      l15ValueMean: gateShapeNumber(row.l15ValueMean ?? null, shapeContextEnabled),
+      l15ValueMedian: gateShapeNumber(l15ValueMedian, shapeContextEnabled),
+      l15ValueStdDev: gateShapeNumber(row.l15ValueStdDev ?? null, shapeContextEnabled),
+      l15ValueSkew: gateShapeNumber(row.l15ValueSkew ?? null, shapeContextEnabled),
+      projectionMedianDelta: gateShapeNumber(projectionMedianDelta, shapeContextEnabled),
+      medianLineGap: gateShapeNumber(medianLineGap, shapeContextEnabled),
+      competitivePaceFactor: gateShapeNumber(competitivePaceFactor, shapeContextEnabled),
+      blowoutRisk: gateShapeNumber(blowoutRisk, shapeContextEnabled),
+      seasonMinutesAvg: row.seasonMinutesAvg ?? null,
+      minutesLiftPct,
+      activeCorePts: row.activeCorePts ?? null,
+      activeCoreAst: row.activeCoreAst ?? null,
+      missingCorePts: row.missingCorePts ?? null,
+      missingCoreAst: row.missingCoreAst ?? null,
+      missingCoreShare: row.missingCoreShare ?? null,
+      stepUpRoleFlag,
+      openingSpreadAbs,
       favoriteFlag: row.openingTeamSpread == null ? null : row.openingTeamSpread < 0 ? 1 : row.openingTeamSpread > 0 ? -1 : 0,
       bigFavoriteFlag: row.openingTeamSpread != null && row.openingTeamSpread <= -6.5 ? 1 : 0,
       closeGameFlag: row.openingTeamSpread != null && Math.abs(row.openingTeamSpread) <= 4.5 ? 1 : 0,
@@ -884,7 +1171,9 @@ async function main(): Promise<void> {
   );
 
   const rowsPayload = JSON.parse(await readFile(path.resolve(args.input), "utf8")) as BacktestRowsFile;
-  const filteredRows = rowsPayload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes);
+  const filteredRows = attachCurrentLineRecencyMetrics(
+    rowsPayload.playerMarketRows.filter((row) => row.actualMinutes >= args.minActualMinutes),
+  );
   const playerMetaMap = await loadPlayerMetaMap([...new Set(filteredRows.map((row) => row.playerId))]);
   const summaries = summarizeRows(filteredRows, playerMetaMap);
   const rows = enrichRows(filteredRows, summaries).sort((left, right) => left.gameDateEt.localeCompare(right.gameDateEt));

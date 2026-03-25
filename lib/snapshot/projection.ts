@@ -398,6 +398,8 @@ export type ProjectTonightInput = {
 export type TeamSynergyInput = {
   activeCoreAverage: SnapshotMetricRecord;
   missingCoreAverage: SnapshotMetricRecord;
+  activeCoreCount: number;
+  missingCoreCount: number;
 };
 
 export type MinutesProjectionInput = {

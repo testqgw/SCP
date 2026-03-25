@@ -33,6 +33,7 @@
     "projection:evaluate:universal-qualification": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-universal-model-qualification.ts",
     "projection:evaluate:precision-picks": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-precision-pick-system.ts",
     "projection:search:daily6": "tsx --env-file=.env.local --env-file=.env scripts/search-daily6-one-pick-per-player.ts",
+    "projection:walk-forward:daily6": "tsx --env-file=.env.local --env-file=.env scripts/walk-forward-daily6.ts",
     "projection:retrain:universal-live": "tsx --env-file=.env.local --env-file=.env scripts/retrain-live-universal-model.ts",
     "monitor-weak-buckets": "tsx --env-file=.env.local --env-file=.env scripts/monitor-weak-buckets.ts"
   },
@@ -46,6 +47,7 @@
     "puppeteer": "^24.37.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "stripe": "^20.4.1",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

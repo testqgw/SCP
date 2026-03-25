@@ -74,6 +74,7 @@ export type DailyMatchupHint = {
 };
 
 export type LivePtsSignalInput = {
+  gameDateEt?: string | null;
   playerName: string | null;
   playerPosition: string | null;
   projection: number | null;
@@ -98,6 +99,25 @@ export type LivePtsSignalInput = {
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
+  projectionMedianDelta?: number | null;
+  medianLineGap?: number | null;
+  competitivePaceFactor?: number | null;
+  blowoutRisk?: number | null;
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   playerShotPressure: ShotPressureSummary | null;
   opponentShotVolume: OpponentShotVolumeMetrics | null;
   completenessScore: number | null;
@@ -1990,6 +2010,7 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
+    gameDateEt: input.gameDateEt ?? null,
     market: "PTS",
     projectedValue: input.projection,
     line: marketLine,
@@ -1999,6 +2020,25 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg: input.emaMinutesAvg ?? null,
+    l15ValueMean: input.l15ValueMean ?? null,
+    l15ValueMedian: input.l15ValueMedian ?? null,
+    l15ValueStdDev: input.l15ValueStdDev ?? null,
+    l15ValueSkew: input.l15ValueSkew ?? null,
+    projectionMedianDelta: input.projectionMedianDelta ?? null,
+    medianLineGap: input.medianLineGap ?? null,
+    competitivePaceFactor: input.competitivePaceFactor ?? null,
+    blowoutRisk: input.blowoutRisk ?? null,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct: input.minutesLiftPct ?? null,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag: input.stepUpRoleFlag ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability: input.benchBigRoleStability ?? null,
@@ -2128,6 +2168,7 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
+    gameDateEt: input.gameDateEt ?? null,
     market: "REB",
     projectedValue: input.projection,
     line: marketLine,
@@ -2137,6 +2178,25 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg: input.emaMinutesAvg ?? null,
+    l15ValueMean: input.l15ValueMean ?? null,
+    l15ValueMedian: input.l15ValueMedian ?? null,
+    l15ValueStdDev: input.l15ValueStdDev ?? null,
+    l15ValueSkew: input.l15ValueSkew ?? null,
+    projectionMedianDelta: input.projectionMedianDelta ?? null,
+    medianLineGap: input.medianLineGap ?? null,
+    competitivePaceFactor: input.competitivePaceFactor ?? null,
+    blowoutRisk: input.blowoutRisk ?? null,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct: input.minutesLiftPct ?? null,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag: input.stepUpRoleFlag ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability: input.benchBigRoleStability ?? null,
@@ -2284,6 +2344,7 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
+    gameDateEt: input.gameDateEt ?? null,
     market: "AST",
     projectedValue: input.projection,
     line: marketLine,
@@ -2293,6 +2354,25 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg: input.emaMinutesAvg ?? null,
+    l15ValueMean: input.l15ValueMean ?? null,
+    l15ValueMedian: input.l15ValueMedian ?? null,
+    l15ValueStdDev: input.l15ValueStdDev ?? null,
+    l15ValueSkew: input.l15ValueSkew ?? null,
+    projectionMedianDelta: input.projectionMedianDelta ?? null,
+    medianLineGap: input.medianLineGap ?? null,
+    competitivePaceFactor: input.competitivePaceFactor ?? null,
+    blowoutRisk: input.blowoutRisk ?? null,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct: input.minutesLiftPct ?? null,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag: input.stepUpRoleFlag ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability: input.benchBigRoleStability ?? null,
@@ -2446,6 +2526,7 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
+    gameDateEt: input.gameDateEt ?? null,
     market: "THREES",
     projectedValue: input.projection,
     line: marketLine,
@@ -2455,6 +2536,25 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg: input.emaMinutesAvg ?? null,
+    l15ValueMean: input.l15ValueMean ?? null,
+    l15ValueMedian: input.l15ValueMedian ?? null,
+    l15ValueStdDev: input.l15ValueStdDev ?? null,
+    l15ValueSkew: input.l15ValueSkew ?? null,
+    projectionMedianDelta: input.projectionMedianDelta ?? null,
+    medianLineGap: input.medianLineGap ?? null,
+    competitivePaceFactor: input.competitivePaceFactor ?? null,
+    blowoutRisk: input.blowoutRisk ?? null,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct: input.minutesLiftPct ?? null,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag: input.stepUpRoleFlag ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability: input.benchBigRoleStability ?? null,
@@ -2682,6 +2782,7 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
+    gameDateEt: input.gameDateEt ?? null,
     market: input.market,
     projectedValue: input.projection,
     line: marketLine,
@@ -2691,6 +2792,25 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg: input.emaMinutesAvg ?? null,
+    l15ValueMean: input.l15ValueMean ?? null,
+    l15ValueMedian: input.l15ValueMedian ?? null,
+    l15ValueStdDev: input.l15ValueStdDev ?? null,
+    l15ValueSkew: input.l15ValueSkew ?? null,
+    projectionMedianDelta: input.projectionMedianDelta ?? null,
+    medianLineGap: input.medianLineGap ?? null,
+    competitivePaceFactor: input.competitivePaceFactor ?? null,
+    blowoutRisk: input.blowoutRisk ?? null,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct: input.minutesLiftPct ?? null,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag: input.stepUpRoleFlag ?? null,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability: input.benchBigRoleStability ?? null,

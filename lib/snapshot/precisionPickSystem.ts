@@ -23,7 +23,13 @@ export type PrecisionRule = {
 
 export type PrecisionRuleSet = Partial<Record<SnapshotMarket, PrecisionRule>>;
 
-export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
+export const DAILY_6_MARKET_PACKS = {
+  COMBO_CORE: ["PRA", "PR", "RA"],
+  COMBO_PLUS_PA: ["PRA", "PA", "PR", "RA"],
+  COMBO_PLUS_PTS_PA: ["PTS", "PRA", "PA", "PR", "RA"],
+} as const satisfies Record<string, SnapshotMarket[]>;
+
+export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
   PTS: {
     minBucketLateAccuracy: 62,
     minLeafAccuracy: 84,
@@ -106,13 +112,23 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
 };
 
+const DAILY_6_CURRENT_MARKETS = DAILY_6_MARKET_PACKS.COMBO_PLUS_PTS_PA;
+
+export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = Object.fromEntries(
+  DAILY_6_CURRENT_MARKETS.map((market) => [market, ALL_DAILY_6_RULES[market]!]),
+) as PrecisionRuleSet;
+
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   label: "Daily 6",
-  historicalAccuracy: 76.97,
-  historicalPicks: 1676,
-  historicalCoveragePct: 1.99,
-  historicalPicksPerDay: 12.32,
-  supportedMarkets: Object.keys(DEFAULT_DAILY_6_RULES) as SnapshotMarket[],
+  historicalAccuracy: 71.24,
+  historicalPicks: 525,
+  historicalCoveragePct: 0.99,
+  historicalPicksPerDay: 6.56,
+  supportedMarkets: DAILY_6_CURRENT_MARKETS,
+  accuracyLabel: "WF Rate",
+  picksPerDayLabel: "WF Picks/Day",
+  note:
+    "6-fold walk-forward through 2026-03-15. This pack also held 6.10 picks/day over the latest 30-date replay. Similar-spot percentages on individual picks are replay priors, not forward-tested hit rates.",
 };
 
 export function getPrecisionRule(ruleSet: PrecisionRuleSet, market: SnapshotMarket): PrecisionRule | null {

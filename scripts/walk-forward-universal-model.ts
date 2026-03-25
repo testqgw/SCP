@@ -38,12 +38,30 @@ type EvalSummary = {
   byMarket: Record<Market, EvalBucket>;
 };
 
-type CandidateSpec = {
-  label: string;
-  selectionStrategy: "in_sample" | "temporal_holdout";
+type ShapeSpecializationMode = "off" | "targeted";
+type SelectionStrategy = "in_sample" | "temporal_holdout";
+type HybridSelectionStrategy = "late_then_full" | "full_then_late";
+
+type TrainingRecipe = {
+  selectionStrategy: SelectionStrategy;
   maxDepth: number;
   lateWindowRatio?: number;
+  shapeSpecializationMode?: ShapeSpecializationMode;
 };
+
+type CandidateSpec =
+  | {
+      kind?: "single";
+      label: string;
+      recipe: TrainingRecipe;
+    }
+  | {
+      kind: "hybrid_router";
+      label: string;
+      baseline: TrainingRecipe;
+      candidate: TrainingRecipe;
+      hybridSelectionStrategy: HybridSelectionStrategy;
+    };
 
 type CandidateFoldResult = {
   label: string;
@@ -90,12 +108,22 @@ type Args = {
 const MARKETS: Market[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 const DEFAULT_LATE_WINDOW_RATIO = 0.3;
 const CANDIDATES: CandidateSpec[] = [
-  { label: "direct-in-sample-d5", selectionStrategy: "in_sample", maxDepth: 5 },
-  { label: "direct-in-sample-d6", selectionStrategy: "in_sample", maxDepth: 6 },
-  { label: "direct-holdout-d4", selectionStrategy: "temporal_holdout", maxDepth: 4 },
-  { label: "direct-holdout-d5", selectionStrategy: "temporal_holdout", maxDepth: 5 },
-  { label: "direct-holdout-d5-r20", selectionStrategy: "temporal_holdout", maxDepth: 5, lateWindowRatio: 0.2 },
-  { label: "direct-holdout-d6", selectionStrategy: "temporal_holdout", maxDepth: 6 },
+  { label: "direct-in-sample-d5", recipe: { selectionStrategy: "in_sample", maxDepth: 5 } },
+  { label: "direct-in-sample-d6", recipe: { selectionStrategy: "in_sample", maxDepth: 6 } },
+  { label: "direct-holdout-d4", recipe: { selectionStrategy: "temporal_holdout", maxDepth: 4 } },
+  { label: "direct-holdout-d5", recipe: { selectionStrategy: "temporal_holdout", maxDepth: 5 } },
+  {
+    label: "direct-holdout-d5-r20",
+    recipe: { selectionStrategy: "temporal_holdout", maxDepth: 5, lateWindowRatio: 0.2 },
+  },
+  { label: "direct-holdout-d6", recipe: { selectionStrategy: "temporal_holdout", maxDepth: 6 } },
+  {
+    kind: "hybrid_router",
+    label: "hybrid-shape-router-d4",
+    baseline: { selectionStrategy: "temporal_holdout", maxDepth: 4, shapeSpecializationMode: "off" },
+    candidate: { selectionStrategy: "temporal_holdout", maxDepth: 4, shapeSpecializationMode: "targeted" },
+    hybridSelectionStrategy: "full_then_late",
+  },
 ];
 
 const require = createRequire(import.meta.url);
@@ -320,40 +348,156 @@ function addCounts(target: AggregateCounts, source: AggregateCounts): void {
   target.blendedCorrect += source.blendedCorrect;
 }
 
-async function evaluateCandidate(trainFile: string, testFile: string, tempDir: string, candidate: CandidateSpec): Promise<CandidateFoldResult> {
-  const modelFile = path.join(tempDir, `${candidate.label}.json`);
-  const evalFile = path.join(tempDir, `${candidate.label}-eval.json`);
-  if (!fs.existsSync(modelFile)) {
-    const lateWindowRatio = candidate.lateWindowRatio ?? DEFAULT_LATE_WINDOW_RATIO;
-    await runTsxScript("scripts/train-universal-archetype-side-models.ts", [
+async function buildCalibration(trainFile: string, modelFile: string, outFile: string): Promise<string> {
+  if (!fs.existsSync(outFile)) {
+    await runTsxScript("scripts/build-universal-residual-calibration.ts", [
       "--input",
       trainFile,
-      "--selection-strategy",
-      candidate.selectionStrategy,
-      "--max-depth",
-      String(candidate.maxDepth),
-      "--late-window-ratio",
-      String(lateWindowRatio),
-      "--out",
+      "--model-file",
       modelFile,
+      "--out",
+      outFile,
+      "--adjustment-mode",
+      "penalties_only",
     ]);
   }
+  return outFile;
+}
+
+async function buildProjectionDistribution(trainFile: string, modelFile: string, outFile: string): Promise<string> {
+  if (!fs.existsSync(outFile)) {
+    await runTsxScript("scripts/build-universal-projection-distribution.ts", [
+      "--input",
+      trainFile,
+      "--model-file",
+      modelFile,
+      "--out",
+      outFile,
+    ]);
+  }
+  return outFile;
+}
+
+function trainingRecipeSuffix(recipe: TrainingRecipe): string {
+  const lateWindowRatio = recipe.lateWindowRatio ?? DEFAULT_LATE_WINDOW_RATIO;
+  const shapeSuffix = recipe.shapeSpecializationMode ? `-shape-${recipe.shapeSpecializationMode}` : "";
+  return `${recipe.selectionStrategy}-d${recipe.maxDepth}-r${String(lateWindowRatio).replace(".", "")}${shapeSuffix}`;
+}
+
+function trainingRecipeEnv(recipe: TrainingRecipe): Record<string, string> {
+  if (!recipe.shapeSpecializationMode) return {};
+  return {
+    SNAPSHOT_SHAPE_SPECIALIZATION_MODE: recipe.shapeSpecializationMode,
+  };
+}
+
+type TrainedArtifacts = {
+  modelFile: string;
+  calibrationFile: string;
+  projectionDistributionFile: string;
+};
+
+async function trainRecipeArtifacts(
+  trainFile: string,
+  tempDir: string,
+  label: string,
+  recipe: TrainingRecipe,
+): Promise<TrainedArtifacts> {
+  const recipeTag = trainingRecipeSuffix(recipe);
+  const modelFile = path.join(tempDir, `${label}-${recipeTag}.json`);
+  const calibrationFile = path.join(tempDir, `${label}-${recipeTag}-calibration.json`);
+  const projectionDistributionFile = path.join(tempDir, `${label}-${recipeTag}-projection-distribution.json`);
+  if (!fs.existsSync(modelFile)) {
+    const lateWindowRatio = recipe.lateWindowRatio ?? DEFAULT_LATE_WINDOW_RATIO;
+    await runTsxScript(
+      "scripts/train-universal-archetype-side-models.ts",
+      [
+        "--input",
+        trainFile,
+        "--selection-strategy",
+        recipe.selectionStrategy,
+        "--max-depth",
+        String(recipe.maxDepth),
+        "--late-window-ratio",
+        String(lateWindowRatio),
+        "--out",
+        modelFile,
+      ],
+      trainingRecipeEnv(recipe),
+    );
+  }
+  await buildCalibration(trainFile, modelFile, calibrationFile);
+  await buildProjectionDistribution(trainFile, modelFile, projectionDistributionFile);
+  return {
+    modelFile,
+    calibrationFile,
+    projectionDistributionFile,
+  };
+}
+
+async function evaluateArtifacts(
+  label: string,
+  testFile: string,
+  evalFile: string,
+  artifacts: TrainedArtifacts,
+): Promise<CandidateFoldResult> {
   if (!fs.existsSync(evalFile)) {
     await runTsxScript(
       "scripts/evaluate-universal-model-qualification.ts",
-      ["--input", testFile, "--disable-live-calibration", "--out", evalFile],
+      ["--input", testFile, "--out", evalFile],
       {
-        SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
-        SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION: "1",
+        SNAPSHOT_UNIVERSAL_MODEL_FILE: artifacts.modelFile,
+        SNAPSHOT_UNIVERSAL_CALIBRATION_FILE: artifacts.calibrationFile,
+        SNAPSHOT_UNIVERSAL_PROJECTION_DISTRIBUTION_FILE: artifacts.projectionDistributionFile,
       },
     );
   }
   const evalSummary = await readJsonFile<EvalSummary>(evalFile);
   return {
-    label: candidate.label,
+    label,
     overall: evalSummary.overall,
     byMarket: evalSummary.byMarket,
   };
+}
+
+async function evaluateCandidate(
+  trainFile: string,
+  testFile: string,
+  tempDir: string,
+  candidate: CandidateSpec,
+): Promise<CandidateFoldResult> {
+  if (candidate.kind === "hybrid_router") {
+    const baselineArtifacts = await trainRecipeArtifacts(trainFile, tempDir, `${candidate.label}-baseline`, candidate.baseline);
+    const candidateArtifacts = await trainRecipeArtifacts(trainFile, tempDir, `${candidate.label}-candidate`, candidate.candidate);
+    const hybridModelFile = path.join(tempDir, `${candidate.label}.json`);
+    const hybridCalibrationFile = path.join(tempDir, `${candidate.label}-calibration.json`);
+    const hybridProjectionDistributionFile = path.join(tempDir, `${candidate.label}-projection-distribution.json`);
+    const evalFile = path.join(tempDir, `${candidate.label}-eval.json`);
+    if (!fs.existsSync(hybridModelFile)) {
+      await runTsxScript("scripts/build-universal-hybrid-model.ts", [
+        "--input",
+        trainFile,
+        "--selection-strategy",
+        candidate.hybridSelectionStrategy,
+        "--candidate",
+        baselineArtifacts.modelFile,
+        "--candidate",
+        candidateArtifacts.modelFile,
+        "--out",
+        hybridModelFile,
+      ]);
+    }
+    await buildCalibration(trainFile, hybridModelFile, hybridCalibrationFile);
+    await buildProjectionDistribution(trainFile, hybridModelFile, hybridProjectionDistributionFile);
+    return evaluateArtifacts(candidate.label, testFile, evalFile, {
+      modelFile: hybridModelFile,
+      calibrationFile: hybridCalibrationFile,
+      projectionDistributionFile: hybridProjectionDistributionFile,
+    });
+  }
+
+  const artifacts = await trainRecipeArtifacts(trainFile, tempDir, candidate.label, candidate.recipe);
+  return evaluateArtifacts(candidate.label, testFile, path.join(tempDir, `${candidate.label}-eval.json`), artifacts);
 }
 
 async function main(): Promise<void> {

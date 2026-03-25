@@ -7,6 +7,7 @@ import {
   DEFAULT_UNIVERSAL_LIVE_CALIBRATION_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_MODEL_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_MODEL_RELATIVE_PATH,
+  DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
   resolveProjectPath,
@@ -94,6 +95,10 @@ function resolveDefaultModelPath(): string {
 
 function resolveDefaultCalibrationPath(): string {
   return resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_CALIBRATION_RELATIVE_PATH);
+}
+
+function resolveDefaultProjectionDistributionPath(): string {
+  return resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH);
 }
 
 function parseArgs(): Args {
@@ -424,6 +429,7 @@ async function main(): Promise<void> {
   const liveCalibrationFile = useFixedLiveModel
     ? calibrationOverride ?? resolveDefaultCalibrationPath()
     : null;
+  const liveProjectionDistributionFile = useFixedLiveModel ? resolveDefaultProjectionDistributionPath() : null;
   const modelFile = useFixedLiveModel ? resolveDefaultModelPath() : path.join(tempDir, `${label}.json`);
   const fullEvalFile = path.join(tempDir, `${label}-full-eval.json`);
   const forward14File = path.join(tempDir, `${label}-forward-14d.json`);
@@ -457,17 +463,16 @@ async function main(): Promise<void> {
     await runTsxScript(
       "scripts/evaluate-universal-model-qualification.ts",
       evalArgs,
-      liveCalibrationFile
-        ? {
-            ...args.envOverrides,
-            SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
-            SNAPSHOT_UNIVERSAL_CALIBRATION_FILE: liveCalibrationFile,
-          }
-        : {
-            ...args.envOverrides,
-            SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
-            SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION: "1",
-          },
+      {
+        ...args.envOverrides,
+        SNAPSHOT_UNIVERSAL_MODEL_FILE: modelFile,
+        ...(liveCalibrationFile
+          ? { SNAPSHOT_UNIVERSAL_CALIBRATION_FILE: liveCalibrationFile }
+          : { SNAPSHOT_UNIVERSAL_DISABLE_CALIBRATION: "1" }),
+        ...(liveProjectionDistributionFile
+          ? { SNAPSHOT_UNIVERSAL_PROJECTION_DISTRIBUTION_FILE: liveProjectionDistributionFile }
+          : { SNAPSHOT_UNIVERSAL_DISABLE_PROJECTION_DISTRIBUTION: "1" }),
+      },
     );
   }
 
@@ -487,6 +492,9 @@ async function main(): Promise<void> {
               "--fixed-model-file",
               modelFile,
               ...(liveCalibrationFile ? ["--fixed-calibration-file", liveCalibrationFile] : []),
+              ...(liveProjectionDistributionFile
+                ? ["--fixed-projection-distribution-file", liveProjectionDistributionFile]
+                : []),
               "--out",
               outFile,
             ]

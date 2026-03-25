@@ -35,8 +35,11 @@ type SnapshotRefreshApiResponse = {
   error?: string;
 };
 
-const VISIT_REFRESH_INTERVAL_MS = 30_000;
+const AUTO_REFRESH_STALE_AFTER_MS = 900_000; // 15 minutes
+const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
 const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 15_000;
+const VISIT_REFRESH_MODE = "FAST";
+const MANUAL_REFRESH_MODE = "DELTA";
 
 const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PTS", label: "Points (PTS)" },
@@ -55,6 +58,7 @@ const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
 ];
 
 const HOMEPAGE_QUALIFIED_PICK_LIMIT = 6;
+const DAILY_CARD_TARGET_COUNT = 6;
 
 type DetailSectionKey = "context" | "intel" | "backtest" | "markets" | "logs" | "summary" | "team";
 
@@ -209,6 +213,15 @@ function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
   );
 }
 
+function shouldAutoRefreshBoard(targetDate: string, lastUpdatedAt: string | null): boolean {
+  if (targetDate !== getTodayEtDateString(new Date())) return false;
+  if (!lastUpdatedAt) return true;
+
+  const lastUpdatedMs = Date.parse(lastUpdatedAt);
+  if (!Number.isFinite(lastUpdatedMs)) return true;
+  return Date.now() - lastUpdatedMs >= AUTO_REFRESH_STALE_AFTER_MS;
+}
+
 type MarketSignalDisplay = {
   statusText: string;
   statusClass: string;
@@ -243,10 +256,25 @@ type PrecisionCandidate = FocusCandidate & {
   precision: SnapshotPrecisionPickSignal;
 };
 
+type DailyCardSource = "PRECISION" | "QUALIFIED_FILL" | "MODEL_FILL";
+
 type DailyCardCandidate = {
-  candidate: PrecisionCandidate;
-  precision: SnapshotPrecisionPickSignal;
+  candidate: FocusCandidate;
+  precision: SnapshotPrecisionPickSignal | null;
+  source: DailyCardSource;
 };
+
+function dailyCardSourceLabel(source: DailyCardSource): string {
+  if (source === "PRECISION") return "Daily 6 Core";
+  if (source === "QUALIFIED_FILL") return "Qualified Fill";
+  return "Model Fill";
+}
+
+function dailyCardSourceClass(source: DailyCardSource): string {
+  if (source === "PRECISION") return "border-teal-300/35 bg-teal-500/12 text-teal-100";
+  if (source === "QUALIFIED_FILL") return "border-emerald-300/30 bg-emerald-500/12 text-emerald-100";
+  return "border-cyan-300/30 bg-cyan-500/12 text-cyan-100";
+}
 
 function resolveMarketSignalDisplay(
   marketLabel: string,
@@ -533,16 +561,6 @@ function formatPercentValue(value: number | null): string {
   return `${value.toFixed(0)}%`;
 }
 
-function formatClientTimestamp(value: Date): string {
-  return value.toLocaleString([], {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
 
 function percentile(values: number[], p: number): number | null {
   if (values.length === 0) return null;
@@ -666,14 +684,17 @@ export function SnapshotDashboard({
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket === "ALL" ? "PTS" : initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(true);
-  const [pageOpenedAt, setPageOpenedAt] = useState<string | null>(null);
-  const showAdvancedView = false;
+
+  const [showAdvancedView, setShowAdvancedView] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
     defaultCollapsedSections(true),
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [isDonationLoading, setIsDonationLoading] = useState(false);
+  const [donationMessage, setDonationMessage] = useState<string | null>(null);
+  const [donationError, setDonationError] = useState<string | null>(null);
   const [isBoardLoading, setIsBoardLoading] = useState(!hasInitialBoardSnapshot);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [isPlayerLookupLoading, setIsPlayerLookupLoading] = useState(false);
@@ -756,10 +777,11 @@ export function SnapshotDashboard({
     );
 
     try {
+      const refreshMode = source === "visit" ? VISIT_REFRESH_MODE : MANUAL_REFRESH_MODE;
       const response = await fetch("/api/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: source === "visit" ? "FAST" : "DELTA" }),
+        body: JSON.stringify({ mode: refreshMode, source }),
       });
       const payload = (await response.json()) as SnapshotRefreshApiResponse;
       if (!response.ok) {
@@ -774,6 +796,16 @@ export function SnapshotDashboard({
             : "Refresh is already running. Loading the newest board shortly.",
         );
         scheduleBoardReload(targetDate);
+        await loadBoardData(targetDate, { bustCache: true });
+        return;
+      }
+
+      if (warnings.some((item) => item.toLowerCase().includes("completed recently"))) {
+        setRefreshMessage(
+          source === "visit"
+            ? "The live board was refreshed recently. Loading the latest snapshot."
+            : "This slate was refreshed recently. Loading the latest board.",
+        );
         await loadBoardData(targetDate, { bustCache: true });
         return;
       }
@@ -800,17 +832,19 @@ export function SnapshotDashboard({
   }, [loadBoardData, scheduleBoardReload]);
 
   const refreshBoardForVisit = useCallback(
-    (targetDate: string, options?: { minIntervalMs?: number }): void => {
+    (targetDate: string, options?: { lastUpdatedAt?: string | null; minIntervalMs?: number }): void => {
+      if (!shouldAutoRefreshBoard(targetDate, options?.lastUpdatedAt ?? null)) {
+        return;
+      }
+
       const now = Date.now();
-      const visitKey =
-        targetDate === getTodayEtDateString(new Date()) ? `live-refresh:${targetDate}` : `board-load:${targetDate}`;
-      const minIntervalMs = options?.minIntervalMs ?? VISIT_REFRESH_INTERVAL_MS;
+      const visitKey = `live-refresh:${targetDate}`;
+      const minIntervalMs = options?.minIntervalMs ?? AUTO_REFRESH_ATTEMPT_COOLDOWN_MS;
       if (lastVisitRefreshRef.current.key === visitKey && now - lastVisitRefreshRef.current.at < minIntervalMs) {
         return;
       }
 
       lastVisitRefreshRef.current = { key: visitKey, at: now };
-      setPageOpenedAt(formatClientTimestamp(new Date(now)));
       void runBoardRefresh(targetDate, "visit");
     },
     [runBoardRefresh],
@@ -840,18 +874,40 @@ export function SnapshotDashboard({
     boardLoadTargetRef.current = initialData.dateEt;
     if (!hasBoardSnapshotData(initialData)) {
       void loadBoardData(initialData.dateEt, { bustCache: true });
+      return;
     }
-    refreshBoardForVisit(initialData.dateEt);
+    refreshBoardForVisit(initialData.dateEt, { lastUpdatedAt: initialData.lastUpdatedAt });
   }, [initialData, loadBoardData, refreshBoardForVisit]);
 
   useEffect(() => {
+    if (!hasBoardSnapshotData(activeData)) return;
+    refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
+  }, [activeData, refreshBoardForVisit]);
+
+  useEffect(() => {
     const handlePageShow = (): void => {
-      refreshBoardForVisit(activeData.dateEt);
+      refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
     };
 
     window.addEventListener("pageshow", handlePageShow);
     return () => window.removeEventListener("pageshow", handlePageShow);
-  }, [activeData.dateEt, refreshBoardForVisit]);
+  }, [activeData.dateEt, activeData.lastUpdatedAt, refreshBoardForVisit]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const donationStatus = params.get("donation");
+    if (!donationStatus) return;
+
+    if (donationStatus === "success") {
+      setDonationMessage("Thanks for supporting ULTOPS. Your donation came through.");
+      setDonationError(null);
+    }
+
+    params.delete("donation");
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }, []);
 
   useEffect(() => {
     if (matchup && !activeData.matchups.some((option) => option.key === matchup)) {
@@ -974,6 +1030,41 @@ export function SnapshotDashboard({
     playerDetailRequestRef.current = requestId;
     setIsPlayerDetailLoading(true);
     setPlayerDetailError(null);
+
+    if (row.recentLogs.length === 0) {
+      void fetch(`/api/snapshot/player/logs?date=${encodeURIComponent(activeData.dateEt)}&playerId=${encodeURIComponent(row.playerId)}`, {
+        cache: "no-store",
+      })
+        .then(async (response) => {
+          const payload = (await response.json()) as {
+            ok?: boolean;
+            result?: {
+              playerId?: string;
+              recentLogs?: SnapshotRow["recentLogs"];
+              analysisLogs?: SnapshotRow["analysisLogs"];
+            };
+            error?: string;
+          };
+
+          if (!response.ok || !payload.ok || !payload.result) {
+            throw new Error(payload.error ?? "Player recent logs load failed.");
+          }
+
+          if (requestId !== playerDetailRequestRef.current) return;
+
+          setSelectedPlayer((current) => {
+            if (!current || current.playerId !== row.playerId) return current;
+            return {
+              ...current,
+              recentLogs: payload.result?.recentLogs ?? current.recentLogs,
+              analysisLogs: payload.result?.analysisLogs ?? current.analysisLogs,
+            };
+          });
+        })
+        .catch(() => {
+          // Keep the heavier detail fetch as the fallback path if the lightweight log hydrate misses.
+        });
+    }
 
     try {
       const params = new URLSearchParams();
@@ -1175,6 +1266,9 @@ export function SnapshotDashboard({
     return activeData.teamMatchups.filter((item) => item.matchupKey === matchup);
   }, [activeData.teamMatchups, matchup, showAdvancedView]);
 
+  const recentLogsPending =
+    selectedPlayer != null && selectedPlayer.detailLevel !== "FULL" && selectedPlayer.recentLogs.length === 0;
+
   const currentMarketLabel = useMemo(
     () => MARKET_FILTER_OPTIONS.find((option) => option.value === market)?.label ?? market,
     [market],
@@ -1302,12 +1396,57 @@ export function SnapshotDashboard({
   );
 
   const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
+    () => {
+      const ranked: DailyCardCandidate[] = [];
+      const seenPlayers = new Set<string>();
+
+      const addCandidate = (
+        candidate: FocusCandidate,
+        source: DailyCardSource,
+        precision: SnapshotPrecisionPickSignal | null,
+      ) => {
+        if (ranked.length >= DAILY_CARD_TARGET_COUNT) return;
+        if (seenPlayers.has(candidate.row.playerId)) return;
+        if (isUnavailableForDailyCard(candidate.row)) return;
+        const side = candidate.display?.side ?? candidate.modelLine.modelSide;
+        if (side === "NEUTRAL") return;
+        if (candidate.currentLine == null && candidate.modelLine.fairLine == null) return;
+        seenPlayers.add(candidate.row.playerId);
+        ranked.push({ candidate, precision, source });
+      };
+
+      precisionCandidates.forEach((candidate) => {
+        addCandidate(candidate, "PRECISION", candidate.precision);
+      });
+
+      allQualifiedCandidates.forEach((candidate) => {
+        addCandidate(candidate, "QUALIFIED_FILL", null);
+      });
+
+      allFocusCandidates.forEach((candidate) => {
+        if (candidate.signalQualified) return;
+        addCandidate(candidate, "MODEL_FILL", null);
+      });
+
+      return ranked;
+    },
+    [allFocusCandidates, allQualifiedCandidates, precisionCandidates],
+  );
+
+  const dailyCardSourceCounts = useMemo(
     () =>
-      precisionCandidates.map((candidate) => ({
-        candidate,
-        precision: candidate.precision,
-      })),
-    [precisionCandidates],
+      dailyCardCandidates.reduce(
+        (counts, entry) => {
+          counts[entry.source] += 1;
+          return counts;
+        },
+        {
+          PRECISION: 0,
+          QUALIFIED_FILL: 0,
+          MODEL_FILL: 0,
+        } as Record<DailyCardSource, number>,
+      ),
+    [dailyCardCandidates],
   );
 
   const displayedCandidates = useMemo(() => {
@@ -1315,15 +1454,13 @@ export function SnapshotDashboard({
     return focusCandidates;
   }, [focusCandidates, qualifiedCandidates, showQualifiedOnly]);
 
+
   const homepageQualifiedCandidates = useMemo(
     () => allQualifiedCandidates.slice(0, HOMEPAGE_QUALIFIED_PICK_LIMIT),
     [allQualifiedCandidates],
   );
 
-  const leadingMarket = useMemo(() => {
-    if (allQualifiedMarketSummary.length === 0) return null;
-    return [...allQualifiedMarketSummary].sort((left, right) => right.count - left.count || left.value.localeCompare(right.value))[0];
-  }, [allQualifiedMarketSummary]);
+
 
   const matchupFocusCards = useMemo(() => {
     if (!showAdvancedView) return [];
@@ -1373,6 +1510,35 @@ export function SnapshotDashboard({
     jumpToSection("all-qualified-section");
   }
 
+  function openFeedbackPage(): void {
+    router.push("/feedback");
+  }
+
+  async function openDonationCheckout(): Promise<void> {
+    if (isDonationLoading) return;
+    setDonationError(null);
+    setDonationMessage(null);
+    setIsDonationLoading(true);
+
+    try {
+      const response = await fetch("/api/donate/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "Unable to open donation checkout right now.");
+      }
+
+      window.location.assign(payload.url);
+    } catch (error) {
+      setDonationError(error instanceof Error ? error.message : "Unable to open donation checkout right now.");
+    } finally {
+      setIsDonationLoading(false);
+    }
+  }
+
   function focusPlayerLookup(): void {
     const target = document.getElementById("player-search-input") as HTMLInputElement | null;
     if (!target) return;
@@ -1382,355 +1548,116 @@ export function SnapshotDashboard({
 
   return (
     <main className="mx-auto max-w-[1600px] px-4 pb-12 pt-6 sm:px-6 lg:px-10">
-      <section className="overflow-hidden rounded-[34px] border border-[#f0d7a1]/15 bg-[radial-gradient(1100px_440px_at_0%_0%,#0f766e55_0%,transparent_62%),radial-gradient(900px_420px_at_100%_0%,#f59e0b33_0%,transparent_58%),linear-gradient(155deg,#071426_0%,#0d1830_48%,#111828_100%)] px-5 py-5 shadow-[0_28px_90px_-42px_rgba(15,23,42,0.9)] sm:px-7 sm:py-7">
-        <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-          <div className="space-y-5">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.28em] text-[#f3d99b]">UltOps NBA Research</p>
-              <h1 className="title-font mt-3 max-w-4xl text-4xl uppercase leading-[0.95] text-white sm:text-[3.35rem]">
-                Find The Best Card Fast, Then Open Only The Research You Need
-              </h1>
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-200/88">
-                This homepage is now built for a fast public read: give the board a few seconds to load, start with the
-                Daily 6 card, then scan the top qualified plays. If you want deeper research on anyone else, open that
-                player directly from lookup.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300/80">
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                  Page opened: {pageOpenedAt ?? "Loading..."}
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                  Board updated:{" "}
-                  {activeData.lastUpdatedAt ? new Date(activeData.lastUpdatedAt).toLocaleString() : "No refresh yet"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
+      <section className="mb-6 flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-[20px] bg-[#0c1626]/90 px-5 py-4 border border-white/5 shadow-sm">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold tracking-tight text-white">ULTOPS NBA</h1>
+            <span className="rounded bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-200 uppercase tracking-widest">Research</span>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => jumpToSection("daily-card-section")} className="text-xs font-semibold text-teal-300 hover:text-teal-100 transition">Daily 6</button>
+            <button type="button" onClick={openAllQualifiedBoard} className="text-xs font-semibold text-amber-300 hover:text-amber-100 transition">All Qualified</button>
             <button
               type="button"
-              onClick={() => jumpToSection("daily-card-section")}
-              className="rounded-full border border-[#4fd1c5]/35 bg-[#0f766e]/20 px-4 py-2 text-sm font-semibold text-teal-50 transition hover:bg-[#0f766e]/30"
+              onClick={openFeedbackPage}
+              className="rounded-full border border-violet-300/25 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-100 transition hover:bg-violet-500/20"
             >
-              Start With Daily 6
-            </button>
-            <button
-              type="button"
-              onClick={openAllQualifiedBoard}
-              className="rounded-full border border-[#f0d7a1]/35 bg-[#f59e0b]/16 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-[#f59e0b]/24"
-            >
-              View All Qualified Picks
+              Suggestions
             </button>
             <button
               type="button"
               onClick={() => {
-                void handleRefresh();
+                void openDonationCheckout();
               }}
-              disabled={isRefreshing}
-              className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isDonationLoading}
+              className="rounded-full border border-amber-300/30 bg-amber-500/12 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isRefreshing ? "Refreshing Slate..." : "Refresh Slate"}
+              {isDonationLoading ? "Opening Donate..." : "Donate $5+"}
             </button>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className="rounded-full border border-white/12 bg-[#13203a] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-[#182746]"
-            >
-              How It Works
-            </button>
-          </div>
-
-          <div className="rounded-[26px] border border-cyan-300/20 bg-[#0b2940]/72 px-4 py-4 text-sm text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <p className="font-semibold text-white">Give the board a few seconds to fully load.</p>
-            <p className="mt-1 text-cyan-50/82">
-              The site settles the slate, live lines, and qualified picks in the background. You should see the top cards
-              stabilize a moment after you hit <span className="font-semibold text-white">Load Board</span> or{" "}
-              <span className="font-semibold text-white">Refresh Slate</span>.
-            </p>
-          </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <article className="rounded-[22px] border border-teal-300/16 bg-[#0b2a2c]/66 px-4 py-4">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-teal-100/65">
-                  {activeData.precisionSystem ? `${activeData.precisionSystem.label} Today` : "Daily Card Today"}
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-white">
-                  {activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}
-                </p>
-                <p className="mt-2 text-xs text-slate-300">The first card to trust-check.</p>
-              </article>
-              <article className="rounded-[22px] border border-amber-300/16 bg-[#2a1b0b]/66 px-4 py-4">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-amber-100/65">
-                  {isAllMarketsView ? "Qualified On Page" : "Qualified This Market"}
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-white">{qualifiedFocusCount}</p>
-                <p className="mt-2 text-xs text-slate-300">Strong model-backed reads live now.</p>
-              </article>
-              <article className="rounded-[22px] border border-cyan-300/16 bg-[#0a2438]/66 px-4 py-4">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-cyan-100/65">Best Market Today</p>
-                <p className="mt-2 text-3xl font-semibold text-white">{leadingMarket?.value ?? "-"}</p>
-                <p className="mt-2 text-xs text-slate-300">Where the board is surfacing the most value.</p>
-              </article>
-              <article className="rounded-[22px] border border-slate-200/10 bg-[#111b2f]/72 px-4 py-4">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">Markets Live</p>
-                <p className="mt-2 text-3xl font-semibold text-white">{allQualifiedMarketSummary.length}</p>
-                <p className="mt-2 text-xs text-slate-300">How many prop markets are live on this board.</p>
-              </article>
-            </div>
-
-            {allQualifiedMarketSummary.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setMarket("ALL")}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    isAllMarketsView
-                      ? "border-teal-300/45 bg-teal-500/15 text-teal-100"
-                      : "border-white/10 bg-white/6 text-slate-200 hover:border-cyan-300/30 hover:text-white"
-                  }`}
-                >
-                  All Picks {allQualifiedCandidates.length}
-                </button>
-                {allQualifiedMarketSummary.map((option) => (
-                  <button
-                    key={`market-summary-${option.value}`}
-                    type="button"
-                    onClick={() => setMarket(option.value)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                      market === option.value
-                        ? "border-amber-300/45 bg-amber-500/15 text-amber-100"
-                        : "border-white/10 bg-white/6 text-slate-200 hover:border-cyan-300/30 hover:text-white"
-                    }`}
-                  >
-                    {option.value} {option.count}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid gap-4">
-            <div className="rounded-[28px] border border-white/10 bg-[#0b1324]/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Board Controls</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">Load The Slate You Want</h2>
-                  <p className="mt-2 text-sm text-slate-300">
-                    Use the date, matchup, and market controls here, then let the board settle before reading the cards.
-                  </p>
-                </div>
-                <span className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100">
-                  Homepage = Daily 6 + Qualified
-                </span>
-              </div>
-
-              <form onSubmit={handleLoadData} className="mt-5 grid grid-cols-1 gap-3">
-                <div className="grid gap-3 md:grid-cols-[180px_1fr]">
-                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-                    Date (ET)
-                    <input
-                      type="date"
-                      value={dateInput}
-                      onChange={(event) => setDateInput(event.target.value)}
-                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-                    />
-                  </label>
-
-                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-                    Matchup
-                    <select
-                      value={matchup}
-                      onChange={(event) => setMatchup(event.target.value)}
-                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-                    >
-                      <option value="">All Matchups</option>
-                      {activeData.matchups.map((option) => (
-                        <option key={option.key} value={option.key}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-[1fr_170px]">
-                  <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-                    Market
-                    <select
-                      value={market}
-                      onChange={(event) => setMarket(event.target.value as MarketFilter)}
-                      className="rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-                    >
-                      {MARKET_FILTER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <button
-                    type="submit"
-                    className="h-[42px] self-end rounded-xl border border-amber-300/35 bg-amber-500/18 px-4 text-sm font-semibold text-amber-100 transition hover:bg-amber-500/26"
-                  >
-                    {isBoardLoading ? "Loading..." : "Load Board"}
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <div className="rounded-[28px] border border-white/10 bg-[#0c162a]/82 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">Player Lookup</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">Open Any Player Directly</h2>
-                  <p className="mt-2 text-sm text-slate-300">
-                    The homepage stays trimmed down. Use lookup whenever you want the full player detail instead of more
-                    homepage clutter.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={focusPlayerLookup}
-                  className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/12"
-                >
-                  Focus Lookup
-                </button>
-              </div>
-
-              <div className="mt-5">
-                <label className="flex flex-col gap-1 text-[11px] uppercase tracking-[0.12em] text-slate-300/85">
-                  Player Search
-                  <div className="relative">
-              <input
-                id="player-search-input"
-                value={playerSearch}
-                onFocus={() => {
-                  setPlayerSuggestOpen(true);
-                  setPlayerSuggestIndex(-1);
-                }}
-                onBlur={() => {
-                  window.setTimeout(() => {
-                    setPlayerSuggestOpen(false);
-                    setPlayerSuggestIndex(-1);
-                  }, 120);
-                }}
-                onChange={(event) => {
-                  setPlayerSearch(event.target.value);
-                  setPlayerSuggestOpen(true);
-                  setPlayerSuggestIndex(-1);
-                }}
-                onKeyDown={(event) => {
-                  if (!playerSuggestOpen && event.key === "ArrowDown" && playerSuggestions.length > 0) {
-                    event.preventDefault();
-                    setPlayerSuggestOpen(true);
-                    setPlayerSuggestIndex(0);
-                    return;
-                  }
-                  if (!playerSuggestOpen) return;
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setPlayerSuggestIndex((current) => {
-                      const next = current + 1;
-                      return next >= playerSuggestions.length ? 0 : next;
-                    });
-                    return;
-                  }
-                  if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setPlayerSuggestIndex((current) => {
-                      if (current <= 0) return playerSuggestions.length - 1;
-                      return current - 1;
-                    });
-                    return;
-                  }
-                  if (event.key === "Enter" && playerSuggestIndex >= 0 && playerSuggestIndex < playerSuggestions.length) {
-                    event.preventDefault();
-                    applyPlayerSuggestion(playerSuggestions[playerSuggestIndex]);
-                    return;
-                  }
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void handlePlayerLookup();
-                    return;
-                  }
-                  if (event.key === "Escape") {
-                    setPlayerSuggestOpen(false);
-                    setPlayerSuggestIndex(-1);
-                  }
-                }}
-                placeholder="Type any player name..."
-                className="w-full rounded-xl border border-slate-300/20 bg-[#091121] px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60"
-              />
-              {playerSuggestOpen && playerSuggestions.length > 0 ? (
-                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-slate-300/20 bg-[#0a1630] shadow-[0_18px_45px_-20px_rgba(15,23,42,0.95)]">
-                  {playerSuggestions.map((row, index) => (
-                    <button
-                      key={`suggest-${row.playerId}`}
-                      type="button"
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                        applyPlayerSuggestion(row);
-                      }}
-                      className={`flex w-full items-center justify-between gap-2 border-b border-slate-300/10 px-3 py-2 text-left text-xs last:border-b-0 ${
-                        index === playerSuggestIndex ? "bg-cyan-400/18 text-cyan-100" : "text-slate-200 hover:bg-slate-700/30"
-                      }`}
-                    >
-                      <span className="font-medium">{row.playerName}</span>
-                      <span className="text-[11px] text-slate-400">
-                        {row.teamCode} vs {row.opponentCode}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-                  </div>
-                </label>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-[11px] text-slate-400">
-                  Opens the full player research panel, even when that player is not on the visible homepage cards.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handlePlayerLookup();
-                  }}
-                  disabled={isPlayerLookupLoading}
-                  className="rounded-xl border border-cyan-300/35 bg-cyan-500/16 px-3 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/24 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isPlayerLookupLoading ? "Opening Research..." : "Open Player Research"}
-                </button>
-              </div>
-            </div>
+            <div className="h-4 w-px bg-white/10" />
+            <button type="button" onClick={() => setGuideOpen(true)} className="text-xs font-medium text-slate-400 hover:text-slate-200 transition">How It Works</button>
           </div>
         </div>
 
-        {refreshMessage ? (
-          <p className="mt-4 rounded-2xl border border-emerald-300/15 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-100">
-            {refreshMessage}
-          </p>
-        ) : null}
-        {refreshError ? (
-          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-            {refreshError}
-          </p>
-        ) : null}
-        {playerLookupError ? (
-          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-            {playerLookupError}
-          </p>
-        ) : null}
-        {isBoardLoading ? (
-          <p className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-500/10 px-4 py-3 text-xs text-cyan-100">
-            Loading board for {dateInput}...
-          </p>
-        ) : null}
-        {boardError ? (
-          <p className="mt-4 rounded-2xl border border-rose-300/15 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-            {boardError}
-          </p>
-        ) : null}
+        <div className="flex flex-wrap items-end justify-between gap-6 rounded-[20px] bg-gradient-to-r from-[#0c162a]/80 to-[#091121]/80 px-5 py-5 border border-white/5 shadow-sm">
+          <form onSubmit={handleLoadData} className="flex flex-wrap items-end gap-3">
+               <label className="flex flex-col gap-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  Date
+                  <input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)} className="h-[40px] w-[140px] rounded-xl border border-white/10 bg-[#070d18] px-3 text-sm text-white outline-none focus:border-cyan-400/50 transition cursor-pointer" />
+               </label>
+               <label className="flex flex-col gap-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  Matchup
+                  <select value={matchup} onChange={(e) => setMatchup(e.target.value)} className="h-[40px] w-[150px] rounded-xl border border-white/10 bg-[#070d18] px-3 text-sm text-white outline-none focus:border-cyan-400/50 transition cursor-pointer">
+                    <option value="">All Matchups</option>
+                    {activeData.matchups.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  </select>
+               </label>
+               <label className="flex flex-col gap-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                  Market
+                  <select value={market} onChange={(e) => setMarket(e.target.value as MarketFilter)} className="h-[40px] w-[140px] rounded-xl border border-white/10 bg-[#070d18] px-3 text-sm text-white outline-none focus:border-cyan-400/50 transition cursor-pointer">
+                    {MARKET_FILTER_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+               </label>
+
+               <button type="submit" disabled={isBoardLoading} className="h-[40px] ml-1 rounded-xl bg-cyan-500/15 px-4 text-sm font-semibold text-cyan-200 border border-cyan-400/20 hover:bg-cyan-500/25 transition disabled:opacity-50">
+                  {isBoardLoading ? "Loading..." : "Load Board"}
+               </button>
+
+               <button type="button" onClick={() => void handleRefresh()} disabled={isRefreshing} className="h-[40px] rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-300 hover:bg-white/10 transition disabled:opacity-50">
+                  {isRefreshing ? "Refreshing..." : "Refresh Live"}
+               </button>
+          </form>
+
+          <div className="relative w-full max-w-[240px]">
+               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                 <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+               </div>
+               <input id="player-search-input" value={playerSearch} onFocus={() => { setPlayerSuggestOpen(true); setPlayerSuggestIndex(-1); }} onBlur={() => { window.setTimeout(() => { setPlayerSuggestOpen(false); setPlayerSuggestIndex(-1); }, 120); }} onChange={(e) => { setPlayerSearch(e.target.value); setPlayerSuggestOpen(true); setPlayerSuggestIndex(-1); }} onKeyDown={(event) => {
+                  if (!playerSuggestOpen && event.key === "ArrowDown" && playerSuggestions.length > 0) { event.preventDefault(); setPlayerSuggestOpen(true); setPlayerSuggestIndex(0); return; }
+                  if (!playerSuggestOpen) return;
+                  if (event.key === "ArrowDown") { event.preventDefault(); setPlayerSuggestIndex(c => c + 1 >= playerSuggestions.length ? 0 : c + 1); return; }
+                  if (event.key === "ArrowUp") { event.preventDefault(); setPlayerSuggestIndex(c => c <= 0 ? playerSuggestions.length - 1 : c - 1); return; }
+                  if (event.key === "Enter" && playerSuggestIndex >= 0 && playerSuggestIndex < playerSuggestions.length) { event.preventDefault(); applyPlayerSuggestion(playerSuggestions[playerSuggestIndex]); return; }
+                  if (event.key === "Enter") { event.preventDefault(); void handlePlayerLookup(); return; }
+                  if (event.key === "Escape") { setPlayerSuggestOpen(false); setPlayerSuggestIndex(-1); }
+                }} placeholder="Search any player..." className="w-full h-[40px] rounded-xl border border-white/10 bg-[#070d18] pl-9 pr-3 text-sm text-white outline-none focus:border-cyan-400/50 transition" />
+               {playerSuggestOpen && playerSuggestions.length > 0 && (
+                 <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-xl border border-white/10 bg-[#0a1630] shadow-xl">
+                    {playerSuggestions.map((row, idx) => (
+                      <button key={`suggest-${row.playerId}`} type="button" onMouseDown={(e) => { e.preventDefault(); applyPlayerSuggestion(row); }} className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs ${idx === playerSuggestIndex ? "bg-cyan-500/20 text-cyan-100" : "text-slate-200 hover:bg-white/5"}`}>
+                        <span className="font-medium">{row.playerName}</span><span className="text-[10px] text-slate-400">{row.teamCode} vs {row.opponentCode}</span>
+                      </button>
+                    ))}
+                 </div>
+               )}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-6 px-3 text-sm">
+           <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
+              <span className="text-slate-400"><strong className="text-white font-medium">{activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}</strong> {activeData.precisionSystem ? activeData.precisionSystem.label : "Daily Picks"}</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+              <span className="text-slate-400"><strong className="text-white font-medium">{qualifiedFocusCount}</strong> Qualified Picks</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
+              <span className="text-slate-400"><strong className="text-white font-medium">{allQualifiedMarketSummary.length}</strong> Markets Live</span>
+           </div>
+           <div className="ml-auto text-[11px] text-slate-500 uppercase tracking-widest font-semibold font-mono">
+             Last Updated: {activeData.lastUpdatedAt ? new Date(activeData.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}
+           </div>
+        </div>
+
+        {donationMessage && <p className="rounded-xl bg-cyan-500/10 px-4 py-2 text-xs text-cyan-100 border border-cyan-400/20">{donationMessage}</p>}
+        {donationError && <p className="rounded-xl bg-rose-500/10 px-4 py-2 text-xs text-rose-200 border border-rose-500/20">{donationError}</p>}
+        {refreshMessage && <p className="rounded-xl bg-emerald-500/10 px-4 py-2 text-xs text-emerald-200 border border-emerald-500/20">{refreshMessage}</p>}
+        {refreshError && <p className="rounded-xl bg-rose-500/10 px-4 py-2 text-xs text-rose-200 border border-rose-500/20">{refreshError}</p>}
+        {playerLookupError && <p className="rounded-xl bg-rose-500/10 px-4 py-2 text-xs text-rose-200 border border-rose-500/20">{playerLookupError}</p>}
+        {boardError && <p className="rounded-xl bg-rose-500/10 px-4 py-2 text-xs text-rose-200 border border-rose-500/20">{boardError}</p>}
       </section>
 
       {activeData.precisionSystem ? (
@@ -1743,29 +1670,41 @@ export function SnapshotDashboard({
               <p className="text-[11px] uppercase tracking-[0.22em] text-teal-100/70">{activeData.precisionSystem.label}</p>
               <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s Best One-Prop-Per-Player Card</h2>
               <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
-                This section only shows true Daily 6 model picks. No fillers, no duplicate players, and the strongest reads
-                are ranked first.
+                This card always aims to show a full six-pack. True Daily 6 model picks rank first, then the board fills any
+                short slate with the best remaining qualified plays, then the best model-only plays if needed. The summary
+                stats here use the walk-forward audit, not the old full-sample replay headline.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            <div className="flex flex-wrap gap-2 text-xs">
               <div className="rounded-2xl border border-teal-300/15 bg-teal-500/[0.08] px-3 py-2">
                 <p className="uppercase tracking-[0.12em] text-teal-100/70">Today</p>
                 <p className="mt-1 text-xl font-semibold text-white">{dailyCardCandidates.length}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">Hist Rate</p>
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">
+                  {activeData.precisionSystem.accuracyLabel ?? "Hist Rate"}
+                </p>
                 <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalAccuracy)}%</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">Card Rule</p>
-                <p className="mt-1 text-xl font-semibold text-white">1 prop / player</p>
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">Core Today</p>
+                <p className="mt-1 text-xl font-semibold text-white">{dailyCardSourceCounts.PRECISION}</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">Markets</p>
-                <p className="mt-1 text-sm font-semibold text-white">{activeData.precisionSystem.supportedMarkets.join(" / ")}</p>
-              </div>
+              {activeData.precisionSystem.historicalPicksPerDay != null ? (
+                <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
+                  <p className="uppercase tracking-[0.12em] text-slate-300/70">
+                    {activeData.precisionSystem.picksPerDayLabel ?? "Picks/Day"}
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalPicksPerDay)}</p>
+                </div>
+              ) : null}
             </div>
           </div>
+          {activeData.precisionSystem.note ? (
+            <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-500/[0.08] px-4 py-3 text-xs text-cyan-50/90">
+              {activeData.precisionSystem.note}
+            </p>
+          ) : null}
 
           {dailyCardCandidates.length === 0 ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
@@ -1776,9 +1715,11 @@ export function SnapshotDashboard({
             <div className="mt-5 space-y-4">
               <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
                 <p className="font-semibold text-white">
-                  {precisionCandidates.length >= 6
-                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} selection${precisionCandidates.length === 1 ? "" : "s"}, and they are all shown here.`
-                    : `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true play${precisionCandidates.length === 1 ? "" : "s"} today. This card does not mix in non-model filler picks.`}
+                  {precisionCandidates.length >= DAILY_CARD_TARGET_COUNT
+                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} selection${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${DAILY_CARD_TARGET_COUNT}.`
+                    : dailyCardCandidates.length >= DAILY_CARD_TARGET_COUNT
+                      ? `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true play${precisionCandidates.length === 1 ? "" : "s"} today, so the card added ${dailyCardSourceCounts.QUALIFIED_FILL} qualified fill${dailyCardSourceCounts.QUALIFIED_FILL === 1 ? "" : "s"} and ${dailyCardSourceCounts.MODEL_FILL} model fill${dailyCardSourceCounts.MODEL_FILL === 1 ? "" : "s"} to stay at ${DAILY_CARD_TARGET_COUNT}.`
+                      : `Only ${dailyCardCandidates.length} playable one-prop-per-player spot${dailyCardCandidates.length === 1 ? "" : "s"} were available even after the fallback ladder.`}
                 </p>
                 <p className="mt-2">
                   Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.
@@ -1787,7 +1728,7 @@ export function SnapshotDashboard({
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                 {dailyCardCandidates.map((entry, index) => {
                   const side =
-                    entry.precision.side ?? entry.candidate.display?.side ?? entry.candidate.modelLine.modelSide;
+                    entry.precision?.side ?? entry.candidate.display?.side ?? entry.candidate.modelLine.modelSide;
                   const isLead = index === 0;
 
                   return (
@@ -1804,70 +1745,59 @@ export function SnapshotDashboard({
                           : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
                       }`}
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                         <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
-                              {isLead ? "Top Daily 6 Pick" : `Card #${index + 1}`}
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            {isLead && (
+                              <span className="rounded-full border border-fuchsia-300/30 bg-[linear-gradient(110deg,#c026d3,#9333ea)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_12px_rgba(192,38,211,0.5)]">
+                                Top Pick
+                              </span>
+                            )}
+                            <span
+                              className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${dailyCardSourceClass(entry.source)}`}
+                            >
+                              {dailyCardSourceLabel(entry.source)}
                             </span>
-                            <span className="rounded-full border border-fuchsia-200/20 bg-fuchsia-400/12 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-fuchsia-50/90">
+                            <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
                               {entry.candidate.market}
                             </span>
                           </div>
                           <div>
-                            <h3 className={`font-semibold text-white ${isLead ? "text-3xl" : "text-2xl"}`}>
+                            <h3 className={`font-bold text-white tracking-tight ${isLead ? "text-3xl" : "text-xl"}`}>
                               {entry.candidate.row.playerName}
                             </h3>
-                            <p className="mt-1 text-sm text-slate-200/82">
-                              {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} |{" "}
-                              {entry.candidate.row.gameTimeEt}
+                            <p className="mt-1 text-sm font-medium text-slate-400">
+                              {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} • {entry.candidate.row.gameTimeEt}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${modelSideClass(side)}`}>
-                            {side === "NEUTRAL" ? "WAIT" : `${side} ${entry.candidate.market}`}
-                          </span>
-                          <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/78">
-                            Hist {formatStat(entry.precision.historicalAccuracy)}%
+                        <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
+                          <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
+                          <span className="text-xl font-black">
+                            {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(entry.candidate.currentLine)}`}
                           </span>
                         </div>
                       </div>
 
-                      <div className={`mt-5 grid gap-2 text-xs text-slate-100 ${isLead ? "sm:grid-cols-2 xl:grid-cols-5" : "grid-cols-2 sm:grid-cols-4"}`}>
-                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Line</p>
-                          <p className="mt-1 font-semibold">{formatAverage(entry.candidate.currentLine)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Gap</p>
-                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.absLineGap, true)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Bucket</p>
-                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.bucketRecentAccuracy)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Leaf</p>
-                          <p className="mt-1 font-semibold">{formatAverage(entry.precision.leafAccuracy)}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Model Prob</p>
-                          <p className="mt-1 font-semibold">
-                            {entry.precision.projectionWinProbability == null
-                              ? "-"
-                              : `${formatStat(entry.precision.projectionWinProbability)}%`}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 space-y-2 text-sm text-slate-100/90">
-                        <p>{entry.candidate.reasons[0] ?? entry.candidate.supportText}</p>
-                        <p className="text-slate-300/75">
-                          Historical rule pack: {entry.precision.historicalPicks} similar picks at{" "}
-                          {formatStat(entry.precision.historicalAccuracy)}%.
+                      <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
+                        <p className="text-sm font-medium leading-relaxed text-slate-200">
+                          {entry.candidate.reasons[0] ?? entry.candidate.supportText}
                         </p>
+                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {entry.source === "PRECISION" && entry.precision ? (
+                            <span>
+                              Rule prior: <strong>{formatStat(entry.precision.historicalAccuracy)}%</strong> on the full-sample replay in similar spots
+                            </span>
+                          ) : entry.source === "QUALIFIED_FILL" ? (
+                            <span>Qualified fill: promoted from the main qualified board to keep a full six-pick card.</span>
+                          ) : (
+                            <span>Model fill: best remaining model-side look, used only when the slate is too thin to reach six picks.</span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -1905,6 +1835,36 @@ export function SnapshotDashboard({
           </div>
         </div>
 
+        {activeData.universalSystem ? (
+          <div className="mt-4 space-y-3">
+            <div className="grid gap-3 md:grid-cols-4">
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
+                <p className="uppercase tracking-[0.14em] text-slate-400">Replay Raw</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayRawAccuracy)}%</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
+                <p className="uppercase tracking-[0.14em] text-slate-400">WF Raw</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
+                <p className="uppercase tracking-[0.14em] text-slate-400">WF Qualified</p>
+                <p className="mt-1 text-2xl font-semibold text-white">
+                  {activeData.universalSystem.walkForwardQualifiedAccuracy == null
+                    ? "-"
+                    : `${formatStat(activeData.universalSystem.walkForwardQualifiedAccuracy)}%`}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
+                <p className="uppercase tracking-[0.14em] text-slate-400">WF Blended</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardBlendedAccuracy)}%</p>
+              </div>
+            </div>
+            <p className="rounded-2xl border border-amber-300/15 bg-amber-500/[0.08] px-4 py-3 text-xs text-amber-50/90">
+              {activeData.universalSystem.note}
+            </p>
+          </div>
+        ) : null}
+
         {homepageQualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
             No qualified picks are available for the current filters yet. Try another date, matchup, or market, then give
@@ -1936,58 +1896,46 @@ export function SnapshotDashboard({
                         : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
                     }`}
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                       <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-white/12 bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/80">
-                            {index === 0 ? "Top Qualified" : `Qualified #${index + 1}`}
-                          </span>
-                          <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-100/90">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          {index === 0 && (
+                            <span className="rounded-full border border-emerald-300/30 bg-[linear-gradient(110deg,#10b981,#047857)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_12px_rgba(16,185,129,0.5)]">
+                              Best Value
+                            </span>
+                          )}
+                          <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
                             {candidate.market}
                           </span>
                         </div>
                         <div>
-                          <h3 className="text-2xl font-semibold text-white">{candidate.row.playerName}</h3>
-                          <p className="mt-1 text-sm text-slate-200/82">
-                            {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
+                          <h3 className="text-xl font-bold tracking-tight text-white">{candidate.row.playerName}</h3>
+                          <p className="mt-1 text-sm font-medium text-slate-400">
+                            {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className={`rounded-full px-3 py-1.5 text-[11px] font-semibold ${modelSideClass(side)}`}>
-                          {side === "NEUTRAL" ? "WAIT" : `${side} ${candidate.market}`}
-                        </span>
-                        <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-semibold text-white/78">
-                          {candidate.display?.confidence == null ? "Conf -" : `Conf ${formatStat(candidate.display.confidence)}`}
+                      <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
+                        <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
+                        <span className="text-xl font-black">
+                          {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(candidate.currentLine)}`}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
-                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Status</p>
-                        <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Line</p>
-                        <p className="mt-1 font-semibold">{formatAverage(candidate.currentLine)}</p>
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Gap</p>
-                        <p className="mt-1 font-semibold">
-                          {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-white/8 bg-black/15 px-3 py-3">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/52">Proj Min</p>
-                        <p className="mt-1 font-semibold">{formatAverage(candidate.row.playerContext.projectedMinutes)}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-2 text-sm text-slate-100/90">
-                      <p>{candidate.reasons[0] ?? candidate.supportText}</p>
-                      <p className="text-slate-300/75">{candidate.supportText}</p>
+                    <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
+                      <p className="text-sm font-medium leading-relaxed text-slate-200">
+                        {candidate.reasons[0] ?? candidate.supportText}
+                      </p>
+                      {candidate.display?.confidence != null && (
+                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
+                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span>System Confidence Score: <strong>{formatStat(candidate.display.confidence)}</strong></span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
@@ -2051,72 +1999,55 @@ export function SnapshotDashboard({
             No qualified bets are showing across any market for the current filters yet.
           </div>
         ) : (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-            {allQualifiedCandidates.map((candidate, index) => (
-              <button
-                key={`qualified-all-${candidate.row.playerId}-${candidate.market}`}
-                type="button"
-                onClick={() => {
-                  setPlayerLookupError(null);
-                  openPlayerDetail(candidate.row, null, candidate.market);
-                }}
-                className="rounded-2xl border border-cyan-300/30 bg-[#0d162d] p-4 text-left hover:bg-[#111e3c]"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-cyan-200/75">
-                      Qualified #{index + 1} | {candidate.market}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">{candidate.row.playerName}</h3>
-                    <p className="mt-1 text-xs text-slate-300">
-                      {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="rounded-full border border-cyan-300/30 bg-cyan-500/10 px-2 py-1 text-[10px] font-semibold text-cyan-100">
-                      {candidate.market}
-                    </span>
-                    <span className="rounded-full border border-emerald-300/30 bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-100">
-                      QUALIFIED
-                    </span>
-                    <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${modelSideClass(candidate.display?.side ?? candidate.modelLine.modelSide)}`}>
-                      {(candidate.display?.side ?? candidate.modelLine.modelSide) === "NEUTRAL"
-                        ? "WAIT"
-                        : `${candidate.display?.side ?? candidate.modelLine.modelSide} ${candidate.market}`}
-                    </span>
-                  </div>
-                </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {allQualifiedCandidates.map((candidate, index) => {
+              const side = candidate.display?.side ?? candidate.modelLine.modelSide;
 
-                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
-                    <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
-                  </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Confidence</p>
-                    <p className="mt-1 font-semibold">
-                      {candidate.display?.confidence == null ? "-" : formatStat(candidate.display.confidence)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Line / Gap</p>
-                    <p className="mt-1 font-semibold">
-                      {formatAverage(candidate.currentLine)} / {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Focus</p>
-                    <p className="mt-1 font-semibold">{formatStat(candidate.focusScore)}</p>
-                  </div>
-                </div>
+              return (
+                <button
+                  key={`qualified-all-${candidate.row.playerId}-${candidate.market}`}
+                  type="button"
+                  onClick={() => {
+                    setPlayerLookupError(null);
+                    openPlayerDetail(candidate.row, null, candidate.market);
+                  }}
+                  className={`rounded-[26px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
+                    index === 0
+                      ? "border-cyan-300/30 bg-[linear-gradient(150deg,rgba(6,182,212,0.12)_0%,rgba(17,24,39,0.94)_48%,rgba(8,15,29,0.98)_100%)]"
+                      : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                          {candidate.market}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold tracking-tight text-white">{candidate.row.playerName}</h3>
+                        <p className="mt-1 text-sm font-medium text-slate-400">
+                          {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="mt-3 space-y-1 text-xs text-slate-200/85">
-                  {candidate.reasons.map((reason) => (
-                    <p key={`all-qualified-${candidate.row.playerId}-${candidate.market}-${reason}`}>{reason}</p>
-                  ))}
-                </div>
-              </button>
-            ))}
+                    <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
+                      <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
+                      <span className="text-xl font-black">
+                        {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(candidate.currentLine)}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
+                    <p className="text-sm font-medium leading-relaxed text-slate-200">
+                      {candidate.reasons[0] ?? candidate.supportText}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>
@@ -2471,6 +2402,17 @@ export function SnapshotDashboard({
             >
               All Players
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedView(!showAdvancedView)}
+              className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
+                showAdvancedView
+                  ? "border border-purple-300/45 bg-purple-500/20 text-purple-100"
+                  : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+              }`}
+            >
+              Advanced Data
+            </button>
           </div>
         </div>
         {isBoardLoading && displayedCandidates.length === 0 ? (
@@ -2499,30 +2441,36 @@ export function SnapshotDashboard({
                         definition="Player archetype from recent production profile (creator, scorer, big, spacer, etc.)."
                       />
                     </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Starter"
-                        definition="Starter status from actual game logs: last-game starter flag and starts in last 10."
-                      />
-                    </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Data Q"
-                        definition="Data completeness score for this player row: logs, status coverage, context, and stability."
-                      />
-                    </th>
+                    {showAdvancedView ? (
+                      <>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Starter"
+                            definition="Starter status from actual game logs: last-game starter flag and starts in last 10."
+                          />
+                        </th>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Data Q"
+                            definition="Data completeness score for this player row: logs, status coverage, context, and stability."
+                          />
+                        </th>
+                      </>
+                    ) : null}
                     <th className="px-4 py-3">
                       <HeaderWithTip
                         label="Min L3/L10"
                         definition="Average minutes over last 3 and last 10 games."
                       />
                     </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Min Trend"
-                        definition="Last-3 minutes average minus last-10 minutes average."
-                      />
-                    </th>
+                    {showAdvancedView ? (
+                      <th className="px-4 py-3">
+                        <HeaderWithTip
+                          label="Min Trend"
+                          definition="Last-3 minutes average minus last-10 minutes average."
+                        />
+                      </th>
+                    ) : null}
                     <th className="px-4 py-3">
                       <HeaderWithTip
                         label="Read"
@@ -2541,36 +2489,40 @@ export function SnapshotDashboard({
                         definition="Average stat value across all completed games this season."
                       />
                     </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Vol (SD)"
-                        definition="Volatility measured by standard deviation over last 10 games. Higher means less stable output."
-                      />
-                    </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Consistency"
-                        definition="Percent of last 10 games within 1 standard deviation of the player's own L10 average."
-                      />
-                    </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Floor/Ceil"
-                        definition="Lowest and highest values from the last 10 games."
-                      />
-                    </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Trend"
-                        definition="Last-3 average minus season average. Positive means recent form is above season baseline."
-                      />
-                    </th>
-                    <th className="px-4 py-3">
-                      <HeaderWithTip
-                        label="Opp +/-"
-                        definition="Opponent allowance vs league average for this market. Positive means softer matchup."
-                      />
-                    </th>
+                    {showAdvancedView ? (
+                      <>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Vol (SD)"
+                            definition="Volatility measured by standard deviation over last 10 games. Higher means less stable output."
+                          />
+                        </th>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Consistency"
+                            definition="Percent of last 10 games within 1 standard deviation of the player's own L10 average."
+                          />
+                        </th>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Floor/Ceil"
+                            definition="Lowest and highest values from the last 10 games."
+                          />
+                        </th>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Trend"
+                            definition="Last-3 average minus season average. Positive means recent form is above season baseline."
+                          />
+                        </th>
+                        <th className="px-4 py-3">
+                          <HeaderWithTip
+                            label="Opp +/-"
+                            definition="Opponent allowance vs league average for this market. Positive means softer matchup."
+                          />
+                        </th>
+                      </>
+                    ) : null}
                     <th className="px-4 py-3">
                       <HeaderWithTip
                         label="Proj Tonight"
@@ -2667,23 +2619,27 @@ export function SnapshotDashboard({
                           <div className="text-slate-400">{row.gameTimeEt}</div>
                         </td>
                         <td className="px-4 py-3 text-xs">{row.playerContext.archetype}</td>
-                        <td className="px-4 py-3 text-xs">
-                          <div>{row.playerContext.projectedStarter}</div>
-                          <div className="text-slate-400">
-                            Start L10 {row.playerContext.startsLast10}/10 ({formatPercentValue(
-                              row.playerContext.starterRateLast10 == null ? null : row.playerContext.starterRateLast10 * 100,
-                            )})
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${completenessTierClass(
-                              row.dataCompleteness.tier,
-                            )}`}
-                          >
-                            {row.dataCompleteness.score} {row.dataCompleteness.tier}
-                          </span>
-                        </td>
+                        {showAdvancedView ? (
+                          <>
+                            <td className="px-4 py-3 text-xs">
+                              <div>{row.playerContext.projectedStarter}</div>
+                              <div className="text-slate-400">
+                                Start L10 {row.playerContext.startsLast10}/10 ({formatPercentValue(
+                                  row.playerContext.starterRateLast10 == null ? null : row.playerContext.starterRateLast10 * 100,
+                                )})
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${completenessTierClass(
+                                  row.dataCompleteness.tier,
+                                )}`}
+                              >
+                                {row.dataCompleteness.score} {row.dataCompleteness.tier}
+                              </span>
+                            </td>
+                          </>
+                        ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div>
                             {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
@@ -2698,7 +2654,9 @@ export function SnapshotDashboard({
                                 )}-${formatAverage(row.playerContext.projectedMinutesCeiling)})`}
                           </div>
                         </td>
-                        <td className="px-4 py-3">{formatAverage(row.playerContext.minutesTrend, true)}</td>
+                        {showAdvancedView ? (
+                          <td className="px-4 py-3">{formatAverage(row.playerContext.minutesTrend, true)}</td>
+                        ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div>{candidate.reasons[0]}</div>
                           <div className="mt-1 text-slate-400">{candidate.currentLineLabel}</div>
@@ -2706,13 +2664,17 @@ export function SnapshotDashboard({
                         </td>
                         <td className="px-4 py-3">{formatAverage(row.last10Average[candidateMarket])}</td>
                         <td className="px-4 py-3">{formatAverage(row.seasonAverage[candidateMarket])}</td>
-                        <td className="px-4 py-3">{formatAverage(l10Volatility)}</td>
-                        <td className="px-4 py-3">{formatPercentValue(l10Consistency)}</td>
-                        <td className="px-4 py-3">
-                          {floor == null || ceiling == null ? "-" : `${formatStat(floor)} / ${formatStat(ceiling)}`}
-                        </td>
-                        <td className="px-4 py-3">{formatAverage(row.trendVsSeason[candidateMarket], true)}</td>
-                        <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[candidateMarket], true)}</td>
+                        {showAdvancedView ? (
+                          <>
+                            <td className="px-4 py-3">{formatAverage(l10Volatility)}</td>
+                            <td className="px-4 py-3">{formatPercentValue(l10Consistency)}</td>
+                            <td className="px-4 py-3">
+                              {floor == null || ceiling == null ? "-" : `${formatStat(floor)} / ${formatStat(ceiling)}`}
+                            </td>
+                            <td className="px-4 py-3">{formatAverage(row.trendVsSeason[candidateMarket], true)}</td>
+                            <td className="px-4 py-3">{formatAverage(row.opponentAllowanceDelta[candidateMarket], true)}</td>
+                          </>
+                        ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div>{formatAverage(row.projectedTonight[candidateMarket])}</div>
                           <div className="mt-1 flex items-center gap-1">
@@ -2842,41 +2804,41 @@ export function SnapshotDashboard({
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
                 <ol className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>1. Start with `All Markets` to see the strongest overall slate.</li>
-                  <li>2. Use the market chips to jump into a single stat family only when you want to narrow the board.</li>
-                  <li>3. Read the `Daily 6` card first, then the overall best-pick section.</li>
-                  <li>4. Override with your own line only when needed, then read `L10 O/U` plus `Minute Badge`.</li>
-                  <li>5. Click a player row to open the full analyzer and context sections.</li>
+                  <li>1. Check the <strong>Daily 6</strong> for the strongest one-prop-per-player picks today.</li>
+                  <li>2. Browse <strong>Qualified Picks</strong> for additional model-approved plays across all markets.</li>
+                  <li>3. Click any player card to open the full detail panel with game logs and context.</li>
+                  <li>4. Use <strong>Advanced Data</strong> toggle anywhere to reveal deeper stats if you want more detail.</li>
+                  <li>5. Use the player search bar to look up any player directly.</li>
                 </ol>
               </article>
 
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
-                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Minute Badge</p>
-                <p className="mt-2 text-xs text-slate-300">
-                  `Minute Badge` shows hit rate only in games with 22+ minutes. Example:
-                  `22+m: 85/104 (82%)` means 85 overs in 104 games with 22+ minutes.
-                </p>
-                <p className="mt-2 text-xs text-slate-300">
-                  For custom minute scenarios, use the player detail view where each market card supports a manual minutes floor input.
-                </p>
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Understanding Recommendations</p>
+                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                  <li>- <strong>OVER / UNDER</strong> tells you the model&apos;s directional pick.</li>
+                  <li>- The <strong>number</strong> next to it is the line the model is reacting to.</li>
+                  <li>- The <strong>reason text</strong> explains why in plain language.</li>
+                  <li>- For custom scenarios, open the player detail and set your own line in any market card.</li>
+                </ul>
               </article>
 
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
-                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Player Detail Workflow</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Player Detail Panel</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>- Start compact mode on.</li>
-                  <li>- Open `All Markets Detail` to review fair line, model side, and minutes scenario.</li>
-                  <li>- Compare projection vs active line, then check minute-scenario sample and volatility.</li>
-                  <li>- Validate with `Player Context` and `Team Context` before final decision.</li>
+                  <li>- <strong>Player Context</strong>: role, starter status, projected minutes.</li>
+                  <li>- <strong>All Markets Detail</strong>: averages, projections, and fair lines for every stat category.</li>
+                  <li>- <strong>Game Logs</strong>: recent performance history and game-by-game results.</li>
+                  <li>- Use the <strong>Jump to section</strong> dropdown to quickly navigate within the panel.</li>
                 </ul>
               </article>
 
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Controls</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>- `Esc` closes guide or player detail modal.</li>
-                  <li>- `Refresh Data` pulls latest logs/lineup changes.</li>
-                  <li>- Hover `?` icons for formulas and term definitions.</li>
+                  <li>- Press <strong>Esc</strong> to close the guide or player panel.</li>
+                  <li>- <strong>Refresh Data</strong> pulls the latest lineup and stat updates.</li>
+                  <li>- Use the <strong>date picker</strong> and <strong>matchup filter</strong> to change the slate.</li>
+                  <li>- Hover any <strong>?</strong> icon for a quick definition.</li>
                 </ul>
               </article>
             </div>
@@ -2941,24 +2903,31 @@ export function SnapshotDashboard({
                     return (
                       <div key={signalMarket} className="mt-2">
                         <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                          <span className={`rounded-full border px-2 py-0.5 font-semibold ${display.statusClass}`}>
-                            {display.statusText}
+                          <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 font-semibold text-white">
+                            {signalLabelForMarket(signalMarket)}
                           </span>
                           <span className={`rounded-full border px-2 py-0.5 font-semibold ${modelSideClass(display.side)}`}>
                             {display.side}
                           </span>
-                          <span className={`rounded-full border px-2 py-0.5 font-semibold ${ptsConfidenceClass(display.confidenceTier)}`}>
-                            Conf {display.confidence == null ? "-" : formatStat(display.confidence)}
-                          </span>
-                          <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                            Gap {formatAverage(display.projectionGap, true)}
-                          </span>
-                          <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                            Risk {formatAverage(display.minutesRisk)}
-                          </span>
                           <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
                             Line {formatAverage(display.line)}
                           </span>
+                          {showAdvancedView ? (
+                            <>
+                              <span className={`rounded-full border px-2 py-0.5 font-semibold ${display.statusClass}`}>
+                                {display.statusText}
+                              </span>
+                              <span className={`rounded-full border px-2 py-0.5 font-semibold ${ptsConfidenceClass(display.confidenceTier)}`}>
+                                Confidence {display.confidence == null ? "-" : formatStat(display.confidence)}
+                              </span>
+                              <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
+                                Edge {formatAverage(display.projectionGap, true)}
+                              </span>
+                              <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
+                                Minutes Risk {formatAverage(display.minutesRisk)}
+                              </span>
+                            </>
+                          ) : null}
                         </div>
                         {display.message ? (
                           <p className="mt-2 max-w-2xl rounded-lg border border-rose-300/20 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
@@ -3377,6 +3346,19 @@ export function SnapshotDashboard({
               collapsed={collapsedSections.markets}
               onToggle={() => toggleSection("markets")}
             >
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedView(!showAdvancedView)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
+                    showAdvancedView
+                      ? "border border-purple-300/45 bg-purple-500/20 text-purple-100"
+                      : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+                  }`}
+                >
+                  Advanced Data
+                </button>
+              </div>
               <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {MARKET_OPTIONS.map((option) => {
                   const m = option.value;
@@ -3417,12 +3399,16 @@ export function SnapshotDashboard({
                         <p className="text-right">{formatAverage(selectedPlayer.last10Average[m])}</p>
                         <p>Season</p>
                         <p className="text-right">{formatAverage(selectedPlayer.seasonAverage[m])}</p>
-                        <p>Home/Away</p>
-                        <p className="text-right">{formatAverage(selectedPlayer.homeAwayAverage[m])}</p>
-                        <p>Trend</p>
-                        <p className="text-right">{formatAverage(selectedPlayer.trendVsSeason[m], true)}</p>
-                        <p>Opp +/-</p>
-                        <p className="text-right">{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</p>
+                        {showAdvancedView ? (
+                          <>
+                            <p>Home/Away</p>
+                            <p className="text-right">{formatAverage(selectedPlayer.homeAwayAverage[m])}</p>
+                            <p>Trend</p>
+                            <p className="text-right">{formatAverage(selectedPlayer.trendVsSeason[m], true)}</p>
+                            <p>Opp +/-</p>
+                            <p className="text-right">{formatAverage(selectedPlayer.opponentAllowanceDelta[m], true)}</p>
+                          </>
+                        ) : null}
                         <p>Proj Tonight</p>
                         <p className="text-right">{formatAverage(selectedPlayer.projectedTonight[m])}</p>
                         <p>Fair Line</p>
@@ -3834,7 +3820,13 @@ export function SnapshotDashboard({
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedPlayer.recentLogs.length === 0 ? (
+                            {recentLogsPending ? (
+                              <tr className="border-t border-slate-300/10">
+                                <td colSpan={8} className="px-2 py-3 text-cyan-100">
+                                  Loading the last 10 completed-game logs...
+                                </td>
+                              </tr>
+                            ) : selectedPlayer.recentLogs.length === 0 ? (
                               <tr className="border-t border-slate-300/10">
                                 <td colSpan={8} className="px-2 py-3 text-slate-300">
                                   No completed-game logs available yet.
@@ -3886,7 +3878,9 @@ export function SnapshotDashboard({
               collapsed={collapsedSections.logs}
               onToggle={() => toggleSection("logs")}
             >
-              {selectedPlayer.recentLogs.length === 0 ? (
+              {recentLogsPending ? (
+                <p className="mt-3 text-sm text-cyan-100">Loading the last 10 completed-game logs...</p>
+              ) : selectedPlayer.recentLogs.length === 0 ? (
                 <p className="mt-3 text-sm text-slate-300">No completed-game logs available yet.</p>
               ) : (
                 <div className="mt-2 overflow-hidden rounded-xl border border-slate-300/15">
@@ -3986,6 +3980,31 @@ export function SnapshotDashboard({
           </div>
         </div>
       ) : null}
+
+      <section id="comments-section" className="mt-8 rounded-[28px] border border-violet-300/15 bg-[linear-gradient(160deg,#0e1932_0%,#0d1a30_55%,#101b2f_100%)] p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.88)]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-violet-200/80">Community</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white">Suggestions & Feedback</h2>
+            <p className="mt-1 max-w-3xl text-sm text-slate-300">
+              The homepage stays focused on the board now. Use the separate page for site comments, bug reports,
+              feature ideas, and general suggestions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openFeedbackPage}
+            className="rounded-full border border-violet-300/30 bg-violet-500/12 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/20"
+          >
+            Open Suggestions Page
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
+          Leave public comments and suggestions on a dedicated page without crowding the homepage. That page keeps the
+          full message list together so people can review older ideas and ongoing feedback in one place.
+        </div>
+      </section>
     </main>
   );
 }

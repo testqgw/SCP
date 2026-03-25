@@ -7,6 +7,10 @@ import { NbaDataClient } from "@/lib/nba/client";
 import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "@/lib/sportsdata/types";
 
 type RefreshMode = "FULL" | "DELTA" | "FAST";
+type RefreshSource = "manual" | "visit" | "cron";
+type RunRefreshOptions = {
+  source?: RefreshSource;
+};
 
 type RefreshResult = {
   runId: string;
@@ -33,6 +37,7 @@ const UPSERT_PLAYER_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_PLAYER_
 const UPSERT_GAME_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_GAME_BATCH, 20, 100);
 const UPSERT_LOG_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_LOG_BATCH, 50, 200);
 const SYNC_TEAM_BATCH = parsePositiveInt(process.env.SNAPSHOT_SYNC_TEAM_BATCH, 50, 200);
+const VISIT_REFRESH_COOLDOWN_MS = 15 * 60 * 1000;
 
 async function runInBatches<T>(
   items: T[],
@@ -473,26 +478,37 @@ function evaluateQualityInput(data: { logs: NormalizedPlayerGameStat[]; games: N
   return issues;
 }
 
-export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
+export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions): Promise<RefreshResult> {
   const startedAt = Date.now();
   const dateEt = getTodayEtDateString();
   const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
+  const visitCooldownThreshold = new Date(Date.now() - VISIT_REFRESH_COOLDOWN_MS);
   const runType = mode === "FULL" ? "FULL" : "DELTA";
   const isLightweightRefresh = mode === "FAST";
+  const source = options?.source ?? "manual";
 
-  const activeRun = await prisma.refreshRun.findFirst({
-    where: {
-      status: "RUNNING",
-      startedAt: { gte: staleThreshold },
-    },
-    orderBy: [{ startedAt: "desc" }],
-    select: { id: true, totalGames: true, totalPlayers: true, startedAt: true },
-  });
+  const [activeRun, latestRefreshSetting] = await Promise.all([
+    prisma.refreshRun.findFirst({
+      where: {
+        status: "RUNNING",
+        startedAt: { gte: staleThreshold },
+      },
+      orderBy: [{ startedAt: "desc" }],
+      select: { id: true, totalGames: true, totalPlayers: true, startedAt: true },
+    }),
+    source === "visit"
+      ? prisma.systemSetting.findUnique({
+          where: { key: "snapshot_last_refresh" },
+          select: { value: true, updatedAt: true },
+        })
+      : Promise.resolve(null),
+  ]);
 
   if (activeRun) {
     logger.info("Refresh skipped because another run is active", {
       activeRunId: activeRun.id,
       mode,
+      source,
       startedAt: activeRun.startedAt.toISOString(),
     });
     return {
@@ -504,6 +520,33 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
       totals: {
         games: activeRun.totalGames,
         players: activeRun.totalPlayers,
+      },
+    };
+  }
+
+  const recentVisitRefreshAt =
+    source === "visit" &&
+    latestRefreshSetting?.value &&
+    typeof latestRefreshSetting.value === "object" &&
+    (latestRefreshSetting.value as { dateEt?: unknown }).dateEt === dateEt
+      ? latestRefreshSetting.updatedAt
+      : null;
+
+  if (source === "visit" && recentVisitRefreshAt != null && recentVisitRefreshAt >= visitCooldownThreshold) {
+    logger.info("Visit refresh skipped because slate was refreshed recently", {
+      mode,
+      source,
+      refreshedAt: recentVisitRefreshAt.toISOString(),
+    });
+    return {
+      runId: `recent:${dateEt}`,
+      status: "PARTIAL",
+      warnings: ["Refresh completed recently. Loading the latest board instead."],
+      isPublishable: false,
+      qualityIssues: ["recent_refresh"],
+      totals: {
+        games: 0,
+        players: 0,
       },
     };
   }
@@ -527,7 +570,13 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
     data: {
       type: runType,
       status: "RUNNING",
-      notes: { dateEt, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, requestedMode: mode },
+      notes: {
+        dateEt,
+        source: "nba_official",
+        qualityGateEnabled: QUALITY_GATE_ENABLED,
+        requestedMode: mode,
+        requestedBy: source,
+      },
     },
     select: { id: true },
   });
@@ -595,6 +644,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           qualityGateEnabled: QUALITY_GATE_ENABLED,
           lineupMeta,
           requestedMode: mode,
+          requestedBy: source,
         },
       },
     });
@@ -612,6 +662,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           source: "nba_official",
           lineupMeta,
           requestedMode: mode,
+          requestedBy: source,
         },
       },
       create: {
@@ -626,6 +677,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
           source: "nba_official",
           lineupMeta,
           requestedMode: mode,
+          requestedBy: source,
         },
       },
     });
@@ -643,6 +695,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             source: "nba_official",
             lineupMeta,
             requestedMode: mode,
+            requestedBy: source,
           },
         },
         create: {
@@ -656,6 +709,7 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
             source: "nba_official",
             lineupMeta,
             requestedMode: mode,
+            requestedBy: source,
           },
         },
       });
@@ -685,7 +739,14 @@ export async function runRefresh(mode: RefreshMode): Promise<RefreshResult> {
         warningCount: warnings.length,
         isPublishable: false,
         qualityIssues: ["refresh_failed"],
-        notes: { dateEt, warnings, source: "nba_official", qualityGateEnabled: QUALITY_GATE_ENABLED, requestedMode: mode },
+        notes: {
+          dateEt,
+          warnings,
+          source: "nba_official",
+          qualityGateEnabled: QUALITY_GATE_ENABLED,
+          requestedMode: mode,
+          requestedBy: source,
+        },
       },
     });
     logger.error("Refresh failed", { runId: run.id, mode, reason });

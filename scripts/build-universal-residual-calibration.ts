@@ -32,11 +32,23 @@ type TrainingRow = {
   gameDateEt: string;
   market: Market;
   projectedValue: number;
+  pointsProjection?: number | null;
+  reboundsProjection?: number | null;
+  assistProjection?: number | null;
+  threesProjection?: number | null;
   line: number;
   overPrice: number | null;
   underPrice: number | null;
   finalSide: Side;
   actualSide: Side;
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
@@ -44,6 +56,13 @@ type TrainingRow = {
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
   openingTeamSpread: number | null;
   openingTotal: number | null;
   lineupTimingConfidence: number | null;
@@ -366,6 +385,30 @@ async function main(): Promise<void> {
       l5CurrentLineDeltaAvg: row.l5CurrentLineDeltaAvg ?? null,
       l5CurrentLineOverRate: row.l5CurrentLineOverRate ?? null,
       l5MinutesAvg: row.l5MinutesAvg ?? null,
+      emaCurrentLineDelta: row.emaCurrentLineDelta ?? null,
+      emaCurrentLineOverRate: row.emaCurrentLineOverRate ?? null,
+      emaMinutesAvg: row.emaMinutesAvg ?? null,
+      l15ValueMean: row.l15ValueMean ?? null,
+      l15ValueMedian: row.l15ValueMedian ?? null,
+      l15ValueStdDev: row.l15ValueStdDev ?? null,
+      l15ValueSkew: row.l15ValueSkew ?? null,
+      projectionMedianDelta:
+        row.l15ValueMedian == null ? null : round(row.projectedValue - row.l15ValueMedian, 4),
+      medianLineGap: row.l15ValueMedian == null ? null : round(row.l15ValueMedian - row.line, 4),
+      competitivePaceFactor:
+        row.openingTotal == null ? null : round(row.openingTotal / Math.max(Math.abs(row.openingTeamSpread ?? 0), 1), 4),
+      blowoutRisk:
+        row.openingTotal == null || row.openingTeamSpread == null
+          ? null
+          : round(Math.abs(row.openingTeamSpread) / Math.max(row.openingTotal, 1), 4),
+      seasonMinutesAvg: row.seasonMinutesAvg ?? null,
+      minutesLiftPct: row.minutesLiftPct ?? null,
+      activeCorePts: row.activeCorePts ?? null,
+      activeCoreAst: row.activeCoreAst ?? null,
+      missingCorePts: row.missingCorePts ?? null,
+      missingCoreAst: row.missingCoreAst ?? null,
+      missingCoreShare: row.missingCoreShare ?? null,
+      stepUpRoleFlag: row.stepUpRoleFlag ?? null,
       expectedMinutes: row.expectedMinutes,
       minutesVolatility: row.minutesVolatility,
       benchBigRoleStability: row.benchBigRoleStability ?? null,
@@ -377,10 +420,10 @@ async function main(): Promise<void> {
       lineupTimingConfidence: row.lineupTimingConfidence,
       completenessScore: row.completenessScore,
       playerPosition: summary?.position ?? null,
-      pointsProjection: summary?.ptsProjectionAvg ?? null,
-      reboundsProjection: summary?.rebProjectionAvg ?? null,
-      assistProjection: summary?.astProjectionAvg ?? null,
-      threesProjection: summary?.threesProjectionAvg ?? null,
+      pointsProjection: row.pointsProjection ?? summary?.ptsProjectionAvg ?? null,
+      reboundsProjection: row.reboundsProjection ?? summary?.rebProjectionAvg ?? null,
+      assistProjection: row.assistProjection ?? summary?.astProjectionAvg ?? null,
+      threesProjection: row.threesProjection ?? summary?.threesProjectionAvg ?? null,
     });
 
     const key = buildUniversalResidualCalibrationKey(row.market, decision.archetype, decision.minutesBucket);

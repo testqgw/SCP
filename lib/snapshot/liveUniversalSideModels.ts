@@ -20,6 +20,8 @@ import {
   type UniversalResidualCalibrationRecord,
 } from "@/lib/snapshot/universalResidualCalibration";
 import { computeBenchBigRoleStability } from "@/lib/snapshot/benchBigRoleStability";
+import { buildPRAComboState } from "@/lib/snapshot/praComboState";
+import { gateShapeNumber, shouldExposeShapeContext } from "@/lib/snapshot/shapeRegime";
 import type { SnapshotMarket, SnapshotModelSide } from "@/lib/types/snapshot";
 
 type Side = "OVER" | "UNDER";
@@ -64,6 +66,27 @@ type FeatureName =
   | "l5CurrentLineDeltaAvg"
   | "l5CurrentLineOverRate"
   | "l5MinutesAvg"
+  | "emaCurrentLineDelta"
+  | "emaCurrentLineOverRate"
+  | "emaMinutesAvg"
+  | "l15ValueMean"
+  | "l15ValueMedian"
+  | "l15ValueStdDev"
+  | "l15ValueSkew"
+  | "projectionMedianDelta"
+  | "medianLineGap"
+  | "competitivePaceFactor"
+  | "blowoutRisk"
+  | "minutesShiftDelta"
+  | "minutesShiftAbsDelta"
+  | "seasonMinutesAvg"
+  | "minutesLiftPct"
+  | "activeCorePts"
+  | "activeCoreAst"
+  | "missingCorePts"
+  | "missingCoreAst"
+  | "missingCoreShare"
+  | "stepUpRoleFlag"
   | "expectedMinutes"
   | "minutesVolatility"
   | "benchBigRoleStability"
@@ -100,7 +123,26 @@ type FeatureName =
   | "overProbability"
   | "underProbability"
   | "assistRate"
-  | "astToLineRatio";
+  | "astToLineRatio"
+  | "ptsShareOfPRA"
+  | "rebShareOfPRA"
+  | "astShareOfPRA"
+  | "maxLegShareOfCombo"
+  | "comboEntropy"
+  | "comboBalanceScore"
+  | "ptsLedPRAFlag"
+  | "highLinePRAFlag"
+  | "veryHighLinePRAFlag"
+  | "lateSeasonFlag"
+  | "lateSeasonHighLinePRAFlag"
+  | "guardWingArchetypeFlag"
+  | "ptsLedPRAxGuardWing"
+  | "highLinePRAxGuardWing"
+  | "lateSeasonxGuardWing"
+  | "closeGamexGuardWing"
+  | "ptsLedPRAxCloseGame"
+  | "ptsLedPRAxLateSeason"
+  | "ptsLedPRAxHighLine";
 
 type LeafNode = {
   kind: "leaf";
@@ -221,6 +263,27 @@ type LiveUniversalModelRow = {
   l5CurrentLineDeltaAvg: number | null;
   l5CurrentLineOverRate: number | null;
   l5MinutesAvg: number | null;
+  emaCurrentLineDelta: number | null;
+  emaCurrentLineOverRate: number | null;
+  emaMinutesAvg: number | null;
+  l15ValueMean: number | null;
+  l15ValueMedian: number | null;
+  l15ValueStdDev: number | null;
+  l15ValueSkew: number | null;
+  projectionMedianDelta: number | null;
+  medianLineGap: number | null;
+  competitivePaceFactor: number | null;
+  blowoutRisk: number | null;
+  minutesShiftDelta: number | null;
+  minutesShiftAbsDelta: number | null;
+  seasonMinutesAvg: number | null;
+  minutesLiftPct: number | null;
+  activeCorePts: number | null;
+  activeCoreAst: number | null;
+  missingCorePts: number | null;
+  missingCoreAst: number | null;
+  missingCoreShare: number | null;
+  stepUpRoleFlag: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   benchBigRoleStability: number | null;
@@ -251,9 +314,29 @@ type LiveUniversalModelRow = {
   comboGapPressure: number | null;
   assistRate: number | null;
   astToLineRatio: number | null;
+  ptsShareOfPRA: number | null;
+  rebShareOfPRA: number | null;
+  astShareOfPRA: number | null;
+  maxLegShareOfCombo: number | null;
+  comboEntropy: number | null;
+  comboBalanceScore: number | null;
+  ptsLedPRAFlag: number;
+  highLinePRAFlag: number;
+  veryHighLinePRAFlag: number;
+  lateSeasonFlag: number;
+  lateSeasonHighLinePRAFlag: number;
+  guardWingArchetypeFlag: number;
+  ptsLedPRAxGuardWing: number;
+  highLinePRAxGuardWing: number;
+  lateSeasonxGuardWing: number;
+  closeGamexGuardWing: number;
+  ptsLedPRAxCloseGame: number;
+  ptsLedPRAxLateSeason: number;
+  ptsLedPRAxHighLine: number;
 };
 
 export type PredictLiveUniversalSideInput = {
+  gameDateEt?: string | null;
   market: SnapshotMarket;
   projectedValue: number | null;
   line: number | null;
@@ -263,6 +346,25 @@ export type PredictLiveUniversalSideInput = {
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
+  emaCurrentLineDelta?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  emaMinutesAvg?: number | null;
+  l15ValueMean?: number | null;
+  l15ValueMedian?: number | null;
+  l15ValueStdDev?: number | null;
+  l15ValueSkew?: number | null;
+  projectionMedianDelta?: number | null;
+  medianLineGap?: number | null;
+  competitivePaceFactor?: number | null;
+  blowoutRisk?: number | null;
+  seasonMinutesAvg?: number | null;
+  minutesLiftPct?: number | null;
+  activeCorePts?: number | null;
+  activeCoreAst?: number | null;
+  missingCorePts?: number | null;
+  missingCoreAst?: number | null;
+  missingCoreShare?: number | null;
+  stepUpRoleFlag?: number | null;
   expectedMinutes: number | null;
   minutesVolatility: number | null;
   benchBigRoleStability?: number | null;
@@ -2102,18 +2204,27 @@ type ProjectionDistributionEstimate = {
   underWinProbability: number;
 };
 
-function estimateProjectionDistribution(
+function comboComponentMarkets(market: SnapshotMarket): SnapshotMarket[] | null {
+  switch (market) {
+    case "PRA":
+      return ["PTS", "REB", "AST"];
+    case "PA":
+      return ["PTS", "AST"];
+    case "PR":
+      return ["PTS", "REB"];
+    case "RA":
+      return ["REB", "AST"];
+    default:
+      return null;
+  }
+}
+
+function resolveProjectionDistributionCandidates(
+  distributionMap: Map<string, UniversalProjectionDistributionRecord>,
   market: SnapshotMarket,
-  archetype: Archetype | null,
-  minutesBucket: UniversalMinutesBucket | null,
-  projectedValue: number,
-  line: number,
-): ProjectionDistributionEstimate | null {
-  if (!archetype || !minutesBucket) return null;
-
-  const distributionMap = loadProjectionDistributionMap();
-  if (distributionMap.size === 0) return null;
-
+  archetype: Archetype,
+  minutesBucket: UniversalMinutesBucket,
+): Array<{ record: UniversalProjectionDistributionRecord; baseWeight: number }> {
   const candidates: Array<{ record: UniversalProjectionDistributionRecord; baseWeight: number }> = [];
   const scoped = distributionMap.get(
     buildUniversalProjectionDistributionKey("market_archetype_minutes", market, archetype, minutesBucket),
@@ -2127,13 +2238,21 @@ function estimateProjectionDistribution(
 
   const marketWide = distributionMap.get(buildUniversalProjectionDistributionKey("market", market, null, null));
   if (marketWide) candidates.push({ record: marketWide, baseWeight: 0.38 });
+  return candidates;
+}
 
+function combineProjectionDistributionCandidates(
+  market: SnapshotMarket,
+  projectedValue: number,
+  line: number,
+  candidates: Array<{ estimate: ProjectionDistributionEstimate; baseWeight: number }>,
+): ProjectionDistributionEstimate | null {
   if (candidates.length === 0) return null;
 
-  const weighted = candidates.map(({ record, baseWeight }) => {
-    const sampleWeight = clamp(Math.log10(record.sampleCount + 1) / 2.3, 0.18, 1);
+  const weighted = candidates.map(({ estimate, baseWeight }) => {
+    const sampleWeight = clamp(Math.log10(estimate.sampleCount + 1) / 2.3, 0.18, 1);
     return {
-      record,
+      estimate,
       weight: baseWeight * sampleWeight,
     };
   });
@@ -2141,11 +2260,11 @@ function estimateProjectionDistribution(
   if (totalWeight <= 0) return null;
 
   const residualMean =
-    weighted.reduce((sum, entry) => sum + entry.record.residualMean * entry.weight, 0) / totalWeight;
+    weighted.reduce((sum, entry) => sum + entry.estimate.residualMean * entry.weight, 0) / totalWeight;
   const secondMoment =
     weighted.reduce((sum, entry) => {
-      const variance = entry.record.residualStdDev * entry.record.residualStdDev;
-      return sum + (variance + entry.record.residualMean * entry.record.residualMean) * entry.weight;
+      const variance = entry.estimate.residualStdDev * entry.estimate.residualStdDev;
+      return sum + (variance + entry.estimate.residualMean * entry.estimate.residualMean) * entry.weight;
     }, 0) / totalWeight;
   const residualStdDev = Math.max(
     residualStdDevFloorForMarket(market),
@@ -2154,7 +2273,7 @@ function estimateProjectionDistribution(
   const threshold = line - projectedValue;
   const underWinProbability = normalCdf(threshold, residualMean, residualStdDev);
   const overWinProbability = clamp(1 - underWinProbability, 0, 1);
-  const sampleCount = weighted.reduce((sum, entry) => sum + entry.record.sampleCount * entry.weight, 0) / totalWeight;
+  const sampleCount = weighted.reduce((sum, entry) => sum + entry.estimate.sampleCount * entry.weight, 0) / totalWeight;
 
   return {
     sampleCount: round(sampleCount, 2),
@@ -2163,6 +2282,111 @@ function estimateProjectionDistribution(
     overWinProbability: round(overWinProbability, 4),
     underWinProbability: round(underWinProbability, 4),
   };
+}
+
+function estimateDirectProjectionDistribution(
+  market: SnapshotMarket,
+  archetype: Archetype,
+  minutesBucket: UniversalMinutesBucket,
+  projectedValue: number,
+  line: number,
+  distributionMap: Map<string, UniversalProjectionDistributionRecord>,
+): ProjectionDistributionEstimate | null {
+  const candidates = resolveProjectionDistributionCandidates(distributionMap, market, archetype, minutesBucket).map(
+    ({ record, baseWeight }) => ({
+      estimate: {
+        sampleCount: record.sampleCount,
+        residualMean: record.residualMean,
+        residualStdDev: record.residualStdDev,
+        overWinProbability: 0.5,
+        underWinProbability: 0.5,
+      },
+      baseWeight,
+    }),
+  );
+  return combineProjectionDistributionCandidates(market, projectedValue, line, candidates);
+}
+
+function estimateComboComponentProjectionDistribution(
+  market: SnapshotMarket,
+  archetype: Archetype,
+  minutesBucket: UniversalMinutesBucket,
+  projectedValue: number,
+  line: number,
+  distributionMap: Map<string, UniversalProjectionDistributionRecord>,
+): ProjectionDistributionEstimate | null {
+  const componentMarkets = comboComponentMarkets(market);
+  if (!componentMarkets) return null;
+
+  const componentEstimates = componentMarkets.map((componentMarket) =>
+    estimateDirectProjectionDistribution(
+      componentMarket,
+      archetype,
+      minutesBucket,
+      0,
+      0,
+      distributionMap,
+    ),
+  );
+  if (componentEstimates.some((estimate) => !estimate)) return null;
+
+  const resolved = componentEstimates.filter(
+    (estimate): estimate is ProjectionDistributionEstimate => estimate != null,
+  );
+  if (resolved.length !== componentMarkets.length) return null;
+
+  const residualMean = resolved.reduce((sum, estimate) => sum + estimate.residualMean, 0);
+  const variance = resolved.reduce((sum, estimate) => sum + estimate.residualStdDev * estimate.residualStdDev, 0);
+  const residualStdDev = Math.max(residualStdDevFloorForMarket(market), Math.sqrt(Math.max(variance, 0)));
+  const threshold = line - projectedValue;
+  const underWinProbability = normalCdf(threshold, residualMean, residualStdDev);
+  const overWinProbability = clamp(1 - underWinProbability, 0, 1);
+  const sampleCount = resolved.reduce((min, estimate) => Math.min(min, estimate.sampleCount), Number.POSITIVE_INFINITY);
+
+  return {
+    sampleCount: round(Number.isFinite(sampleCount) ? sampleCount : 0, 2),
+    residualMean: round(residualMean, 4),
+    residualStdDev: round(residualStdDev, 4),
+    overWinProbability: round(overWinProbability, 4),
+    underWinProbability: round(underWinProbability, 4),
+  };
+}
+
+function estimateProjectionDistribution(
+  market: SnapshotMarket,
+  archetype: Archetype | null,
+  minutesBucket: UniversalMinutesBucket | null,
+  projectedValue: number,
+  line: number,
+): ProjectionDistributionEstimate | null {
+  if (!archetype || !minutesBucket) return null;
+
+  const distributionMap = loadProjectionDistributionMap();
+  if (distributionMap.size === 0) return null;
+
+  const directEstimate = estimateDirectProjectionDistribution(
+    market,
+    archetype,
+    minutesBucket,
+    projectedValue,
+    line,
+    distributionMap,
+  );
+  const componentEstimate = estimateComboComponentProjectionDistribution(
+    market,
+    archetype,
+    minutesBucket,
+    projectedValue,
+    line,
+    distributionMap,
+  );
+  if (!componentEstimate) return directEstimate;
+  if (!directEstimate) return componentEstimate;
+
+  return combineProjectionDistributionCandidates(market, projectedValue, line, [
+    { estimate: directEstimate, baseWeight: 0.74 },
+    { estimate: componentEstimate, baseWeight: 0.26 },
+  ]);
 }
 
 function resolveBenchReboundingScorerArchetype(
@@ -2671,6 +2895,48 @@ function getFeature(row: LiveUniversalModelRow, feature: FeatureName): number | 
       return row.l5CurrentLineOverRate;
     case "l5MinutesAvg":
       return row.l5MinutesAvg;
+    case "emaCurrentLineDelta":
+      return row.emaCurrentLineDelta;
+    case "emaCurrentLineOverRate":
+      return row.emaCurrentLineOverRate;
+    case "emaMinutesAvg":
+      return row.emaMinutesAvg;
+    case "l15ValueMean":
+      return row.l15ValueMean;
+    case "l15ValueMedian":
+      return row.l15ValueMedian;
+    case "l15ValueStdDev":
+      return row.l15ValueStdDev;
+    case "l15ValueSkew":
+      return row.l15ValueSkew;
+    case "projectionMedianDelta":
+      return row.projectionMedianDelta;
+    case "medianLineGap":
+      return row.medianLineGap;
+    case "competitivePaceFactor":
+      return row.competitivePaceFactor;
+    case "blowoutRisk":
+      return row.blowoutRisk;
+    case "minutesShiftDelta":
+      return row.minutesShiftDelta;
+    case "minutesShiftAbsDelta":
+      return row.minutesShiftAbsDelta;
+    case "seasonMinutesAvg":
+      return row.seasonMinutesAvg;
+    case "minutesLiftPct":
+      return row.minutesLiftPct;
+    case "activeCorePts":
+      return row.activeCorePts;
+    case "activeCoreAst":
+      return row.activeCoreAst;
+    case "missingCorePts":
+      return row.missingCorePts;
+    case "missingCoreAst":
+      return row.missingCoreAst;
+    case "missingCoreShare":
+      return row.missingCoreShare;
+    case "stepUpRoleFlag":
+      return row.stepUpRoleFlag;
     case "expectedMinutes":
       return row.expectedMinutes;
     case "minutesVolatility":
@@ -2745,6 +3011,44 @@ function getFeature(row: LiveUniversalModelRow, feature: FeatureName): number | 
       return row.assistRate;
     case "astToLineRatio":
       return row.astToLineRatio;
+    case "ptsShareOfPRA":
+      return row.ptsShareOfPRA;
+    case "rebShareOfPRA":
+      return row.rebShareOfPRA;
+    case "astShareOfPRA":
+      return row.astShareOfPRA;
+    case "maxLegShareOfCombo":
+      return row.maxLegShareOfCombo;
+    case "comboEntropy":
+      return row.comboEntropy;
+    case "comboBalanceScore":
+      return row.comboBalanceScore;
+    case "ptsLedPRAFlag":
+      return row.ptsLedPRAFlag;
+    case "highLinePRAFlag":
+      return row.highLinePRAFlag;
+    case "veryHighLinePRAFlag":
+      return row.veryHighLinePRAFlag;
+    case "lateSeasonFlag":
+      return row.lateSeasonFlag;
+    case "lateSeasonHighLinePRAFlag":
+      return row.lateSeasonHighLinePRAFlag;
+    case "guardWingArchetypeFlag":
+      return row.guardWingArchetypeFlag;
+    case "ptsLedPRAxGuardWing":
+      return row.ptsLedPRAxGuardWing;
+    case "highLinePRAxGuardWing":
+      return row.highLinePRAxGuardWing;
+    case "lateSeasonxGuardWing":
+      return row.lateSeasonxGuardWing;
+    case "closeGamexGuardWing":
+      return row.closeGamexGuardWing;
+    case "ptsLedPRAxCloseGame":
+      return row.ptsLedPRAxCloseGame;
+    case "ptsLedPRAxLateSeason":
+      return row.ptsLedPRAxLateSeason;
+    case "ptsLedPRAxHighLine":
+      return row.ptsLedPRAxHighLine;
     default:
       return null;
   }
@@ -2864,7 +3168,51 @@ function applyBucketSideBias(
   archetype: Archetype,
   row: LiveUniversalModelRow,
   side: Side,
+  componentProjectionDistribution: ProjectionDistributionEstimate | null,
 ): Side {
+  const marketLeanSide: Side =
+    row.favoredSide === "OVER" || row.favoredSide === "UNDER" ? row.favoredSide : row.finalSide;
+  const componentSide =
+    componentProjectionDistribution == null
+      ? null
+      : componentProjectionDistribution.overWinProbability >= componentProjectionDistribution.underWinProbability
+        ? "OVER"
+        : "UNDER";
+  const componentConfidence =
+    componentProjectionDistribution == null
+      ? null
+      : Math.max(
+          componentProjectionDistribution.overWinProbability,
+          componentProjectionDistribution.underWinProbability,
+        );
+
+  if (market === "PTS" && archetype === "WING" && (row.openingTotal ?? Number.POSITIVE_INFINITY) <= 236.5) {
+    return row.projectionSide;
+  }
+  if (market === "PTS" && archetype === "SPOTUP_WING" && (row.openingTotal ?? Number.POSITIVE_INFINITY) <= 227) {
+    return marketLeanSide;
+  }
+  if (market === "PRA" && archetype === "CONNECTOR_WING" && (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= 30.5) {
+    if (componentSide == null || componentSide === marketLeanSide || (componentConfidence ?? 0) <= 0.54) {
+      return marketLeanSide;
+    }
+  }
+  if (market === "PA" && archetype === "CONNECTOR_WING" && row.lineGap <= 0.25) {
+    return marketLeanSide;
+  }
+  if (market === "PA" && archetype === "SPOTUP_WING" && (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= 29.5) {
+    return marketLeanSide;
+  }
+  if (
+    market === "PR" &&
+    archetype === "CENTER" &&
+    (row.expectedMinutes ?? 0) >= 32.25 &&
+    componentSide != null &&
+    componentSide === marketLeanSide &&
+    (componentConfidence ?? 0) >= 0.54
+  ) {
+    return marketLeanSide;
+  }
   if (
     market === "PA" &&
     archetype === "SPOTUP_WING" &&
@@ -3027,6 +3375,74 @@ function inspectLiveUniversalModelSideInternal(
         );
   const finalSide: Side =
     input.finalSide === "OVER" || input.finalSide === "UNDER" ? input.finalSide : projectionSide;
+  const emaMinutesAvg = input.emaMinutesAvg ?? null;
+  const minutesShiftDelta =
+    input.expectedMinutes == null || emaMinutesAvg == null ? null : round(input.expectedMinutes - emaMinutesAvg, 4);
+  const minutesLiftPct =
+    input.minutesLiftPct != null
+      ? round(input.minutesLiftPct, 4)
+      : input.expectedMinutes == null || input.seasonMinutesAvg == null || input.seasonMinutesAvg <= 0
+        ? null
+        : round(input.expectedMinutes / input.seasonMinutesAvg - 1, 4);
+  const stepUpRoleFlag =
+    input.stepUpRoleFlag != null
+      ? input.stepUpRoleFlag
+      : input.missingCoreShare != null && minutesLiftPct != null && input.missingCoreShare > 0.2 && minutesLiftPct >= 0.15
+        ? 1
+        : 0;
+  const minutesShiftAbsDelta = minutesShiftDelta == null ? null : round(Math.abs(minutesShiftDelta), 4);
+  const openingSpreadAbs =
+    input.openingTeamSpread == null ? null : round(Math.abs(input.openingTeamSpread), 3);
+  const rawCompetitivePaceFactor =
+    input.competitivePaceFactor != null
+      ? round(input.competitivePaceFactor, 4)
+      : input.openingTotal == null
+        ? null
+        : round(input.openingTotal / Math.max(openingSpreadAbs ?? 0, 1), 4);
+  const rawBlowoutRisk =
+    input.blowoutRisk != null
+      ? round(input.blowoutRisk, 4)
+      : input.openingTotal == null || openingSpreadAbs == null
+        ? null
+        : round(openingSpreadAbs / Math.max(input.openingTotal, 1), 4);
+  const l15ValueMedian = input.l15ValueMedian ?? null;
+  const rawProjectionMedianDelta =
+    input.projectionMedianDelta != null
+      ? round(input.projectionMedianDelta, 4)
+      : l15ValueMedian == null
+        ? null
+        : round(input.projectedValue - l15ValueMedian, 4);
+  const rawMedianLineGap =
+    input.medianLineGap != null
+      ? round(input.medianLineGap, 4)
+      : l15ValueMedian == null
+        ? null
+        : round(l15ValueMedian - input.line, 4);
+  const shapeContextEnabled = shouldExposeShapeContext({
+    dateEt: input.gameDateEt ?? null,
+    stepUpRoleFlag,
+    expectedMinutes: input.expectedMinutes,
+    emaMinutesAvg,
+    minutesShiftAbsDelta,
+    missingCoreShare: input.missingCoreShare ?? null,
+    minutesLiftPct,
+  });
+  const competitivePaceFactor = gateShapeNumber(rawCompetitivePaceFactor, shapeContextEnabled);
+  const blowoutRisk = gateShapeNumber(rawBlowoutRisk, shapeContextEnabled);
+  const projectionMedianDelta = gateShapeNumber(rawProjectionMedianDelta, shapeContextEnabled);
+  const medianLineGap = gateShapeNumber(rawMedianLineGap, shapeContextEnabled);
+  const praComboState = buildPRAComboState({
+    market: input.market,
+    gameDateEt: input.gameDateEt ?? null,
+    line: input.line,
+    openingTeamSpread: input.openingTeamSpread,
+    archetype,
+    pointsProjection:
+      input.pointsProjection ?? (input.market === "PTS" ? input.projectedValue : null),
+    reboundsProjection:
+      input.reboundsProjection ?? (input.market === "REB" ? input.projectedValue : null),
+    assistProjection: input.assistProjection,
+  });
   const row: LiveUniversalModelRow = {
     projectedValue: input.projectedValue,
     line: input.line,
@@ -3039,6 +3455,27 @@ function inspectLiveUniversalModelSideInternal(
     l5CurrentLineDeltaAvg: input.l5CurrentLineDeltaAvg ?? null,
     l5CurrentLineOverRate: input.l5CurrentLineOverRate ?? null,
     l5MinutesAvg: input.l5MinutesAvg ?? null,
+    emaCurrentLineDelta: input.emaCurrentLineDelta ?? null,
+    emaCurrentLineOverRate: input.emaCurrentLineOverRate ?? null,
+    emaMinutesAvg,
+    l15ValueMean: gateShapeNumber(input.l15ValueMean ?? null, shapeContextEnabled),
+    l15ValueMedian: gateShapeNumber(l15ValueMedian, shapeContextEnabled),
+    l15ValueStdDev: gateShapeNumber(input.l15ValueStdDev ?? null, shapeContextEnabled),
+    l15ValueSkew: gateShapeNumber(input.l15ValueSkew ?? null, shapeContextEnabled),
+    projectionMedianDelta,
+    medianLineGap,
+    competitivePaceFactor,
+    blowoutRisk,
+    minutesShiftDelta,
+    minutesShiftAbsDelta,
+    seasonMinutesAvg: input.seasonMinutesAvg ?? null,
+    minutesLiftPct,
+    activeCorePts: input.activeCorePts ?? null,
+    activeCoreAst: input.activeCoreAst ?? null,
+    missingCorePts: input.missingCorePts ?? null,
+    missingCoreAst: input.missingCoreAst ?? null,
+    missingCoreShare: input.missingCoreShare ?? null,
+    stepUpRoleFlag,
     expectedMinutes: input.expectedMinutes,
     minutesVolatility: input.minutesVolatility,
     benchBigRoleStability:
@@ -3059,8 +3496,7 @@ function inspectLiveUniversalModelSideInternal(
     roleStability,
     projectionMarketAgreement: favoredSide === "NEUTRAL" ? 0 : projectionSide === favoredSide ? 1 : -1,
     openingTeamSpread: input.openingTeamSpread,
-    openingSpreadAbs:
-      input.openingTeamSpread == null ? null : round(Math.abs(input.openingTeamSpread), 3),
+    openingSpreadAbs,
     openingTotal: input.openingTotal,
     lineupTimingConfidence: input.lineupTimingConfidence,
     completenessScore: input.completenessScore,
@@ -3111,6 +3547,25 @@ function inspectLiveUniversalModelSideInternal(
       input.market === "AST" && input.line > 0
         ? round(input.projectedValue / input.line, 4)
         : null,
+    ptsShareOfPRA: praComboState.ptsShareOfPRA,
+    rebShareOfPRA: praComboState.rebShareOfPRA,
+    astShareOfPRA: praComboState.astShareOfPRA,
+    maxLegShareOfCombo: praComboState.maxLegShareOfCombo,
+    comboEntropy: praComboState.comboEntropy,
+    comboBalanceScore: praComboState.comboBalanceScore,
+    ptsLedPRAFlag: praComboState.ptsLedPRAFlag,
+    highLinePRAFlag: praComboState.highLinePRAFlag,
+    veryHighLinePRAFlag: praComboState.veryHighLinePRAFlag,
+    lateSeasonFlag: praComboState.lateSeasonFlag,
+    lateSeasonHighLinePRAFlag: praComboState.lateSeasonHighLinePRAFlag,
+    guardWingArchetypeFlag: praComboState.guardWingArchetypeFlag,
+    ptsLedPRAxGuardWing: praComboState.ptsLedPRAxGuardWing,
+    highLinePRAxGuardWing: praComboState.highLinePRAxGuardWing,
+    lateSeasonxGuardWing: praComboState.lateSeasonxGuardWing,
+    closeGamexGuardWing: praComboState.closeGamexGuardWing,
+    ptsLedPRAxCloseGame: praComboState.ptsLedPRAxCloseGame,
+    ptsLedPRAxLateSeason: praComboState.ptsLedPRAxLateSeason,
+    ptsLedPRAxHighLine: praComboState.ptsLedPRAxHighLine,
   };
 
   const projectionDistribution = estimateProjectionDistribution(
@@ -3120,9 +3575,25 @@ function inspectLiveUniversalModelSideInternal(
     input.projectedValue,
     input.line,
   );
+  const componentProjectionDistribution = comboComponentMarkets(input.market)
+    ? estimateComboComponentProjectionDistribution(
+        input.market,
+        archetype,
+        minutesBucket,
+        input.projectedValue,
+        input.line,
+        loadProjectionDistributionMap(),
+      )
+    : null;
 
   const leaf = model.kind === "tree" ? resolveTreeLeaf(model.tree, row) : null;
-  const rawSide = applyBucketSideBias(input.market, archetype, row, predictVariant(model, row));
+  const rawSide = applyBucketSideBias(
+    input.market,
+    archetype,
+    row,
+    predictVariant(model, row),
+    componentProjectionDistribution,
+  );
   const projectionWinProbability =
     rawSide === "OVER"
       ? projectionDistribution?.overWinProbability ?? null

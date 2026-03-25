@@ -2,9 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  ALL_DAILY_6_RULES,
   buildPrecisionPick,
   comparePrecisionSignals,
-  DEFAULT_DAILY_6_RULES,
   type PrecisionRule,
   type PrecisionRuleSet,
 } from "../lib/snapshot/precisionPickSystem";
@@ -145,7 +145,7 @@ function summarizeRows(rows: TrainingRow[], playerMetaMap: Map<string, PlayerMet
 
 function cloneRules(): PrecisionRuleSet {
   return Object.fromEntries(
-    Object.entries(DEFAULT_DAILY_6_RULES).map(([market, rule]) => [market, { ...(rule as PrecisionRule) }]),
+    Object.entries(ALL_DAILY_6_RULES).map(([market, rule]) => [market, { ...(rule as PrecisionRule) }]),
   ) as PrecisionRuleSet;
 }
 
@@ -253,11 +253,11 @@ function evaluateRuleSet(
 
 function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet }> {
   const ptsPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.PTS as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.PTS as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.PTS as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.PTS as PrecisionRule),
         minBucketLateAccuracy: 60,
         minLeafAccuracy: 80,
         minAbsLineGap: 0.5,
@@ -266,7 +266,7 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     [
       "medium",
       {
-        ...(DEFAULT_DAILY_6_RULES.PTS as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.PTS as PrecisionRule),
         minBucketLateAccuracy: 58,
         minLeafAccuracy: 76,
         minAbsLineGap: 0.5,
@@ -274,11 +274,11 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     ],
   ];
   const rebPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.REB as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.REB as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.REB as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.REB as PrecisionRule),
         minBucketLateAccuracy: 52,
         minLeafAccuracy: 80,
         minAbsLineGap: 0.5,
@@ -286,11 +286,11 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     ],
   ];
   const astPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.AST as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.AST as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.AST as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.AST as PrecisionRule),
         minBucketLateAccuracy: 64,
         minLeafAccuracy: 72,
         minAbsLineGap: 0.75,
@@ -298,11 +298,11 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     ],
   ];
   const threesPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.THREES as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.THREES as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.THREES as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.THREES as PrecisionRule),
         minBucketLateAccuracy: 62,
         minLeafAccuracy: 64,
         minAbsLineGap: 0.75,
@@ -311,24 +311,24 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     [
       "prob50",
       {
-        ...(DEFAULT_DAILY_6_RULES.THREES as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.THREES as PrecisionRule),
         minProjectionWinProbability: 0.5,
       },
     ],
     [
       "prob52",
       {
-        ...(DEFAULT_DAILY_6_RULES.THREES as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.THREES as PrecisionRule),
         minProjectionWinProbability: 0.52,
       },
     ],
   ];
   const praPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.PRA as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.PRA as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.PRA as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.PRA as PrecisionRule),
         minBucketLateAccuracy: 66,
         minLeafAccuracy: 72,
         minAbsLineGap: 2.5,
@@ -336,28 +336,28 @@ function* generateRuleSets(): Generator<{ name: string; rules: PrecisionRuleSet 
     ],
   ];
   const paPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.PA as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.PA as PrecisionRule],
     [
       "prob50",
       {
-        ...(DEFAULT_DAILY_6_RULES.PA as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.PA as PrecisionRule),
         minProjectionWinProbability: 0.5,
       },
     ],
     [
       "prob52",
       {
-        ...(DEFAULT_DAILY_6_RULES.PA as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.PA as PrecisionRule),
         minProjectionWinProbability: 0.52,
       },
     ],
   ];
   const raPresets: Array<[string, PrecisionRule]> = [
-    ["base", DEFAULT_DAILY_6_RULES.RA as PrecisionRule],
+    ["base", ALL_DAILY_6_RULES.RA as PrecisionRule],
     [
       "mild",
       {
-        ...(DEFAULT_DAILY_6_RULES.RA as PrecisionRule),
+        ...(ALL_DAILY_6_RULES.RA as PrecisionRule),
         minBucketLateAccuracy: 52,
         minLeafAccuracy: 72,
         minAbsLineGap: 0.5,

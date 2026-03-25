@@ -41,6 +41,7 @@ import {
   PRECISION_80_SYSTEM_SUMMARY,
 } from "@/lib/snapshot/precisionPickSystem";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
+import { UNIVERSAL_SYSTEM_SUMMARY } from "@/lib/snapshot/universalSystemSummary";
 import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
@@ -219,6 +220,17 @@ function getSnapshotBoardSettingKey(dateEt: string): string {
   return `${SNAPSHOT_BOARD_SETTING_KEY_PREFIX}${dateEt}`;
 }
 
+function latestUpdatedAtIso(...values: Array<Date | null | undefined>): string | null {
+  const latestMs = values.reduce<number | null>((current, value) => {
+    if (!value) return current;
+    const nextMs = value.getTime();
+    if (!Number.isFinite(nextMs)) return current;
+    return current == null || nextMs > current ? nextMs : current;
+  }, null);
+
+  return latestMs == null ? null : new Date(latestMs).toISOString();
+}
+
 function isSnapshotBoardData(value: unknown): value is SnapshotBoardData {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<SnapshotBoardData>;
@@ -240,6 +252,27 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
     sourceSignal: candidate.sourceSignal,
     data: candidate.data,
   };
+}
+
+function getSnapshotBoardRowKey(row: Pick<SnapshotRow, "matchupKey" | "playerId">): string {
+  return `${row.matchupKey}|${row.playerId}`;
+}
+
+function buildPersistedSnapshotRowMap(
+  persistedBoard: PersistedSnapshotBoardSetting | null,
+): Map<string, SnapshotRow> {
+  const map = new Map<string, SnapshotRow>();
+  if (!persistedBoard) return map;
+
+  persistedBoard.data.rows.forEach((row) => {
+    map.set(getSnapshotBoardRowKey(row), row);
+  });
+
+  return map;
+}
+
+function hasGameStarted(commenceTimeUtc: Date | null, referenceMs: number): boolean {
+  return commenceTimeUtc != null && commenceTimeUtc.getTime() <= referenceMs;
 }
 
 function normalizeSearchText(value: string): string {
@@ -431,6 +464,15 @@ function averageMetricRecordFromProfiles(profiles: PlayerProfile[]): SnapshotMet
   return result;
 }
 
+function sumProjectedRotationPoints(profiles: PlayerProfile[], take = 8): number | null {
+  const values = profiles
+    .slice(0, take)
+    .map((profile) => profile.last10Average.PTS)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  if (values.length === 0) return null;
+  return round(values.reduce((sum, value) => sum + value, 0), 2);
+}
+
 function isLikelyMissingCoreTeammate(input: {
   profile: PlayerProfile;
   teamCode: string;
@@ -484,6 +526,8 @@ function buildTeammateSynergyInput(input: {
   return {
     activeCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId))),
     missingCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId))),
+    activeCoreCount: coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId)).length,
+    missingCoreCount: coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId)).length,
   };
 }
 
@@ -1927,7 +1971,8 @@ export async function getSnapshotPlayerLookupData(input: {
 
 export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
   const isTodayEt = dateEt === getTodayEtDateString();
-  const [games, latestDataWrite, lineupSetting] = await Promise.all([
+  const nowMs = Date.now();
+  const [games, latestGameWrite, latestDataWrite, lineupSetting, refreshSetting] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
       include: {
@@ -1935,6 +1980,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         awayTeam: true,
       },
       orderBy: [{ commenceTimeUtc: "asc" }],
+    }),
+    prisma.game.aggregate({
+      where: { gameDateEt: dateEt },
+      _max: { updatedAt: true },
     }),
     prisma.playerGameLog.aggregate({
       _max: { updatedAt: true },
@@ -1945,12 +1994,35 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           select: { value: true, updatedAt: true },
         })
       : Promise.resolve(null),
+    isTodayEt
+      ? prisma.systemSetting.findUnique({
+          where: { key: "snapshot_last_refresh" },
+          select: { value: true, updatedAt: true },
+        })
+      : Promise.resolve(null),
   ]);
 
-  const sourceUpdatedAtIso = latestDataWrite._max.updatedAt?.toISOString() ?? null;
+  const latestRefreshUpdatedAt =
+    refreshSetting?.value && typeof refreshSetting.value === "object" && (refreshSetting.value as { dateEt?: unknown }).dateEt === dateEt
+      ? refreshSetting.updatedAt
+      : null;
+  const sourceUpdatedAtIso = latestUpdatedAtIso(
+    latestGameWrite._max.updatedAt,
+    latestDataWrite._max.updatedAt,
+    lineupSetting?.updatedAt,
+    latestRefreshUpdatedAt,
+  );
   const parsedLineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
   const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
-  const sourceSignal = `${sourceUpdatedAtIso ?? "none"}|${lineupUpdatedAtIso ?? "none"}`;
+  const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
+  const refreshUpdatedAtIso = latestRefreshUpdatedAt?.toISOString() ?? null;
+  const sourceSignal = [
+    sourceUpdatedAtIso ?? "none",
+    gameUpdatedAtIso ?? "none",
+    latestDataWrite._max.updatedAt?.toISOString() ?? "none",
+    lineupUpdatedAtIso ?? "none",
+    refreshUpdatedAtIso ?? "none",
+  ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
   if (cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
@@ -1962,6 +2034,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     select: { value: true },
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
+  const persistedRowMap = buildPersistedSnapshotRowMap(persistedBoard);
   if (persistedBoard && persistedBoard.sourceSignal === sourceSignal) {
     const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
     snapshotBoardCache.set(cacheKey, {
@@ -1982,6 +2055,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       matchups: [],
       teamMatchups: [],
       rows: [],
+      precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
+      universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
     };
     snapshotBoardCache.set(cacheKey, {
       data: emptyData,
@@ -2012,12 +2087,17 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   const matchupByTeamId = new Map<string, TeamMatchup>();
   const matchupOptionsByKey = new Map<string, SnapshotMatchupOption>();
   const matchupMetaByKey = new Map<string, MatchupMeta>();
+  const startedMatchupTimesByKey = new Map<string, number>();
 
   for (const game of games) {
     const homeCode = game.homeTeam.abbreviation;
     const awayCode = game.awayTeam.abbreviation;
     const gameTimeEt = formatUtcToEt(game.commenceTimeUtc);
     const matchupKey = `${awayCode}@${homeCode}`;
+
+    if (isTodayEt && hasGameStarted(game.commenceTimeUtc, nowMs)) {
+      startedMatchupTimesByKey.set(matchupKey, game.commenceTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER);
+    }
 
     matchupOptionsByKey.set(matchupKey, {
       key: matchupKey,
@@ -2442,6 +2522,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   });
 
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
+  const builtRowKeys = new Set<string>();
 
   for (const player of players) {
     if (!player.teamId) {
@@ -2459,6 +2540,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const last5Logs = logsForPlayer.slice(0, 5);
     const last10Logs = logsForPlayer.slice(0, 10);
     const last3Logs = logsForPlayer.slice(0, 3);
+    const last15LogsChronological = logsChronological.slice(-15);
     const sameTeamLogs = logsForPlayer.filter((log) => log.teamCode === matchup.teamCode);
     const minutesCurrentTeamLast5Avg = average(sameTeamLogs.slice(0, 5).map((log) => log.minutes));
     const homeAwayLogs = logsForPlayer.filter((log) => log.isHome === matchup.isHome);
@@ -2476,6 +2558,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const last10Average = averagesByMarket(last10Logs);
     const homeAwayAverage = averagesByMarket(homeAwayLogs);
     const last5ByMarket = arraysByMarket(last5Logs);
+    const last15ByMarketChronological = arraysByMarket(last15LogsChronological);
     const last10ByMarket = arraysByMarket(last10Logs);
     const trendVsSeason = trendFrom(last3Average, seasonAverage);
 
@@ -2569,6 +2652,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       : last10Logs[0]
         ? daysBetweenEt(last10Logs[0].gameDateEt, dateEt)
         : null;
+    const seasonMinutesAvg = average(logsChronological.map((log) => log.minutes));
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
     const minutesVolatility =
       playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes));
@@ -2623,6 +2707,48 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       }),
       lineupSignal,
     );
+    const activeCorePts =
+      teammateSynergy == null
+        ? null
+        : round((teammateSynergy.activeCoreAverage.PTS ?? 0) * teammateSynergy.activeCoreCount, 2);
+    const activeCoreAst =
+      teammateSynergy == null
+        ? null
+        : round((teammateSynergy.activeCoreAverage.AST ?? 0) * teammateSynergy.activeCoreCount, 2);
+    const missingCorePts =
+      teammateSynergy == null
+        ? null
+        : round((teammateSynergy.missingCoreAverage.PTS ?? 0) * teammateSynergy.missingCoreCount, 2);
+    const missingCoreAst =
+      teammateSynergy == null
+        ? null
+        : round((teammateSynergy.missingCoreAverage.AST ?? 0) * teammateSynergy.missingCoreCount, 2);
+    const teamRotationProjectedPts = sumProjectedRotationPoints(teamProfiles);
+    const missingCoreShare =
+      missingCorePts == null || teamRotationProjectedPts == null || teamRotationProjectedPts <= 0
+        ? null
+        : round(Math.max(0, Math.min(1, missingCorePts / teamRotationProjectedPts)), 4);
+    const minutesLiftPct =
+      minutesProfile.expected == null || seasonMinutesAvg == null || seasonMinutesAvg <= 0
+        ? null
+        : round(minutesProfile.expected / seasonMinutesAvg - 1, 4);
+    const stepUpRoleFlag =
+      missingCoreShare != null && minutesLiftPct != null && missingCoreShare > 0.2 && minutesLiftPct >= 0.15 ? 1 : 0;
+    const openingSpreadAbs = openingTeamSpread == null ? null : round(Math.abs(openingTeamSpread), 3);
+    const competitivePaceFactor =
+      openingTotal == null ? null : round(openingTotal / Math.max(openingSpreadAbs ?? 0, 1), 4);
+    const blowoutRisk =
+      openingTotal == null || openingSpreadAbs == null ? null : round(openingSpreadAbs / Math.max(openingTotal, 1), 4);
+    const universalUsageContext = {
+      seasonMinutesAvg,
+      minutesLiftPct,
+      activeCorePts,
+      activeCoreAst,
+      missingCorePts,
+      missingCoreAst,
+      missingCoreShare,
+      stepUpRoleFlag,
+    } as const;
     const playerShotPressure = buildShotPressureSummary(seasonVolumeLogs, player.externalId, dateEt);
     const opponentShotVolume = resolveOpponentShotVolumeMetrics({
       opponentCode: matchup.opponentCode,
@@ -2641,45 +2767,45 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     const paMarketLine = dailyPaLineMap.get(marketKey) ?? null;
     const prMarketLine = dailyPrLineMap.get(marketKey) ?? null;
     const raMarketLine = dailyRaLineMap.get(marketKey) ?? null;
-    const recentMinutes = last5Logs.map((entry) => entry.minutes);
+    const recent15Minutes = last15LogsChronological.map((entry) => entry.minutes);
     const ptsCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.PTS,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.PTS,
+      recentMinutes: recent15Minutes,
       currentLine: ptsMarketLine?.line ?? null,
     });
     const rebCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.REB,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.REB,
+      recentMinutes: recent15Minutes,
       currentLine: rebMarketLine?.line ?? null,
     });
     const astCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.AST,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.AST,
+      recentMinutes: recent15Minutes,
       currentLine: astMarketLine?.line ?? null,
     });
     const threesCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.THREES,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.THREES,
+      recentMinutes: recent15Minutes,
       currentLine: threesMarketLine?.line ?? null,
     });
     const praCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.PRA,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.PRA,
+      recentMinutes: recent15Minutes,
       currentLine: praMarketLine?.line ?? null,
     });
     const paCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.PA,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.PA,
+      recentMinutes: recent15Minutes,
       currentLine: paMarketLine?.line ?? null,
     });
     const prCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.PR,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.PR,
+      recentMinutes: recent15Minutes,
       currentLine: prMarketLine?.line ?? null,
     });
     const raCurrentLineRecency = computeCurrentLineRecencyMetrics({
-      recentActualValues: last5ByMarket.RA,
-      recentMinutes,
+      recentActualValues: last15ByMarketChronological.RA,
+      recentMinutes: recent15Minutes,
       currentLine: raMarketLine?.line ?? null,
     });
     projectedTonight.PTS = applyEnhancedPointsProjection({
@@ -2715,6 +2841,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       dataCompletenessScore: dataCompleteness.score,
     });
     const ptsSignal = buildLivePtsSignal({
+      gameDateEt: dateEt,
       playerName: player.fullName,
       playerPosition: player.position,
       projection: projectedTonight.PTS,
@@ -2735,13 +2862,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      ...universalUsageContext,
       benchBigRoleStability,
       ...ptsCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.PTS == null || ptsCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.PTS - ptsCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        ptsMarketLine?.line == null || ptsCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(ptsCurrentLineRecency.l15ValueMedian - ptsMarketLine.line, 4),
+      competitivePaceFactor,
+      blowoutRisk,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
     });
     const rebSignal = buildLiveRebSignal({
+      gameDateEt: dateEt,
       playerName: player.fullName,
       playerPosition: player.position,
       projection: projectedTonight.REB,
@@ -2762,13 +2901,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      ...universalUsageContext,
       benchBigRoleStability,
       ...rebCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.REB == null || rebCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.REB - rebCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        rebMarketLine?.line == null || rebCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(rebCurrentLineRecency.l15ValueMedian - rebMarketLine.line, 4),
+      competitivePaceFactor,
+      blowoutRisk,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
     });
     const astSignal = buildLiveAstSignal({
+      gameDateEt: dateEt,
       playerName: player.fullName,
       playerPosition: player.position,
       projection: projectedTonight.AST,
@@ -2789,13 +2940,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      ...universalUsageContext,
       benchBigRoleStability,
       ...astCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.AST == null || astCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.AST - astCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        astMarketLine?.line == null || astCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(astCurrentLineRecency.l15ValueMedian - astMarketLine.line, 4),
+      competitivePaceFactor,
+      blowoutRisk,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
     });
     const threesSignal = buildLiveThreesSignal({
+      gameDateEt: dateEt,
       playerName: player.fullName,
       playerPosition: player.position,
       projection: projectedTonight.THREES,
@@ -2816,13 +2979,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      ...universalUsageContext,
       benchBigRoleStability,
       ...threesCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.THREES == null || threesCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.THREES - threesCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        threesMarketLine?.line == null || threesCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(threesCurrentLineRecency.l15ValueMedian - threesMarketLine.line, 4),
+      competitivePaceFactor,
+      blowoutRisk,
       playerShotPressure,
       opponentShotVolume,
       completenessScore: dataCompleteness.score,
     });
     const comboSignalInput = {
+      gameDateEt: dateEt,
       projection: null,
       marketLine: null,
       openingTotal,
@@ -2839,7 +3014,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedMinutesFloor: minutesProfile.floor,
       projectedMinutesCeiling: minutesProfile.ceiling,
       minutesVolatility,
+      ...universalUsageContext,
       benchBigRoleStability,
+      competitivePaceFactor,
+      blowoutRisk,
       completenessScore: dataCompleteness.score,
       assistProjection: projectedTonight.AST,
       projectedPoints: projectedTonight.PTS,
@@ -2854,24 +3032,56 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projection: projectedTonight.PRA,
       marketLine: praMarketLine,
       ...praCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.PRA == null || praCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.PRA - praCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        praMarketLine?.line == null || praCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(praCurrentLineRecency.l15ValueMedian - praMarketLine.line, 4),
     });
     const paSignal = buildLivePaSignal({
       ...comboSignalInput,
       projection: projectedTonight.PA,
       marketLine: paMarketLine,
       ...paCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.PA == null || paCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.PA - paCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        paMarketLine?.line == null || paCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(paCurrentLineRecency.l15ValueMedian - paMarketLine.line, 4),
     });
     const prSignal = buildLivePrSignal({
       ...comboSignalInput,
       projection: projectedTonight.PR,
       marketLine: prMarketLine,
       ...prCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.PR == null || prCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.PR - prCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        prMarketLine?.line == null || prCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(prCurrentLineRecency.l15ValueMedian - prMarketLine.line, 4),
     });
     const raSignal = buildLiveRaSignal({
       ...comboSignalInput,
       projection: projectedTonight.RA,
       marketLine: raMarketLine,
       ...raCurrentLineRecency,
+      projectionMedianDelta:
+        projectedTonight.RA == null || raCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(projectedTonight.RA - raCurrentLineRecency.l15ValueMedian, 4),
+      medianLineGap:
+        raMarketLine?.line == null || raCurrentLineRecency.l15ValueMedian == null
+          ? null
+          : round(raCurrentLineRecency.l15ValueMedian - raMarketLine.line, 4),
     });
     const precisionCommonInput = {
       expectedMinutes: minutesProfile.expected,
@@ -3226,74 +3436,91 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       });
     }
 
+    const computedRow = toBoardSnapshotRow({
+      detailLevel: "FULL",
+      playerId: player.id,
+      playerName: player.fullName,
+      position: player.position,
+      teamCode: matchup.teamCode,
+      opponentCode: matchup.opponentCode,
+      matchupKey: matchup.matchupKey,
+      isHome: matchup.isHome,
+      gameTimeEt: matchup.gameTimeEt,
+      last5: last5ByMarket,
+      last10: last10ByMarket,
+      last3Average,
+      last10Average,
+      seasonAverage,
+      homeAwayAverage,
+      trendVsSeason,
+      opponentAllowance,
+      opponentAllowanceDelta,
+      projectedTonight,
+      modelLines,
+      ptsSignal,
+      rebSignal,
+      astSignal,
+      threesSignal,
+      praSignal,
+      paSignal,
+      prSignal,
+      raSignal,
+      precisionSignals,
+      recentLogs: last10Logs,
+      analysisLogs: logsForPlayer,
+      dataCompleteness,
+      playerContext: {
+        archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
+        projectedStarter: applyLineupStarterLabel(
+          starterStatusLabel({
+            startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
+            starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+            rotationRank,
+            minutesLast10Avg,
+          }),
+          lineupSignal,
+        ),
+        lineupStatus: lineupSignal?.status ?? null,
+        lineupStarter: lineupSignal?.lineupStarter ?? null,
+        availabilityStatus: lineupSignal?.availabilityStatus ?? null,
+        availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
+        startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
+        startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+        rotationRank,
+        minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
+        minutesLast10Avg,
+        minutesCurrentTeamAvg: minutesCurrentTeamLast5Avg,
+        minutesCurrentTeamGames: sameTeamLogs.length,
+        minutesTrend: playerProfile?.minutesTrend ?? null,
+        minutesVolatility,
+        projectedMinutes: minutesProfile.expected,
+        projectedMinutesFloor: minutesProfile.floor,
+        projectedMinutesCeiling: minutesProfile.ceiling,
+        primaryDefender,
+        teammateCore,
+      },
+      gameIntel,
+    });
+    const rowKey = getSnapshotBoardRowKey(computedRow);
+    const frozenRow =
+      isTodayEt && hasGameStarted(matchup.gameTimeUtc, nowMs) ? persistedRowMap.get(rowKey) ?? null : null;
+    builtRowKeys.add(rowKey);
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
-      row: toBoardSnapshotRow({
-        detailLevel: "FULL",
-        playerId: player.id,
-        playerName: player.fullName,
-        position: player.position,
-        teamCode: matchup.teamCode,
-        opponentCode: matchup.opponentCode,
-        matchupKey: matchup.matchupKey,
-        isHome: matchup.isHome,
-        gameTimeEt: matchup.gameTimeEt,
-        last5: last5ByMarket,
-        last10: last10ByMarket,
-        last3Average,
-        last10Average,
-        seasonAverage,
-        homeAwayAverage,
-        trendVsSeason,
-        opponentAllowance,
-        opponentAllowanceDelta,
-        projectedTonight,
-        modelLines,
-        ptsSignal,
-        rebSignal,
-        astSignal,
-        threesSignal,
-        praSignal,
-        paSignal,
-        prSignal,
-        raSignal,
-        precisionSignals,
-        recentLogs: last10Logs,
-        analysisLogs: logsForPlayer,
-        dataCompleteness,
-        playerContext: {
-          archetype: playerProfile?.archetype ?? determineArchetype(last10Average, average(last10Logs.map((log) => log.minutes))),
-          projectedStarter: applyLineupStarterLabel(
-            starterStatusLabel({
-              startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
-              starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
-              rotationRank,
-              minutesLast10Avg,
-            }),
-            lineupSignal,
-          ),
-          lineupStatus: lineupSignal?.status ?? null,
-          lineupStarter: lineupSignal?.lineupStarter ?? null,
-          availabilityStatus: lineupSignal?.availabilityStatus ?? null,
-          availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
-          startedLastGame: playerProfile?.startedLastGame ?? computedStartedLastGame,
-          startsLast10: playerProfile?.startsLast10 ?? computedStartsLast10,
-          starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
-          rotationRank,
-          minutesLast3Avg: playerProfile?.minutesLast3Avg ?? average(last3Logs.map((log) => log.minutes)),
-          minutesLast10Avg,
-          minutesCurrentTeamAvg: minutesCurrentTeamLast5Avg,
-          minutesCurrentTeamGames: sameTeamLogs.length,
-          minutesTrend: playerProfile?.minutesTrend ?? null,
-          minutesVolatility,
-          projectedMinutes: minutesProfile.expected,
-          projectedMinutesFloor: minutesProfile.floor,
-          projectedMinutesCeiling: minutesProfile.ceiling,
-          primaryDefender,
-          teammateCore,
-        },
-        gameIntel,
-      }),
+      row: frozenRow ? toBoardSnapshotRow(frozenRow) : computedRow,
+    });
+  }
+
+  if (isTodayEt && persistedRowMap.size > 0) {
+    persistedRowMap.forEach((row, rowKey) => {
+      if (builtRowKeys.has(rowKey)) return;
+      const sortTime = startedMatchupTimesByKey.get(row.matchupKey);
+      if (sortTime == null) return;
+      rowsWithSortKeys.push({
+        sortTime,
+        row: toBoardSnapshotRow(row),
+      });
     });
   }
 
@@ -3314,6 +3541,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
+    universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
   });
   snapshotBoardCache.set(cacheKey, {
     data: result,

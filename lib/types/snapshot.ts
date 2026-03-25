@@ -87,6 +87,22 @@ export type SnapshotPrecisionSystemSummary = {
   historicalCoveragePct: number;
   historicalPicksPerDay?: number;
   supportedMarkets: SnapshotMarket[];
+  accuracyLabel?: string;
+  picksPerDayLabel?: string;
+  note?: string;
+};
+
+export type SnapshotUniversalSystemSummary = {
+  label: string;
+  replayRawAccuracy: number;
+  replayQualifiedAccuracy: number | null;
+  replayBlendedAccuracy: number;
+  replayCoveragePct: number;
+  walkForwardRawAccuracy: number;
+  walkForwardQualifiedAccuracy: number | null;
+  walkForwardBlendedAccuracy: number;
+  walkForwardCoveragePct: number;
+  note?: string;
 };
 
 export type SnapshotCompletenessTier = "HIGH" | "MEDIUM" | "LOW";
@@ -242,6 +258,7 @@ export type SnapshotBoardData = {
   teamMatchups: SnapshotTeamMatchupStats[];
   rows: SnapshotRow[];
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
+  universalSystem?: SnapshotUniversalSystemSummary | null;
 };
 
 export type SnapshotPlayerLookupData = {
