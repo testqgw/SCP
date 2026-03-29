@@ -59,6 +59,13 @@ const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
 
 const HOMEPAGE_QUALIFIED_PICK_LIMIT = 6;
 const DAILY_CARD_TARGET_COUNT = 6;
+const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 5,
+  REB: 2,
+  AST: 2,
+  THREES: 1,
+};
+const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
 
 type DetailSectionKey = "context" | "intel" | "backtest" | "markets" | "logs" | "summary" | "team";
 
@@ -1396,15 +1403,6 @@ export function SnapshotDashboard({
     [activeData.precisionSystem?.supportedMarkets, filteredRows, lineMap],
   );
 
-  const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
-    PTS: 5,
-    REB: 2,
-    AST: 2,
-    THREES: 1,
-  };
-
-  const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
-
   const strongProjectionCandidates = useMemo(() => {
     const results: (FocusCandidate & { projGap: number; threshold: number })[] = [];
     filteredRows.forEach((row) => {
@@ -1964,9 +1962,8 @@ export function SnapshotDashboard({
             </div>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {visibleStrongProjections.map((candidate, index) => {
-              const side = candidate.display?.side ?? candidate.modelLine.modelSide;
               const projection = candidate.row.projectedTonight[candidate.market];
               const line = candidate.currentLine ?? candidate.modelLine.fairLine;
               return (
