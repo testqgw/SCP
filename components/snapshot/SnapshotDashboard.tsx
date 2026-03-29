@@ -265,8 +265,8 @@ type DailyCardCandidate = {
 };
 
 function dailyCardSourceLabel(source: DailyCardSource): string {
-  if (source === "PRECISION") return "Daily 6 Core";
-  if (source === "QUALIFIED_FILL") return "Qualified Fill";
+  if (source === "PRECISION") return "Core Six Model";
+  if (source === "QUALIFIED_FILL") return "Research Fill";
   return "Model Fill";
 }
 
@@ -435,7 +435,7 @@ function buildFocusCandidate(
   }
   if (confidence != null || minutesRisk != null) {
     reasons.push(
-      `Conf ${confidence == null ? "-" : formatStat(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
+      `Score ${confidence == null ? "-" : formatStat(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
     );
   }
   reasons.push(`Data ${row.dataCompleteness.score} ${row.dataCompleteness.tier}.`);
@@ -684,6 +684,7 @@ export function SnapshotDashboard({
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket === "ALL" ? "PTS" : initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(true);
+  const [showAllCoreSixPicks, setShowAllCoreSixPicks] = useState(false);
 
   const [showAdvancedView, setShowAdvancedView] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
@@ -1395,6 +1396,46 @@ export function SnapshotDashboard({
     [activeData.precisionSystem?.supportedMarkets, filteredRows, lineMap],
   );
 
+  const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
+    PTS: 5,
+    REB: 2,
+    AST: 2,
+    THREES: 1,
+  };
+
+  const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
+
+  const strongProjectionCandidates = useMemo(() => {
+    const results: (FocusCandidate & { projGap: number; threshold: number })[] = [];
+    filteredRows.forEach((row) => {
+      if (isUnavailableForDailyCard(row)) return;
+      STRONG_PROJECTION_MARKETS.forEach((mkt) => {
+        const threshold = STRONG_PROJECTION_THRESHOLDS[mkt];
+        if (threshold == null) return;
+        const projection = row.projectedTonight[mkt];
+        if (projection == null) return;
+        const signal = liveSignalForMarket(row, mkt);
+        const modelLine = row.modelLines[mkt];
+        const currentLine = signal?.marketLine ?? modelLine.fairLine;
+        if (currentLine == null) return;
+        const gap = projection - currentLine;
+        if (gap < threshold) return;
+        results.push({
+          ...buildFocusCandidate(row, mkt, lineMap[lineKey(row.playerId, mkt)]),
+          projGap: gap,
+          threshold,
+        });
+      });
+    });
+    results.sort((a, b) => {
+      const aRatio = a.projGap / a.threshold;
+      const bRatio = b.projGap / b.threshold;
+      return bRatio - aRatio;
+    });
+    return results;
+  }, [filteredRows, lineMap]);
+
+
   const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
     () => {
       const ranked: DailyCardCandidate[] = [];
@@ -1447,6 +1488,18 @@ export function SnapshotDashboard({
         } as Record<DailyCardSource, number>,
       ),
     [dailyCardCandidates],
+  );
+
+  const visibleCoreSixCandidates = useMemo(
+    () => (showAllCoreSixPicks ? precisionCandidates : precisionCandidates.slice(0, DAILY_CARD_TARGET_COUNT)),
+    [precisionCandidates, showAllCoreSixPicks],
+  );
+
+  const [showAllStrongProjections, setShowAllStrongProjections] = useState(false);
+  const STRONG_PROJ_PREVIEW = 6;
+  const visibleStrongProjections = useMemo(
+    () => (showAllStrongProjections ? strongProjectionCandidates : strongProjectionCandidates.slice(0, STRONG_PROJ_PREVIEW)),
+    [strongProjectionCandidates, showAllStrongProjections],
   );
 
   const displayedCandidates = useMemo(() => {
@@ -1556,8 +1609,9 @@ export function SnapshotDashboard({
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => jumpToSection("daily-card-section")} className="text-xs font-semibold text-teal-300 hover:text-teal-100 transition">Daily 6</button>
-            <button type="button" onClick={openAllQualifiedBoard} className="text-xs font-semibold text-amber-300 hover:text-amber-100 transition">All Qualified</button>
+            <button type="button" onClick={() => jumpToSection("daily-card-section")} className="text-xs font-semibold text-teal-300 hover:text-teal-100 transition">Core Six</button>
+            <button type="button" onClick={() => jumpToSection("strong-projections-section")} className="text-xs font-semibold text-purple-300 hover:text-purple-100 transition">Strong Projections</button>
+            <button type="button" onClick={openAllQualifiedBoard} className="text-xs font-semibold text-amber-300 hover:text-amber-100 transition">Research Board</button>
             <button
               type="button"
               onClick={openFeedbackPage}
@@ -1637,15 +1691,19 @@ export function SnapshotDashboard({
         <div className="flex flex-wrap items-center gap-6 px-3 text-sm">
            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
-              <span className="text-slate-400"><strong className="text-white font-medium">{activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}</strong> {activeData.precisionSystem ? activeData.precisionSystem.label : "Daily Picks"}</span>
+              <span className="text-slate-400"><strong className="text-white font-medium">{activeData.precisionSystem ? precisionCandidates.length : allQualifiedCandidates.length}</strong> {activeData.precisionSystem ? activeData.precisionSystem.label : "Daily Picks"}</span>
            </div>
            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
-              <span className="text-slate-400"><strong className="text-white font-medium">{qualifiedFocusCount}</strong> Qualified Picks</span>
+              <span className="text-slate-400"><strong className="text-white font-medium">{qualifiedFocusCount}</strong> Research Qualified</span>
            </div>
            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.6)]" />
               <span className="text-slate-400"><strong className="text-white font-medium">{allQualifiedMarketSummary.length}</strong> Markets Live</span>
+           </div>
+           <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.6)]" />
+              <span className="text-slate-400"><strong className="text-white font-medium">{strongProjectionCandidates.length}</strong> Strong Projections</span>
            </div>
            <div className="ml-auto text-[11px] text-slate-500 uppercase tracking-widest font-semibold font-mono">
              Last Updated: {activeData.lastUpdatedAt ? new Date(activeData.lastUpdatedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "N/A"}
@@ -1668,16 +1726,16 @@ export function SnapshotDashboard({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-teal-100/70">{activeData.precisionSystem.label}</p>
-              <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s Best One-Prop-Per-Player Card</h2>
+              <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s Core Six Bettable Card</h2>
               <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
-                This card always aims to show a full six-pack. True Daily 6 model picks rank first, then the board fills any
-                short slate with the best remaining qualified plays, then the best model-only plays if needed. The summary
-                stats here use the walk-forward audit, not the old full-sample replay headline.
+                This is the stricter 60%+ one-prop-per-player bettable pack. The summary stats here are the promoted
+                forward-tested Core Six numbers, not today-only hit rates. The top card shows the strongest six for the
+                current slate, and the full list of true Core Six picks is available below.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <div className="rounded-2xl border border-teal-300/15 bg-teal-500/[0.08] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-teal-100/70">Today</p>
+                <p className="uppercase tracking-[0.12em] text-teal-100/70">Top Card</p>
                 <p className="mt-1 text-xl font-semibold text-white">{dailyCardCandidates.length}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
@@ -1687,8 +1745,8 @@ export function SnapshotDashboard({
                 <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalAccuracy)}%</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">Core Today</p>
-                <p className="mt-1 text-xl font-semibold text-white">{dailyCardSourceCounts.PRECISION}</p>
+                <p className="uppercase tracking-[0.12em] text-slate-300/70">True Core</p>
+                <p className="mt-1 text-xl font-semibold text-white">{precisionCandidates.length}</p>
               </div>
               {activeData.precisionSystem.historicalPicksPerDay != null ? (
                 <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
@@ -1708,17 +1766,17 @@ export function SnapshotDashboard({
 
           {dailyCardCandidates.length === 0 ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
-              No true one-prop-per-player Daily 6 picks are available for the current filters yet. Try clearing matchup or
-              player filters and refresh the board.
+              No true Core Six bettable picks are available for the current filters yet. Try clearing matchup or player
+              filters and refresh the board.
             </div>
           ) : (
             <div className="mt-5 space-y-4">
               <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
                 <p className="font-semibold text-white">
                   {precisionCandidates.length >= DAILY_CARD_TARGET_COUNT
-                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} selection${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${DAILY_CARD_TARGET_COUNT}.`
+                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} bettable selection${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${DAILY_CARD_TARGET_COUNT}, and the full true Core Six list is below.`
                     : dailyCardCandidates.length >= DAILY_CARD_TARGET_COUNT
-                      ? `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true play${precisionCandidates.length === 1 ? "" : "s"} today, so the card added ${dailyCardSourceCounts.QUALIFIED_FILL} qualified fill${dailyCardSourceCounts.QUALIFIED_FILL === 1 ? "" : "s"} and ${dailyCardSourceCounts.MODEL_FILL} model fill${dailyCardSourceCounts.MODEL_FILL === 1 ? "" : "s"} to stay at ${DAILY_CARD_TARGET_COUNT}.`
+                      ? `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true bettable play${precisionCandidates.length === 1 ? "" : "s"} today, so the card added ${dailyCardSourceCounts.QUALIFIED_FILL} research-qualified fill${dailyCardSourceCounts.QUALIFIED_FILL === 1 ? "" : "s"} and ${dailyCardSourceCounts.MODEL_FILL} model fill${dailyCardSourceCounts.MODEL_FILL === 1 ? "" : "s"} to stay at ${DAILY_CARD_TARGET_COUNT}.`
                       : `Only ${dailyCardCandidates.length} playable one-prop-per-player spot${dailyCardCandidates.length === 1 ? "" : "s"} were available even after the fallback ladder.`}
                 </p>
                 <p className="mt-2">
@@ -1793,7 +1851,7 @@ export function SnapshotDashboard({
                               Rule prior: <strong>{formatStat(entry.precision.historicalAccuracy)}%</strong> on the full-sample replay in similar spots
                             </span>
                           ) : entry.source === "QUALIFIED_FILL" ? (
-                            <span>Qualified fill: promoted from the main qualified board to keep a full six-pick card.</span>
+                            <span>Research fill: promoted from the wider model-qualified board to keep a full six-pick card.</span>
                           ) : (
                             <span>Model fill: best remaining model-side look, used only when the slate is too thin to reach six picks.</span>
                           )}
@@ -1803,19 +1861,187 @@ export function SnapshotDashboard({
                   );
                 })}
               </div>
+              <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">All True Core Six Picks</p>
+                    <h3 className="mt-1 text-lg font-semibold text-white">
+                      {precisionCandidates.length} true Core Six pick{precisionCandidates.length === 1 ? "" : "s"} under the current filters
+                    </h3>
+                    <p className="mt-1 max-w-3xl text-sm text-slate-300">
+                      This list shows every true Core Six selection before any research or model fill is used. The historical rate shown on each row is the same forward-tested similar-spot prior used by the live Core Six system.
+                    </p>
+                  </div>
+                  {precisionCandidates.length > DAILY_CARD_TARGET_COUNT ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCoreSixPicks((current) => !current)}
+                      className="rounded-full border border-teal-300/30 bg-teal-500/12 px-3 py-1.5 text-xs font-semibold text-teal-100 transition hover:bg-teal-500/20"
+                    >
+                      {showAllCoreSixPicks ? `Show Top ${DAILY_CARD_TARGET_COUNT}` : `Show All ${precisionCandidates.length}`}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {visibleCoreSixCandidates.map((candidate, index) => {
+                    const side = candidate.precision.side ?? candidate.display?.side ?? candidate.modelLine.modelSide;
+                    return (
+                      <button
+                        key={`all-core-six-${candidate.row.playerId}-${candidate.market}`}
+                        type="button"
+                        onClick={() => {
+                          setPlayerLookupError(null);
+                          openPlayerDetail(candidate.row, null, candidate.market);
+                        }}
+                        className="rounded-[22px] border border-white/10 bg-[#0b1527]/88 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#101c33]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="rounded-full border border-teal-300/35 bg-teal-500/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-100">
+                                #{index + 1}
+                              </span>
+                              <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                                {candidate.market}
+                              </span>
+                            </div>
+                            <h4 className="mt-2 text-lg font-semibold text-white">{candidate.row.playerName}</h4>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
+                            </p>
+                          </div>
+                          <div className={`flex min-w-[120px] flex-col items-center justify-center rounded-2xl border px-4 py-3 text-center ${side === "OVER" ? "border-sky-400/20 bg-sky-500/10 text-sky-300" : side === "UNDER" ? "border-rose-400/20 bg-rose-500/10 text-rose-300" : "border-slate-400/20 bg-slate-500/10 text-slate-300"}`}>
+                            <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">Recommendation</span>
+                            <span className="mt-1 text-base font-black">
+                              {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(candidate.currentLine)}`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                            <p className="uppercase tracking-[0.12em] text-slate-500">Rule Prior</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{formatStat(candidate.precision.historicalAccuracy)}%</p>
+                          </div>
+                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                            <p className="uppercase tracking-[0.12em] text-slate-500">Gap</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.absLineGap == null ? "-" : formatStat(candidate.precision.absLineGap)}</p>
+                          </div>
+                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                            <p className="uppercase tracking-[0.12em] text-slate-500">Leaf</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.leafAccuracy == null ? "-" : `${formatStat(candidate.precision.leafAccuracy)}%`}</p>
+                          </div>
+                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                            <p className="uppercase tracking-[0.12em] text-slate-500">Bucket</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.bucketRecentAccuracy == null ? "-" : `${formatStat(candidate.precision.bucketRecentAccuracy)}%`}</p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </section>
       ) : null}
 
+      {strongProjectionCandidates.length > 0 && (
+        <section id="strong-projections-section" className="mt-6 rounded-[24px] border border-purple-300/20 bg-[linear-gradient(160deg,#130e32_0%,#0e0b30_55%,#0f1524_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(168,85,247,0.5)] sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-purple-200/80">Strong Projections</p>
+              <h2 className="mt-1 text-2xl font-semibold text-white">High-Confidence Projection Overs</h2>
+              <p className="mt-2 text-sm text-slate-400 max-w-2xl">
+                Players where the model&apos;s projection exceeds the line by a significant margin.
+                Thresholds: PTS +5, REB +2, AST +2, THREES +1.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3 text-center">
+              <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-2">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Picks</p>
+                <p className="mt-1 text-xl font-semibold text-white">{strongProjectionCandidates.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {visibleStrongProjections.map((candidate, index) => {
+              const side = candidate.display?.side ?? candidate.modelLine.modelSide;
+              const projection = candidate.row.projectedTonight[candidate.market];
+              const line = candidate.currentLine ?? candidate.modelLine.fairLine;
+              return (
+                <button
+                  key={`strong-proj-${candidate.row.playerId}-${candidate.market}`}
+                  type="button"
+                  onClick={() => {
+                    setPlayerLookupError(null);
+                    openPlayerDetail(candidate.row, null, candidate.market);
+                  }}
+                  className="rounded-[22px] border border-purple-300/15 bg-[#0b1527]/88 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#12102e]"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-purple-300/35 bg-purple-500/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-purple-100">
+                          #{index + 1}
+                        </span>
+                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                          {candidate.market}
+                        </span>
+                      </div>
+                      <h4 className="mt-2 text-lg font-semibold text-white">{candidate.row.playerName}</h4>
+                      <p className="mt-1 text-xs text-slate-400">
+                        {candidate.row.teamCode} vs {candidate.row.opponentCode} &bull; {candidate.row.gameTimeEt}
+                      </p>
+                    </div>
+                    <div className="flex min-w-[120px] flex-col items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-center text-sky-300">
+                      <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">Projection</span>
+                      <span className="mt-1 text-base font-black">
+                        OVER {formatAverage(line)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-3">
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                      <p className="uppercase tracking-[0.12em] text-slate-500">Projection</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{formatAverage(projection)}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                      <p className="uppercase tracking-[0.12em] text-slate-500">Line</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{formatAverage(line)}</p>
+                    </div>
+                    <div className="rounded-xl border border-purple-400/15 bg-purple-500/8 px-3 py-2">
+                      <p className="uppercase tracking-[0.12em] text-purple-300/80">Gap</p>
+                      <p className="mt-1 text-sm font-semibold text-purple-200">+{formatAverage(candidate.projGap)}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {strongProjectionCandidates.length > STRONG_PROJ_PREVIEW && (
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllStrongProjections((prev) => !prev)}
+                className="rounded-full border border-purple-300/25 bg-purple-500/10 px-5 py-2 text-xs font-semibold text-purple-100 transition hover:bg-purple-500/20"
+              >
+                {showAllStrongProjections ? `Show Top ${STRONG_PROJ_PREVIEW}` : `Show All ${strongProjectionCandidates.length}`}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
       <section id="best-picks-section" className="mt-6 rounded-[24px] border border-emerald-300/20 bg-[linear-gradient(160deg,#0e1932_0%,#0b1730_55%,#0f1e24_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(16,185,129,0.6)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Qualified Picks</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">The Strongest Qualified Plays On The Page</h2>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Research Qualified</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white">Top Model-Qualified Research Plays</h2>
             <p className="mt-1 max-w-3xl text-sm text-slate-300">
-              The homepage now only shows qualified model picks. If you want to research anyone else in full detail, use
-              the player lookup instead of scanning extra homepage clutter.
+              This is the wider model-qualified research layer, not the stricter Core Six bettable pack. The homepage keeps
+              only the strongest research-qualified cards visible so the page stays readable.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1825,11 +2051,11 @@ export function SnapshotDashboard({
                 onClick={openAllQualifiedBoard}
                 className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
               >
-                View All {allQualifiedCandidates.length}
+                View Research Board ({allQualifiedCandidates.length})
               </button>
             ) : null}
             <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-right text-xs text-emerald-50">
-              <p className="uppercase tracking-[0.14em] text-emerald-100/70">Qualified On Page</p>
+              <p className="uppercase tracking-[0.14em] text-emerald-100/70">Research On Page</p>
               <p className="mt-1 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
             </div>
           </div>
@@ -1839,7 +2065,7 @@ export function SnapshotDashboard({
           <div className="mt-4 space-y-3">
             <div className="grid gap-3 md:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">Replay Raw</p>
+                <p className="uppercase tracking-[0.14em] text-slate-400">30D Raw</p>
                 <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayRawAccuracy)}%</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
@@ -1847,12 +2073,8 @@ export function SnapshotDashboard({
                 <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">WF Qualified</p>
-                <p className="mt-1 text-2xl font-semibold text-white">
-                  {activeData.universalSystem.walkForwardQualifiedAccuracy == null
-                    ? "-"
-                    : `${formatStat(activeData.universalSystem.walkForwardQualifiedAccuracy)}%`}
-                </p>
+                <p className="uppercase tracking-[0.14em] text-slate-400">30D Blended</p>
+                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayBlendedAccuracy)}%</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
                 <p className="uppercase tracking-[0.14em] text-slate-400">WF Blended</p>
@@ -1867,15 +2089,15 @@ export function SnapshotDashboard({
 
         {homepageQualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-            No qualified picks are available for the current filters yet. Try another date, matchup, or market, then give
-            the board a few seconds to finish loading.
+            No research-qualified picks are available for the current filters yet. Try another date, matchup, or market,
+            then give the board a few seconds to finish loading.
           </div>
         ) : (
           <div className="mt-4 space-y-4">
             <div className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
-              Showing the top {homepageQualifiedCandidates.length} of {allQualifiedCandidates.length} qualified picks on
-              the homepage. Use <span className="font-semibold text-white">View All Qualified Picks</span> any time to
-              open the full all-market board.
+              Showing the top {homepageQualifiedCandidates.length} of {allQualifiedCandidates.length} research-qualified
+              plays on the homepage. Use <span className="font-semibold text-white">View Research Board</span> any time to
+              open the full all-market research board.
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -1933,7 +2155,7 @@ export function SnapshotDashboard({
                           <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
-                          <span>System Confidence Score: <strong>{formatStat(candidate.display.confidence)}</strong></span>
+                          <span>Model Signal Score: <strong>{formatStat(candidate.display.confidence)}</strong></span>
                         </div>
                       )}
                     </div>
@@ -1968,15 +2190,15 @@ export function SnapshotDashboard({
       <section id="all-qualified-section" className="mt-6 rounded-[24px] border border-cyan-300/20 bg-[linear-gradient(160deg,#101e38_0%,#0d1a30_55%,#12223f_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(34,211,238,0.4)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">All Markets</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">All Qualified Bets Today</h2>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">Research Board</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white">All Model-Qualified Plays Today</h2>
             <p className="mt-1 text-sm text-slate-300">
-              This board is not locked to the market picker. It aggregates every qualified play from every supported
-              market for the current page filters.
+              This wider board is not the stricter 60%+ Core Six pack. It aggregates every model-qualified play from every
+              supported market for the current page filters so you can research beyond the bettable subset.
             </p>
           </div>
           <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-right text-xs text-cyan-50">
-            <p className="uppercase tracking-[0.14em] text-cyan-100/70">Qualified On Page</p>
+              <p className="uppercase tracking-[0.14em] text-cyan-100/70">Research On Page</p>
             <p className="mt-1 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
           </div>
         </div>
@@ -1996,7 +2218,7 @@ export function SnapshotDashboard({
 
         {allQualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-            No qualified bets are showing across any market for the current filters yet.
+            No model-qualified research plays are showing across any market for the current filters yet.
           </div>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -2223,21 +2445,21 @@ export function SnapshotDashboard({
       <section className="mt-6 rounded-[24px] border border-amber-300/20 bg-[linear-gradient(160deg,#121b34_0%,#0e182f_55%,#20130b_100%)] p-4 shadow-[0_18px_60px_-36px_rgba(245,158,11,0.55)] sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Qualified Bets</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">Qualified {currentMarketLabel} Plays</h2>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Research Slice</p>
+            <h2 className="mt-1 text-2xl font-semibold text-white">Model-Qualified {currentMarketLabel} Plays</h2>
             <p className="mt-1 text-sm text-slate-300">
-              This is the selected-market slice of the all-market qualified board above.
+              This is the selected-market slice of the wider research board, not the stricter Core Six bettable pack.
             </p>
           </div>
           <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-right text-xs text-amber-50">
-            <p className="uppercase tracking-[0.14em] text-amber-100/70">Qualified In {market}</p>
+            <p className="uppercase tracking-[0.14em] text-amber-100/70">Research In {market}</p>
             <p className="mt-1 text-2xl font-semibold text-white">{qualifiedCandidates.length}</p>
           </div>
         </div>
 
         {qualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-            No qualified bets are showing for the current filters and market yet.
+            No model-qualified research plays are showing for the current filters and market yet.
           </div>
         ) : (
           <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
@@ -2422,7 +2644,7 @@ export function SnapshotDashboard({
         ) : displayedCandidates.length === 0 ? (
           <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-slate-300">
             {showQualifiedOnly
-              ? "No qualified bets found for the current filters. Switch to All Players to inspect the full board."
+              ? "No model-qualified research plays found for the current filters. Switch to All Players to inspect the full board."
               : "No players found for selected filters."}
           </div>
         ) : (
@@ -2697,7 +2919,7 @@ export function SnapshotDashboard({
                                 </span>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ptsConfidenceClass(liveSignalDisplay.confidenceTier ?? null)}`}>
                                   {liveSignalDisplay.confidence == null
-                                    ? "No Conf"
+                                    ? "No Score"
                                     : `${formatStat(liveSignalDisplay.confidence ?? 0)} ${liveSignalDisplay.confidenceTier ?? ""}`.trim()}
                                 </span>
                               </div>
@@ -2804,8 +3026,8 @@ export function SnapshotDashboard({
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
                 <ol className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>1. Check the <strong>Daily 6</strong> for the strongest one-prop-per-player picks today.</li>
-                  <li>2. Browse <strong>Qualified Picks</strong> for additional model-approved plays across all markets.</li>
+                  <li>1. Check the <strong>Core Six</strong> for the strongest one-prop-per-player picks today.</li>
+                  <li>2. Browse the <strong>Research Board</strong> for additional model-qualified plays beyond the stricter Core Six bettable pack.</li>
                   <li>3. Click any player card to open the full detail panel with game logs and context.</li>
                   <li>4. Use <strong>Advanced Data</strong> toggle anywhere to reveal deeper stats if you want more detail.</li>
                   <li>5. Use the player search bar to look up any player directly.</li>
@@ -2918,7 +3140,7 @@ export function SnapshotDashboard({
                                 {display.statusText}
                               </span>
                               <span className={`rounded-full border px-2 py-0.5 font-semibold ${ptsConfidenceClass(display.confidenceTier)}`}>
-                                Confidence {display.confidence == null ? "-" : formatStat(display.confidence)}
+                                Signal {display.confidence == null ? "-" : formatStat(display.confidence)}
                               </span>
                               <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
                                 Edge {formatAverage(display.projectionGap, true)}
