@@ -60,9 +60,9 @@ const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
 const HOMEPAGE_QUALIFIED_PICK_LIMIT = 6;
 const DAILY_CARD_TARGET_COUNT = 6;
 const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
-  PTS: 5,
+  PTS: 6,
   REB: 2,
-  AST: 2,
+  AST: 3,
   THREES: 1,
 };
 const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
