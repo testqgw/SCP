@@ -1,0 +1,48 @@
+{
+  "marketOverrides": {
+    "PTS": {
+      "archetypeOverrides": {
+        "BENCH_WING": {
+          "minLeafAccuracy": 57
+        },
+        "BENCH_SPACER_SCORER": {
+          "minLeafAccuracy": 56.5
+        }
+      }
+    },
+    "REB": {
+      "archetypeOverrides": {
+        "BENCH_LOW_USAGE_WING": {
+          "minBucketLateAccuracy": 56,
+          "minLeafAccuracy": 56
+        }
+      }
+    },
+    "AST": {
+      "archetypeOverrides": {
+        "LEAD_GUARD": {
+          "minBucketLateAccuracy": 52
+        }
+      }
+    },
+    "PRA": {
+      "archetypeOverrides": {
+        "LEAD_GUARD": {
+          "minBucketLateAccuracy": 55,
+          "minLeafAccuracy": 55
+        },
+        "BENCH_WING": {
+          "minBucketLateAccuracy": 50
+        }
+      }
+    },
+    "PA": {
+      "archetypeOverrides": {
+        "BENCH_VOLUME_SCORER": {
+          "minBucketLateAccuracy": 57,
+          "minLeafAccuracy": 60
+        }
+      }
+    }
+  }
+}
