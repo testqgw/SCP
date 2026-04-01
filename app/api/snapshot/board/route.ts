@@ -3,7 +3,7 @@ import { getSnapshotBoardData } from "@/lib/snapshot/query";
 import { getTodayEtDateString } from "@/lib/snapshot/time";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 function isValidEtDate(value: string | null): value is string {
   return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value));
@@ -15,7 +15,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const dateEt = isValidEtDate(searchParams.get("date")) ? (searchParams.get("date") as string) : getTodayEtDateString();
     const result = await getSnapshotBoardData(dateEt);
     const response = NextResponse.json({ ok: true, result });
-    response.headers.set("Cache-Control", "public, s-maxage=15, stale-while-revalidate=60");
+    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Board load failed.";
@@ -24,3 +24,4 @@ export async function GET(request: Request): Promise<NextResponse> {
     return response;
   }
 }
+

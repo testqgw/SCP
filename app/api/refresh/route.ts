@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { runRefresh } from "@/lib/snapshot/refresh";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 type RefreshRequestBody = {
   mode?: "DELTA" | "FULL" | "FAST" | "delta" | "full" | "fast";

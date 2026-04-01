@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSnapshotPlayerLookupData } from "@/lib/snapshot/playerLookup";
+import { getSnapshotPlayerRecentLogsData } from "@/lib/snapshot/playerLookup";
 import { getTodayEtDateString } from "@/lib/snapshot/time";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       return NextResponse.json({ ok: false, error: "Player search is required." }, { status: 400 });
     }
 
-    const result = await getSnapshotPlayerLookupData({
+    const result = await getSnapshotPlayerRecentLogsData({
       dateEt,
       playerId,
       playerSearch,
@@ -28,7 +28,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({ ok: true, result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Player lookup failed.";
+    const message = error instanceof Error ? error.message : "Player recent logs load failed.";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
