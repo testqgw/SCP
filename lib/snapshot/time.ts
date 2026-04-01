@@ -31,6 +31,23 @@ export function formatUtcToEt(utcDate: Date | null): string {
   }).format(utcDate);
 }
 
+export function formatIsoToEtTime(value: string | null): string {
+  if (!value) {
+    return "N/A";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "N/A";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: EASTERN_TZ,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
 export function etDateShift(baseEtDate: string, deltaDays: number): string {
   const [year, month, day] = baseEtDate.split("-").map(Number);
   const base = new Date(Date.UTC(year, month - 1, day));
