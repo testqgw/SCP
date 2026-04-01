@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
-import { getSnapshotBoardData } from "@/lib/snapshot/query";
-import { getTodayEtDateString } from "@/lib/snapshot/time";
+﻿import { NextResponse } from 'next/server';
+import { getSnapshotBoardData } from '@/lib/snapshot/query';
+import { getTodayEtDateString } from '@/lib/snapshot/time';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 function isValidEtDate(value: string | null): value is string {
@@ -12,16 +12,20 @@ function isValidEtDate(value: string | null): value is string {
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const dateEt = isValidEtDate(searchParams.get("date")) ? (searchParams.get("date") as string) : getTodayEtDateString();
-    const result = await getSnapshotBoardData(dateEt);
+    const dateEt = isValidEtDate(searchParams.get('date')) ? (searchParams.get('date') as string) : getTodayEtDateString();
+    const bustCache = searchParams.has('refresh') || searchParams.has('t');
+    const result = await getSnapshotBoardData(dateEt, bustCache);
     const response = NextResponse.json({ ok: true, result });
-    response.headers.set("Cache-Control", "public, s-maxage=30, stale-while-revalidate=120");
+    if (bustCache) {
+      response.headers.set('Cache-Control', 'no-store');
+    } else {
+      response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+    }
     return response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Board load failed.";
+    const message = error instanceof Error ? error.message : 'Board load failed.';
     const response = NextResponse.json({ ok: false, error: message }, { status: 500 });
-    response.headers.set("Cache-Control", "no-store");
+    response.headers.set('Cache-Control', 'no-store');
     return response;
   }
 }
-

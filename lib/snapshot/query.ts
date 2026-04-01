@@ -2093,7 +2093,7 @@ export async function getSnapshotPlayerLookupData(input: {
   throw new Error("No projected matchup could be built for this player.");
 }
 
-export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoardData> {
+export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
   const isTodayEt = dateEt === getTodayEtDateString();
   const nowMs = Date.now();
   const [games, latestGameWrite, latestDataWrite, lineupSetting, refreshSetting] = await Promise.all([
@@ -2158,7 +2158,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
-  if (cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
+  if (!bustCache && cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
     return toBoardSnapshotData(cached.data);
   }
 
@@ -2168,7 +2168,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
   const persistedRowMap = buildPersistedSnapshotRowMap(persistedBoard);
-  if (persistedBoard && persistedBoard.sourceSignal === sourceSignal) {
+  if (!bustCache && persistedBoard && persistedBoard.sourceSignal === sourceSignal) {
     const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
     snapshotBoardCache.set(cacheKey, {
       data: normalizedPersistedBoard,
