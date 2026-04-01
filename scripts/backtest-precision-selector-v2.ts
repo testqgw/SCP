@@ -2,7 +2,6 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import {
-  buildConservativePrecisionFillPick,
   buildPrecision80Pick,
   selectPrecisionCard,
   type PrecisionSlateCandidate,
@@ -190,23 +189,7 @@ async function main(): Promise<void> {
           source: "PRECISION",
           correct: row.actualSide === strictSignal.side,
         });
-        return;
       }
-
-      const fillSignal = buildConservativePrecisionFillPick(input);
-      const fillQualified = fillSignal?.qualified ?? fillSignal?.side !== "NEUTRAL";
-      if (!fillSignal || !fillQualified) return;
-
-      candidates.push({
-        playerId: row.playerId,
-        playerName: row.playerName,
-        matchupKey: `${row.gameDateEt}:${row.playerId}`,
-        market: row.market,
-        signal: fillSignal,
-        selectionScore: fillSignal.selectionScore ?? 0,
-        source: "SHADOW_FILL",
-        correct: row.actualSide === fillSignal.side,
-      });
     });
 
     const daySelections = selectPrecisionCard(candidates);
@@ -231,7 +214,6 @@ async function main(): Promise<void> {
   const picksPerDay = dates.length > 0 ? round(totalPicks / dates.length, 2) : 0;
   const bySource = {
     PRECISION: selected.filter((entry) => entry.source === "PRECISION").length,
-    SHADOW_FILL: selected.filter((entry) => entry.source === "SHADOW_FILL").length,
   };
   const byMarket = Object.fromEntries(
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const)

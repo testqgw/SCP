@@ -266,7 +266,7 @@ type PrecisionCandidate = FocusCandidate & {
   precision: SnapshotPrecisionPickSignal;
 };
 
-type DailyCardSource = "PRECISION" | "SHADOW_FILL" | "QUALIFIED_FILL" | "MODEL_FILL";
+type DailyCardSource = "PRECISION";
 
 type DailyCardCandidate = {
   candidate: FocusCandidate;
@@ -274,18 +274,14 @@ type DailyCardCandidate = {
   source: DailyCardSource;
 };
 
-function dailyCardSourceLabel(source: DailyCardSource): string {
-  if (source === "PRECISION") return "Precision Model";
-  if (source === "SHADOW_FILL") return "Selector Fill";
-  if (source === "QUALIFIED_FILL") return "Secondary Fill";
-  return "Model Fill";
+function dailyCardSourceLabel(_source: DailyCardSource): string {
+  void _source;
+  return "Precision Model";
 }
 
-function dailyCardSourceClass(source: DailyCardSource): string {
-  if (source === "PRECISION") return "border-teal-300/35 bg-teal-500/12 text-teal-100";
-  if (source === "SHADOW_FILL") return "border-indigo-300/35 bg-indigo-500/12 text-indigo-100";
-  if (source === "QUALIFIED_FILL") return "border-emerald-300/30 bg-emerald-500/12 text-emerald-100";
-  return "border-cyan-300/30 bg-cyan-500/12 text-cyan-100";
+function dailyCardSourceClass(_source: DailyCardSource): string {
+  void _source;
+  return "border-teal-300/35 bg-teal-500/12 text-teal-100";
 }
 
 function resolveMarketSignalDisplay(
@@ -1411,8 +1407,6 @@ export function SnapshotDashboard({
   );
 
   const precisionCardTargetCount = activeData.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
-  const precisionAllowsFill =
-    (activeData.precisionCardSummary?.fillCount ?? 0) > 0 ? true : activeData.precisionSystem?.allowFill ?? true;
   const rowByPlayerId = useMemo(
     () => new Map(activeData.rows.map((row) => [row.playerId, row] as const)),
     [activeData.rows],
@@ -1493,37 +1487,9 @@ export function SnapshotDashboard({
         addCandidate(candidate, "PRECISION", candidate.precision);
       });
 
-      if (precisionAllowsFill) {
-        allQualifiedCandidates.forEach((candidate) => {
-          addCandidate(candidate, "QUALIFIED_FILL", null);
-        });
-
-        allFocusCandidates.forEach((candidate) => {
-          if (candidate.signalQualified) return;
-          addCandidate(candidate, "MODEL_FILL", null);
-        });
-      }
-
       return ranked;
     },
-    [allFocusCandidates, allQualifiedCandidates, backendDailyCardCandidates, precisionAllowsFill, precisionCandidates, precisionCardTargetCount],
-  );
-
-  const dailyCardSourceCounts = useMemo(
-    () =>
-      dailyCardCandidates.reduce(
-        (counts, entry) => {
-          counts[entry.source] += 1;
-          return counts;
-        },
-        {
-          PRECISION: 0,
-          SHADOW_FILL: 0,
-          QUALIFIED_FILL: 0,
-          MODEL_FILL: 0,
-        } as Record<DailyCardSource, number>,
-      ),
-    [dailyCardCandidates],
+    [backendDailyCardCandidates, precisionCandidates, precisionCardTargetCount],
   );
 
   const visibleCoreSixCandidates = useMemo(
@@ -1768,9 +1734,7 @@ export function SnapshotDashboard({
               <p className="text-[11px] uppercase tracking-[0.22em] text-teal-100/70">{activeData.precisionSystem.label}</p>
               <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s {activeData.precisionSystem.label} Card</h2>
               <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
-                {precisionAllowsFill
-                  ? `This card is selected on the backend from the full slate. True precision picks come first, and a conservative selector-fill layer only activates when the slate is too thin to reach ${precisionCardTargetCount}.`
-                  : `This is the tighter one-prop-per-player pack. The summary stats here are the promoted forward-tested ${activeData.precisionSystem.label} numbers, not today-only hit rates. The card only shows true live picks from this system and does not add research or model fill to force volume.`}
+                {`This card is selected on the backend from true ${activeData.precisionSystem.label} picks only. If fewer than ${precisionCardTargetCount} picks clear today, the card stays short instead of adding secondary or model fill.`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
@@ -1815,11 +1779,7 @@ export function SnapshotDashboard({
                 <p className="font-semibold text-white">
                   {precisionCandidates.length >= precisionCardTargetCount
                     ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} pick${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${precisionCardTargetCount}, and the full true list is below.`
-                    : precisionAllowsFill && dailyCardCandidates.length >= precisionCardTargetCount
-                      ? dailyCardSourceCounts.SHADOW_FILL > 0
-                        ? `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true pick${precisionCandidates.length === 1 ? "" : "s"} today, so the backend selector added ${dailyCardSourceCounts.SHADOW_FILL} conservative fill${dailyCardSourceCounts.SHADOW_FILL === 1 ? "" : "s"} to stay at ${precisionCardTargetCount}.`
-                        : `The ${activeData.precisionSystem.label} model found ${precisionCandidates.length} true bettable play${precisionCandidates.length === 1 ? "" : "s"} today, so the card added ${dailyCardSourceCounts.QUALIFIED_FILL} secondary-signal fill${dailyCardSourceCounts.QUALIFIED_FILL === 1 ? "" : "s"} and ${dailyCardSourceCounts.MODEL_FILL} model fill${dailyCardSourceCounts.MODEL_FILL === 1 ? "" : "s"} to stay at ${precisionCardTargetCount}.`
-                      : `Only ${dailyCardCandidates.length} true ${activeData.precisionSystem.label} pick${dailyCardCandidates.length === 1 ? "" : "s"} cleared today, and this card shows every real pick without fill.`}
+                    : `Only ${dailyCardCandidates.length} true ${activeData.precisionSystem.label} pick${dailyCardCandidates.length === 1 ? "" : "s"} cleared today, and this card shows every real pick without fill.`}
                 </p>
                 <p className="mt-2">
                   Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.
@@ -1892,12 +1852,8 @@ export function SnapshotDashboard({
                             <span>
                               Rule prior: <strong>{formatStat(entry.precision.historicalAccuracy)}%</strong> on the full-sample replay in similar spots
                             </span>
-                          ) : entry.source === "SHADOW_FILL" ? (
-                            <span>Selector fill: promoted from the conservative tier2/shadow pool when the true precision slate is too thin.</span>
-                          ) : entry.source === "QUALIFIED_FILL" ? (
-                            <span>Secondary-signal fill: promoted from the broader raw-model board to keep a full six-pick card.</span>
                           ) : (
-                            <span>Model fill: best remaining model-side look, used only when the slate is too thin to reach six picks.</span>
+                            <span>True precision selection from the live backend card.</span>
                           )}
                         </div>
                       </div>
@@ -1913,7 +1869,7 @@ export function SnapshotDashboard({
                       {precisionCandidates.length} true {activeData.precisionSystem.label} pick{precisionCandidates.length === 1 ? "" : "s"} under the current filters
                     </h3>
                     <p className="mt-1 max-w-3xl text-sm text-slate-300">
-                      This list shows every true {activeData.precisionSystem.label} selection before any optional fill is used. The historical rate shown on each row is the same forward-tested similar-spot prior used by the live precision system.
+                      This list shows every true {activeData.precisionSystem.label} selection under the current filters. The historical rate shown on each row is the same forward-tested similar-spot prior used by the live precision system.
                     </p>
                   </div>
                   {precisionCandidates.length > precisionCardTargetCount ? (

@@ -83,7 +83,7 @@ export type SnapshotPrecisionPickSignal = {
   reasons?: string[];
 };
 
-export type SnapshotPrecisionCardSource = "PRECISION" | "SHADOW_FILL";
+export type SnapshotPrecisionCardSource = "PRECISION";
 
 export type SnapshotPrecisionCardEntry = {
   playerId: string;
