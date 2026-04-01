@@ -1,0 +1,3108 @@
+{
+  "generatedAt": "2026-04-01T17:22:51.379Z",
+  "source": "build-expanded-precision-manifest.ts",
+  "baseManifest": "precision-card-core-three-vfinal.json",
+  "expansionManifest": "player-local-target-lift-manifest-v13-live.json",
+  "stats": {
+    "existingVFinal": 70,
+    "addedFromV13CoreThree": 207,
+    "addedFromV13Expansion": 235,
+    "v13EntriesProcessed": 89,
+    "skippedDuplicate": 25,
+    "skippedNoRule": 67
+  },
+  "byMarket": {
+    "PA": 80,
+    "REB": 86,
+    "THREES": 111,
+    "PTS": 81,
+    "PRA": 75,
+    "RA": 79
+  },
+  "summary": {
+    "totalPairs": 512,
+    "totalPlayers": 131,
+    "markets": [
+      "PA",
+      "REB",
+      "THREES",
+      "PTS",
+      "PRA",
+      "RA"
+    ]
+  },
+  "pairs": [
+    {
+      "playerId": "cmm6n1p5400tfdx1059si23nc",
+      "playerName": "Coby White",
+      "market": "PA",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0oh30039dx103bnfhlwe",
+      "playerName": "Joel Embiid",
+      "market": "PA",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1xtj00zldx10g3c274ch",
+      "playerName": "Jordan Miller",
+      "market": "PA",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1qxg00updx10iznv6htq",
+      "playerName": "Kasparas Jakučionis",
+      "market": "PA",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1nwf00sjdx10ktubc5n6",
+      "playerName": "Nikola Vučević",
+      "market": "PA",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n20qy011pdx106gz5im29",
+      "playerName": "Sharife Cooper",
+      "market": "PA",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n191900hxdx108ofm67jm",
+      "playerName": "Bobby Portis",
+      "market": "REB",
+      "picks": 4
+    },
+    {
+      "playerId": "cmm6n1y7f00zvdx105llpz1ay",
+      "playerName": "Brook Lopez",
+      "market": "REB",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1l1p00qhdx10fogxzkx5",
+      "playerName": "Collin Murray-Boyles",
+      "market": "REB",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1oiu00szdx10l8pp44y3",
+      "playerName": "Jalen Smith",
+      "market": "REB",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n15hl00fddx10nav2raqf",
+      "playerName": "Jaylin Williams",
+      "market": "REB",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n116100cbdx10xit5671s",
+      "playerName": "Julian Strawther",
+      "market": "REB",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1u6q00wzdx10ihttdksv",
+      "playerName": "Jusuf Nurkić",
+      "market": "REB",
+      "picks": 8
+    },
+    {
+      "playerId": "cmm6n0yjr00afdx10ymgpl0h9",
+      "playerName": "Kel'el Ware",
+      "market": "REB",
+      "picks": 9
+    },
+    {
+      "playerId": "cmm6n0ys100aldx10f5oz12f6",
+      "playerName": "Precious Achiuwa",
+      "market": "REB",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n10mk00bxdx102sv5re55",
+      "playerName": "Aaron Gordon",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0xtk009xdx10npw0ava0",
+      "playerName": "Andrew Wiggins",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1qrx00uldx102f3s1tui",
+      "playerName": "Ben Sheppard",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n1dub00lddx101tbutaee",
+      "playerName": "Cam Spencer",
+      "market": "THREES",
+      "picks": 8
+    },
+    {
+      "playerId": "cmm6n10js00bvdx10o70lt5vk",
+      "playerName": "Cameron Johnson",
+      "market": "THREES",
+      "picks": 7
+    },
+    {
+      "playerId": "cmm6n1f2z00m9dx10gbo8pmue",
+      "playerName": "Caris LeVert",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1p5400tfdx1059si23nc",
+      "playerName": "Coby White",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n146b00ehdx10l8dchgdw",
+      "playerName": "Collin Sexton",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1nd100s5dx10iaun9b4f",
+      "playerName": "Darius Garland",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1r0800urdx10xr3t8x5l",
+      "playerName": "Davion Mitchell",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1hps00o3dx109ksef15a",
+      "playerName": "Devin Vassell",
+      "market": "THREES",
+      "picks": 8
+    },
+    {
+      "playerId": "cmm6n1ba300jjdx10v0hj9spz",
+      "playerName": "Dorian Finney-Smith",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1f8l00mddx10f9d1foz6",
+      "playerName": "Duncan Robinson",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0m56001ldx10wtdqu3o2",
+      "playerName": "Guerschon Yabusele",
+      "market": "THREES",
+      "picks": 4
+    },
+    {
+      "playerId": "cmm6n15kb00ffdx10tsybwyyj",
+      "playerName": "Isaiah Joe",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1jck00p9dx10t2kpaxcz",
+      "playerName": "Jaden Hardy",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n0omp003ddx101fnazldb",
+      "playerName": "Jared McCain",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1egh00ltdx10je4ezhu2",
+      "playerName": "Javon Small",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1pzy00u1dx10yigqfwya",
+      "playerName": "Jay Huff",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n15hl00fddx10nav2raqf",
+      "playerName": "Jaylin Williams",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1md300rfdx10edlrq91k",
+      "playerName": "Jaylon Tyson",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1r5p00uvdx10zcv08mgo",
+      "playerName": "Jerami Grant",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n0lwq001fdx10tiozh0vj",
+      "playerName": "Jordan Clarkson",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1gbj00n5dx106ok18214",
+      "playerName": "Julian Champagnie",
+      "market": "THREES",
+      "picks": 6
+    },
+    {
+      "playerId": "cmm6n1xig00zddx106hlww0kn",
+      "playerName": "Kawhi Leonard",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0yjr00afdx10ymgpl0h9",
+      "playerName": "Kel'el Ware",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1nz800sldx10uogp8l87",
+      "playerName": "Kevin Huerter",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n13mx00e3dx10pt20ce25",
+      "playerName": "Kon Knueppel",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1v3x00xndx10wrh9v2y1",
+      "playerName": "Kyle Filipowski",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n18ne00hndx10b7dscv0f",
+      "playerName": "Kyle Kuzma",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0mao001pdx10exyygcoq",
+      "playerName": "Landry Shamet",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1mim00rjdx10h950r4si",
+      "playerName": "Lonzo Ball",
+      "market": "THREES",
+      "picks": 4
+    },
+    {
+      "playerId": "cmm6n169c00fxdx10vvx2qr96",
+      "playerName": "Luguentz Dort",
+      "market": "THREES",
+      "picks": 5
+    },
+    {
+      "playerId": "cmm6n1t1300w5dx10348r9p3e",
+      "playerName": "Malik Monk",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0q69004hdx10b7ttzb6p",
+      "playerName": "Marcus Smart",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1nto00shdx102618oozl",
+      "playerName": "Matas Buzelis",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n1no600sddx10dcg6gyax",
+      "playerName": "Max Strus",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n13bt00dvdx1093n785lw",
+      "playerName": "Mike Conley",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n16yh00gfdx10tjwsux85",
+      "playerName": "Moses Moody",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n123c00czdx10fvdumqx6",
+      "playerName": "Naz Reid",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1bw900jzdx10dsp7bn9t",
+      "playerName": "Nickeil Alexander-Walker",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0wqp0095dx105z440hc9",
+      "playerName": "Noah Clowney",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n0y2200a3dx10iv58cjf0",
+      "playerName": "Norman Powell",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0mzt0027dx10yajknuq1",
+      "playerName": "OG Anunoby",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n1wz200yzdx109a6cr1x2",
+      "playerName": "Payton Pritchard",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n17q000gzdx10pw88vqv8",
+      "playerName": "Quinten Post",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1jnp00phdx10r90j9oup",
+      "playerName": "Ryan Nembhard",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n199o00i3dx10kbqbqkno",
+      "playerName": "Ryan Rollins",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n0s10005tdx108sv2w69j",
+      "playerName": "Saddiq Bey",
+      "market": "THREES",
+      "picks": 1
+    },
+    {
+      "playerId": "cmm6n1vne00y1dx10f97zfv64",
+      "playerName": "Sam Hauser",
+      "market": "THREES",
+      "picks": 8
+    },
+    {
+      "playerId": "cmm6n1nil00s9dx102t31qlrd",
+      "playerName": "Sam Merrill",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n1s9500vldx10qne1437w",
+      "playerName": "Scoot Henderson",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "cmm6n1h9000nrdx1042919za6",
+      "playerName": "Stephon Castle",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1q5n00u5dx10nfn6t81q",
+      "playerName": "Taelon Peter",
+      "market": "THREES",
+      "picks": 2
+    },
+    {
+      "playerId": "cmm6n1cac00k9dx10plrhucd7",
+      "playerName": "Vít Krejčí",
+      "market": "THREES",
+      "picks": 3
+    },
+    {
+      "playerId": "manifest:malik monk",
+      "playerName": "Malik Monk",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:malik monk",
+      "playerName": "Malik Monk",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:malik monk",
+      "playerName": "Malik Monk",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:malik monk",
+      "playerName": "Malik Monk",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:malik monk",
+      "playerName": "Malik Monk",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dillon brooks",
+      "playerName": "Dillon Brooks",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dillon brooks",
+      "playerName": "Dillon Brooks",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dillon brooks",
+      "playerName": "Dillon Brooks",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:landry shamet",
+      "playerName": "Landry Shamet",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:landry shamet",
+      "playerName": "Landry Shamet",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:landry shamet",
+      "playerName": "Landry Shamet",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:landry shamet",
+      "playerName": "Landry Shamet",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:landry shamet",
+      "playerName": "Landry Shamet",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cason wallace",
+      "playerName": "Cason Wallace",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:anthony black",
+      "playerName": "Anthony Black",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:coby white",
+      "playerName": "Coby White",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:coby white",
+      "playerName": "Coby White",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:coby white",
+      "playerName": "Coby White",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:coby white",
+      "playerName": "Coby White",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ryan rollins",
+      "playerName": "Ryan Rollins",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ryan rollins",
+      "playerName": "Ryan Rollins",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ryan rollins",
+      "playerName": "Ryan Rollins",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ryan rollins",
+      "playerName": "Ryan Rollins",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ryan rollins",
+      "playerName": "Ryan Rollins",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kentavious caldwell-pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:pascal siakam",
+      "playerName": "Pascal Siakam",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen johnson",
+      "playerName": "Jalen Johnson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah jackson",
+      "playerName": "Isaiah Jackson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah jackson",
+      "playerName": "Isaiah Jackson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah jackson",
+      "playerName": "Isaiah Jackson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah jackson",
+      "playerName": "Isaiah Jackson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dylan harper",
+      "playerName": "Dylan Harper",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:luke kornet",
+      "playerName": "Luke Kornet",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:luke kornet",
+      "playerName": "Luke Kornet",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:luke kornet",
+      "playerName": "Luke Kornet",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:luke kornet",
+      "playerName": "Luke Kornet",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:peyton watson",
+      "playerName": "Peyton Watson",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:peyton watson",
+      "playerName": "Peyton Watson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:peyton watson",
+      "playerName": "Peyton Watson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:peyton watson",
+      "playerName": "Peyton Watson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:olivier-maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:olivier-maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:olivier-maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:olivier-maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:olivier-maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen smith",
+      "playerName": "Jalen Smith",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen smith",
+      "playerName": "Jalen Smith",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen smith",
+      "playerName": "Jalen Smith",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen smith",
+      "playerName": "Jalen Smith",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen smith",
+      "playerName": "Jalen Smith",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kel'el ware",
+      "playerName": "Kel'el Ware",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kel'el ware",
+      "playerName": "Kel'el Ware",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kel'el ware",
+      "playerName": "Kel'el Ware",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kel'el ware",
+      "playerName": "Kel'el Ware",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin sexton",
+      "playerName": "Collin Sexton",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin sexton",
+      "playerName": "Collin Sexton",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin sexton",
+      "playerName": "Collin Sexton",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin sexton",
+      "playerName": "Collin Sexton",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin sexton",
+      "playerName": "Collin Sexton",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bobby portis",
+      "playerName": "Bobby Portis",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bobby portis",
+      "playerName": "Bobby Portis",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bobby portis",
+      "playerName": "Bobby Portis",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bobby portis",
+      "playerName": "Bobby Portis",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bobby portis",
+      "playerName": "Bobby Portis",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:patrick williams",
+      "playerName": "Patrick Williams",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zion williamson",
+      "playerName": "Zion Williamson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zion williamson",
+      "playerName": "Zion Williamson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zion williamson",
+      "playerName": "Zion Williamson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zion williamson",
+      "playerName": "Zion Williamson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zion williamson",
+      "playerName": "Zion Williamson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donovan clingan",
+      "playerName": "Donovan Clingan",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen williams",
+      "playerName": "Jalen Williams",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen williams",
+      "playerName": "Jalen Williams",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen williams",
+      "playerName": "Jalen Williams",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen williams",
+      "playerName": "Jalen Williams",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen williams",
+      "playerName": "Jalen Williams",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nic claxton",
+      "playerName": "Nic Claxton",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:will richard",
+      "playerName": "Will Richard",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jake laravia",
+      "playerName": "Jake LaRavia",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin murray-boyles",
+      "playerName": "Collin Murray-Boyles",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin murray-boyles",
+      "playerName": "Collin Murray-Boyles",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin murray-boyles",
+      "playerName": "Collin Murray-Boyles",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin murray-boyles",
+      "playerName": "Collin Murray-Boyles",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:collin murray-boyles",
+      "playerName": "Collin Murray-Boyles",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scoot henderson",
+      "playerName": "Scoot Henderson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scoot henderson",
+      "playerName": "Scoot Henderson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scoot henderson",
+      "playerName": "Scoot Henderson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scoot henderson",
+      "playerName": "Scoot Henderson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scoot henderson",
+      "playerName": "Scoot Henderson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jevon carter",
+      "playerName": "Jevon Carter",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:drake powell",
+      "playerName": "Drake Powell",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:daniel gafford",
+      "playerName": "Daniel Gafford",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:austin reaves",
+      "playerName": "Austin Reaves",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zach lavine",
+      "playerName": "Zach LaVine",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zach lavine",
+      "playerName": "Zach LaVine",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:zach lavine",
+      "playerName": "Zach LaVine",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bones hyland",
+      "playerName": "Bones Hyland",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bones hyland",
+      "playerName": "Bones Hyland",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bones hyland",
+      "playerName": "Bones Hyland",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bones hyland",
+      "playerName": "Bones Hyland",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jaden ivey",
+      "playerName": "Jaden Ivey",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola jovic",
+      "playerName": "Nikola Jović",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:nikola jovic",
+      "playerName": "Nikola Jović",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:terance mann",
+      "playerName": "Terance Mann",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:devin booker",
+      "playerName": "Devin Booker",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mark williams",
+      "playerName": "Mark Williams",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mark williams",
+      "playerName": "Mark Williams",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mark williams",
+      "playerName": "Mark Williams",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mark williams",
+      "playerName": "Mark Williams",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:mark williams",
+      "playerName": "Mark Williams",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:norman powell",
+      "playerName": "Norman Powell",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:norman powell",
+      "playerName": "Norman Powell",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:norman powell",
+      "playerName": "Norman Powell",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:norman powell",
+      "playerName": "Norman Powell",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:norman powell",
+      "playerName": "Norman Powell",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:scottie barnes",
+      "playerName": "Scottie Barnes",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:andre drummond",
+      "playerName": "Andre Drummond",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah joe",
+      "playerName": "Isaiah Joe",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah joe",
+      "playerName": "Isaiah Joe",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah joe",
+      "playerName": "Isaiah Joe",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah joe",
+      "playerName": "Isaiah Joe",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah joe",
+      "playerName": "Isaiah Joe",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan miller",
+      "playerName": "Jordan Miller",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan miller",
+      "playerName": "Jordan Miller",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan miller",
+      "playerName": "Jordan Miller",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan miller",
+      "playerName": "Jordan Miller",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jordan miller",
+      "playerName": "Jordan Miller",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:justin edwards",
+      "playerName": "Justin Edwards",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:justin edwards",
+      "playerName": "Justin Edwards",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ben saraf",
+      "playerName": "Ben Saraf",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kenrich williams",
+      "playerName": "Kenrich Williams",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:johnny furphy",
+      "playerName": "Johnny Furphy",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:johnny furphy",
+      "playerName": "Johnny Furphy",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:johnny furphy",
+      "playerName": "Johnny Furphy",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:johnny furphy",
+      "playerName": "Johnny Furphy",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:johnny furphy",
+      "playerName": "Johnny Furphy",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen pickett",
+      "playerName": "Jalen Pickett",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen pickett",
+      "playerName": "Jalen Pickett",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen pickett",
+      "playerName": "Jalen Pickett",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jalen pickett",
+      "playerName": "Jalen Pickett",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:tidjane salaun",
+      "playerName": "Tidjane Salaün",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:tidjane salaun",
+      "playerName": "Tidjane Salaün",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:tidjane salaun",
+      "playerName": "Tidjane Salaün",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:tidjane salaun",
+      "playerName": "Tidjane Salaün",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:julian strawther",
+      "playerName": "Julian Strawther",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:julian strawther",
+      "playerName": "Julian Strawther",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:julian strawther",
+      "playerName": "Julian Strawther",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:julian strawther",
+      "playerName": "Julian Strawther",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:julian strawther",
+      "playerName": "Julian Strawther",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jett howard",
+      "playerName": "Jett Howard",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jett howard",
+      "playerName": "Jett Howard",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jett howard",
+      "playerName": "Jett Howard",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jett howard",
+      "playerName": "Jett Howard",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:jett howard",
+      "playerName": "Jett Howard",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:keegan murray",
+      "playerName": "Keegan Murray",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:keegan murray",
+      "playerName": "Keegan Murray",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:keegan murray",
+      "playerName": "Keegan Murray",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:keegan murray",
+      "playerName": "Keegan Murray",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:keegan murray",
+      "playerName": "Keegan Murray",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:gui santos",
+      "playerName": "Gui Santos",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:deni avdija",
+      "playerName": "Deni Avdija",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:sion james",
+      "playerName": "Sion James",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:rui hachimura",
+      "playerName": "Rui Hachimura",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cam spencer",
+      "playerName": "Cam Spencer",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:adem bona",
+      "playerName": "Adem Bona",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:adem bona",
+      "playerName": "Adem Bona",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:adem bona",
+      "playerName": "Adem Bona",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:adem bona",
+      "playerName": "Adem Bona",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:saddiq bey",
+      "playerName": "Saddiq Bey",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:saddiq bey",
+      "playerName": "Saddiq Bey",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:saddiq bey",
+      "playerName": "Saddiq Bey",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:saddiq bey",
+      "playerName": "Saddiq Bey",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:saddiq bey",
+      "playerName": "Saddiq Bey",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kyshawn george",
+      "playerName": "Kyshawn George",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dorian finney-smith",
+      "playerName": "Dorian Finney-Smith",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dorian finney-smith",
+      "playerName": "Dorian Finney-Smith",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dorian finney-smith",
+      "playerName": "Dorian Finney-Smith",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:dorian finney-smith",
+      "playerName": "Dorian Finney-Smith",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:ty jerome",
+      "playerName": "Ty Jerome",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:buddy hield",
+      "playerName": "Buddy Hield",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:buddy hield",
+      "playerName": "Buddy Hield",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:bruce brown",
+      "playerName": "Bruce Brown",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:darius garland",
+      "playerName": "Darius Garland",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:darius garland",
+      "playerName": "Darius Garland",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:demar derozan",
+      "playerName": "DeMar DeRozan",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cj mccollum",
+      "playerName": "CJ McCollum",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cj mccollum",
+      "playerName": "CJ McCollum",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:cj mccollum",
+      "playerName": "CJ McCollum",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:payton pritchard",
+      "playerName": "Payton Pritchard",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:payton pritchard",
+      "playerName": "Payton Pritchard",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:payton pritchard",
+      "playerName": "Payton Pritchard",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:payton pritchard",
+      "playerName": "Payton Pritchard",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:payton pritchard",
+      "playerName": "Payton Pritchard",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:klay thompson",
+      "playerName": "Klay Thompson",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:khris middleton",
+      "playerName": "Khris Middleton",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "THREES",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kevin huerter",
+      "playerName": "Kevin Huerter",
+      "market": "PTS",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kevin huerter",
+      "playerName": "Kevin Huerter",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kevin huerter",
+      "playerName": "Kevin Huerter",
+      "market": "PA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:kevin huerter",
+      "playerName": "Kevin Huerter",
+      "market": "RA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah collier",
+      "playerName": "Isaiah Collier",
+      "market": "REB",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah collier",
+      "playerName": "Isaiah Collier",
+      "market": "PRA",
+      "picks": 0
+    },
+    {
+      "playerId": "manifest:isaiah collier",
+      "playerName": "Isaiah Collier",
+      "market": "RA",
+      "picks": 0
+    }
+  ]
+}
