@@ -362,9 +362,9 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   accuracyLabel: "WF Rate",
   picksPerDayLabel: "WF Picks/Day",
   note:
-    "Expanded precision card v1 through 2026-04-01. Core Five markets (REB, AST, THREES, PA, PR) with player-local manifest gating (Tier 1) and high-confidence universal bypass (Tier 2). Based on v13-live manifest with 507 entries.",
+    "Expanded precision card v1 through 2026-04-01. Core Five markets (REB, AST, THREES, PA, PR, PTS) with player-local manifest gating (Tier 1), high-confidence bypass (Tier 2), and fill when true picks are low. Based on v13-live manifest with 507 entries.",
   targetCardCount: 6,
-  allowFill: false,
+  allowFill: true,
 };
 
 export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-expanded-v1-tuned-tier1";
