@@ -37,10 +37,11 @@ import {
   resolveOpponentShotVolumeMetrics,
 } from "@/lib/snapshot/pointsContext";
 import {
+  buildAdaptivePrecisionFloorPick,
   buildPrecision80Pick,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
-  selectPrecisionCard,
+  selectPrecisionCardWithTopOff,
   type PrecisionSlateCandidate,
 } from "@/lib/snapshot/precisionPickSystem";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
@@ -2665,6 +2666,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
 
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
+  const precisionAdaptiveCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
 
   for (const player of players) {
@@ -3419,153 +3421,157 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       availabilityStatus: lineupSignal?.availabilityStatus ?? null,
       availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     };
-    const precisionSignals = Object.fromEntries(
-      (
-        [
-          [
-            "PTS",
-            buildPrecision80Pick({
-              market: "PTS",
-              projectedValue: projectedTonight.PTS,
-              line: ptsMarketLine?.line ?? null,
-              overPrice: ptsMarketLine?.overPrice ?? null,
-              underPrice: ptsMarketLine?.underPrice ?? null,
-              finalSide: ptsSignal?.baselineSide ?? modelLines.PTS.modelSide,
-              lineupTimingConfidence: ptsSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: ptsSameOpponentSignal?.deltaVsAnchor ?? null,
-              sameOpponentSample: ptsSameOpponentSignal?.sample ?? null,
-              sameOpponentMinutesSimilarity: ptsSameOpponentSignal?.minutesSimilarity ?? null,
-              ...ptsCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "REB",
-            buildPrecision80Pick({
-              market: "REB",
-              projectedValue: projectedTonight.REB,
-              line: rebMarketLine?.line ?? null,
-              overPrice: rebMarketLine?.overPrice ?? null,
-              underPrice: rebMarketLine?.underPrice ?? null,
-              finalSide: rebSignal?.baselineSide ?? modelLines.REB.modelSide,
-              lineupTimingConfidence: rebSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: rebSameOpponentSignal?.deltaVsAnchor ?? null,
-              sameOpponentSample: rebSameOpponentSignal?.sample ?? null,
-              sameOpponentMinutesSimilarity: rebSameOpponentSignal?.minutesSimilarity ?? null,
-              ...rebCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "AST",
-            buildPrecision80Pick({
-              market: "AST",
-              projectedValue: projectedTonight.AST,
-              line: astMarketLine?.line ?? null,
-              overPrice: astMarketLine?.overPrice ?? null,
-              underPrice: astMarketLine?.underPrice ?? null,
-              finalSide: astSignal?.baselineSide ?? modelLines.AST.modelSide,
-              lineupTimingConfidence: astSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: astSameOpponentSignal?.deltaVsAnchor ?? null,
-              sameOpponentSample: astSameOpponentSignal?.sample ?? null,
-              sameOpponentMinutesSimilarity: astSameOpponentSignal?.minutesSimilarity ?? null,
-              ...astCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "THREES",
-            buildPrecision80Pick({
-              market: "THREES",
-              projectedValue: projectedTonight.THREES,
-              line: threesMarketLine?.line ?? null,
-              overPrice: threesMarketLine?.overPrice ?? null,
-              underPrice: threesMarketLine?.underPrice ?? null,
-              finalSide: threesSignal?.baselineSide ?? modelLines.THREES.modelSide,
-              lineupTimingConfidence: threesSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: threesSameOpponentSignal?.deltaVsAnchor ?? null,
-              sameOpponentSample: threesSameOpponentSignal?.sample ?? null,
-              sameOpponentMinutesSimilarity: threesSameOpponentSignal?.minutesSimilarity ?? null,
-              ...threesCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "PRA",
-            buildPrecision80Pick({
-              market: "PRA",
-              projectedValue: projectedTonight.PRA,
-              line: praMarketLine?.line ?? null,
-              overPrice: praMarketLine?.overPrice ?? null,
-              underPrice: praMarketLine?.underPrice ?? null,
-              finalSide:
-                resolveBinarySide(promotedPraFinalSide) ??
-                praSignal?.baselineSide ??
-                modelLines.PRA.modelSide,
-              lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: null,
-              sameOpponentSample: null,
-              sameOpponentMinutesSimilarity: null,
-              ...praCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "PA",
-            buildPrecision80Pick({
-              market: "PA",
-              projectedValue: projectedTonight.PA,
-              line: paMarketLine?.line ?? null,
-              overPrice: paMarketLine?.overPrice ?? null,
-              underPrice: paMarketLine?.underPrice ?? null,
-              finalSide: paSignal?.baselineSide ?? modelLines.PA.modelSide,
-              lineupTimingConfidence: paSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: null,
-              sameOpponentSample: null,
-              sameOpponentMinutesSimilarity: null,
-              ...paCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "PR",
-            buildPrecision80Pick({
-              market: "PR",
-              projectedValue: projectedTonight.PR,
-              line: prMarketLine?.line ?? null,
-              overPrice: prMarketLine?.overPrice ?? null,
-              underPrice: prMarketLine?.underPrice ?? null,
-              finalSide: prSignal?.baselineSide ?? modelLines.PR.modelSide,
-              lineupTimingConfidence: prSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: null,
-              sameOpponentSample: null,
-              sameOpponentMinutesSimilarity: null,
-              ...prCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-          [
-            "RA",
-            buildPrecision80Pick({
-              market: "RA",
-              projectedValue: projectedTonight.RA,
-              line: raMarketLine?.line ?? null,
-              overPrice: raMarketLine?.overPrice ?? null,
-              underPrice: raMarketLine?.underPrice ?? null,
-              finalSide: raSignal?.baselineSide ?? modelLines.RA.modelSide,
-              lineupTimingConfidence: raSignal?.lineupTimingConfidence ?? null,
-              sameOpponentDeltaVsAnchor: null,
-              sameOpponentSample: null,
-              sameOpponentMinutesSimilarity: null,
-              ...raCurrentLineRecency,
-              ...precisionCommonInput,
-            }),
-          ],
-        ] as const
-      ).filter((entry) => entry[1] != null),
-    );
+    const buildPrecisionCardInputForMarket = (market: SnapshotMarket) => {
+      switch (market) {
+        case "PTS":
+          return {
+            market: "PTS" as const,
+            projectedValue: projectedTonight.PTS,
+            line: ptsMarketLine?.line ?? null,
+            overPrice: ptsMarketLine?.overPrice ?? null,
+            underPrice: ptsMarketLine?.underPrice ?? null,
+            finalSide: ptsSignal?.baselineSide ?? modelLines.PTS.modelSide,
+            lineupTimingConfidence: ptsSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: ptsSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: ptsSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: ptsSameOpponentSignal?.minutesSimilarity ?? null,
+            ...ptsCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "REB":
+          return {
+            market: "REB" as const,
+            projectedValue: projectedTonight.REB,
+            line: rebMarketLine?.line ?? null,
+            overPrice: rebMarketLine?.overPrice ?? null,
+            underPrice: rebMarketLine?.underPrice ?? null,
+            finalSide: rebSignal?.baselineSide ?? modelLines.REB.modelSide,
+            lineupTimingConfidence: rebSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: rebSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: rebSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: rebSameOpponentSignal?.minutesSimilarity ?? null,
+            ...rebCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "AST":
+          return {
+            market: "AST" as const,
+            projectedValue: projectedTonight.AST,
+            line: astMarketLine?.line ?? null,
+            overPrice: astMarketLine?.overPrice ?? null,
+            underPrice: astMarketLine?.underPrice ?? null,
+            finalSide: astSignal?.baselineSide ?? modelLines.AST.modelSide,
+            lineupTimingConfidence: astSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: astSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: astSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: astSameOpponentSignal?.minutesSimilarity ?? null,
+            ...astCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "THREES":
+          return {
+            market: "THREES" as const,
+            projectedValue: projectedTonight.THREES,
+            line: threesMarketLine?.line ?? null,
+            overPrice: threesMarketLine?.overPrice ?? null,
+            underPrice: threesMarketLine?.underPrice ?? null,
+            finalSide: threesSignal?.baselineSide ?? modelLines.THREES.modelSide,
+            lineupTimingConfidence: threesSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: threesSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: threesSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: threesSameOpponentSignal?.minutesSimilarity ?? null,
+            ...threesCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PRA":
+          return {
+            market: "PRA" as const,
+            projectedValue: projectedTonight.PRA,
+            line: praMarketLine?.line ?? null,
+            overPrice: praMarketLine?.overPrice ?? null,
+            underPrice: praMarketLine?.underPrice ?? null,
+            finalSide:
+              resolveBinarySide(promotedPraFinalSide) ??
+              praSignal?.baselineSide ??
+              modelLines.PRA.modelSide,
+            lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...praCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PA":
+          return {
+            market: "PA" as const,
+            projectedValue: projectedTonight.PA,
+            line: paMarketLine?.line ?? null,
+            overPrice: paMarketLine?.overPrice ?? null,
+            underPrice: paMarketLine?.underPrice ?? null,
+            finalSide: paSignal?.baselineSide ?? modelLines.PA.modelSide,
+            lineupTimingConfidence: paSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...paCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PR":
+          return {
+            market: "PR" as const,
+            projectedValue: projectedTonight.PR,
+            line: prMarketLine?.line ?? null,
+            overPrice: prMarketLine?.overPrice ?? null,
+            underPrice: prMarketLine?.underPrice ?? null,
+            finalSide: prSignal?.baselineSide ?? modelLines.PR.modelSide,
+            lineupTimingConfidence: prSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...prCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "RA":
+          return {
+            market: "RA" as const,
+            projectedValue: projectedTonight.RA,
+            line: raMarketLine?.line ?? null,
+            overPrice: raMarketLine?.overPrice ?? null,
+            underPrice: raMarketLine?.underPrice ?? null,
+            finalSide: raSignal?.baselineSide ?? modelLines.RA.modelSide,
+            lineupTimingConfidence: raSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...raCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+      }
+    };
+    const precisionSignals: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> = {};
+    const strictPrecisionSignals: Partial<Record<SnapshotMarket, NonNullable<ReturnType<typeof buildPrecision80Pick>>>> = {};
+    const adaptivePrecisionSignals: Partial<
+      Record<SnapshotMarket, NonNullable<ReturnType<typeof buildAdaptivePrecisionFloorPick>>>
+    > = {};
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
-      const strictSignal = precisionSignals[market];
+      const precisionInput = buildPrecisionCardInputForMarket(market);
+      const strictSignal = buildPrecision80Pick(precisionInput);
+      if (strictSignal != null) {
+        strictPrecisionSignals[market] = strictSignal;
+        precisionSignals[market] = strictSignal;
+      }
+      const adaptiveSignal = buildAdaptivePrecisionFloorPick(precisionInput);
+      if (adaptiveSignal != null) {
+        adaptivePrecisionSignals[market] = adaptiveSignal;
+        const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
+        const adaptiveQualified = adaptiveSignal.qualified ?? adaptiveSignal.side !== "NEUTRAL";
+        if (!strictQualified && adaptiveQualified) {
+          precisionSignals[market] = adaptiveSignal;
+        }
+      }
+    });
+    (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
+      const strictSignal = strictPrecisionSignals[market];
       const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
       if (strictSignal && strictQualified) {
         precisionCardCandidates.push({
@@ -3575,6 +3581,21 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           market,
           signal: strictSignal,
           selectionScore: strictSignal.selectionScore ?? 0,
+          source: "PRECISION",
+        });
+        return;
+      }
+
+      const adaptiveSignal = adaptivePrecisionSignals[market];
+      const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
+      if (adaptiveSignal && adaptiveQualified) {
+        precisionAdaptiveCardCandidates.push({
+          playerId: player.id,
+          playerName: player.fullName,
+          matchupKey: matchup.matchupKey,
+          market,
+          signal: adaptiveSignal,
+          selectionScore: adaptiveSignal.selectionScore ?? 0,
           source: "PRECISION",
         });
       }
@@ -3913,10 +3934,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
-  const precisionCard = selectPrecisionCard(precisionCardCandidates);
+  const precisionSelectionPool = [...precisionCardCandidates, ...precisionAdaptiveCardCandidates];
+  const precisionCard = selectPrecisionCardWithTopOff(precisionCardCandidates, precisionAdaptiveCardCandidates);
   const precisionCardSummary = {
     targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
-    truePickCount: precisionCardCandidates.filter((candidate) => candidate.source === "PRECISION").length,
+    truePickCount: precisionSelectionPool.filter((candidate) => candidate.source === "PRECISION").length,
     fillCount: 0,
     selectedCount: precisionCard.length,
   };

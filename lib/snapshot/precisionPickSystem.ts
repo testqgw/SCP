@@ -380,20 +380,20 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   label: "Precision Selector v2",
-  historicalAccuracy: 68.8,
-  historicalPicks: 686,
+  historicalAccuracy: 67.57,
+  historicalPicks: 814,
   historicalCoveragePct: 0.01,
-  historicalPicksPerDay: 4.64,
+  historicalPicksPerDay: 5.5,
   supportedMarkets: DAILY_6_CURRENT_MARKETS,
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Day",
   note:
-    "Backtested 2025-10-23 through 2026-03-27. Precision-only replay now sits at 68.8% overall and 72.03% over the last 30 days on 4.64 picks/day. The live card stays short on thin slates instead of adding selector fill.",
+    "Backtested 2025-10-23 through 2026-03-27. The staged selector now runs at 67.57% overall and 69.03% over the last 30 days on 5.5 picks/day while topping off thin slates with strict-rule player-market pairs outside the manifest.",
   targetCardCount: 6,
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-selector-v2-precision-only";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-selector-v2-adaptive-manifest-topoff";
 
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
@@ -928,17 +928,19 @@ export function computePrecisionSelectorScore(input: {
   );
 }
 
+function sortPrecisionSlateCandidates(left: PrecisionSlateCandidate, right: PrecisionSlateCandidate): number {
+  return (
+    right.selectionScore - left.selectionScore ||
+    comparePrecisionSignals(left.signal, right.signal, "dynamic-edge-first") ||
+    (left.playerName ?? left.playerId).localeCompare(right.playerName ?? right.playerId)
+  );
+}
+
 export function selectPrecisionCard(candidates: PrecisionSlateCandidate[]): SnapshotPrecisionCardEntry[] {
   const selected: SnapshotPrecisionCardEntry[] = [];
   const selectedPlayers = new Set<string>();
   const marketCounts = new Map<SnapshotMarket, number>();
-
-  const sortCandidates = (left: PrecisionSlateCandidate, right: PrecisionSlateCandidate) =>
-    right.selectionScore - left.selectionScore ||
-    comparePrecisionSignals(left.signal, right.signal, "dynamic-edge-first") ||
-    (left.playerName ?? left.playerId).localeCompare(right.playerName ?? right.playerId);
-
-  const pool = candidates.filter((candidate) => candidate.source === "PRECISION").sort(sortCandidates);
+  const pool = candidates.filter((candidate) => candidate.source === "PRECISION").sort(sortPrecisionSlateCandidates);
   for (const candidate of pool) {
     if (selected.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
     if (selectedPlayers.has(candidate.playerId)) continue;
@@ -950,11 +952,56 @@ export function selectPrecisionCard(candidates: PrecisionSlateCandidate[]): Snap
       source: candidate.source,
       rank: selected.length + 1,
       selectionScore: candidate.selectionScore,
+      precisionSignal: candidate.signal,
     });
     selectedPlayers.add(candidate.playerId);
     marketCounts.set(candidate.market, (marketCounts.get(candidate.market) ?? 0) + 1);
   }
 
+  return selected;
+}
+
+function topOffPrecisionCard(
+  selected: SnapshotPrecisionCardEntry[],
+  candidates: PrecisionSlateCandidate[],
+): SnapshotPrecisionCardEntry[] {
+  const next = [...selected];
+  const selectedPlayers = new Set(selected.map((entry) => entry.playerId));
+  const marketCounts = new Map<SnapshotMarket, number>();
+  selected.forEach((entry) => {
+    marketCounts.set(entry.market, (marketCounts.get(entry.market) ?? 0) + 1);
+  });
+
+  const pool = candidates.filter((candidate) => candidate.source === "PRECISION").sort(sortPrecisionSlateCandidates);
+  for (const candidate of pool) {
+    if (next.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
+    if (selectedPlayers.has(candidate.playerId)) continue;
+    if ((marketCounts.get(candidate.market) ?? 0) >= (PRECISION_SELECTOR_MARKET_CAPS[candidate.market] ?? 0)) continue;
+
+    next.push({
+      playerId: candidate.playerId,
+      market: candidate.market,
+      source: candidate.source,
+      rank: next.length + 1,
+      selectionScore: candidate.selectionScore,
+      precisionSignal: candidate.signal,
+    });
+    selectedPlayers.add(candidate.playerId);
+    marketCounts.set(candidate.market, (marketCounts.get(candidate.market) ?? 0) + 1);
+  }
+
+  return next;
+}
+
+export function selectPrecisionCardWithTopOff(
+  primaryCandidates: PrecisionSlateCandidate[],
+  ...topOffPools: PrecisionSlateCandidate[][]
+): SnapshotPrecisionCardEntry[] {
+  let selected = selectPrecisionCard(primaryCandidates);
+  for (const pool of topOffPools) {
+    if (selected.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
+    selected = topOffPrecisionCard(selected, pool);
+  }
   return selected;
 }
 
@@ -1179,6 +1226,38 @@ export function buildPrecision80Pick(input: PrecisionPickInput): SnapshotPrecisi
     side: "NEUTRAL",
     qualified: false,
     reasons: [...(strictSignal.reasons ?? []), "Player-market pair is outside precision manifest and did not pass Tier 2 or Tier 3 gates."],
+  };
+}
+
+export function buildAdaptivePrecisionFloorPick(input: PrecisionPickInput): SnapshotPrecisionPickSignal | null {
+  const strictSignal = buildPrecisionPick(input, DEFAULT_DAILY_6_RULES);
+  const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
+  if (!strictSignal || !strictQualified) {
+    return null;
+  }
+
+  const tier = getPrecisionCardTier(input, input.market, strictSignal);
+  if (tier !== "none") {
+    return null;
+  }
+
+  const selectionScore = roundSelectorScore(
+    computePrecisionSelectorScore({
+      market: input.market,
+      signal: strictSignal,
+      selectorFamily: "precision",
+      selectorInput: input,
+    }) - 0.01,
+  );
+  return {
+    ...strictSignal,
+    selectionScore,
+    selectorFamily: "precision",
+    selectorTier: "adaptive_manifest",
+    reasons: [
+      ...(strictSignal.reasons ?? []),
+      "Adaptive precision top-off: strict precision gates passed, and this player-market pair is used only when the core manifest slate runs thin.",
+    ],
   };
 }
 

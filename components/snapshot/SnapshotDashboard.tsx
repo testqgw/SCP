@@ -1419,7 +1419,7 @@ export function SnapshotDashboard({
         return [
           {
             candidate: buildFocusCandidate(row, entry.market, lineMap[lineKey(entry.playerId, entry.market)]),
-            precision: precisionSignalForMarket(row, entry.market),
+            precision: entry.precisionSignal ?? precisionSignalForMarket(row, entry.market),
             source: entry.source,
           } satisfies DailyCardCandidate,
         ];
@@ -1770,8 +1770,7 @@ export function SnapshotDashboard({
 
           {dailyCardCandidates.length === 0 ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
-              No true {activeData.precisionSystem.label} picks are available for the current filters yet. Try clearing matchup or player
-              filters and refresh the board.
+              No live {activeData.precisionSystem.label} picks are ready on this slate yet. Refresh the board once the latest lines finish loading.
             </div>
           ) : (
             <div className="mt-5 space-y-4">
@@ -1779,7 +1778,7 @@ export function SnapshotDashboard({
                 <p className="font-semibold text-white">
                   {precisionCandidates.length >= precisionCardTargetCount
                     ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} pick${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${precisionCardTargetCount}, and the full true list is below.`
-                    : `Only ${dailyCardCandidates.length} true ${activeData.precisionSystem.label} pick${dailyCardCandidates.length === 1 ? "" : "s"} cleared today, and this card shows every real pick without fill.`}
+                    : `Only ${dailyCardCandidates.length} true ${activeData.precisionSystem.label} pick${dailyCardCandidates.length === 1 ? "" : "s"} cleared today, and this card tops off thin strict slates with adaptive precision instead of secondary fill.`}
                 </p>
                 <p className="mt-2">
                   Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.

@@ -2,8 +2,9 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import {
+  buildAdaptivePrecisionFloorPick,
   buildPrecision80Pick,
-  selectPrecisionCard,
+  selectPrecisionCardWithTopOff,
   type PrecisionSlateCandidate,
 } from "../lib/snapshot/precisionPickSystem";
 import { attachCurrentLineRecencyMetrics } from "../lib/snapshot/currentLineRecency";
@@ -118,7 +119,7 @@ async function main(): Promise<void> {
   dates.forEach((date) => {
     const rows = byDate.get(date) ?? [];
     const candidates: CandidateRecord[] = [];
-    const rowKeyToTruth = new Map<string, EnrichedRow>();
+    const adaptiveCandidates: CandidateRecord[] = [];
 
     rows.forEach((row) => {
       const playerPosition = playerPositions.get(row.playerId) ?? null;
@@ -175,8 +176,6 @@ async function main(): Promise<void> {
 
       const strictSignal = buildPrecision80Pick(input);
       const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
-      const truthKey = `${row.playerId}|${row.market}`;
-      rowKeyToTruth.set(truthKey, row);
 
       if (strictSignal && strictQualified) {
         candidates.push({
@@ -189,12 +188,29 @@ async function main(): Promise<void> {
           source: "PRECISION",
           correct: row.actualSide === strictSignal.side,
         });
+        return;
       }
+
+      const adaptiveSignal = buildAdaptivePrecisionFloorPick(input);
+      const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
+      if (!adaptiveSignal || !adaptiveQualified) return;
+      adaptiveCandidates.push({
+        playerId: row.playerId,
+        playerName: row.playerName,
+        matchupKey: `${row.gameDateEt}:${row.playerId}`,
+        market: row.market,
+        signal: adaptiveSignal,
+        selectionScore: adaptiveSignal.selectionScore ?? 0,
+        source: "PRECISION",
+        correct: row.actualSide === adaptiveSignal.side,
+      });
     });
 
-    const daySelections = selectPrecisionCard(candidates);
+    const daySelections = selectPrecisionCardWithTopOff(candidates, adaptiveCandidates);
     const resolvedSelections = daySelections.flatMap((pick) => {
-      const found = candidates.find((candidate) => candidate.playerId === pick.playerId && candidate.market === pick.market);
+      const found = [...candidates, ...adaptiveCandidates].find(
+        (candidate) => candidate.playerId === pick.playerId && candidate.market === pick.market,
+      );
       return found ? [found] : [];
     });
 
