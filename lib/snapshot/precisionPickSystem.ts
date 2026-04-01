@@ -1,4 +1,4 @@
-﻿import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   inspectLiveUniversalModelSide,
@@ -120,7 +120,7 @@ export const DAILY_6_MARKET_PACKS = {
 
 export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
   PTS: {
-    minBucketLateAccuracy: 66,
+    minBucketLateAccuracy: 63,
     minLeafAccuracy: 88,
     minAbsLineGap: 1,
     minProjectionWinProbability: 0,
@@ -140,7 +140,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
     historicalCoveragePct: 0.14,
   },
   AST: {
-    minBucketLateAccuracy: 66,
+    minBucketLateAccuracy: 63,
     minLeafAccuracy: 85,
     minAbsLineGap: 1,
     minProjectionWinProbability: 0,
@@ -170,7 +170,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
     historicalCoveragePct: 0.15,
   },
   PA: {
-    minBucketLateAccuracy: 72,
+    minBucketLateAccuracy: 68,
     minLeafAccuracy: 86,
     minAbsLineGap: 5.5,
     minProjectionWinProbability: 0,
@@ -182,7 +182,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
   PR: {
     minBucketLateAccuracy: 58,
     minLeafAccuracy: 88,
-    minAbsLineGap: 1.5,
+    minAbsLineGap: 1.2,
     minProjectionWinProbability: 0,
     minProjectionPriceEdge: 0,
     historicalAccuracy: 71.55,
@@ -220,17 +220,17 @@ for (const m of ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as Snap
 export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   PTS: {
     ...ALL_DAILY_6_RULES.PTS!,
-    minBucketLateAccuracy: 72,
+    minBucketLateAccuracy: 68,
     minLeafAccuracy: 92,
-    minAbsLineGap: 2.5,
+    minAbsLineGap: 2.0,
     minProjectionWinProbability: 0.60,
     minProjectionPriceEdge: 0.03,
   },
   REB: {
     ...ALL_DAILY_6_RULES.REB!,
-    minBucketLateAccuracy: 64,
+    minBucketLateAccuracy: 61,
     minLeafAccuracy: 85,
-    minAbsLineGap: 1.5,
+    minAbsLineGap: 1.2,
     minProjectionWinProbability: 0.57,
     minProjectionPriceEdge: 0.02,
   },
@@ -244,7 +244,7 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
   THREES: {
     ...ALL_DAILY_6_RULES.THREES!,
-    minBucketLateAccuracy: 64,
+    minBucketLateAccuracy: 61,
     minLeafAccuracy: 72,
     minAbsLineGap: 0.85,
     minProjectionWinProbability: 0.55,
@@ -268,9 +268,9 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
   PRA: {
     ...ALL_DAILY_6_RULES.PRA!,
-    minBucketLateAccuracy: 66,
+    minBucketLateAccuracy: 63,
     minLeafAccuracy: 72,
-    minAbsLineGap: 2.5,
+    minAbsLineGap: 2.0,
     minProjectionWinProbability: 0.55,
     minProjectionPriceEdge: 0.015,
   },
@@ -298,7 +298,7 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
     ...ALL_DAILY_6_RULES.REB!,
     minBucketLateAccuracy: 70,
     minLeafAccuracy: 92,
-    minAbsLineGap: 1.5,
+    minAbsLineGap: 1.2,
     minProjectionWinProbability: 0.60,
     minProjectionPriceEdge: 0.025,
   },
@@ -306,7 +306,7 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
     ...ALL_DAILY_6_RULES.AST!,
     minBucketLateAccuracy: 74,
     minLeafAccuracy: 86,
-    minAbsLineGap: 1.5,
+    minAbsLineGap: 1.2,
     minProjectionWinProbability: 0.62,
     minProjectionPriceEdge: 0.03,
   },
@@ -357,7 +357,7 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   historicalAccuracy: 71.50,
   historicalPicks: 207,
   historicalCoveragePct: 0.17,
-  historicalPicksPerDay: 6.5,
+  historicalPicksPerDay: 6.2,
   supportedMarkets: DAILY_6_CURRENT_MARKETS,
   accuracyLabel: "WF Rate",
   picksPerDayLabel: "WF Picks/Day",
@@ -367,7 +367,7 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-expanded-v1-tier1-only";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-expanded-v1-tuned-tier1";
 
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
@@ -722,11 +722,11 @@ export function getPrecisionCardTier(
       : false;
     if (inById || inByName) return "tier1";
   } else {
-    // No manifest loaded â€” everything is Tier 1 (backwards compat)
+    // No manifest loaded — everything is Tier 1 (backwards compat)
     return "tier1";
   }
 
-  // Tier 2: high-confidence bypass â€” check if signal passes Tier 2 thresholds
+  // Tier 2: high-confidence bypass — check if signal passes Tier 2 thresholds
   const tier2Rule = TIER_2_HIGH_CONFIDENCE_RULES[market];
   
   if (tier2Rule && signal) {
