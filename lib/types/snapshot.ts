@@ -77,7 +77,27 @@ export type SnapshotPrecisionPickSignal = {
   absLineGap: number | null;
   projectionWinProbability: number | null;
   projectionPriceEdge?: number | null;
+  selectionScore?: number | null;
+  selectorFamily?: string | null;
+  selectorTier?: string | null;
   reasons?: string[];
+};
+
+export type SnapshotPrecisionCardSource = "PRECISION" | "SHADOW_FILL";
+
+export type SnapshotPrecisionCardEntry = {
+  playerId: string;
+  market: SnapshotMarket;
+  source: SnapshotPrecisionCardSource;
+  rank: number;
+  selectionScore: number | null;
+};
+
+export type SnapshotPrecisionCardSummary = {
+  targetCardCount: number;
+  truePickCount: number;
+  fillCount: number;
+  selectedCount: number;
 };
 
 export type SnapshotPrecisionSystemSummary = {
@@ -259,6 +279,8 @@ export type SnapshotBoardData = {
   matchups: SnapshotMatchupOption[];
   teamMatchups: SnapshotTeamMatchupStats[];
   rows: SnapshotRow[];
+  precisionCard?: SnapshotPrecisionCardEntry[];
+  precisionCardSummary?: SnapshotPrecisionCardSummary | null;
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
 };

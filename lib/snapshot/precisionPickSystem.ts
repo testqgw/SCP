@@ -4,7 +4,14 @@ import {
   inspectLiveUniversalModelSide,
   type PredictLiveUniversalSideInput,
 } from "@/lib/snapshot/liveUniversalSideModels";
-import type { SnapshotMarket, SnapshotModelSide, SnapshotPrecisionPickSignal, SnapshotPrecisionSystemSummary } from "@/lib/types/snapshot";
+import type {
+  SnapshotMarket,
+  SnapshotModelSide,
+  SnapshotPrecisionCardEntry,
+  SnapshotPrecisionCardSource,
+  SnapshotPrecisionPickSignal,
+  SnapshotPrecisionSystemSummary,
+} from "@/lib/types/snapshot";
 
 type PrecisionAvailabilityStatus = "OUT" | "DOUBTFUL" | "QUESTIONABLE" | "PROBABLE" | "ACTIVE" | "UNKNOWN";
 type PrecisionPickInput = PredictLiveUniversalSideInput & {
@@ -12,6 +19,13 @@ type PrecisionPickInput = PredictLiveUniversalSideInput & {
   playerName?: string | null;
   availabilityStatus?: PrecisionAvailabilityStatus | null;
   availabilityPercentPlay?: number | null;
+  weightedCurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+  sameOpponentDeltaVsAnchor?: number | null;
+  sameOpponentSample?: number | null;
+  sameOpponentMinutesSimilarity?: number | null;
+  matchupKey?: string | null;
 };
 
 export type PrecisionRule = {
@@ -29,6 +43,7 @@ export type PrecisionRuleSet = Partial<Record<SnapshotMarket, PrecisionRule>>;
 export type PrecisionRankingMode = "historical-prior-first" | "dynamic-edge-first";
 export type PrecisionMode = "live_vfinal" | "core_three_expansion_shadow" | "expanded_v1";
 export type PrecisionShadowMarketKey = "PTS" | "REB" | "AST" | "THREES" | "PA" | "PRA" | "PR" | "RA";
+export type PrecisionSelectorFamily = "precision" | "tier2" | "shadow";
 export type PrecisionShadowRejectionReason =
   | "unsupported_market"
   | "bucket_recent_accuracy"
@@ -78,6 +93,16 @@ export type CoreThreeExpansionPenaltyBreakdown = {
   totalPenalty: number;
 };
 
+export type PrecisionSlateCandidate = {
+  playerId: string;
+  playerName?: string | null;
+  matchupKey: string;
+  market: SnapshotMarket;
+  signal: SnapshotPrecisionPickSignal;
+  selectionScore: number;
+  source: SnapshotPrecisionCardSource;
+};
+
 type PrecisionCardCoreThreeVFinalPair = {
   playerId: string;
   market: SnapshotMarket;
@@ -116,6 +141,7 @@ export const DAILY_6_MARKET_PACKS = {
   BETTABLE_60_V2: ["REB", "THREES", "PRA", "PA", "RA"],
   HIGH_PRECISION_70_V1: ["REB", "THREES", "PA"],
   EXPANDED_PRECISION_V1: ["PTS", "REB", "THREES", "PRA", "PA", "RA"],
+  SELECTOR_V2: ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"],
 } as const satisfies Record<string, SnapshotMarket[]>;
 
 export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
@@ -201,7 +227,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
   },
 };
 
-const DAILY_6_CURRENT_MARKETS = DAILY_6_MARKET_PACKS.EXPANDED_PRECISION_V1;
+const DAILY_6_CURRENT_MARKETS = DAILY_6_MARKET_PACKS.SELECTOR_V2;
 
 export const LOOSE_RULES: PrecisionRuleSet = {};
 for (const m of ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as SnapshotMarket[]) {
@@ -353,21 +379,21 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 };
 
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
-  label: "Precision Expanded v1",
-  historicalAccuracy: 71.50,
-  historicalPicks: 207,
-  historicalCoveragePct: 0.17,
-  historicalPicksPerDay: 6.2,
+  label: "Precision Selector v2",
+  historicalAccuracy: 68.3,
+  historicalPicks: 858,
+  historicalCoveragePct: 0.01,
+  historicalPicksPerDay: 5.8,
   supportedMarkets: DAILY_6_CURRENT_MARKETS,
-  accuracyLabel: "WF Rate",
-  picksPerDayLabel: "WF Picks/Day",
+  accuracyLabel: "Backtest Rate",
+  picksPerDayLabel: "Picks/Day",
   note:
-    "Expanded precision card v1 through 2026-04-01. Core Five markets (REB, AST, THREES, PA, PR, PTS) with player-local manifest gating (Tier 1), high-confidence bypass (Tier 2), and fill when true picks are low. Based on v13-live manifest with 507 entries.",
+    "Backtested 2025-10-23 through 2026-03-27. The live card now takes true precision picks first, then adds conservative tier2/shadow selector fill on thin slates. Current replay sits at 68.3% overall and 70.3% over the last 30 days, but still averages 5.8 picks/day.",
   targetCardCount: 6,
-  allowFill: false,
+  allowFill: true,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-expanded-v1-better-formula";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-selector-v2";
 
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
@@ -662,6 +688,330 @@ export function computeCoreThreeExpansionSelectionScore(input: {
   return input.calibratedProb - disagreementPenalty - volatilityPenalty - rolePenalty + priceEdgeBoost;
 }
 
+const CONSERVATIVE_PRECISION_SHADOW_RULES = buildShadowPrecisionRuleSet(CORE_THREE_EXPANSION_V1);
+const PRECISION_SELECTOR_MARKET_CAPS: Record<SnapshotMarket, number> = {
+  PTS: 1,
+  REB: 2,
+  AST: 1,
+  THREES: 2,
+  PRA: 2,
+  PA: 2,
+  PR: 1,
+  RA: 1,
+};
+const PRECISION_SELECTOR_TARGET_COUNT = 6;
+const PRECISION_SELECTOR_MARKET_BOOSTS: Partial<Record<SnapshotMarket, number>> = {
+  PA: 0.03,
+  REB: 0.02,
+  PRA: 0.02,
+  THREES: 0.02,
+  PR: 0.01,
+};
+const PRECISION_SELECTOR_WEIGHTS = {
+  historicalAccuracy: 0.14,
+  bucketRecentAccuracy: 0.12,
+  leafAccuracy: 0.1,
+  absLineGap: 0.08,
+  projectionWinProbability: 0.14,
+  projectionPriceEdge: 0.1,
+  recency: 0.1,
+  minutes: 0.1,
+  positionFit: 0.06,
+  lineupTimingConfidence: 0.04,
+  completenessScore: 0.02,
+  familyBias: 0.02,
+  sameOpponent: 0.03,
+  usageContext: 0.04,
+} as const;
+
+function roundSelectorScore(value: number, digits = 4): number {
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function clamp01(value: number): number {
+  return clamp(value, 0, 1);
+}
+
+function getPrecisionPositionAffinity(position: string | null | undefined, market: SnapshotMarket): number {
+  if (!position) return 0.5;
+  const normalized = position.toUpperCase();
+  const isGuard = normalized.includes("G");
+  const isForward = normalized.includes("F");
+  const isCenter = normalized.includes("C");
+  const guardMarkets = new Set<SnapshotMarket>(["PTS", "AST", "THREES", "PA", "PR"]);
+  const wingMarkets = new Set<SnapshotMarket>(["PTS", "PRA", "PR", "RA"]);
+  const bigMarkets = new Set<SnapshotMarket>(["REB", "PRA", "RA", "PR"]);
+
+  if (isCenter && bigMarkets.has(market)) return 0.92;
+  if (isGuard && guardMarkets.has(market)) return 0.88;
+  if (isForward && wingMarkets.has(market)) return 0.84;
+  if (isGuard || isForward || isCenter) return 0.6;
+  return 0.5;
+}
+
+function getPrecisionSelectorFamilyBias(family: PrecisionSelectorFamily): number {
+  switch (family) {
+    case "precision":
+      return 0.024;
+    case "tier2":
+      return 0.018;
+    case "shadow":
+      return 0.015;
+    default:
+      return 0;
+  }
+}
+
+function getPrecisionSignalFeatures(signal: SnapshotPrecisionPickSignal) {
+  return {
+    historicalAccuracy: signal.historicalAccuracy / 100,
+    bucketRecentAccuracy: (signal.bucketRecentAccuracy ?? signal.historicalAccuracy) / 100,
+    leafAccuracy: (signal.leafAccuracy ?? signal.historicalAccuracy) / 100,
+    absLineGap: clamp01((signal.absLineGap ?? 0) / 12),
+    projectionWinProbability: signal.projectionWinProbability ?? 0.5,
+    projectionPriceEdge: clamp01(((signal.projectionPriceEdge ?? 0) + 0.02) / 0.08),
+  };
+}
+
+function getPrecisionRecencyFit(input: PrecisionPickInput, side: SnapshotModelSide): number {
+  const weightedRate =
+    input.weightedCurrentLineOverRate ??
+    (input.l5CurrentLineOverRate != null || input.l10CurrentLineOverRate != null || input.l15CurrentLineOverRate != null
+      ? [
+          { value: input.l5CurrentLineOverRate ?? null, weight: 0.45 },
+          { value: input.l10CurrentLineOverRate ?? null, weight: 0.35 },
+          { value: input.l15CurrentLineOverRate ?? null, weight: 0.2 },
+        ].reduce(
+          (acc, part) => {
+            if (part.value == null || !Number.isFinite(part.value)) return acc;
+            return {
+              total: acc.total + part.value * part.weight,
+              weight: acc.weight + part.weight,
+            };
+          },
+          { total: 0, weight: 0 },
+        )
+      : null);
+  const overRate =
+    weightedRate == null
+      ? input.emaCurrentLineOverRate ?? input.l5CurrentLineOverRate ?? input.l10CurrentLineOverRate ?? input.l15CurrentLineOverRate ?? 0.5
+      : typeof weightedRate === "number"
+        ? weightedRate
+        : weightedRate.weight > 0
+          ? weightedRate.total / weightedRate.weight
+          : 0.5;
+  const delta = input.emaCurrentLineDelta ?? input.l5CurrentLineDeltaAvg ?? 0;
+  const overRateFit = side === "OVER" ? overRate : 1 - overRate;
+  const deltaFit = side === "OVER" ? clamp01((delta + 4) / 8) : clamp01((4 - delta) / 8);
+  return roundSelectorScore(0.65 * overRateFit + 0.35 * deltaFit);
+}
+
+function getPrecisionMinutesFit(input: PrecisionPickInput, side: SnapshotModelSide): number {
+  const expectedMinutes = input.expectedMinutes ?? input.emaMinutesAvg ?? input.l5MinutesAvg ?? 0;
+  const volatility = input.minutesVolatility ?? 0;
+  const starterRate = input.starterRateLast10 ?? 0.5;
+  const stability = input.benchBigRoleStability ?? 0.5;
+  const baselineMinutes = input.seasonMinutesAvg ?? input.archetypeExpectedMinutes ?? expectedMinutes;
+  const minutesLiftPct =
+    input.minutesLiftPct ??
+    (baselineMinutes != null && baselineMinutes > 0 ? expectedMinutes / baselineMinutes - 1 : 0);
+  const minutesComponent = clamp01(expectedMinutes / 38);
+  const volatilityComponent = clamp01(volatility / 10);
+  const stabilityComponent = clamp01(stability);
+  const starterComponent = clamp01(starterRate);
+  const liftComponent = clamp01((minutesLiftPct + 0.25) / 0.6);
+
+  if (side === "OVER") {
+    return roundSelectorScore(
+      0.34 * minutesComponent +
+        0.18 * starterComponent +
+        0.16 * (1 - volatilityComponent) +
+        0.12 * stabilityComponent +
+        0.1 * clamp01((input.emaMinutesAvg ?? input.l5MinutesAvg ?? expectedMinutes) / 36) +
+        0.1 * liftComponent,
+    );
+  }
+
+  return roundSelectorScore(
+    0.34 * (1 - minutesComponent) +
+      0.18 * (1 - starterComponent) +
+      0.16 * volatilityComponent +
+      0.12 * (1 - stabilityComponent) +
+      0.1 * (1 - clamp01((input.emaMinutesAvg ?? input.l5MinutesAvg ?? expectedMinutes) / 36)) +
+      0.1 * (1 - liftComponent),
+  );
+}
+
+function getPrecisionSameOpponentFit(input: PrecisionPickInput, side: SnapshotModelSide): number {
+  if (input.sameOpponentSample == null || input.sameOpponentSample <= 0 || input.sameOpponentDeltaVsAnchor == null) {
+    return 0.5;
+  }
+  const directionFit =
+    side === "OVER"
+      ? clamp01((input.sameOpponentDeltaVsAnchor + 3) / 6)
+      : clamp01((3 - input.sameOpponentDeltaVsAnchor) / 6);
+  const sampleFit = clamp01(input.sameOpponentSample / 4);
+  const minutesFit = input.sameOpponentMinutesSimilarity == null ? 0.72 : clamp01(input.sameOpponentMinutesSimilarity);
+  return roundSelectorScore(0.55 * directionFit + 0.25 * sampleFit + 0.2 * minutesFit);
+}
+
+function getPrecisionUsageContextFit(
+  input: PrecisionPickInput,
+  side: SnapshotModelSide,
+  market: SnapshotMarket,
+): number {
+  const minutesLift = input.minutesLiftPct ?? 0;
+  const missingCoreShare = input.missingCoreShare ?? 0;
+  const stepUpRole = clamp01(input.stepUpRoleFlag ?? 0);
+  const blowoutRisk = input.blowoutRisk == null ? 0.5 : clamp01(1 - input.blowoutRisk * 25);
+  const paceFactor =
+    input.competitivePaceFactor == null ? 0.5 : clamp01((input.competitivePaceFactor - 12) / 12);
+  const usagePressure =
+    market === "AST" || market === "PA"
+      ? clamp01(((input.activeCoreAst ?? 0) + (input.missingCoreAst ?? 0)) / 30)
+      : clamp01(((input.activeCorePts ?? 0) + (input.missingCorePts ?? 0)) / 80);
+  const liftFit = clamp01((minutesLift + 0.3) / 0.6);
+  const missingCoreFit = clamp01(missingCoreShare / 0.3);
+
+  if (side === "OVER") {
+    return roundSelectorScore(
+      0.28 * liftFit + 0.24 * missingCoreFit + 0.2 * stepUpRole + 0.16 * blowoutRisk + 0.12 * Math.max(paceFactor, usagePressure),
+    );
+  }
+
+  return roundSelectorScore(
+    0.34 * (1 - liftFit) +
+      0.22 * (1 - missingCoreFit) +
+      0.18 * (1 - stepUpRole) +
+      0.16 * (1 - blowoutRisk) +
+      0.1 * (1 - Math.max(paceFactor, usagePressure)),
+  );
+}
+
+export function computePrecisionSelectorScore(input: {
+  market: SnapshotMarket;
+  signal: SnapshotPrecisionPickSignal;
+  selectorFamily: PrecisionSelectorFamily;
+  selectorInput: PrecisionPickInput;
+}): number {
+  const features = getPrecisionSignalFeatures(input.signal);
+  const recencyFit = getPrecisionRecencyFit(input.selectorInput, input.signal.side);
+  const minutesFit = getPrecisionMinutesFit(input.selectorInput, input.signal.side);
+  const positionFit = getPrecisionPositionAffinity(input.selectorInput.playerPosition, input.market);
+  const lineupConfidence = clamp01((input.selectorInput.lineupTimingConfidence ?? 50) / 100);
+  const completeness = clamp01((input.selectorInput.completenessScore ?? 50) / 100);
+  const sameOpponentFit = getPrecisionSameOpponentFit(input.selectorInput, input.signal.side);
+  const usageFit = getPrecisionUsageContextFit(input.selectorInput, input.signal.side, input.market);
+  const marketBoost = PRECISION_SELECTOR_MARKET_BOOSTS[input.market] ?? 0;
+
+  return roundSelectorScore(
+    PRECISION_SELECTOR_WEIGHTS.historicalAccuracy * features.historicalAccuracy +
+      PRECISION_SELECTOR_WEIGHTS.bucketRecentAccuracy * features.bucketRecentAccuracy +
+      PRECISION_SELECTOR_WEIGHTS.leafAccuracy * features.leafAccuracy +
+      PRECISION_SELECTOR_WEIGHTS.absLineGap * features.absLineGap +
+      PRECISION_SELECTOR_WEIGHTS.projectionWinProbability * features.projectionWinProbability +
+      PRECISION_SELECTOR_WEIGHTS.projectionPriceEdge * features.projectionPriceEdge +
+      PRECISION_SELECTOR_WEIGHTS.recency * recencyFit +
+      PRECISION_SELECTOR_WEIGHTS.minutes * minutesFit +
+      PRECISION_SELECTOR_WEIGHTS.positionFit * positionFit +
+      PRECISION_SELECTOR_WEIGHTS.lineupTimingConfidence * lineupConfidence +
+      PRECISION_SELECTOR_WEIGHTS.completenessScore * completeness +
+      PRECISION_SELECTOR_WEIGHTS.familyBias * getPrecisionSelectorFamilyBias(input.selectorFamily) +
+      PRECISION_SELECTOR_WEIGHTS.sameOpponent * sameOpponentFit +
+      PRECISION_SELECTOR_WEIGHTS.usageContext * usageFit +
+      marketBoost,
+    6,
+  );
+}
+
+export function buildConservativePrecisionFillPick(input: PrecisionPickInput): SnapshotPrecisionPickSignal | null {
+  const variants: Array<{ family: Exclude<PrecisionSelectorFamily, "precision">; signal: SnapshotPrecisionPickSignal }> = [];
+
+  const tier2Signal = buildPrecisionPick(input, TIER_2_HIGH_CONFIDENCE_RULES);
+  if (tier2Signal?.qualified && tier2Signal.side !== "NEUTRAL") {
+    variants.push({ family: "tier2", signal: tier2Signal });
+  }
+
+  const shadowSignal = buildPrecisionPick(input, CONSERVATIVE_PRECISION_SHADOW_RULES);
+  if (shadowSignal?.qualified && shadowSignal.side !== "NEUTRAL") {
+    const threesVeto =
+      input.market === "THREES"
+        ? getThreesShadowV3VetoReason({
+            side: shadowSignal.side,
+            starterRateLast10: input.starterRateLast10,
+          })
+        : null;
+    if (!threesVeto) {
+      variants.push({ family: "shadow", signal: shadowSignal });
+    }
+  }
+
+  if (variants.length === 0) return null;
+
+  const ranked = variants
+    .map((variant) => ({
+      ...variant,
+      selectionScore: computePrecisionSelectorScore({
+        market: input.market,
+        signal: variant.signal,
+        selectorFamily: variant.family,
+        selectorInput: input,
+      }),
+    }))
+    .sort(
+      (left, right) =>
+        right.selectionScore - left.selectionScore ||
+        comparePrecisionSignals(left.signal, right.signal, "dynamic-edge-first"),
+    );
+
+  const best = ranked[0];
+  return {
+    ...best.signal,
+    selectionScore: best.selectionScore,
+    selectorFamily: best.family,
+    selectorTier: best.family,
+    reasons: [...(best.signal.reasons ?? []), "Selector fill candidate from the conservative tier2/shadow family pack."],
+  };
+}
+
+export function selectPrecisionCard(candidates: PrecisionSlateCandidate[]): SnapshotPrecisionCardEntry[] {
+  const selected: SnapshotPrecisionCardEntry[] = [];
+  const selectedPlayers = new Set<string>();
+  const marketCounts = new Map<SnapshotMarket, number>();
+  const orderedSources: SnapshotPrecisionCardSource[] = ["PRECISION", "SHADOW_FILL"];
+
+  const sortCandidates = (left: PrecisionSlateCandidate, right: PrecisionSlateCandidate) =>
+    right.selectionScore - left.selectionScore ||
+    comparePrecisionSignals(left.signal, right.signal, "dynamic-edge-first") ||
+    (left.playerName ?? left.playerId).localeCompare(right.playerName ?? right.playerId);
+
+  orderedSources.forEach((source) => {
+    const pool = candidates.filter((candidate) => candidate.source === source).sort(sortCandidates);
+    for (const candidate of pool) {
+      if (selected.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
+      if (selectedPlayers.has(candidate.playerId)) continue;
+      if ((marketCounts.get(candidate.market) ?? 0) >= (PRECISION_SELECTOR_MARKET_CAPS[candidate.market] ?? 0)) continue;
+
+      selected.push({
+        playerId: candidate.playerId,
+        market: candidate.market,
+        source: candidate.source,
+        rank: selected.length + 1,
+        selectionScore: candidate.selectionScore,
+      });
+      selectedPlayers.add(candidate.playerId);
+      marketCounts.set(candidate.market, (marketCounts.get(candidate.market) ?? 0) + 1);
+    }
+  });
+
+  return selected;
+}
+
 function normalizePlayerNameForManifest(name: string): string {
   return name
     .normalize("NFD")
@@ -774,11 +1124,13 @@ export function getPrecision80Rule(market: SnapshotMarket): PrecisionRule | null
 
 export function comparePrecisionSignals(
   left: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
-    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
+    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge" | "selectionScore">>,
   right: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
-    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
+    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge" | "selectionScore">>,
   rankingMode: PrecisionRankingMode = "historical-prior-first",
 ): number {
+  const rightSelectionScore = right.selectionScore ?? Number.NEGATIVE_INFINITY;
+  const leftSelectionScore = left.selectionScore ?? Number.NEGATIVE_INFINITY;
   const rightWinProbability = right.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
   const leftWinProbability = left.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
   const rightPriceEdge = right.projectionPriceEdge ?? Number.NEGATIVE_INFINITY;
@@ -793,6 +1145,7 @@ export function comparePrecisionSignals(
   const orderedComparisons =
     rankingMode === "dynamic-edge-first"
       ? [
+          rightSelectionScore - leftSelectionScore,
           rightWinProbability - leftWinProbability,
           rightPriceEdge - leftPriceEdge,
           rightGap - leftGap,
@@ -801,6 +1154,7 @@ export function comparePrecisionSignals(
           right.historicalAccuracy - left.historicalAccuracy,
         ]
       : [
+          rightSelectionScore - leftSelectionScore,
           right.historicalAccuracy - left.historicalAccuracy,
           rightWinProbability - leftWinProbability,
           rightPriceEdge - leftPriceEdge,
@@ -823,8 +1177,17 @@ export function buildPrecision80Pick(input: PrecisionPickInput): SnapshotPrecisi
 
   const tier3Check = getPrecisionCardTier(input, input.market, looseSignal);
   if (tier3Check === "tier3") {
+    const selectionScore = computePrecisionSelectorScore({
+      market: input.market,
+      signal: looseSignal,
+      selectorFamily: "precision",
+      selectorInput: input,
+    });
     return {
       ...looseSignal,
+      selectionScore,
+      selectorFamily: "precision",
+      selectorTier: "tier3",
       reasons: [...(looseSignal.reasons ?? []), "Tier 3: player-market pair qualified via high-volume bypass."],
     };
   }
@@ -835,10 +1198,19 @@ export function buildPrecision80Pick(input: PrecisionPickInput): SnapshotPrecisi
   if (!strictSignal.qualified || strictSignal.side === "NEUTRAL") return strictSignal;
 
   const tier = getPrecisionCardTier(input, input.market, strictSignal);
+  const selectionScore = computePrecisionSelectorScore({
+    market: input.market,
+    signal: strictSignal,
+    selectorFamily: "precision",
+    selectorInput: input,
+  });
 
   if (tier === "tier1") {
     return {
       ...strictSignal,
+      selectionScore,
+      selectorFamily: "precision",
+      selectorTier: "tier1",
       reasons: [...(strictSignal.reasons ?? []), "Tier 1: player-market pair is in the expanded precision manifest."],
     };
   }
@@ -846,12 +1218,18 @@ export function buildPrecision80Pick(input: PrecisionPickInput): SnapshotPrecisi
   if (tier === "tier2") {
     return {
       ...strictSignal,
+      selectionScore,
+      selectorFamily: "precision",
+      selectorTier: "tier2",
       reasons: [...(strictSignal.reasons ?? []), "Tier 2: player-market pair qualified via high-confidence universal bypass."],
     };
   }
 
   return {
     ...strictSignal,
+    selectionScore,
+    selectorFamily: "precision",
+    selectorTier: "none",
     side: "NEUTRAL",
     qualified: false,
     reasons: [...(strictSignal.reasons ?? []), "Player-market pair is outside precision manifest and did not pass Tier 2 or Tier 3 gates."],

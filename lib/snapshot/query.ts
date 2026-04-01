@@ -38,8 +38,11 @@ import {
 } from "@/lib/snapshot/pointsContext";
 import {
   buildPrecision80Pick,
+  buildConservativePrecisionFillPick,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
+  selectPrecisionCard,
+  type PrecisionSlateCandidate,
 } from "@/lib/snapshot/precisionPickSystem";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import {
@@ -111,6 +114,8 @@ type MatchupMeta = {
   homeTeamCode: string;
   gameTimeEt: string;
 };
+
+type PrecisionCardCandidateRecord = PrecisionSlateCandidate;
 
 type TeamAllowanceAgg = {
   count: number;
@@ -369,6 +374,9 @@ function toBoardPrecisionSignal(signal: SnapshotPrecisionPickSignal | null | und
     absLineGap: signal.absLineGap,
     projectionWinProbability: signal.projectionWinProbability,
     projectionPriceEdge: signal.projectionPriceEdge,
+    selectionScore: signal.selectionScore ?? null,
+    selectorFamily: signal.selectorFamily ?? null,
+    selectorTier: signal.selectorTier ?? null,
   };
 }
 
@@ -2188,6 +2196,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       matchups: [],
       teamMatchups: [],
       rows: [],
+      precisionCard: [],
+      precisionCardSummary: null,
       precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
       universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
     };
@@ -2655,6 +2665,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   });
 
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
+  const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
 
   for (const player of players) {
@@ -3380,6 +3391,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     });
     const precisionCommonInput = {
       playerId: player.id,
+      playerName: player.fullName,
+      matchupKey: matchup.matchupKey,
       expectedMinutes: minutesProfile.expected,
       minutesVolatility,
       benchBigRoleStability,
@@ -3388,6 +3401,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       archetypeStarterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
       openingTeamSpread,
       openingTotal,
+      competitivePaceFactor,
+      blowoutRisk,
+      seasonMinutesAvg,
+      minutesLiftPct: universalUsageContext.minutesLiftPct ?? null,
+      activeCorePts: universalUsageContext.activeCorePts ?? null,
+      activeCoreAst: universalUsageContext.activeCoreAst ?? null,
+      missingCorePts: universalUsageContext.missingCorePts ?? null,
+      missingCoreAst: universalUsageContext.missingCoreAst ?? null,
+      missingCoreShare: universalUsageContext.missingCoreShare ?? null,
+      stepUpRoleFlag: universalUsageContext.stepUpRoleFlag ?? null,
       completenessScore: dataCompleteness.score,
       playerPosition: player.position,
       pointsProjection: projectedTonight.PTS,
@@ -3410,6 +3433,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: ptsMarketLine?.underPrice ?? null,
               finalSide: ptsSignal?.baselineSide ?? modelLines.PTS.modelSide,
               lineupTimingConfidence: ptsSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: ptsSameOpponentSignal?.deltaVsAnchor ?? null,
+              sameOpponentSample: ptsSameOpponentSignal?.sample ?? null,
+              sameOpponentMinutesSimilarity: ptsSameOpponentSignal?.minutesSimilarity ?? null,
               ...ptsCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3424,6 +3450,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: rebMarketLine?.underPrice ?? null,
               finalSide: rebSignal?.baselineSide ?? modelLines.REB.modelSide,
               lineupTimingConfidence: rebSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: rebSameOpponentSignal?.deltaVsAnchor ?? null,
+              sameOpponentSample: rebSameOpponentSignal?.sample ?? null,
+              sameOpponentMinutesSimilarity: rebSameOpponentSignal?.minutesSimilarity ?? null,
               ...rebCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3438,6 +3467,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: astMarketLine?.underPrice ?? null,
               finalSide: astSignal?.baselineSide ?? modelLines.AST.modelSide,
               lineupTimingConfidence: astSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: astSameOpponentSignal?.deltaVsAnchor ?? null,
+              sameOpponentSample: astSameOpponentSignal?.sample ?? null,
+              sameOpponentMinutesSimilarity: astSameOpponentSignal?.minutesSimilarity ?? null,
               ...astCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3452,6 +3484,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: threesMarketLine?.underPrice ?? null,
               finalSide: threesSignal?.baselineSide ?? modelLines.THREES.modelSide,
               lineupTimingConfidence: threesSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: threesSameOpponentSignal?.deltaVsAnchor ?? null,
+              sameOpponentSample: threesSameOpponentSignal?.sample ?? null,
+              sameOpponentMinutesSimilarity: threesSameOpponentSignal?.minutesSimilarity ?? null,
               ...threesCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3469,6 +3504,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
                 praSignal?.baselineSide ??
                 modelLines.PRA.modelSide,
               lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: null,
+              sameOpponentSample: null,
+              sameOpponentMinutesSimilarity: null,
               ...praCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3483,6 +3521,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: paMarketLine?.underPrice ?? null,
               finalSide: paSignal?.baselineSide ?? modelLines.PA.modelSide,
               lineupTimingConfidence: paSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: null,
+              sameOpponentSample: null,
+              sameOpponentMinutesSimilarity: null,
               ...paCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3497,6 +3538,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: prMarketLine?.underPrice ?? null,
               finalSide: prSignal?.baselineSide ?? modelLines.PR.modelSide,
               lineupTimingConfidence: prSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: null,
+              sameOpponentSample: null,
+              sameOpponentMinutesSimilarity: null,
               ...prCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3511,6 +3555,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
               underPrice: raMarketLine?.underPrice ?? null,
               finalSide: raSignal?.baselineSide ?? modelLines.RA.modelSide,
               lineupTimingConfidence: raSignal?.lineupTimingConfidence ?? null,
+              sameOpponentDeltaVsAnchor: null,
+              sameOpponentSample: null,
+              sameOpponentMinutesSimilarity: null,
               ...raCurrentLineRecency,
               ...precisionCommonInput,
             }),
@@ -3518,6 +3565,163 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         ] as const
       ).filter((entry) => entry[1] != null),
     );
+    const buildPrecisionCardInputForMarket = (market: SnapshotMarket) => {
+      switch (market) {
+        case "PTS":
+          return {
+            market: "PTS" as const,
+            projectedValue: projectedTonight.PTS,
+            line: ptsMarketLine?.line ?? null,
+            overPrice: ptsMarketLine?.overPrice ?? null,
+            underPrice: ptsMarketLine?.underPrice ?? null,
+            finalSide: ptsSignal?.baselineSide ?? modelLines.PTS.modelSide,
+            lineupTimingConfidence: ptsSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: ptsSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: ptsSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: ptsSameOpponentSignal?.minutesSimilarity ?? null,
+            ...ptsCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "REB":
+          return {
+            market: "REB" as const,
+            projectedValue: projectedTonight.REB,
+            line: rebMarketLine?.line ?? null,
+            overPrice: rebMarketLine?.overPrice ?? null,
+            underPrice: rebMarketLine?.underPrice ?? null,
+            finalSide: rebSignal?.baselineSide ?? modelLines.REB.modelSide,
+            lineupTimingConfidence: rebSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: rebSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: rebSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: rebSameOpponentSignal?.minutesSimilarity ?? null,
+            ...rebCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "AST":
+          return {
+            market: "AST" as const,
+            projectedValue: projectedTonight.AST,
+            line: astMarketLine?.line ?? null,
+            overPrice: astMarketLine?.overPrice ?? null,
+            underPrice: astMarketLine?.underPrice ?? null,
+            finalSide: astSignal?.baselineSide ?? modelLines.AST.modelSide,
+            lineupTimingConfidence: astSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: astSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: astSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: astSameOpponentSignal?.minutesSimilarity ?? null,
+            ...astCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "THREES":
+          return {
+            market: "THREES" as const,
+            projectedValue: projectedTonight.THREES,
+            line: threesMarketLine?.line ?? null,
+            overPrice: threesMarketLine?.overPrice ?? null,
+            underPrice: threesMarketLine?.underPrice ?? null,
+            finalSide: threesSignal?.baselineSide ?? modelLines.THREES.modelSide,
+            lineupTimingConfidence: threesSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: threesSameOpponentSignal?.deltaVsAnchor ?? null,
+            sameOpponentSample: threesSameOpponentSignal?.sample ?? null,
+            sameOpponentMinutesSimilarity: threesSameOpponentSignal?.minutesSimilarity ?? null,
+            ...threesCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PRA":
+          return {
+            market: "PRA" as const,
+            projectedValue: projectedTonight.PRA,
+            line: praMarketLine?.line ?? null,
+            overPrice: praMarketLine?.overPrice ?? null,
+            underPrice: praMarketLine?.underPrice ?? null,
+            finalSide:
+              resolveBinarySide(promotedPraFinalSide) ??
+              praSignal?.baselineSide ??
+              modelLines.PRA.modelSide,
+            lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...praCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PA":
+          return {
+            market: "PA" as const,
+            projectedValue: projectedTonight.PA,
+            line: paMarketLine?.line ?? null,
+            overPrice: paMarketLine?.overPrice ?? null,
+            underPrice: paMarketLine?.underPrice ?? null,
+            finalSide: paSignal?.baselineSide ?? modelLines.PA.modelSide,
+            lineupTimingConfidence: paSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...paCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "PR":
+          return {
+            market: "PR" as const,
+            projectedValue: projectedTonight.PR,
+            line: prMarketLine?.line ?? null,
+            overPrice: prMarketLine?.overPrice ?? null,
+            underPrice: prMarketLine?.underPrice ?? null,
+            finalSide: prSignal?.baselineSide ?? modelLines.PR.modelSide,
+            lineupTimingConfidence: prSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...prCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+        case "RA":
+          return {
+            market: "RA" as const,
+            projectedValue: projectedTonight.RA,
+            line: raMarketLine?.line ?? null,
+            overPrice: raMarketLine?.overPrice ?? null,
+            underPrice: raMarketLine?.underPrice ?? null,
+            finalSide: raSignal?.baselineSide ?? modelLines.RA.modelSide,
+            lineupTimingConfidence: raSignal?.lineupTimingConfidence ?? null,
+            sameOpponentDeltaVsAnchor: null,
+            sameOpponentSample: null,
+            sameOpponentMinutesSimilarity: null,
+            ...raCurrentLineRecency,
+            ...precisionCommonInput,
+          };
+      }
+    };
+    (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
+      const strictSignal = precisionSignals[market];
+      const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
+      if (strictSignal && strictQualified) {
+        precisionCardCandidates.push({
+          playerId: player.id,
+          playerName: player.fullName,
+          matchupKey: matchup.matchupKey,
+          market,
+          signal: strictSignal,
+          selectionScore: strictSignal.selectionScore ?? 0,
+          source: "PRECISION",
+        });
+        return;
+      }
+
+      const fillSignal = buildConservativePrecisionFillPick(buildPrecisionCardInputForMarket(market));
+      const fillQualified = fillSignal?.qualified ?? fillSignal?.side !== "NEUTRAL";
+      if (!fillSignal || !fillQualified) return;
+
+      precisionCardCandidates.push({
+        playerId: player.id,
+        playerName: player.fullName,
+        matchupKey: matchup.matchupKey,
+        market,
+        signal: fillSignal,
+        selectionScore: fillSignal.selectionScore ?? 0,
+        source: "SHADOW_FILL",
+      });
+    });
 
     const gameIntel = buildGameIntel({
       dateEt,
@@ -3852,6 +4056,13 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
+  const precisionCard = selectPrecisionCard(precisionCardCandidates);
+  const precisionCardSummary = {
+    targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+    truePickCount: precisionCardCandidates.filter((candidate) => candidate.source === "PRECISION").length,
+    fillCount: precisionCard.filter((entry) => entry.source === "SHADOW_FILL").length,
+    selectedCount: precisionCard.length,
+  };
 
   const result = toBoardSnapshotData({
     dateEt,
@@ -3859,6 +4070,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
+    precisionCard,
+    precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
   });
