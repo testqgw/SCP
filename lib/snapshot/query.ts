@@ -38,16 +38,34 @@ import {
 } from "@/lib/snapshot/pointsContext";
 import {
   buildPrecision80Pick,
+  PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
 } from "@/lib/snapshot/precisionPickSystem";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
-import { UNIVERSAL_SYSTEM_SUMMARY } from "@/lib/snapshot/universalSystemSummary";
+import {
+  evaluateLiveUniversalModelSide,
+  inspectLiveUniversalModelSide,
+} from "@/lib/snapshot/liveUniversalSideModels";
+  import {
+    getLivePlayerOverrideRuntimeMeta,
+    predictLivePlayerModelSide,
+  } from "@/lib/snapshot/livePlayerSideModels";
+import {
+  getLivePraRawFeatureRuntimeMeta,
+  predictLivePraRawFeatureSide,
+} from "@/lib/snapshot/livePraRawFeatureModel";
+import {
+  UNIVERSAL_SYSTEM_SUMMARY,
+  UNIVERSAL_SYSTEM_SUMMARY_VERSION,
+} from "@/lib/snapshot/universalSystemSummary";
 import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
+  buildSameOpponentProjectionSignal,
   projectMinutesProfile,
   projectTonightMetrics,
   type MinutesProjectionProfile,
+  type SameOpponentProjectionSignal,
   type TeamSynergyInput,
 } from "@/lib/snapshot/projection";
 import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
@@ -62,6 +80,7 @@ import type {
   SnapshotIntelModule,
   SnapshotMarket,
   SnapshotMatchupOption,
+  SnapshotModelSide,
   SnapshotMetricRecord,
   SnapshotPlayerLookupData,
   SnapshotPrecisionPickSignal,
@@ -306,6 +325,35 @@ function blankMetricRecord(): SnapshotMetricRecord {
     PR: null,
     RA: null,
   };
+}
+
+function resolveBinarySide(
+  value: SnapshotModelSide | null | undefined,
+): "OVER" | "UNDER" | null {
+  return value === "OVER" || value === "UNDER" ? value : null;
+}
+
+function impliedProbabilityFromAmerican(odds: number | null): number | null {
+  if (odds == null || !Number.isFinite(odds) || odds === 0) return null;
+  if (odds < 0) {
+    const abs = Math.abs(odds);
+    return abs / (abs + 100);
+  }
+  return 100 / (odds + 100);
+}
+
+function deriveProjectionSide(projectedValue: number | null, line: number | null): "OVER" | "UNDER" | null {
+  if (projectedValue == null || line == null) return null;
+  return projectedValue > line ? "OVER" : "UNDER";
+}
+
+function deriveFavoredSide(overPrice: number | null, underPrice: number | null): "OVER" | "UNDER" | "NEUTRAL" {
+  const overProbability = impliedProbabilityFromAmerican(overPrice);
+  const underProbability = impliedProbabilityFromAmerican(underPrice);
+  if (overProbability == null || underProbability == null || overProbability === underProbability) {
+    return "NEUTRAL";
+  }
+  return overProbability > underProbability ? "OVER" : "UNDER";
 }
 
 function toBoardPrecisionSignal(signal: SnapshotPrecisionPickSignal | null | undefined): SnapshotPrecisionPickSignal | undefined {
@@ -654,6 +702,33 @@ function formatSigned(value: number | null | undefined): string {
 function formatPercent(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "-";
   return `${(value * 100).toFixed(0)}%`;
+}
+
+function formatEmpiricalHitRateSummary(input: {
+  weightedCurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+}): string {
+  const parts = [
+    input.weightedCurrentLineOverRate == null ? null : `W ${formatPercent(input.weightedCurrentLineOverRate)}`,
+    input.l10CurrentLineOverRate == null ? null : `L10 ${formatPercent(input.l10CurrentLineOverRate)}`,
+    input.l15CurrentLineOverRate == null ? null : `L15 ${formatPercent(input.l15CurrentLineOverRate)}`,
+  ].filter((value): value is string => value != null);
+  return parts.length > 0 ? parts.join(" | ") : "-";
+}
+
+function formatSameOpponentSummary(signal: SameOpponentProjectionSignal | null): string {
+  if (signal == null || signal.sample <= 0) return "-";
+  return `${formatNumber(signal.weightedAverage ?? signal.average)} / ${formatSigned(signal.deltaVsAnchor)} / ${signal.sample}g / adj ${formatSigned(signal.adjustment)}`;
+}
+
+function filterSameOpponentLogs(logs: SnapshotStatLog[], opponentCode: string): SnapshotStatLog[] {
+  const canonicalOpponent = canonicalTeamCode(opponentCode);
+  if (!canonicalOpponent) return [];
+  return logs.filter((log) => {
+    if (!log.opponent) return false;
+    return canonicalTeamCode(log.opponent) === canonicalOpponent;
+  });
 }
 
 function daysBetweenEt(fromEt: string, toEt: string): number | null {
@@ -1753,6 +1828,9 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
     }),
     lineupSignal,
   );
+  const sameOpponentLogs = filterSameOpponentLogs(logsForPlayer, matchup.opponentCode);
+  const sameOpponentByMarket = arraysByMarket(sameOpponentLogs);
+  const sameOpponentMinutes = sameOpponentLogs.map((log) => log.minutes);
   const projectedTonight = applyAvailabilityToMetricRecord(
     projectTonightMetrics({
       last3Average,
@@ -1764,6 +1842,8 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
       last10ByMarket,
       historyByMarket: seasonByMarketRecent,
       historyMinutes: historyMinutesRecent,
+      sameOpponentByMarket,
+      sameOpponentMinutes,
       sampleSize: logsForPlayer.length,
       personalModels,
       minutesSeasonAvg,
@@ -1796,6 +1876,34 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
     last10ByMarket,
     dataCompletenessScore: dataCompleteness.score,
   });
+  const ptsSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "PTS",
+    sameOpponentValues: sameOpponentByMarket.PTS,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.PTS ?? last10Average.PTS ?? null,
+  });
+  const rebSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "REB",
+    sameOpponentValues: sameOpponentByMarket.REB,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.REB ?? last10Average.REB ?? null,
+  });
+  const astSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "AST",
+    sameOpponentValues: sameOpponentByMarket.AST,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.AST ?? last10Average.AST ?? null,
+  });
+  const threesSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "THREES",
+    sameOpponentValues: sameOpponentByMarket.THREES,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.THREES ?? last10Average.THREES ?? null,
+  });
 
   const gameIntel: SnapshotGameIntel = {
     generatedAt: new Date().toISOString(),
@@ -1816,6 +1924,22 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
           },
           { label: "PTS / REB / AST", value: `${formatNumber(projectedTonight.PTS)} / ${formatNumber(projectedTonight.REB)} / ${formatNumber(projectedTonight.AST)}` },
           { label: "PRA / PA / PR / RA", value: `${formatNumber(projectedTonight.PRA)} / ${formatNumber(projectedTonight.PA)} / ${formatNumber(projectedTonight.PR)} / ${formatNumber(projectedTonight.RA)}` },
+          {
+            label: "Volatility P/R/A/3",
+            value: `${formatNumber(modelLines.PTS.volatility)} / ${formatNumber(modelLines.REB.volatility)} / ${formatNumber(modelLines.AST.volatility)} / ${formatNumber(modelLines.THREES.volatility)}`,
+          },
+        ],
+      },
+      {
+        id: "player-lookup-diagnostics",
+        title: "Projection Diagnostics",
+        description: "Same-opponent nudges and volatility context behind the projection.",
+        status: "DERIVED",
+        items: [
+          { label: "PTS Same Opp", value: formatSameOpponentSummary(ptsSameOpponentSignal) },
+          { label: "REB Same Opp", value: formatSameOpponentSummary(rebSameOpponentSignal) },
+          { label: "AST Same Opp", value: formatSameOpponentSummary(astSameOpponentSignal) },
+          { label: "3PM Same Opp", value: formatSameOpponentSummary(threesSameOpponentSignal) },
         ],
       },
       {
@@ -2013,16 +2137,25 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     latestRefreshUpdatedAt,
   );
   const parsedLineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
-  const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
-  const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
-  const refreshUpdatedAtIso = latestRefreshUpdatedAt?.toISOString() ?? null;
-  const sourceSignal = [
-    sourceUpdatedAtIso ?? "none",
-    gameUpdatedAtIso ?? "none",
-    latestDataWrite._max.updatedAt?.toISOString() ?? "none",
-    lineupUpdatedAtIso ?? "none",
+    const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
+    const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
+    const refreshUpdatedAtIso = latestRefreshUpdatedAt?.toISOString() ?? null;
+    const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
+    const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
+    const sourceSignal = [
+      sourceUpdatedAtIso ?? "none",
+      gameUpdatedAtIso ?? "none",
+      latestDataWrite._max.updatedAt?.toISOString() ?? "none",
+      lineupUpdatedAtIso ?? "none",
     refreshUpdatedAtIso ?? "none",
-  ].join("|");
+      UNIVERSAL_SYSTEM_SUMMARY_VERSION,
+      PRECISION_80_SYSTEM_SUMMARY_VERSION,
+      promotedPraRuntime.enabled
+        ? `${promotedPraRuntime.version ?? "unknown"}:${promotedPraRuntime.label ?? "pra-live"}`
+        : `pra-raw-feature:${promotedPraRuntime.mode}`,
+      `player-overrides:${playerOverrideRuntime.mode}:${playerOverrideRuntime.joelMode}:${playerOverrideRuntime.javonMode}:${playerOverrideRuntime.jaMode}:${playerOverrideRuntime.naeMode}:${playerOverrideRuntime.coleMode}:${playerOverrideRuntime.dejounteMode}:${playerOverrideRuntime.devinMode}:${playerOverrideRuntime.aaronMode}:${playerOverrideRuntime.sabonisMode}:${playerOverrideRuntime.taureanMode}:${playerOverrideRuntime.tristanMode}:${playerOverrideRuntime.marcusMode}:${playerOverrideRuntime.kyleMode}`,
+      `player-local-manifest:${playerOverrideRuntime.playerLocalRecoveryManifestMode}:${playerOverrideRuntime.playerLocalRecoveryManifestSignature ?? "none"}`,
+    ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
   if (cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
@@ -2675,6 +2808,9 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       }),
       lineupSignal,
     );
+    const sameOpponentLogs = filterSameOpponentLogs(logsForPlayer, matchup.opponentCode);
+    const sameOpponentByMarket = arraysByMarket(sameOpponentLogs);
+    const sameOpponentMinutes = sameOpponentLogs.map((log) => log.minutes);
     const projectedTonight = applyAvailabilityToMetricRecord(
       projectTonightMetrics({
         last3Average,
@@ -2686,6 +2822,8 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
         last10ByMarket,
         historyByMarket: seasonByMarketRecent,
         historyMinutes: historyMinutesRecent,
+        sameOpponentByMarket,
+        sameOpponentMinutes,
         sampleSize: logsForPlayer.length,
         personalModels,
         minutesSeasonAvg,
@@ -2839,6 +2977,34 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       projectedTonight,
       last10ByMarket,
       dataCompletenessScore: dataCompleteness.score,
+    });
+    const ptsSameOpponentSignal = buildSameOpponentProjectionSignal({
+      market: "PTS",
+      sameOpponentValues: sameOpponentByMarket.PTS,
+      sameOpponentMinutes,
+      expectedMinutes: minutesProfile.expected,
+      anchorValue: seasonAverage.PTS ?? last10Average.PTS ?? null,
+    });
+    const rebSameOpponentSignal = buildSameOpponentProjectionSignal({
+      market: "REB",
+      sameOpponentValues: sameOpponentByMarket.REB,
+      sameOpponentMinutes,
+      expectedMinutes: minutesProfile.expected,
+      anchorValue: seasonAverage.REB ?? last10Average.REB ?? null,
+    });
+    const astSameOpponentSignal = buildSameOpponentProjectionSignal({
+      market: "AST",
+      sameOpponentValues: sameOpponentByMarket.AST,
+      sameOpponentMinutes,
+      expectedMinutes: minutesProfile.expected,
+      anchorValue: seasonAverage.AST ?? last10Average.AST ?? null,
+    });
+    const threesSameOpponentSignal = buildSameOpponentProjectionSignal({
+      market: "THREES",
+      sameOpponentValues: sameOpponentByMarket.THREES,
+      sameOpponentMinutes,
+      expectedMinutes: minutesProfile.expected,
+      anchorValue: seasonAverage.THREES ?? last10Average.THREES ?? null,
     });
     const ptsSignal = buildLivePtsSignal({
       gameDateEt: dateEt,
@@ -3027,7 +3193,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       playerShotPressure,
       opponentShotVolume,
     };
-    const praSignal = buildLivePraSignal({
+    let praSignal = buildLivePraSignal({
       ...comboSignalInput,
       projection: projectedTonight.PRA,
       marketLine: praMarketLine,
@@ -3041,6 +3207,135 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           ? null
           : round(praCurrentLineRecency.l15ValueMedian - praMarketLine.line, 4),
     });
+    let promotedPraFinalSide: SnapshotModelSide = praSignal?.baselineSide ?? modelLines.PRA.modelSide;
+    const praProjectionSide = deriveProjectionSide(projectedTonight.PRA, praMarketLine?.line ?? null);
+    if (
+      promotedPraRuntime.enabled &&
+      praSignal != null &&
+      projectedTonight.PRA != null &&
+      praProjectionSide != null &&
+      praMarketLine?.line != null
+    ) {
+      const praBaselineSide = resolveBinarySide(praSignal.baselineSide) ?? praProjectionSide;
+      const praUniversalInput = {
+        gameDateEt: dateEt,
+        market: "PRA" as const,
+        projectedValue: projectedTonight.PRA,
+        line: praMarketLine.line,
+        overPrice: praMarketLine.overPrice ?? null,
+        underPrice: praMarketLine.underPrice ?? null,
+        finalSide: praBaselineSide,
+        l5CurrentLineDeltaAvg: praCurrentLineRecency.l5CurrentLineDeltaAvg ?? null,
+        l5CurrentLineOverRate: praCurrentLineRecency.l5CurrentLineOverRate ?? null,
+        l5MinutesAvg: praCurrentLineRecency.l5MinutesAvg ?? null,
+        emaCurrentLineDelta: praCurrentLineRecency.emaCurrentLineDelta ?? null,
+        emaCurrentLineOverRate: praCurrentLineRecency.emaCurrentLineOverRate ?? null,
+        emaMinutesAvg: praCurrentLineRecency.emaMinutesAvg ?? null,
+        l15ValueMean: praCurrentLineRecency.l15ValueMean ?? null,
+        l15ValueMedian: praCurrentLineRecency.l15ValueMedian ?? null,
+        l15ValueStdDev: praCurrentLineRecency.l15ValueStdDev ?? null,
+        l15ValueSkew: praCurrentLineRecency.l15ValueSkew ?? null,
+        projectionMedianDelta:
+          projectedTonight.PRA == null || praCurrentLineRecency.l15ValueMedian == null
+            ? null
+            : round(projectedTonight.PRA - praCurrentLineRecency.l15ValueMedian, 4),
+        medianLineGap:
+          praCurrentLineRecency.l15ValueMedian == null
+            ? null
+            : round(praCurrentLineRecency.l15ValueMedian - praMarketLine.line, 4),
+        competitivePaceFactor,
+        blowoutRisk,
+        seasonMinutesAvg: minutesLast10Avg,
+        minutesLiftPct: universalUsageContext.minutesLiftPct ?? null,
+        activeCorePts: universalUsageContext.activeCorePts ?? null,
+        activeCoreAst: universalUsageContext.activeCoreAst ?? null,
+        missingCorePts: universalUsageContext.missingCorePts ?? null,
+        missingCoreAst: universalUsageContext.missingCoreAst ?? null,
+        missingCoreShare: universalUsageContext.missingCoreShare ?? null,
+        stepUpRoleFlag: universalUsageContext.stepUpRoleFlag ?? null,
+        expectedMinutes: minutesProfile.expected,
+        minutesVolatility,
+        benchBigRoleStability,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+        archetypeExpectedMinutes: minutesLast10Avg,
+        archetypeStarterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+        openingTeamSpread,
+        openingTotal,
+        lineupTimingConfidence: praSignal.lineupTimingConfidence ?? null,
+        completenessScore: dataCompleteness.score,
+        playerPosition: player.position,
+        assistProjection: projectedTonight.AST,
+        pointsProjection: projectedTonight.PTS,
+        reboundsProjection: projectedTonight.REB,
+        threesProjection: projectedTonight.THREES,
+      };
+      const praRawDecision = inspectLiveUniversalModelSide(praUniversalInput);
+      const praLiveDecision = evaluateLiveUniversalModelSide(praUniversalInput);
+      const praPlayerOverrideSide = predictLivePlayerModelSide({
+        playerName: player.fullName,
+        market: "PRA",
+        projectedValue: projectedTonight.PRA,
+        line: praMarketLine.line,
+        overPrice: praMarketLine.overPrice ?? null,
+        underPrice: praMarketLine.underPrice ?? null,
+        rawSide: resolveBinarySide(praRawDecision.rawSide) ?? praBaselineSide,
+        finalSide: resolveBinarySide(praLiveDecision.side) ?? praBaselineSide,
+        baselineSide: praBaselineSide,
+        expectedMinutes: minutesProfile.expected,
+        minutesVolatility,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+      });
+
+      if (praPlayerOverrideSide === "NEUTRAL") {
+        const praControlSide = resolveBinarySide(praRawDecision.rawSide) ?? praBaselineSide;
+        const promotedPra = predictLivePraRawFeatureSide({
+          market: "PRA",
+          projectedValue: projectedTonight.PRA,
+          line: praMarketLine.line,
+          overPrice: praMarketLine.overPrice ?? null,
+          underPrice: praMarketLine.underPrice ?? null,
+          projectionSide: praProjectionSide,
+          baselineSide: praBaselineSide,
+          controlSide: praControlSide,
+          universalSide: resolveBinarySide(praRawDecision.rawSide),
+          playerSide: null,
+          favoredSide: deriveFavoredSide(praMarketLine.overPrice ?? null, praMarketLine.underPrice ?? null),
+          archetype: praRawDecision.archetype?.trim() || "UNKNOWN",
+          modelKind: praRawDecision.modelKind?.trim() || "UNKNOWN",
+          expectedMinutes: minutesProfile.expected,
+          minutesVolatility,
+          starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+          openingTeamSpread,
+          openingTotal,
+          lineupTimingConfidence: praSignal.lineupTimingConfidence ?? null,
+          completenessScore: dataCompleteness.score,
+          pointsProjection: projectedTonight.PTS,
+          reboundsProjection: projectedTonight.REB,
+          assistProjection: projectedTonight.AST,
+          threesProjection: projectedTonight.THREES,
+          lineGap: round(projectedTonight.PRA - praMarketLine.line, 4),
+          absLineGap: Math.abs(round(projectedTonight.PRA - praMarketLine.line, 4)),
+        });
+
+        if (promotedPra && promotedPra.changedFromControl) {
+          const promotedQualified = promotedPra.selectedSide !== praBaselineSide;
+          promotedPraFinalSide = promotedPra.selectedSide;
+          praSignal = {
+            ...praSignal,
+            side: promotedPra.selectedSide,
+            qualified: promotedQualified,
+            passReasons: Array.from(
+              new Set([
+                ...praSignal.passReasons,
+                promotedQualified
+                  ? `Promoted PRA raw feature override (${promotedPra.modelKind}).`
+                  : `Promoted PRA raw feature fallback (${promotedPra.modelKind}).`,
+              ]),
+            ),
+          };
+        }
+      }
+    }
     const paSignal = buildLivePaSignal({
       ...comboSignalInput,
       projection: projectedTonight.PA,
@@ -3084,6 +3379,7 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
           : round(raCurrentLineRecency.l15ValueMedian - raMarketLine.line, 4),
     });
     const precisionCommonInput = {
+      playerId: player.id,
       expectedMinutes: minutesProfile.expected,
       minutesVolatility,
       benchBigRoleStability,
@@ -3168,7 +3464,10 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
               line: praMarketLine?.line ?? null,
               overPrice: praMarketLine?.overPrice ?? null,
               underPrice: praMarketLine?.underPrice ?? null,
-              finalSide: praSignal?.baselineSide ?? modelLines.PRA.modelSide,
+              finalSide:
+                resolveBinarySide(promotedPraFinalSide) ??
+                praSignal?.baselineSide ??
+                modelLines.PRA.modelSide,
               lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
               ...praCurrentLineRecency,
               ...precisionCommonInput,
@@ -3249,6 +3548,22 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
       teamSummary,
       opponentSummary,
     });
+    gameIntel.modules.push({
+      id: "projection-diagnostics",
+      title: "Projection Diagnostics",
+      description: "Same-opponent nudges, empirical hit rates, and volatility context for the projection engine.",
+      status: "DERIVED",
+      items: [
+        {
+          label: "Volatility P/R/A/3",
+          value: `${formatNumber(modelLines.PTS.volatility)} / ${formatNumber(modelLines.REB.volatility)} / ${formatNumber(modelLines.AST.volatility)} / ${formatNumber(modelLines.THREES.volatility)}`,
+        },
+        { label: "PTS Same Opp", value: formatSameOpponentSummary(ptsSameOpponentSignal) },
+        { label: "REB Same Opp", value: formatSameOpponentSummary(rebSameOpponentSignal) },
+        { label: "AST Same Opp", value: formatSameOpponentSummary(astSameOpponentSignal) },
+        { label: "3PM Same Opp", value: formatSameOpponentSummary(threesSameOpponentSignal) },
+      ],
+    });
     const livePtsItems: SnapshotIntelItem[] = [];
     addIntelItem(livePtsItems, "Consensus PTS Line", ptsMarketLine == null ? "-" : formatNumber(ptsMarketLine.line));
     addIntelItem(
@@ -3259,19 +3574,20 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     addIntelItem(livePtsItems, "PTS Side", ptsSignal == null ? "-" : ptsSignal.side);
     addIntelItem(
       livePtsItems,
-      "PTS Confidence",
+      "PTS Signal Score",
       ptsSignal?.confidence == null ? "-" : `${formatNumber(ptsSignal.confidence)} (${ptsSignal.confidenceTier ?? "LOW"})`,
     );
     addIntelItem(
       livePtsItems,
-      "PTS Filter",
-      ptsSignal == null ? "-" : ptsSignal.qualified ? "QUALIFIED" : "PASS",
+      "PTS Card Status",
+      ptsSignal == null ? "-" : ptsSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(
       livePtsItems,
       "PTS Gap / Risk",
       ptsSignal == null ? "-" : `${formatSigned(ptsSignal.projectionGap)} / ${formatNumber(ptsSignal.minutesRisk)}`,
     );
+    addIntelItem(livePtsItems, "Empirical O Rate", formatEmpiricalHitRateSummary(ptsCurrentLineRecency));
     addIntelItem(
       livePtsItems,
       "FGA / Min (L10)",
@@ -3311,19 +3627,20 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     addIntelItem(liveRebItems, "REB Side", rebSignal == null ? "-" : rebSignal.side);
     addIntelItem(
       liveRebItems,
-      "REB Confidence",
+      "REB Signal Score",
       rebSignal?.confidence == null ? "-" : `${formatNumber(rebSignal.confidence)} (${rebSignal.confidenceTier ?? "LOW"})`,
     );
     addIntelItem(
       liveRebItems,
-      "REB Filter",
-      rebSignal == null ? "-" : rebSignal.qualified ? "QUALIFIED" : "PASS",
+      "REB Card Status",
+      rebSignal == null ? "-" : rebSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(
       liveRebItems,
       "REB Gap / Risk",
       rebSignal == null ? "-" : `${formatSigned(rebSignal.projectionGap)} / ${formatNumber(rebSignal.minutesRisk)}`,
     );
+    addIntelItem(liveRebItems, "Empirical O Rate", formatEmpiricalHitRateSummary(rebCurrentLineRecency));
     if (liveRebItems.some((item) => item.value !== "-")) {
       gameIntel.modules.splice(3, 0, {
         id: "live-rebounds-context",
@@ -3343,19 +3660,20 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     addIntelItem(liveAstItems, "AST Side", astSignal == null ? "-" : astSignal.side);
     addIntelItem(
       liveAstItems,
-      "AST Confidence",
+      "AST Signal Score",
       astSignal?.confidence == null ? "-" : `${formatNumber(astSignal.confidence)} (${astSignal.confidenceTier ?? "LOW"})`,
     );
     addIntelItem(
       liveAstItems,
-      "AST Filter",
-      astSignal == null ? "-" : astSignal.qualified ? "QUALIFIED" : "PASS",
+      "AST Card Status",
+      astSignal == null ? "-" : astSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(
       liveAstItems,
       "AST Gap / Risk",
       astSignal == null ? "-" : `${formatSigned(astSignal.projectionGap)} / ${formatNumber(astSignal.minutesRisk)}`,
     );
+    addIntelItem(liveAstItems, "Empirical O Rate", formatEmpiricalHitRateSummary(astCurrentLineRecency));
     if (liveAstItems.some((item) => item.value !== "-")) {
       gameIntel.modules.splice(4, 0, {
         id: "live-assists-context",
@@ -3375,19 +3693,20 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     addIntelItem(liveThreesItems, "3PM Side", threesSignal == null ? "-" : threesSignal.side);
     addIntelItem(
       liveThreesItems,
-      "3PM Confidence",
+      "3PM Signal Score",
       threesSignal?.confidence == null ? "-" : `${formatNumber(threesSignal.confidence)} (${threesSignal.confidenceTier ?? "LOW"})`,
     );
     addIntelItem(
       liveThreesItems,
-      "3PM Filter",
-      threesSignal == null ? "-" : threesSignal.qualified ? "QUALIFIED" : "PASS",
+      "3PM Card Status",
+      threesSignal == null ? "-" : threesSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(
       liveThreesItems,
       "3PM Gap / Risk",
       threesSignal == null ? "-" : `${formatSigned(threesSignal.projectionGap)} / ${formatNumber(threesSignal.minutesRisk)}`,
     );
+    addIntelItem(liveThreesItems, "Empirical O Rate", formatEmpiricalHitRateSummary(threesCurrentLineRecency));
     if (liveThreesItems.some((item) => item.value !== "-")) {
       gameIntel.modules.splice(5, 0, {
         id: "live-threes-context",
@@ -3402,29 +3721,29 @@ export async function getSnapshotBoardData(dateEt: string): Promise<SnapshotBoar
     addIntelItem(liveComboItems, "PRA Side", praSignal == null ? "-" : praSignal.side);
     addIntelItem(
       liveComboItems,
-      "PRA Filter",
-      praSignal == null ? "-" : praSignal.qualified ? "QUALIFIED" : "PASS",
+      "PRA Card Status",
+      praSignal == null ? "-" : praSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(liveComboItems, "Consensus PA Line", paMarketLine == null ? "-" : formatNumber(paMarketLine.line));
     addIntelItem(liveComboItems, "PA Side", paSignal == null ? "-" : paSignal.side);
     addIntelItem(
       liveComboItems,
-      "PA Filter",
-      paSignal == null ? "-" : paSignal.qualified ? "QUALIFIED" : "PASS",
+      "PA Card Status",
+      paSignal == null ? "-" : paSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(liveComboItems, "Consensus PR Line", prMarketLine == null ? "-" : formatNumber(prMarketLine.line));
     addIntelItem(liveComboItems, "PR Side", prSignal == null ? "-" : prSignal.side);
     addIntelItem(
       liveComboItems,
-      "PR Filter",
-      prSignal == null ? "-" : prSignal.qualified ? "QUALIFIED" : "PASS",
+      "PR Card Status",
+      prSignal == null ? "-" : prSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     addIntelItem(liveComboItems, "Consensus RA Line", raMarketLine == null ? "-" : formatNumber(raMarketLine.line));
     addIntelItem(liveComboItems, "RA Side", raSignal == null ? "-" : raSignal.side);
     addIntelItem(
       liveComboItems,
-      "RA Filter",
-      raSignal == null ? "-" : raSignal.qualified ? "QUALIFIED" : "PASS",
+      "RA Card Status",
+      raSignal == null ? "-" : raSignal.qualified ? "PRECISION READY" : "RAW ONLY",
     );
     if (liveComboItems.some((item) => item.value !== "-")) {
       gameIntel.modules.splice(6, 0, {

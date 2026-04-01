@@ -1,10 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   buildPrecision80Pick,
   comparePrecisionSignals,
   PRECISION_80_SYSTEM_SUMMARY,
+  type PrecisionRankingMode,
 } from "../lib/snapshot/precisionPickSystem";
 import {
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
@@ -78,6 +79,7 @@ type Args = {
   input: string;
   out: string;
   minActualMinutes: number;
+  rankingMode: PrecisionRankingMode;
 };
 
 const prisma = new PrismaClient();
@@ -95,6 +97,7 @@ function parseArgs(): Args {
   let input = resolveDefaultInputPath();
   let out = path.join("exports", "precision-pick-system-eval.json");
   let minActualMinutes = 15;
+  let rankingMode: PrecisionRankingMode = "historical-prior-first";
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -126,10 +129,24 @@ function parseArgs(): Args {
     if (token.startsWith("--min-actual-minutes=")) {
       const parsed = Number(token.slice("--min-actual-minutes=".length));
       if (Number.isFinite(parsed) && parsed >= 0) minActualMinutes = parsed;
+      continue;
+    }
+    if (token === "--ranking-mode" && next) {
+      if (next === "historical-prior-first" || next === "dynamic-edge-first") {
+        rankingMode = next;
+      }
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--ranking-mode=")) {
+      const parsed = token.slice("--ranking-mode=".length);
+      if (parsed === "historical-prior-first" || parsed === "dynamic-edge-first") {
+        rankingMode = parsed;
+      }
     }
   }
 
-  return { input, out, minActualMinutes };
+  return { input, out, minActualMinutes, rankingMode };
 }
 
 function mean(values: Array<number | null | undefined>): number | null {
@@ -204,6 +221,7 @@ async function main(): Promise<void> {
   rows.forEach((row) => {
     const summary = summaries.get(row.playerId);
     const signal = buildPrecision80Pick({
+      playerId: row.playerId,
       market: row.market,
       projectedValue: row.projectedValue,
       line: row.line,
@@ -235,7 +253,7 @@ async function main(): Promise<void> {
   });
 
   qualifiedPicks.sort((left, right) => {
-    const signalComparison = comparePrecisionSignals(left.signal, right.signal);
+    const signalComparison = comparePrecisionSignals(left.signal, right.signal, args.rankingMode);
     if (signalComparison !== 0) return signalComparison;
     if (left.row.gameDateEt !== right.row.gameDateEt) return left.row.gameDateEt.localeCompare(right.row.gameDateEt);
     if (left.row.playerName !== right.row.playerName) return left.row.playerName.localeCompare(right.row.playerName);
@@ -274,14 +292,25 @@ async function main(): Promise<void> {
     system: PRECISION_80_SYSTEM_SUMMARY,
     selectionPolicy: {
       onePickPerPlayerPerDay: true,
-      ranking: [
-        "historicalAccuracy",
-        "projectionWinProbability",
-        "projectionPriceEdge",
-        "absLineGap",
-        "leafAccuracy",
-        "bucketRecentAccuracy",
-      ],
+      ranking:
+        args.rankingMode === "dynamic-edge-first"
+          ? [
+              "projectionWinProbability",
+              "projectionPriceEdge",
+              "absLineGap",
+              "leafAccuracy",
+              "bucketRecentAccuracy",
+              "historicalAccuracy",
+            ]
+          : [
+              "historicalAccuracy",
+              "projectionWinProbability",
+              "projectionPriceEdge",
+              "absLineGap",
+              "leafAccuracy",
+              "bucketRecentAccuracy",
+            ],
+      rankingMode: args.rankingMode,
     },
     overall: {
       picks,
@@ -302,6 +331,21 @@ async function main(): Promise<void> {
         },
       ]),
     ),
+    selectedPicks: selectedPicks.map(({ row, signal }) => ({
+      gameDateEt: row.gameDateEt,
+      playerId: row.playerId,
+      playerName: row.playerName,
+      market: row.market,
+      side: signal.side,
+      actualSide: row.actualSide,
+      correct: signal.side === row.actualSide,
+      historicalAccuracy: signal.historicalAccuracy,
+      projectionWinProbability: signal.projectionWinProbability ?? null,
+      projectionPriceEdge: signal.projectionPriceEdge ?? null,
+      absLineGap: signal.absLineGap ?? null,
+      leafAccuracy: signal.leafAccuracy ?? null,
+      bucketRecentAccuracy: signal.bucketRecentAccuracy ?? null,
+    })),
   };
 
   const outPath = path.resolve(args.out);
@@ -318,3 +362,6 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
+
