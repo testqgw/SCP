@@ -217,7 +217,7 @@ type LineupPlayerSignal = {
 const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
 const SNAPSHOT_BOARD_CACHE_TTL_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_BOARD_CACHE_TTL_MS);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 60_000;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 300_000;
   return Math.min(Math.max(5_000, Math.floor(parsed)), 10 * 60_000);
 })();
 
