@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from "@/lib/prisma";
 import {
   canonicalTeamCode,
   deriveRotowireAvailabilityImpact,
@@ -3885,3 +3885,4 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   });
   return result;
 }
+
