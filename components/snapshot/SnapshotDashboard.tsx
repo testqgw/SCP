@@ -1742,7 +1742,7 @@ export function SnapshotDashboard({
               <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
                 {precisionAllowsFill
                   ? `This is the stricter one-prop-per-player bettable pack. The summary stats here are the promoted forward-tested ${activeData.precisionSystem.label} numbers, not today-only hit rates. The top card shows the strongest ${precisionCardTargetCount} for the current slate, and the full list of true picks is available below.`
-                  : `This is the tighter one-prop-per-player pack. The summary stats here are the promoted forward-tested ${activeData.precisionSystem.label} numbers, not today-only hit rates. The card prioritizes true Tier 1 picks and adds model fill when needed to reach the target of 6 picks.`}
+                  : `This is the tighter one-prop-per-player pack. The summary stats here are the promoted forward-tested ${activeData.precisionSystem.label} numbers, not today-only hit rates. The card only shows true live picks from this system and does not add research or model fill to force volume.`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
