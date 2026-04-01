@@ -91,6 +91,7 @@ export type SnapshotPrecisionCardEntry = {
   source: SnapshotPrecisionCardSource;
   rank: number;
   selectionScore: number | null;
+  precisionSignal?: SnapshotPrecisionPickSignal | null;
 };
 
 export type SnapshotPrecisionCardSummary = {
