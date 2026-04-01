@@ -170,7 +170,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
     historicalCoveragePct: 0.15,
   },
   PA: {
-    minBucketLateAccuracy: 65,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 86,
     minAbsLineGap: 5.5,
     minProjectionWinProbability: 0,
@@ -180,7 +180,7 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
     historicalCoveragePct: 0.05,
   },
   PR: {
-    minBucketLateAccuracy: 58,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 88,
     minAbsLineGap: 0.8,
     minProjectionWinProbability: 0,
@@ -220,7 +220,7 @@ for (const m of ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as Snap
 export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   PTS: {
     ...ALL_DAILY_6_RULES.PTS!,
-    minBucketLateAccuracy: 65,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 92,
     minAbsLineGap: 1.5,
     minProjectionWinProbability: 0.60,
@@ -228,7 +228,7 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
   REB: {
     ...ALL_DAILY_6_RULES.REB!,
-    minBucketLateAccuracy: 58,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 85,
     minAbsLineGap: 0.8,
     minProjectionWinProbability: 0.57,
@@ -236,7 +236,7 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
   AST: {
     ...ALL_DAILY_6_RULES.AST!,
-    minBucketLateAccuracy: 65,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 80,
     minAbsLineGap: 1.0,
     minProjectionWinProbability: 0.55,
@@ -244,7 +244,7 @@ export const DEFAULT_DAILY_6_RULES: PrecisionRuleSet = {
   },
   THREES: {
     ...ALL_DAILY_6_RULES.THREES!,
-    minBucketLateAccuracy: 58,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 72,
     minAbsLineGap: 0.85,
     minProjectionWinProbability: 0.55,
@@ -312,7 +312,7 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
   },
   THREES: {
     ...ALL_DAILY_6_RULES.THREES!,
-    minBucketLateAccuracy: 65,
+    minBucketLateAccuracy: 55,
     minLeafAccuracy: 72,
     minAbsLineGap: 1.0,
     minProjectionWinProbability: 0.58,
