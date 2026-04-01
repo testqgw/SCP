@@ -5,6 +5,7 @@ import {
   DEFAULT_UNIVERSAL_LIVE_MODEL_FALLBACK_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_MODEL_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH,
+  DEFAULT_UNIVERSAL_LIVE_QUALIFICATION_SETTINGS_RELATIVE_PATH,
   resolveProjectPath,
 } from "@/lib/snapshot/universalArtifactPaths";
 import {
@@ -22,6 +23,13 @@ import {
 import { computeBenchBigRoleStability } from "@/lib/snapshot/benchBigRoleStability";
 import { buildPRAComboState } from "@/lib/snapshot/praComboState";
 import { gateShapeNumber, shouldExposeShapeContext } from "@/lib/snapshot/shapeRegime";
+import {
+  predictUniversalBaselineRouter,
+  resolveRouterLeaf,
+  type RouterDatasetRow,
+  type RouterFeatureMode,
+  type UniversalBaselineRouterModel,
+} from "@/lib/snapshot/universalBaselineRouter";
 import type { SnapshotMarket, SnapshotModelSide } from "@/lib/types/snapshot";
 
 type Side = "OVER" | "UNDER";
@@ -163,11 +171,21 @@ type SplitNode = {
 
 type TreeNode = LeafNode | SplitNode;
 
+type RoutedModelDecision = Side | "projection" | "finalOverride" | "marketFavored";
+type FeatureThresholdRouterFeature = "expectedMinutes" | "minutesVolatility" | "projectedValue";
+
 type ModelVariant =
   | { kind: "projection" }
   | { kind: "finalOverride" }
   | { kind: "marketFavored" }
   | { kind: "constant"; side: Side }
+  | {
+      kind: "featureThresholdRouter";
+      feature: FeatureThresholdRouterFeature;
+      threshold: number;
+      lteDecision: RoutedModelDecision;
+      gtDecision: RoutedModelDecision;
+    }
   | { kind: "lowMinutesThenFinalElseConstant"; threshold: number; side: Side }
   | { kind: "underGapThenFinalElseConstant"; threshold: number; side: Side }
   | { kind: "lowMinutesThenFinal"; threshold: number }
@@ -195,6 +213,46 @@ type UniversalModelRecord = {
 
 type UniversalModelFile = {
   models?: UniversalModelRecord[];
+};
+
+type TreeDisagreementContainmentBucket = {
+  key: string;
+  market: SnapshotMarket;
+  archetype: string;
+  disagreementSamples: number;
+  disagreementRaw: number | null;
+  agreementSamples: number;
+  agreementRaw: number | null;
+  disagreementMinusAgreement: number | null;
+  disagreementFoldStdDev: number | null;
+  unstable: boolean;
+  reasonFlags?: string[];
+};
+
+type TreeDisagreementContainmentConfig = {
+  generatedAt?: string;
+  triggerRules?: {
+    nearLineAbsGapMax?: number;
+    instabilityDeltaMax?: number;
+    lowSupportMax?: number;
+    highVarianceStdDevMin?: number;
+  };
+  buckets?: TreeDisagreementContainmentBucket[];
+};
+
+type TreeDisagreementParentBucketFallbackBucket = TreeDisagreementContainmentBucket & {
+  parentArchetype: Archetype;
+};
+
+type TreeDisagreementParentBucketFallbackConfig = {
+  generatedAt?: string;
+  triggerRules?: {
+    nearLineAbsGapMax?: number;
+    instabilityDeltaMax?: number;
+    lowSupportMax?: number;
+    highVarianceStdDevMin?: number;
+  };
+  buckets?: TreeDisagreementParentBucketFallbackBucket[];
 };
 
 type LiveUniversalQualificationThresholds = {
@@ -243,6 +301,9 @@ export type RawLiveUniversalModelDecision = {
   projectionPriceEdge: number | null;
   projectionResidualMean: number | null;
   projectionResidualStdDev: number | null;
+  runtimeOverrideLabel?: string | null;
+  runtimeOverrideSourceArchetype?: Archetype | null;
+  runtimeOverrideTargetArchetype?: Archetype | null;
 };
 
 export type LiveUniversalModelDecision = RawLiveUniversalModelDecision & {
@@ -442,6 +503,11 @@ const DEFAULT_CALIBRATION_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_CALIB
 const DEFAULT_PROJECTION_DISTRIBUTION_FILE = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH);
 const ENABLE_MISSING_POSITION_STARTER_FALLBACK =
   process.env.SNAPSHOT_DISABLE_MISSING_POSITION_STARTER_FALLBACK?.trim() !== "1";
+
+// Targeted residual corrector for PRA bad bucket conditions
+// These archetypes had regression issues in the PRA combo state audit
+const BAD_BUCKET_PRA_ARCHETYPES = new Set(["SCORE_FIRST_LEAD_GUARD", "LEAD_GUARD", "WING"]);
+const BAD_BUCKET_PRA_LEAF_THRESHOLD = 65; // Conservative threshold for bad bucket conditions
 const PTS_MIN_LEAF_ACCURACY = Number.isFinite(Number(process.env.SNAPSHOT_PTS_MIN_LEAF_ACCURACY))
   ? Number(process.env.SNAPSHOT_PTS_MIN_LEAF_ACCURACY)
   : 58;
@@ -1303,6 +1369,36 @@ const JUICE_VETO_MAX_BUCKET_LATE_ACCURACY = Number.isFinite(
 )
   ? Number(process.env.SNAPSHOT_JUICE_VETO_MAX_BUCKET_LATE_ACCURACY)
   : 62;
+const TREE_DISAGREEMENT_CONTAINMENT_SCOPE =
+  process.env.SNAPSHOT_UNIVERSAL_TREE_DISAGREEMENT_CONTAINMENT_SCOPE?.trim() ||
+  (process.env.SNAPSHOT_UNIVERSAL_ENABLE_NEAR_LINE_TREE_DISAGREEMENT_CONTAINMENT?.trim() === "1" ? "near_line" : "");
+const DEFAULT_TREE_DISAGREEMENT_CONTAINMENT_FILE = resolveProjectPath(
+  path.join("exports", "direct-disagreement-containment-config.json"),
+);
+const TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE =
+  process.env.SNAPSHOT_UNIVERSAL_TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE?.trim() ||
+  (process.env.SNAPSHOT_UNIVERSAL_ENABLE_TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK?.trim() === "1"
+    ? "near_line"
+    : "");
+const DEFAULT_TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_FILE = resolveProjectPath(
+  path.join("exports", "direct-parent-bucket-fallback-config.json"),
+);
+const DEFAULT_UNIVERSAL_BASELINE_ROUTER_V1_FILE = resolveProjectPath(path.join("exports", "universal-baseline-router-live.json"));
+const DEFAULT_UNIVERSAL_BASELINE_ROUTER_PACK_FILE = resolveProjectPath(
+  path.join("exports", "universal-baseline-router-pack-v3-oos-2of3-25-58-52-0-0-models.json"),
+);
+
+function parseJsonFile<T>(filePath: string): T {
+  const raw = fs.readFileSync(filePath, "utf8").replace(/^\uFEFF/, "");
+  return JSON.parse(raw) as T;
+}
+
+function resolveUniversalBaselineRouterMode(): RuntimeRouterMode {
+  const raw = process.env.SNAPSHOT_UNIVERSAL_ROUTER_MODE?.trim().toLowerCase();
+  if (raw === "v1") return "v1";
+  if (raw === "specialist_pack_v3" || raw === "pack" || raw === "specialist-pack-v3") return "specialist_pack_v3";
+  return "off";
+}
 
 function resolveModelFilePath(): string {
   const override = process.env.SNAPSHOT_UNIVERSAL_MODEL_FILE?.trim();
@@ -1321,6 +1417,30 @@ function resolveCalibrationFilePath(): string {
 function resolveProjectionDistributionFilePath(): string {
   const override = process.env.SNAPSHOT_UNIVERSAL_PROJECTION_DISTRIBUTION_FILE?.trim();
   if (!override) return DEFAULT_PROJECTION_DISTRIBUTION_FILE;
+  return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+}
+
+function resolveTreeDisagreementContainmentFilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_TREE_DISAGREEMENT_CONTAINMENT_FILE?.trim();
+  if (!override) return DEFAULT_TREE_DISAGREEMENT_CONTAINMENT_FILE;
+  return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+}
+
+function resolveTreeDisagreementParentBucketFallbackFilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_FILE?.trim();
+  if (!override) return DEFAULT_TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_FILE;
+  return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+}
+
+function resolveUniversalBaselineRouterV1FilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_ROUTER_MODEL_FILE?.trim();
+  if (!override) return DEFAULT_UNIVERSAL_BASELINE_ROUTER_V1_FILE;
+  return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+}
+
+function resolveUniversalBaselineRouterPackFilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_ROUTER_PACK_FILE?.trim();
+  if (!override) return DEFAULT_UNIVERSAL_BASELINE_ROUTER_PACK_FILE;
   return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
 }
 
@@ -1699,9 +1819,221 @@ export const DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS: LiveUniversalQualifi
   },
 };
 
+type CachedLiveUniversalQualificationSettings = {
+  filePath: string;
+  mtimeMs: number | null;
+  settings: LiveUniversalQualificationSettings;
+};
+
+let cachedLiveUniversalQualificationSettings: CachedLiveUniversalQualificationSettings | null = null;
+
+function cloneLiveUniversalQualificationSettings(
+  input: LiveUniversalQualificationSettings = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS,
+): LiveUniversalQualificationSettings {
+  return JSON.parse(JSON.stringify(input)) as LiveUniversalQualificationSettings;
+}
+
+function mergeLiveUniversalQualificationSettings(
+  base: LiveUniversalQualificationSettings,
+  override: Partial<LiveUniversalQualificationSettings>,
+): LiveUniversalQualificationSettings {
+  const merged = cloneLiveUniversalQualificationSettings(base);
+  const scalarKeys = [
+    "minBucketLateAccuracy",
+    "minBucketSamples",
+    "minLeafAccuracy",
+    "minLeafCount",
+    "minProjectionWinProbability",
+    "minProjectionPriceEdge",
+  ] as const;
+
+  scalarKeys.forEach((key) => {
+    const value = override[key];
+    if (typeof value === "number" && Number.isFinite(value)) {
+      merged[key] = value;
+    }
+  });
+
+  if (!override.marketOverrides) {
+    return merged;
+  }
+
+  merged.marketOverrides = { ...(merged.marketOverrides ?? {}) };
+  for (const [market, marketOverride] of Object.entries(override.marketOverrides)) {
+    if (!marketOverride) continue;
+    const baseMarket = (merged.marketOverrides[market as Market] ?? {}) as Record<string, unknown>;
+    const nextMarket = { ...baseMarket } as Record<string, unknown>;
+
+    scalarKeys.forEach((key) => {
+      const value = marketOverride[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        nextMarket[key] = value;
+      }
+    });
+
+    if (marketOverride.archetypeOverrides) {
+      const nextArchetypeOverrides = {
+        ...((baseMarket.archetypeOverrides as Record<string, Record<string, number>> | undefined) ?? {}),
+      };
+      for (const [archetype, archetypeOverride] of Object.entries(marketOverride.archetypeOverrides)) {
+        if (!archetypeOverride) continue;
+        const baseArchetype = nextArchetypeOverrides[archetype] ?? {};
+        const nextArchetype = { ...baseArchetype } as Record<string, number>;
+        scalarKeys.forEach((key) => {
+          const value = archetypeOverride[key];
+          if (typeof value === "number" && Number.isFinite(value)) {
+            nextArchetype[key] = value;
+          }
+        });
+        nextArchetypeOverrides[archetype] = nextArchetype;
+      }
+      nextMarket.archetypeOverrides = nextArchetypeOverrides;
+    }
+
+    (merged.marketOverrides as Record<string, unknown>)[market] = nextMarket;
+  }
+
+  return merged;
+}
+
+function resolveLiveUniversalQualificationSettingsFilePath(): string {
+  const override = process.env.SNAPSHOT_UNIVERSAL_QUALIFICATION_SETTINGS_FILE?.trim();
+  if (override) {
+    return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+  }
+  return resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_QUALIFICATION_SETTINGS_RELATIVE_PATH);
+}
+
+export function getActiveLiveUniversalQualificationSettings(): LiveUniversalQualificationSettings {
+  const filePath = resolveLiveUniversalQualificationSettingsFilePath();
+  let mtimeMs: number | null = null;
+  try {
+    const stat = fs.statSync(filePath);
+    mtimeMs = stat.mtimeMs;
+  } catch {
+    return cloneLiveUniversalQualificationSettings();
+  }
+
+  if (
+    cachedLiveUniversalQualificationSettings &&
+    cachedLiveUniversalQualificationSettings.filePath === filePath &&
+    cachedLiveUniversalQualificationSettings.mtimeMs === mtimeMs
+  ) {
+    return cachedLiveUniversalQualificationSettings.settings;
+  }
+
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const parsed = JSON.parse(raw) as Partial<LiveUniversalQualificationSettings>;
+    const settings = mergeLiveUniversalQualificationSettings(cloneLiveUniversalQualificationSettings(), parsed);
+    cachedLiveUniversalQualificationSettings = {
+      filePath,
+      mtimeMs,
+      settings,
+    };
+    return settings;
+  } catch {
+    return cloneLiveUniversalQualificationSettings();
+  }
+}
+
 let cachedModelMap: Map<string, UniversalModelRecord> | null = null;
 let cachedCalibrationMap: Map<string, UniversalResidualCalibrationRecord> | null = null;
 let cachedProjectionDistributionMap: Map<string, UniversalProjectionDistributionRecord> | null = null;
+let cachedUniversalBaselineRouterV1Model:
+  | {
+      filePath: string;
+      model: UniversalBaselineRouterModel | null;
+    }
+  | null = null;
+let cachedUniversalBaselineRouterPackModel:
+  | {
+      filePath: string;
+      model: RuntimeSpecialistRouterPackModel | null;
+      specialistsByBucket: Map<string, RuntimeSpecialistPackEntry>;
+      oosStatsByBucket: Map<string, Map<string, RuntimeOosSignatureStats>>;
+    }
+  | null = null;
+let cachedTreeDisagreementContainmentConfig:
+  | {
+      rules: {
+        nearLineAbsGapMax: number;
+        instabilityDeltaMax: number;
+        lowSupportMax: number;
+        highVarianceStdDevMin: number;
+      };
+      bucketMap: Map<string, TreeDisagreementContainmentBucket>;
+    }
+  | null = null;
+let cachedTreeDisagreementParentBucketFallbackConfig:
+  | {
+      rules: {
+        nearLineAbsGapMax: number;
+        instabilityDeltaMax: number;
+        lowSupportMax: number;
+        highVarianceStdDevMin: number;
+      };
+      bucketMap: Map<string, TreeDisagreementParentBucketFallbackBucket>;
+    }
+  | null = null;
+
+type InspectLiveUniversalModelRuntimeOptions = {
+  disableTreeDisagreementContainment?: boolean;
+  disableTreeDisagreementParentBucketFallback?: boolean;
+};
+
+type RuntimeRouterMode = "off" | "v1" | "specialist_pack_v3";
+
+type RuntimeSpecialistConfig = {
+  id: string;
+  bucketKey: string;
+  maxDepth: number;
+  minLeaf: number;
+  featureMode: RouterFeatureMode;
+};
+
+type RuntimePackGateConfig = {
+  minVetoLeafAccuracy: number | null;
+  minLeafDisagreementSamples: number;
+  minLeafWilsonLowerBound: number;
+  minLeafRecent14dDelta: number;
+  minLeafRecent30dDelta: number;
+  minFoldAppearances: number;
+  recurrenceFolds: number;
+  minOosVetoRows: number;
+  minOosVetoHitRate: number;
+  minOosWilson: number;
+  minLast2FoldDelta: number;
+  minWalkDelta: number;
+};
+
+type RuntimeOosSignatureStats = {
+  signature: string;
+  specialistId: string;
+  bucketKey: string;
+  foldAppearances: number;
+  oosVetoRows: number;
+  pooledVetoHitRate: number;
+  pooledWilsonLowerBound: number;
+  last2FoldDelta: number;
+  walkDelta: number;
+  activeByOosGate: boolean;
+};
+
+type RuntimeSpecialistPackEntry = {
+  specialistId: string;
+  bucketKey: string;
+  config: RuntimeSpecialistConfig;
+  model: UniversalBaselineRouterModel | null;
+  oosSignatureStats?: RuntimeOosSignatureStats[];
+};
+
+type RuntimeSpecialistRouterPackModel = {
+  generatedAt: string;
+  packName: string;
+  gate: RuntimePackGateConfig;
+  specialists: RuntimeSpecialistPackEntry[];
+};
 
 function impliedProbability(odds: number | null): number | null {
   if (odds == null || !Number.isFinite(odds) || odds === 0) return null;
@@ -1813,6 +2145,33 @@ function parseModelOverride(value: string): ModelVariant | null {
     case "agreementThenProjection": {
       const threshold = Number(first);
       return Number.isFinite(threshold) ? { kind: "agreementThenProjection", threshold } : null;
+    }
+    case "featureThresholdRouter": {
+      const [feature, rawThreshold, lteDecision, gtDecision] = (first ?? "").split("/");
+      const threshold = Number(rawThreshold);
+      const validFeature =
+        feature === "expectedMinutes" || feature === "minutesVolatility" || feature === "projectedValue"
+          ? feature
+          : null;
+      const validLteDecision =
+        lteDecision === "OVER" ||
+        lteDecision === "UNDER" ||
+        lteDecision === "projection" ||
+        lteDecision === "finalOverride" ||
+        lteDecision === "marketFavored"
+          ? lteDecision
+          : null;
+      const validGtDecision =
+        gtDecision === "OVER" ||
+        gtDecision === "UNDER" ||
+        gtDecision === "projection" ||
+        gtDecision === "finalOverride" ||
+        gtDecision === "marketFavored"
+          ? gtDecision
+          : null;
+      return validFeature && Number.isFinite(threshold) && validLteDecision && validGtDecision
+        ? { kind: "featureThresholdRouter", feature: validFeature, threshold, lteDecision: validLteDecision, gtDecision: validGtDecision }
+        : null;
     }
     case "favoriteOverSuppress": {
       const spreadThreshold = Number(first);
@@ -2119,7 +2478,7 @@ function loadModelMap(): Map<string, UniversalModelRecord> {
   }
 
   try {
-    const payload = JSON.parse(fs.readFileSync(modelFilePath, "utf8")) as UniversalModelFile;
+    const payload = parseJsonFile<UniversalModelFile>(modelFilePath);
     for (const record of payload.models ?? []) {
       map.set(`${record.market}|${record.archetype}`, applyRuntimeModelOverride(record));
     }
@@ -2148,7 +2507,7 @@ function loadCalibrationMap(): Map<string, UniversalResidualCalibrationRecord> {
   }
 
   try {
-    const payload = JSON.parse(fs.readFileSync(calibrationFilePath, "utf8")) as UniversalResidualCalibrationFile;
+    const payload = parseJsonFile<UniversalResidualCalibrationFile>(calibrationFilePath);
     for (const record of payload.records ?? []) {
       const key = buildUniversalResidualCalibrationKey(record.market, record.archetype, record.minutesBucket);
       if (key) {
@@ -2180,7 +2539,7 @@ function loadProjectionDistributionMap(): Map<string, UniversalProjectionDistrib
   }
 
   try {
-    const payload = JSON.parse(fs.readFileSync(distributionFilePath, "utf8")) as UniversalProjectionDistributionFile;
+    const payload = parseJsonFile<UniversalProjectionDistributionFile>(distributionFilePath);
     for (const record of payload.records ?? []) {
       map.set(
         buildUniversalProjectionDistributionKey(record.scope, record.market, record.archetype, record.minutesBucket),
@@ -2194,6 +2553,431 @@ function loadProjectionDistributionMap(): Map<string, UniversalProjectionDistrib
 
   cachedProjectionDistributionMap = map;
   return map;
+}
+
+function loadTreeDisagreementContainmentConfig(): {
+  rules: {
+    nearLineAbsGapMax: number;
+    instabilityDeltaMax: number;
+    lowSupportMax: number;
+    highVarianceStdDevMin: number;
+  };
+  bucketMap: Map<string, TreeDisagreementContainmentBucket>;
+} {
+  if (cachedTreeDisagreementContainmentConfig) return cachedTreeDisagreementContainmentConfig;
+
+  const empty = {
+    rules: {
+      nearLineAbsGapMax: 0.5,
+      instabilityDeltaMax: -2,
+      lowSupportMax: 150,
+      highVarianceStdDevMin: 4,
+    },
+    bucketMap: new Map<string, TreeDisagreementContainmentBucket>(),
+  };
+
+  if (TREE_DISAGREEMENT_CONTAINMENT_SCOPE !== "near_line" && TREE_DISAGREEMENT_CONTAINMENT_SCOPE !== "all_disagreement") {
+    cachedTreeDisagreementContainmentConfig = empty;
+    return empty;
+  }
+
+  const configFilePath = resolveTreeDisagreementContainmentFilePath();
+  if (!fs.existsSync(configFilePath)) {
+    cachedTreeDisagreementContainmentConfig = empty;
+    return empty;
+  }
+
+  try {
+    const payload = parseJsonFile<TreeDisagreementContainmentConfig>(configFilePath);
+    const bucketMap = new Map<string, TreeDisagreementContainmentBucket>();
+    for (const bucket of payload.buckets ?? []) {
+      if (bucket?.key && bucket.unstable) {
+        bucketMap.set(bucket.key, bucket);
+      }
+    }
+    cachedTreeDisagreementContainmentConfig = {
+      rules: {
+        nearLineAbsGapMax:
+          payload.triggerRules?.nearLineAbsGapMax != null ? payload.triggerRules.nearLineAbsGapMax : empty.rules.nearLineAbsGapMax,
+        instabilityDeltaMax:
+          payload.triggerRules?.instabilityDeltaMax != null
+            ? payload.triggerRules.instabilityDeltaMax
+            : empty.rules.instabilityDeltaMax,
+        lowSupportMax:
+          payload.triggerRules?.lowSupportMax != null ? payload.triggerRules.lowSupportMax : empty.rules.lowSupportMax,
+        highVarianceStdDevMin:
+          payload.triggerRules?.highVarianceStdDevMin != null
+            ? payload.triggerRules.highVarianceStdDevMin
+            : empty.rules.highVarianceStdDevMin,
+      },
+      bucketMap,
+    };
+    return cachedTreeDisagreementContainmentConfig;
+  } catch {
+    cachedTreeDisagreementContainmentConfig = empty;
+    return empty;
+  }
+}
+
+function loadTreeDisagreementParentBucketFallbackConfig(): {
+  rules: {
+    nearLineAbsGapMax: number;
+    instabilityDeltaMax: number;
+    lowSupportMax: number;
+    highVarianceStdDevMin: number;
+  };
+  bucketMap: Map<string, TreeDisagreementParentBucketFallbackBucket>;
+} {
+  if (cachedTreeDisagreementParentBucketFallbackConfig) return cachedTreeDisagreementParentBucketFallbackConfig;
+
+  const empty = {
+    rules: {
+      nearLineAbsGapMax: 0.5,
+      instabilityDeltaMax: -2,
+      lowSupportMax: 150,
+      highVarianceStdDevMin: 4,
+    },
+    bucketMap: new Map<string, TreeDisagreementParentBucketFallbackBucket>(),
+  };
+
+  if (
+    TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE !== "near_line" &&
+    TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE !== "all_disagreement"
+  ) {
+    cachedTreeDisagreementParentBucketFallbackConfig = empty;
+    return empty;
+  }
+
+  const configFilePath = resolveTreeDisagreementParentBucketFallbackFilePath();
+  if (!fs.existsSync(configFilePath)) {
+    cachedTreeDisagreementParentBucketFallbackConfig = empty;
+    return empty;
+  }
+
+  try {
+    const payload = parseJsonFile<TreeDisagreementParentBucketFallbackConfig>(configFilePath);
+    const bucketMap = new Map<string, TreeDisagreementParentBucketFallbackBucket>();
+    for (const bucket of payload.buckets ?? []) {
+      if (bucket?.key && bucket.unstable && bucket.parentArchetype) {
+        bucketMap.set(bucket.key, bucket);
+      }
+    }
+    cachedTreeDisagreementParentBucketFallbackConfig = {
+      rules: {
+        nearLineAbsGapMax:
+          payload.triggerRules?.nearLineAbsGapMax != null ? payload.triggerRules.nearLineAbsGapMax : empty.rules.nearLineAbsGapMax,
+        instabilityDeltaMax:
+          payload.triggerRules?.instabilityDeltaMax != null
+            ? payload.triggerRules.instabilityDeltaMax
+            : empty.rules.instabilityDeltaMax,
+        lowSupportMax:
+          payload.triggerRules?.lowSupportMax != null ? payload.triggerRules.lowSupportMax : empty.rules.lowSupportMax,
+        highVarianceStdDevMin:
+          payload.triggerRules?.highVarianceStdDevMin != null
+            ? payload.triggerRules.highVarianceStdDevMin
+            : empty.rules.highVarianceStdDevMin,
+      },
+      bucketMap,
+    };
+    return cachedTreeDisagreementParentBucketFallbackConfig;
+  } catch {
+    cachedTreeDisagreementParentBucketFallbackConfig = empty;
+    return empty;
+  }
+}
+
+function roundRouterLeafThreshold(value: number, step: number): number {
+  return Math.round(value / step) * step;
+}
+
+function normalizeRouterLeafThreshold(feature: string, threshold: number): string {
+  const step =
+    feature === "lineGap" || feature === "absLineGap"
+      ? 0.05
+      : feature === "priceLean" || feature === "bucketRecentAccuracy" || feature === "leafAccuracy"
+        ? 0.1
+        : feature === "expectedMinutes" || feature === "openingTeamSpread"
+          ? 0.25
+          : 0.1;
+  const normalized = roundRouterLeafThreshold(threshold, step);
+  return Number.isInteger(normalized)
+    ? normalized.toString()
+    : normalized.toFixed(step >= 1 ? 0 : step >= 0.1 ? 1 : 2);
+}
+
+function normalizeRouterLeafSignature(specialist: RuntimeSpecialistConfig, leafPath: string): string {
+  if (!leafPath || leafPath === "ROOT") return `${specialist.bucketKey} :: ROOT`;
+  const normalizedSegments = leafPath
+    .split(" -> ")
+    .map((segment) => {
+      const match = segment.match(/^(.*?)(<=|>)(-?\d+(?:\.\d+)?)$/);
+      if (!match) return segment;
+      const [, feature, operator, thresholdRaw] = match;
+      const threshold = Number(thresholdRaw);
+      if (!Number.isFinite(threshold)) return segment;
+      return `${feature}${operator}${normalizeRouterLeafThreshold(feature, threshold)}`;
+    })
+    .sort((left, right) => left.localeCompare(right));
+  return `${specialist.bucketKey} :: ${normalizedSegments.join(" & ")}`;
+}
+
+function loadUniversalBaselineRouterV1Model(): UniversalBaselineRouterModel | null {
+  const filePath = resolveUniversalBaselineRouterV1FilePath();
+  if (cachedUniversalBaselineRouterV1Model?.filePath === filePath) {
+    return cachedUniversalBaselineRouterV1Model.model;
+  }
+
+  if (!fs.existsSync(filePath)) {
+    cachedUniversalBaselineRouterV1Model = { filePath, model: null };
+    return null;
+  }
+
+  try {
+    const payload = parseJsonFile<UniversalBaselineRouterModel>(filePath);
+    cachedUniversalBaselineRouterV1Model = { filePath, model: payload };
+    return payload;
+  } catch {
+    cachedUniversalBaselineRouterV1Model = { filePath, model: null };
+    return null;
+  }
+}
+
+function loadUniversalBaselineRouterPackModel():
+  | {
+      model: RuntimeSpecialistRouterPackModel;
+      specialistsByBucket: Map<string, RuntimeSpecialistPackEntry>;
+      oosStatsByBucket: Map<string, Map<string, RuntimeOosSignatureStats>>;
+    }
+  | null {
+  const filePath = resolveUniversalBaselineRouterPackFilePath();
+  if (cachedUniversalBaselineRouterPackModel?.filePath === filePath) {
+    return cachedUniversalBaselineRouterPackModel.model == null
+      ? null
+      : {
+          model: cachedUniversalBaselineRouterPackModel.model,
+          specialistsByBucket: cachedUniversalBaselineRouterPackModel.specialistsByBucket,
+          oosStatsByBucket: cachedUniversalBaselineRouterPackModel.oosStatsByBucket,
+        };
+  }
+
+  if (!fs.existsSync(filePath)) {
+    cachedUniversalBaselineRouterPackModel = {
+      filePath,
+      model: null,
+      specialistsByBucket: new Map(),
+      oosStatsByBucket: new Map(),
+    };
+    return null;
+  }
+
+  try {
+    const payload = parseJsonFile<RuntimeSpecialistRouterPackModel>(filePath);
+    const specialistsByBucket = new Map<string, RuntimeSpecialistPackEntry>();
+    const oosStatsByBucket = new Map<string, Map<string, RuntimeOosSignatureStats>>();
+    for (const specialist of payload.specialists ?? []) {
+      specialistsByBucket.set(specialist.bucketKey, specialist);
+      oosStatsByBucket.set(
+        specialist.bucketKey,
+        new Map((specialist.oosSignatureStats ?? []).map((stats) => [stats.signature, stats])),
+      );
+    }
+    cachedUniversalBaselineRouterPackModel = {
+      filePath,
+      model: payload,
+      specialistsByBucket,
+      oosStatsByBucket,
+    };
+    return {
+      model: payload,
+      specialistsByBucket,
+      oosStatsByBucket,
+    };
+  } catch {
+    cachedUniversalBaselineRouterPackModel = {
+      filePath,
+      model: null,
+      specialistsByBucket: new Map(),
+      oosStatsByBucket: new Map(),
+    };
+    return null;
+  }
+}
+
+function buildRuntimeRouterDatasetRow(
+  input: PredictLiveUniversalSideInput,
+  decision: LiveUniversalModelDecision,
+): RouterDatasetRow | null {
+  if (decision.side !== "OVER" && decision.side !== "UNDER") return null;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return null;
+  if (decision.archetype == null) return null;
+  if (input.projectedValue == null || input.line == null) return null;
+
+  return {
+    rowKey: [
+      input.gameDateEt ?? "",
+      input.market,
+      input.projectedValue.toFixed(4),
+      input.line.toFixed(4),
+      decision.archetype,
+    ].join("|"),
+    gameDateEt: input.gameDateEt ?? "",
+    bucketKey: `${input.market}|${decision.archetype}`,
+    market: input.market,
+    archetype: decision.archetype,
+    modelKind: decision.modelKind,
+    qualifiedSide: decision.side,
+    finalSide: decision.finalSide,
+    favoredSide: decision.favoredSide,
+    bucketSamples: decision.bucketSamples,
+    bucketModelAccuracy: decision.bucketModelAccuracy,
+    bucketLateAccuracy: decision.bucketLateAccuracy,
+    bucketRecentAccuracy: decision.bucketLateAccuracy ?? decision.bucketModelAccuracy,
+    leafCount: decision.leafCount,
+    leafAccuracy: decision.leafAccuracy,
+    projectionMarketAgreement: decision.projectionMarketAgreement,
+    overProbability: decision.overProbability,
+    underProbability: decision.underProbability,
+    overPrice: input.overPrice ?? null,
+    underPrice: input.underPrice ?? null,
+    lineGap: round(input.projectedValue - input.line, 4),
+    absLineGap: decision.absLineGap ?? round(Math.abs(input.projectedValue - input.line), 4),
+    priceStrength: decision.priceStrength,
+    priceLean: decision.priceLean,
+    expectedMinutes: input.expectedMinutes,
+    minutesVolatility: input.minutesVolatility,
+    starterRateLast10: input.starterRateLast10,
+    openingTeamSpread: input.openingTeamSpread,
+    absOpeningSpread: input.openingTeamSpread == null ? null : round(Math.abs(input.openingTeamSpread), 4),
+    openingTotal: input.openingTotal,
+    lineupTimingConfidence: input.lineupTimingConfidence,
+    completenessScore: input.completenessScore,
+    spreadResolved: input.openingTeamSpread != null,
+    universalCorrect: false,
+    baselineCorrect: false,
+    routerTarget: null,
+  };
+}
+
+function applyOptionalUniversalBaselineRouterVeto(
+  input: PredictLiveUniversalSideInput,
+  decision: LiveUniversalModelDecision,
+): LiveUniversalModelDecision {
+  const routerMode = resolveUniversalBaselineRouterMode();
+  if (routerMode === "off") return decision;
+  if (!decision.qualified) return decision;
+  if (decision.side !== "OVER" && decision.side !== "UNDER") return decision;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return decision;
+  if (decision.side === decision.finalSide) return decision;
+
+  const row = buildRuntimeRouterDatasetRow(input, decision);
+  if (!row) return decision;
+
+  let veto = false;
+  if (routerMode === "v1") {
+    const model = loadUniversalBaselineRouterV1Model();
+    veto = model != null && predictUniversalBaselineRouter(model, row) === "VETO_BASELINE";
+  } else if (routerMode === "specialist_pack_v3") {
+    const pack = loadUniversalBaselineRouterPackModel();
+    const specialist = pack?.specialistsByBucket.get(row.bucketKey) ?? null;
+    if (pack && specialist?.model) {
+      const rawAction = predictUniversalBaselineRouter(specialist.model, row);
+      if (rawAction === "VETO_BASELINE") {
+        const resolved = resolveRouterLeaf(specialist.model, row);
+        const signature = normalizeRouterLeafSignature(specialist.config, resolved.path);
+        const oosStats = pack.oosStatsByBucket.get(row.bucketKey)?.get(signature) ?? null;
+        const passesAccuracyGate =
+          pack.model.gate.minVetoLeafAccuracy == null || resolved.leaf.accuracy >= pack.model.gate.minVetoLeafAccuracy;
+        veto = passesAccuracyGate && (oosStats?.activeByOosGate ?? false);
+      }
+    }
+  }
+
+  if (!veto) return decision;
+  return {
+    ...decision,
+    side: "NEUTRAL",
+    qualified: false,
+    rejectionReasons: [...decision.rejectionReasons, "Universal baseline router veto."],
+  };
+}
+
+function applyTreeDisagreementContainment(decision: RawLiveUniversalModelDecision): RawLiveUniversalModelDecision {
+  if (TREE_DISAGREEMENT_CONTAINMENT_SCOPE !== "near_line" && TREE_DISAGREEMENT_CONTAINMENT_SCOPE !== "all_disagreement") {
+    return decision;
+  }
+  if (decision.modelKind !== "tree") return decision;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return decision;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return decision;
+  if (decision.rawSide === decision.finalSide) return decision;
+  if (decision.archetype == null) return decision;
+
+  const { rules, bucketMap } = loadTreeDisagreementContainmentConfig();
+  if (!bucketMap.has(`${decision.market}|${decision.archetype}`)) return decision;
+  if (TREE_DISAGREEMENT_CONTAINMENT_SCOPE === "near_line") {
+    if (decision.absLineGap == null || decision.absLineGap > rules.nearLineAbsGapMax) return decision;
+  }
+
+  const preservedSide = decision.finalSide;
+  const chosenMarketProbability = preservedSide === "OVER" ? decision.overProbability : decision.underProbability;
+  const preservedProjectionWinProbability =
+    decision.projectionWinProbability == null ? null : round(clamp(1 - decision.projectionWinProbability, 0, 1), 4);
+  const preservedProjectionPriceEdge =
+    preservedProjectionWinProbability == null || chosenMarketProbability == null
+      ? null
+      : round(preservedProjectionWinProbability - chosenMarketProbability, 4);
+
+  return {
+    ...decision,
+    rawSide: preservedSide,
+    projectionWinProbability: preservedProjectionWinProbability,
+    projectionPriceEdge: preservedProjectionPriceEdge,
+    leafCount: null,
+    leafAccuracy: null,
+    runtimeOverrideLabel: "tree_disagreement_baseline_preserve",
+    runtimeOverrideSourceArchetype: decision.archetype,
+    runtimeOverrideTargetArchetype: decision.archetype,
+  };
+}
+
+function applyTreeDisagreementParentBucketFallback(
+  input: PredictLiveUniversalSideInput,
+  decision: RawLiveUniversalModelDecision,
+  runtimeOptions: InspectLiveUniversalModelRuntimeOptions = {},
+): RawLiveUniversalModelDecision {
+  if (runtimeOptions.disableTreeDisagreementParentBucketFallback) return decision;
+  if (
+    TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE !== "near_line" &&
+    TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE !== "all_disagreement"
+  ) {
+    return decision;
+  }
+  if (decision.modelKind !== "tree") return decision;
+  if (decision.rawSide !== "OVER" && decision.rawSide !== "UNDER") return decision;
+  if (decision.finalSide !== "OVER" && decision.finalSide !== "UNDER") return decision;
+  if (decision.rawSide === decision.finalSide) return decision;
+  if (decision.archetype == null) return decision;
+
+  const { rules, bucketMap } = loadTreeDisagreementParentBucketFallbackConfig();
+  const bucket = bucketMap.get(`${decision.market}|${decision.archetype}`);
+  if (!bucket) return decision;
+  if (TREE_DISAGREEMENT_PARENT_BUCKET_FALLBACK_SCOPE === "near_line") {
+    if (decision.absLineGap == null || decision.absLineGap > rules.nearLineAbsGapMax) return decision;
+  }
+  if (bucket.parentArchetype === decision.archetype) return decision;
+
+  const parentDecision = inspectLiveUniversalModelSideInternal(input, bucket.parentArchetype, {
+    disableTreeDisagreementContainment: true,
+    disableTreeDisagreementParentBucketFallback: true,
+  });
+  if (parentDecision.modelKind == null) return decision;
+  if (parentDecision.rawSide !== "OVER" && parentDecision.rawSide !== "UNDER") return decision;
+
+  return {
+    ...parentDecision,
+    runtimeOverrideLabel: "tree_disagreement_parent_bucket_fallback",
+    runtimeOverrideSourceArchetype: decision.archetype,
+    runtimeOverrideTargetArchetype: bucket.parentArchetype,
+  };
 }
 
 type ProjectionDistributionEstimate = {
@@ -3067,6 +3851,21 @@ function predictTree(node: TreeNode, row: LiveUniversalModelRow): Side {
   return resolveTreeLeaf(node, row).side;
 }
 
+function resolveRoutedDecision(decision: RoutedModelDecision, row: LiveUniversalModelRow): Side {
+  switch (decision) {
+    case "OVER":
+    case "UNDER":
+      return decision;
+    case "projection":
+      return row.projectionSide;
+    case "finalOverride":
+      return row.finalSide;
+    case "marketFavored":
+    default:
+      return row.favoredSide === "NEUTRAL" ? row.finalSide : row.favoredSide;
+  }
+}
+
 function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
   switch (model.kind) {
     case "projection":
@@ -3077,6 +3876,13 @@ function predictVariant(model: ModelVariant, row: LiveUniversalModelRow): Side {
       return row.favoredSide === "NEUTRAL" ? row.finalSide : row.favoredSide;
     case "constant":
       return model.side;
+    case "featureThresholdRouter": {
+      const value = getFeature(row, model.feature);
+      return resolveRoutedDecision(
+        (value ?? Number.POSITIVE_INFINITY) <= model.threshold ? model.lteDecision : model.gtDecision,
+        row,
+      );
+    }
     case "lowMinutesThenFinalElseConstant":
       return (row.expectedMinutes ?? Number.POSITIVE_INFINITY) <= model.threshold ? row.finalSide : model.side;
     case "underGapThenFinalElseConstant":
@@ -3240,6 +4046,7 @@ function applyBucketSideBias(
 function inspectLiveUniversalModelSideInternal(
   input: PredictLiveUniversalSideInput,
   forcedArchetype?: Archetype,
+  runtimeOptions: InspectLiveUniversalModelRuntimeOptions = {},
 ): RawLiveUniversalModelDecision {
   const archetypeMinutes = input.archetypeExpectedMinutes ?? input.expectedMinutes;
   const minutesBucket = universalMinutesBucket(archetypeMinutes);
@@ -3607,7 +4414,7 @@ function inspectLiveUniversalModelSideInternal(
       ? null
       : round(projectionWinProbability - chosenSideImpliedProbability, 4);
 
-  return {
+  let decision: RawLiveUniversalModelDecision = {
     market: input.market,
     rawSide,
     finalSide,
@@ -3631,6 +4438,12 @@ function inspectLiveUniversalModelSideInternal(
     projectionResidualMean: projectionDistribution?.residualMean ?? null,
     projectionResidualStdDev: projectionDistribution?.residualStdDev ?? null,
   };
+
+  decision = applyTreeDisagreementParentBucketFallback(input, decision, runtimeOptions);
+  if (!runtimeOptions.disableTreeDisagreementContainment) {
+    decision = applyTreeDisagreementContainment(decision);
+  }
+  return decision;
 }
 
 export function inspectLiveUniversalModelSide(input: PredictLiveUniversalSideInput): RawLiveUniversalModelDecision {
@@ -3646,10 +4459,11 @@ export function inspectLiveUniversalModelSideForArchetype(
 
 export function qualifyLiveUniversalModelDecision(
   decision: RawLiveUniversalModelDecision,
-  settings: LiveUniversalQualificationSettings = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS,
+  settings?: LiveUniversalQualificationSettings,
 ): LiveUniversalModelDecision {
   const rejectionReasons: string[] = [];
-  const thresholds = resolveQualificationThresholds(decision.market, decision.archetype, settings);
+  const activeSettings = settings ?? getActiveLiveUniversalQualificationSettings();
+  const thresholds = resolveQualificationThresholds(decision.market, decision.archetype, activeSettings);
   const calibrationKey = buildUniversalResidualCalibrationKey(decision.market, decision.archetype, decision.minutesBucket);
   const calibration = calibrationKey == null ? null : loadCalibrationMap().get(calibrationKey) ?? null;
   const bucketAccuracyAdjustment = calibration?.bucketAccuracyAdjustment ?? 0;
@@ -3668,8 +4482,20 @@ export function qualifyLiveUniversalModelDecision(
   if (decision.bucketSamples != null && decision.bucketSamples < thresholds.minBucketSamples) {
     rejectionReasons.push("Bucket sample count below threshold.");
   }
+  // Calculate bad bucket corrector for PRA archetypes with low leaf accuracy
+  // Target the specific bad buckets: SCORE_FIRST_LEAD_GUARD, LEAD_GUARD, WING in PRA market
+  const badBucketCorrector =
+    decision.leafAccuracy != null &&
+    decision.market === "PRA" &&
+    decision.archetype != null &&
+    BAD_BUCKET_PRA_ARCHETYPES.has(decision.archetype) &&
+    decision.leafAccuracy < BAD_BUCKET_PRA_LEAF_THRESHOLD
+      ? -3 // Conservative penalty for these historically bad buckets
+      : 0;
   const effectiveLeafAccuracy =
-    decision.leafAccuracy == null ? null : Math.round((decision.leafAccuracy + leafAccuracyAdjustment) * 100) / 100;
+    decision.leafAccuracy == null
+      ? null
+      : Math.round((decision.leafAccuracy + leafAccuracyAdjustment + badBucketCorrector) * 100) / 100;
   if (effectiveLeafAccuracy != null && effectiveLeafAccuracy < thresholds.minLeafAccuracy) {
     rejectionReasons.push("Tree leaf accuracy below threshold.");
   }
@@ -3726,9 +4552,12 @@ export function qualifyLiveUniversalModelDecision(
 
 export function evaluateLiveUniversalModelSide(
   input: PredictLiveUniversalSideInput,
-  settings: LiveUniversalQualificationSettings = DEFAULT_LIVE_UNIVERSAL_QUALIFICATION_SETTINGS,
+  settings?: LiveUniversalQualificationSettings,
 ): LiveUniversalModelDecision {
-  return qualifyLiveUniversalModelDecision(inspectLiveUniversalModelSide(input), settings);
+  return applyOptionalUniversalBaselineRouterVeto(
+    input,
+    qualifyLiveUniversalModelDecision(inspectLiveUniversalModelSide(input), settings),
+  );
 }
 
 export function predictLiveUniversalModelSide(input: PredictLiveUniversalSideInput): SnapshotModelSide {

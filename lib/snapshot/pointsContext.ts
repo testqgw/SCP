@@ -98,6 +98,9 @@ export type LivePtsSignalInput = {
   benchBigRoleStability?: number | null;
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+  weightedCurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
   emaCurrentLineDelta?: number | null;
   emaCurrentLineOverRate?: number | null;
@@ -189,6 +192,12 @@ const LIVE_RA_QUALIFIED_RULE: SnapshotPtsQualifiedRule = {
   minProjectionGap: 1,
   blockOverWhenFavoriteBy: -99,
 };
+
+const EMPIRICAL_LINE_LEAN_ENABLED = process.env.SNAPSHOT_EMPIRICAL_LINE_LEAN !== "0";
+const EMPIRICAL_LINE_LEAN_WEIGHT = (() => {
+  const raw = Number(process.env.SNAPSHOT_EMPIRICAL_LINE_LEAN_WEIGHT);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 1;
+})();
 
 export type EnhancedPointsProjectionInput = {
   baseProjection: number | null;
@@ -1417,10 +1426,77 @@ function resolveMarketFavoredSide(input: {
   };
 }
 
+function blendOverRate(parts: Array<{ value: number | null | undefined; weight: number }>): number | null {
+  let weightedTotal = 0;
+  let totalWeight = 0;
+  parts.forEach((part) => {
+    if (part.value == null || !Number.isFinite(part.value) || part.weight <= 0) return;
+    weightedTotal += part.value * part.weight;
+    totalWeight += part.weight;
+  });
+  if (totalWeight <= 0) return null;
+  return round(weightedTotal / totalWeight, 4);
+}
+
+function resolveEmpiricalLineLean(input: {
+  weightedCurrentLineOverRate?: number | null;
+  emaCurrentLineOverRate?: number | null;
+  l5CurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+}): {
+  blendedRate: number | null;
+  side: SnapshotModelSide;
+  strength: number;
+  overBoost: number;
+  underBoost: number;
+  confidenceBoost: number;
+} {
+  if (!EMPIRICAL_LINE_LEAN_ENABLED || EMPIRICAL_LINE_LEAN_WEIGHT <= 0) {
+    return {
+      blendedRate: null,
+      side: "NEUTRAL",
+      strength: 0,
+      overBoost: 0,
+      underBoost: 0,
+      confidenceBoost: 0,
+    };
+  }
+
+  const blendedRate = blendOverRate([
+    { value: input.weightedCurrentLineOverRate ?? null, weight: 0.5 },
+    { value: input.emaCurrentLineOverRate ?? null, weight: 0.2 },
+    { value: input.l5CurrentLineOverRate ?? null, weight: 0.12 },
+    { value: input.l10CurrentLineOverRate ?? null, weight: 0.1 },
+    { value: input.l15CurrentLineOverRate ?? null, weight: 0.08 },
+  ]);
+  if (blendedRate == null) {
+    return {
+      blendedRate: null,
+      side: "NEUTRAL",
+      strength: 0,
+      overBoost: 0,
+      underBoost: 0,
+      confidenceBoost: 0,
+    };
+  }
+
+  const lean = clamp((blendedRate - 0.5) * 2.2 * EMPIRICAL_LINE_LEAN_WEIGHT, -0.55, 0.55);
+  const strength = Math.abs(blendedRate - 0.5);
+  return {
+    blendedRate,
+    side: blendedRate >= 0.56 ? "OVER" : blendedRate <= 0.44 ? "UNDER" : "NEUTRAL",
+    strength: round(strength, 4),
+    overBoost: round(lean, 3),
+    underBoost: round(-lean, 3),
+    confidenceBoost: round(clamp(strength * 11 * EMPIRICAL_LINE_LEAN_WEIGHT, 0, 3.2), 3),
+  };
+}
+
 function confidenceTier(confidence: number | null): SnapshotPtsConfidenceTier | null {
   if (confidence == null) return null;
-  if (confidence >= 76) return "HIGH";
-  if (confidence >= 64) return "MEDIUM";
+  if (confidence >= 80) return "HIGH";
+  if (confidence >= 70) return "MEDIUM";
   return "LOW";
 }
 
@@ -1856,6 +1932,7 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     availabilityStatus: input.availabilityStatus ?? null,
     availabilityPercentPlay: input.availabilityPercentPlay ?? null,
   });
+  const empiricalLineLean = resolveEmpiricalLineLean(input);
 
   let overScore = projectionGap == null ? 0 : projectionGap * 1.65;
   let underScore = projectionGap == null ? 0 : -projectionGap * 1.5;
@@ -1912,6 +1989,9 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     underScore += clamp(-ftaEdge * 7.2, -0.3, 0.65);
   }
 
+  overScore += empiricalLineLean.overBoost;
+  underScore += empiricalLineLean.underBoost;
+
   let scoreGap = round(overScore - underScore, 3);
   let side: SnapshotModelSide =
     marketLine == null
@@ -1920,14 +2000,24 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
         ? "OVER"
         : scoreGap < -0.04
           ? "UNDER"
-          : projectionGap != null && projectionGap >= 0
+        : projectionGap != null && projectionGap >= 0
           ? "OVER"
           : "UNDER";
+
+  if (
+    marketLine != null &&
+    empiricalLineLean.side !== "NEUTRAL" &&
+    empiricalLineLean.strength >= 0.07 &&
+    Math.abs(projectionGap ?? 0) <= 0.85
+  ) {
+    side = empiricalLineLean.side;
+  }
 
   const confidenceBase =
     Math.abs(scoreGap) * 7.5 +
     Math.abs(projectionGap ?? 0) * 3.2 +
-    clamp((input.marketLine?.sportsbookCount ?? 0) * 0.9, 0, 4.5);
+    clamp((input.marketLine?.sportsbookCount ?? 0) * 0.9, 0, 4.5) +
+    empiricalLineLean.confidenceBoost;
   const confidenceSupport =
     (liveLineupTimingConfidence ?? 0.62) * 6 +
     (1 - (minutesRisk ?? 0.35)) * 7 +
@@ -2066,7 +2156,9 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     line: marketLine,
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
+    rawSide: side,
     finalSide: side,
+    baselineSide,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
@@ -2143,6 +2235,7 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
   });
+  const empiricalLineLean = resolveEmpiricalLineLean(input);
 
   let side: SnapshotModelSide =
     marketLine == null
@@ -2164,6 +2257,15 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     side = marketSignal.favoredSide;
   } else if (marketLine != null && (minutesRisk ?? 1) <= 0.16) {
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
+  }
+  if (
+    marketLine != null &&
+    empiricalLineLean.side !== "NEUTRAL" &&
+    empiricalLineLean.strength >= 0.075 &&
+    Math.abs(projectionGap ?? 0) <= 0.75 &&
+    (!marketSignal.marketStrong || marketSignal.favoredSide === empiricalLineLean.side)
+  ) {
+    side = empiricalLineLean.side;
   }
 
   const baselineSide = side;
@@ -2234,7 +2336,9 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     line: marketLine,
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
+    rawSide: side,
     finalSide: side,
+    baselineSide,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
@@ -2246,7 +2350,8 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
   const confidenceBase =
     Math.abs(projectionGap ?? 0) * 8.8 +
     clamp((input.marketLine?.sportsbookCount ?? 0) * 0.8, 0, 4) +
-    Math.min(7.5, Math.abs(marketSignal.priceLean ?? 0) * 220);
+    Math.min(7.5, Math.abs(marketSignal.priceLean ?? 0) * 220) +
+    empiricalLineLean.confidenceBoost;
   const confidenceSupport =
     (liveLineupTimingConfidence ?? 0.62) * 5.5 +
     (1 - (minutesRisk ?? 0.35)) * 8.5 +
@@ -2319,6 +2424,7 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
   });
+  const empiricalLineLean = resolveEmpiricalLineLean(input);
 
   let side: SnapshotModelSide =
     marketLine == null
@@ -2340,6 +2446,15 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     side = marketSignal.favoredSide;
   } else if (marketLine != null && (minutesRisk ?? 1) <= 0.18) {
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
+  }
+  if (
+    marketLine != null &&
+    empiricalLineLean.side !== "NEUTRAL" &&
+    empiricalLineLean.strength >= 0.075 &&
+    Math.abs(projectionGap ?? 0) <= 0.8 &&
+    (!marketSignal.marketStrong || marketSignal.favoredSide === empiricalLineLean.side)
+  ) {
+    side = empiricalLineLean.side;
   }
 
   const baselineSide = side;
@@ -2412,7 +2527,9 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     line: marketLine,
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
+    rawSide: side,
     finalSide: side,
+    baselineSide,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
@@ -2440,6 +2557,7 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
               Math.abs(projectionGap ?? 0) * 9.2 +
               clamp((input.marketLine?.sportsbookCount ?? 0) * 0.8, 0, 4) +
               Math.min(8, Math.abs(marketSignal.priceLean ?? 0) * 225) +
+              empiricalLineLean.confidenceBoost +
               (liveLineupTimingConfidence ?? 0.62) * 5.2 +
               (1 - (minutesRisk ?? 0.35)) * 8.2,
             46,
@@ -2514,6 +2632,7 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
   });
+  const empiricalLineLean = resolveEmpiricalLineLean(input);
 
   let side: SnapshotModelSide =
     marketLine == null
@@ -2523,6 +2642,15 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
         : input.projection < marketLine
           ? "UNDER"
           : "NEUTRAL";
+  if (
+    marketLine != null &&
+    empiricalLineLean.side !== "NEUTRAL" &&
+    empiricalLineLean.strength >= 0.08 &&
+    Math.abs(projectionGap ?? 0) <= 0.45 &&
+    (!marketSignal.marketStrong || marketSignal.favoredSide === empiricalLineLean.side)
+  ) {
+    side = empiricalLineLean.side;
+  }
 
   const baselineSide = side;
   const universalModelOverride = predictLiveUniversalModelSide({
@@ -2595,7 +2723,9 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     line: marketLine,
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
+    rawSide: side,
     finalSide: side,
+    baselineSide,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
@@ -2607,7 +2737,8 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
   const confidenceBase =
     Math.abs(projectionGap ?? 0) * 12 +
     clamp((input.marketLine?.sportsbookCount ?? 0) * 0.75, 0, 4) +
-    Math.min(8, Math.abs(marketSignal.priceLean ?? 0) * 230);
+    Math.min(8, Math.abs(marketSignal.priceLean ?? 0) * 230) +
+    empiricalLineLean.confidenceBoost;
   const confidenceSupport =
     (liveLineupTimingConfidence ?? 0.62) * 4.8 +
     (1 - (minutesRisk ?? 0.35)) * 8.4 +
@@ -2690,6 +2821,7 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
   });
+  const empiricalLineLean = resolveEmpiricalLineLean(input);
   const rule = comboRuleForMarket(input.market);
 
   let overScore = projectionGap == null ? 0 : projectionGap * (input.market === "PRA" ? 1.45 : 1.55);
@@ -2755,6 +2887,9 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     }
   }
 
+  overScore += empiricalLineLean.overBoost;
+  underScore += empiricalLineLean.underBoost;
+
   let side: SnapshotModelSide =
     marketLine == null
       ? "NEUTRAL"
@@ -2778,6 +2913,14 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     side = marketSignal.favoredSide;
   } else if (marketLine != null && (minutesRisk ?? 1) <= 0.18) {
     side = input.projection > marketLine ? "OVER" : input.projection < marketLine ? "UNDER" : "NEUTRAL";
+  }
+  if (
+    marketLine != null &&
+    empiricalLineLean.side !== "NEUTRAL" &&
+    empiricalLineLean.strength >= 0.07 &&
+    Math.abs(projectionGap ?? 0) <= comboNearLineThreshold
+  ) {
+    side = empiricalLineLean.side;
   }
 
   const baselineSide = side;
@@ -2874,7 +3017,9 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
     line: marketLine,
     overPrice: input.marketLine?.overPrice ?? null,
     underPrice: input.marketLine?.underPrice ?? null,
+    rawSide: side,
     finalSide: side,
+    baselineSide,
     expectedMinutes: input.projectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
@@ -2892,6 +3037,7 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
               Math.abs(projectionGap ?? 0) * (input.market === "PRA" ? 3.9 : 4.8) +
               clamp((input.marketLine?.sportsbookCount ?? 0) * 0.8, 0, 4.5) +
               Math.min(7.5, Math.abs(marketSignal.priceLean ?? 0) * 215) +
+              empiricalLineLean.confidenceBoost +
               (liveLineupTimingConfidence ?? 0.62) * 5.6 +
               (1 - (minutesRisk ?? 0.35)) * 7.2,
             46,

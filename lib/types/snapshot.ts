@@ -90,6 +90,8 @@ export type SnapshotPrecisionSystemSummary = {
   accuracyLabel?: string;
   picksPerDayLabel?: string;
   note?: string;
+  targetCardCount?: number;
+  allowFill?: boolean;
 };
 
 export type SnapshotUniversalSystemSummary = {

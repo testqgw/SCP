@@ -38,9 +38,11 @@ import {
 } from "@/lib/snapshot/pointsContext";
 import {
   buildPlayerPersonalModels,
+  buildSameOpponentProjectionSignal,
   projectMinutesProfile,
   projectTonightMetrics,
   type MinutesProjectionProfile,
+  type SameOpponentProjectionSignal,
 } from "@/lib/snapshot/projection";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
@@ -280,6 +282,38 @@ function formatSigned(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "-";
   const text = formatNumber(value);
   return value > 0 ? `+${text}` : text;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${(value * 100).toFixed(0)}%`;
+}
+
+function formatEmpiricalHitRateSummary(input: {
+  weightedCurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+}): string {
+  const parts = [
+    input.weightedCurrentLineOverRate == null ? null : `W ${formatPercent(input.weightedCurrentLineOverRate)}`,
+    input.l10CurrentLineOverRate == null ? null : `L10 ${formatPercent(input.l10CurrentLineOverRate)}`,
+    input.l15CurrentLineOverRate == null ? null : `L15 ${formatPercent(input.l15CurrentLineOverRate)}`,
+  ].filter((value): value is string => value != null);
+  return parts.length > 0 ? parts.join(" | ") : "-";
+}
+
+function formatSameOpponentSummary(signal: SameOpponentProjectionSignal | null): string {
+  if (signal == null || signal.sample <= 0) return "-";
+  return `${formatNumber(signal.weightedAverage ?? signal.average)} / ${formatSigned(signal.deltaVsAnchor)} / ${signal.sample}g / adj ${formatSigned(signal.adjustment)}`;
+}
+
+function filterSameOpponentLogs(logs: SnapshotStatLog[], opponentCode: string): SnapshotStatLog[] {
+  const canonicalOpponent = canonicalTeamCode(opponentCode);
+  if (!canonicalOpponent) return [];
+  return logs.filter((log) => {
+    if (!log.opponent) return false;
+    return canonicalTeamCode(log.opponent) === canonicalOpponent;
+  });
 }
 
 function metricsFromBase(points: number, rebounds: number, assists: number, threes: number): SnapshotMetricRecord {
@@ -759,6 +793,9 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     }),
     lineupSignal,
   );
+  const sameOpponentLogs = filterSameOpponentLogs(logsForPlayer, matchup.opponentCode);
+  const sameOpponentByMarket = arraysByMarket(sameOpponentLogs);
+  const sameOpponentMinutes = sameOpponentLogs.map((log) => log.minutes);
   const projectedTonight = applyAvailabilityToMetricRecord(
     projectTonightMetrics({
       last3Average,
@@ -770,6 +807,8 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
       last10ByMarket,
       historyByMarket: arraysByMarket(logsForPlayer),
       historyMinutes,
+      sameOpponentByMarket,
+      sameOpponentMinutes,
       sampleSize: logsForPlayer.length,
       personalModels,
       minutesSeasonAvg,
@@ -885,6 +924,34 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     projectedTonight,
     last10ByMarket,
     dataCompletenessScore: completeness.score,
+  });
+  const ptsSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "PTS",
+    sameOpponentValues: sameOpponentByMarket.PTS,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.PTS ?? last10Average.PTS ?? null,
+  });
+  const rebSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "REB",
+    sameOpponentValues: sameOpponentByMarket.REB,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.REB ?? last10Average.REB ?? null,
+  });
+  const astSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "AST",
+    sameOpponentValues: sameOpponentByMarket.AST,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.AST ?? last10Average.AST ?? null,
+  });
+  const threesSameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: "THREES",
+    sameOpponentValues: sameOpponentByMarket.THREES,
+    sameOpponentMinutes,
+    expectedMinutes: minutesProfile.expected,
+    anchorValue: seasonAverage.THREES ?? last10Average.THREES ?? null,
   });
   const ptsSignal = buildLivePtsSignal({
     gameDateEt: dateEt,
@@ -1167,6 +1234,22 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "PTS / REB / AST", value: `${formatNumber(projectedTonight.PTS)} / ${formatNumber(projectedTonight.REB)} / ${formatNumber(projectedTonight.AST)}` },
           { label: "PRA / PA / PR / RA", value: `${formatNumber(projectedTonight.PRA)} / ${formatNumber(projectedTonight.PA)} / ${formatNumber(projectedTonight.PR)} / ${formatNumber(projectedTonight.RA)}` },
           { label: "Game Total / Spread", value: `${formatNumber(openingTotal)} / ${formatSigned(openingTeamSpread)}` },
+          {
+            label: "Volatility P/R/A/3",
+            value: `${formatNumber(modelLines.PTS.volatility)} / ${formatNumber(modelLines.REB.volatility)} / ${formatNumber(modelLines.AST.volatility)} / ${formatNumber(modelLines.THREES.volatility)}`,
+          },
+        ],
+      },
+      {
+        id: "lookup-diagnostics",
+        title: "Projection Diagnostics",
+        description: "Same-opponent nudges, empirical hit rates, and volatility context for the projection engine.",
+        status: "DERIVED",
+        items: [
+          { label: "PTS Same Opp", value: formatSameOpponentSummary(ptsSameOpponentSignal) },
+          { label: "REB Same Opp", value: formatSameOpponentSummary(rebSameOpponentSignal) },
+          { label: "AST Same Opp", value: formatSameOpponentSummary(astSameOpponentSignal) },
+          { label: "3PM Same Opp", value: formatSameOpponentSummary(threesSameOpponentSignal) },
         ],
       },
       {
@@ -1179,12 +1262,12 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "Market Books", value: ptsMarketLine == null ? "-" : String(ptsMarketLine.sportsbookCount) },
           { label: "PTS Side", value: ptsSignal == null ? "-" : ptsSignal.side },
           {
-            label: "PTS Confidence",
+            label: "PTS Signal Score",
             value: ptsSignal?.confidence == null ? "-" : `${formatNumber(ptsSignal.confidence)} (${ptsSignal.confidenceTier ?? "LOW"})`,
           },
           {
-            label: "PTS Filter",
-            value: ptsSignal == null ? "-" : ptsSignal.qualified ? "QUALIFIED" : "PASS",
+            label: "PTS Card Status",
+            value: ptsSignal == null ? "-" : ptsSignal.qualified ? "PRECISION READY" : "RAW ONLY",
           },
           {
             label: "PTS Gap / Risk",
@@ -1193,6 +1276,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
                 ? "-"
                 : `${formatSigned(ptsSignal.projectionGap)} / ${formatNumber(ptsSignal.minutesRisk)}`,
           },
+          { label: "Empirical O Rate", value: formatEmpiricalHitRateSummary(ptsCurrentLineRecency) },
           { label: "FGA / Min (L10)", value: playerShotPressure?.fgaRate == null ? "-" : playerShotPressure.fgaRate.toFixed(3) },
           { label: "FTA / Min (L10)", value: playerShotPressure?.ftaRate == null ? "-" : playerShotPressure.ftaRate.toFixed(3) },
           {
@@ -1215,12 +1299,12 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "Market Books", value: rebMarketLine == null ? "-" : String(rebMarketLine.sportsbookCount) },
           { label: "REB Side", value: rebSignal == null ? "-" : rebSignal.side },
           {
-            label: "REB Confidence",
+            label: "REB Signal Score",
             value: rebSignal?.confidence == null ? "-" : `${formatNumber(rebSignal.confidence)} (${rebSignal.confidenceTier ?? "LOW"})`,
           },
           {
-            label: "REB Filter",
-            value: rebSignal == null ? "-" : rebSignal.qualified ? "QUALIFIED" : "PASS",
+            label: "REB Card Status",
+            value: rebSignal == null ? "-" : rebSignal.qualified ? "PRECISION READY" : "RAW ONLY",
           },
           {
             label: "REB Gap / Risk",
@@ -1229,6 +1313,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
                 ? "-"
                 : `${formatSigned(rebSignal.projectionGap)} / ${formatNumber(rebSignal.minutesRisk)}`,
           },
+          { label: "Empirical O Rate", value: formatEmpiricalHitRateSummary(rebCurrentLineRecency) },
         ],
       },
       {
@@ -1241,12 +1326,12 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "Market Books", value: astMarketLine == null ? "-" : String(astMarketLine.sportsbookCount) },
           { label: "AST Side", value: astSignal == null ? "-" : astSignal.side },
           {
-            label: "AST Confidence",
+            label: "AST Signal Score",
             value: astSignal?.confidence == null ? "-" : `${formatNumber(astSignal.confidence)} (${astSignal.confidenceTier ?? "LOW"})`,
           },
           {
-            label: "AST Filter",
-            value: astSignal == null ? "-" : astSignal.qualified ? "QUALIFIED" : "PASS",
+            label: "AST Card Status",
+            value: astSignal == null ? "-" : astSignal.qualified ? "PRECISION READY" : "RAW ONLY",
           },
           {
             label: "AST Gap / Risk",
@@ -1255,6 +1340,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
                 ? "-"
                 : `${formatSigned(astSignal.projectionGap)} / ${formatNumber(astSignal.minutesRisk)}`,
           },
+          { label: "Empirical O Rate", value: formatEmpiricalHitRateSummary(astCurrentLineRecency) },
         ],
       },
       {
@@ -1267,12 +1353,12 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
           { label: "Market Books", value: threesMarketLine == null ? "-" : String(threesMarketLine.sportsbookCount) },
           { label: "3PM Side", value: threesSignal == null ? "-" : threesSignal.side },
           {
-            label: "3PM Confidence",
+            label: "3PM Signal Score",
             value: threesSignal?.confidence == null ? "-" : `${formatNumber(threesSignal.confidence)} (${threesSignal.confidenceTier ?? "LOW"})`,
           },
           {
-            label: "3PM Filter",
-            value: threesSignal == null ? "-" : threesSignal.qualified ? "QUALIFIED" : "PASS",
+            label: "3PM Card Status",
+            value: threesSignal == null ? "-" : threesSignal.qualified ? "PRECISION READY" : "RAW ONLY",
           },
           {
             label: "3PM Gap / Risk",
@@ -1281,6 +1367,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
                 ? "-"
                 : `${formatSigned(threesSignal.projectionGap)} / ${formatNumber(threesSignal.minutesRisk)}`,
           },
+          { label: "Empirical O Rate", value: formatEmpiricalHitRateSummary(threesCurrentLineRecency) },
         ],
       },
       {
@@ -1291,16 +1378,16 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
         items: [
           { label: "Consensus PRA Line", value: praMarketLine == null ? "-" : formatNumber(praMarketLine.line) },
           { label: "PRA Side", value: praSignal == null ? "-" : praSignal.side },
-          { label: "PRA Filter", value: praSignal == null ? "-" : praSignal.qualified ? "QUALIFIED" : "PASS" },
+          { label: "PRA Card Status", value: praSignal == null ? "-" : praSignal.qualified ? "PRECISION READY" : "RAW ONLY" },
           { label: "Consensus PA Line", value: paMarketLine == null ? "-" : formatNumber(paMarketLine.line) },
           { label: "PA Side", value: paSignal == null ? "-" : paSignal.side },
-          { label: "PA Filter", value: paSignal == null ? "-" : paSignal.qualified ? "QUALIFIED" : "PASS" },
+          { label: "PA Card Status", value: paSignal == null ? "-" : paSignal.qualified ? "PRECISION READY" : "RAW ONLY" },
           { label: "Consensus PR Line", value: prMarketLine == null ? "-" : formatNumber(prMarketLine.line) },
           { label: "PR Side", value: prSignal == null ? "-" : prSignal.side },
-          { label: "PR Filter", value: prSignal == null ? "-" : prSignal.qualified ? "QUALIFIED" : "PASS" },
+          { label: "PR Card Status", value: prSignal == null ? "-" : prSignal.qualified ? "PRECISION READY" : "RAW ONLY" },
           { label: "Consensus RA Line", value: raMarketLine == null ? "-" : formatNumber(raMarketLine.line) },
           { label: "RA Side", value: raSignal == null ? "-" : raSignal.side },
-          { label: "RA Filter", value: raSignal == null ? "-" : raSignal.qualified ? "QUALIFIED" : "PASS" },
+          { label: "RA Card Status", value: raSignal == null ? "-" : raSignal.qualified ? "PRECISION READY" : "RAW ONLY" },
         ],
       },
       {

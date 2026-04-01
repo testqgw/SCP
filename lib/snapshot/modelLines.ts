@@ -30,6 +30,41 @@ const VOL_FACTOR_BY_MARKET: Record<SnapshotMarket, number> = {
   RA: 0.2,
 };
 
+const VOL_MULTIPLIER_BY_MARKET: Record<SnapshotMarket, number> = {
+  PTS: 1,
+  REB: 1.04,
+  AST: 1.08,
+  THREES: 1.12,
+  PRA: 1.03,
+  PA: 1.03,
+  PR: 1.03,
+  RA: 1.05,
+};
+
+const VOL_FLOOR_BY_MARKET: Record<SnapshotMarket, number> = {
+  PTS: 1.8,
+  REB: 1.2,
+  AST: 1.15,
+  THREES: 0.7,
+  PRA: 2.3,
+  PA: 1.8,
+  PR: 1.8,
+  RA: 1.5,
+};
+
+const PROJECTION_VOL_RATIO_BY_MARKET: Record<SnapshotMarket, number> = {
+  PTS: 0.13,
+  REB: 0.16,
+  AST: 0.18,
+  THREES: 0.28,
+  PRA: 0.11,
+  PA: 0.12,
+  PR: 0.12,
+  RA: 0.14,
+};
+
+const STAT_SPECIFIC_VOL_TUNING_ENABLED = process.env.SNAPSHOT_STAT_SPECIFIC_VOL_TUNING !== "0";
+
 const MAX_BUFFER_BY_MARKET: Record<SnapshotMarket, number> = {
   PTS: 2.5,
   REB: 1.5,
@@ -97,10 +132,17 @@ export function buildModelLineRecord(input: {
     }
 
     const volatilityRaw = standardDeviation(input.last10ByMarket[market]);
-    const volatility = volatilityRaw == null ? null : round(volatilityRaw, 2);
+    const effectiveVolatilityRaw = STAT_SPECIFIC_VOL_TUNING_ENABLED
+      ? Math.max(
+          volatilityRaw ?? 0,
+          VOL_FLOOR_BY_MARKET[market],
+          Math.abs(projection) * PROJECTION_VOL_RATIO_BY_MARKET[market],
+        ) * VOL_MULTIPLIER_BY_MARKET[market]
+      : (volatilityRaw ?? BASE_BUFFER_BY_MARKET[market]);
+    const volatility = round(effectiveVolatilityRaw, 2);
     const rawBuffer = Math.max(
       BASE_BUFFER_BY_MARKET[market],
-      (volatilityRaw ?? BASE_BUFFER_BY_MARKET[market]) * VOL_FACTOR_BY_MARKET[market],
+      effectiveVolatilityRaw * VOL_FACTOR_BY_MARKET[market],
     );
     const adjustedBuffer = Math.min(
       MAX_BUFFER_BY_MARKET[market],

@@ -4,6 +4,9 @@ import { round } from "@/lib/utils";
 export type CurrentLineRecencyMetrics = {
   l5CurrentLineDeltaAvg: number | null;
   l5CurrentLineOverRate: number | null;
+  l10CurrentLineOverRate: number | null;
+  l15CurrentLineOverRate: number | null;
+  weightedCurrentLineOverRate: number | null;
   l5MinutesAvg: number | null;
   emaCurrentLineDelta: number | null;
   emaCurrentLineOverRate: number | null;
@@ -64,6 +67,18 @@ function normalizeFiniteValues(values: NumberLike[]): number[] {
   return values.filter((value): value is number => value != null && Number.isFinite(value));
 }
 
+function weightedRate(parts: Array<{ value: number | null; weight: number }>): number | null {
+  let weightedTotal = 0;
+  let totalWeight = 0;
+  parts.forEach((part) => {
+    if (part.value == null || !Number.isFinite(part.value) || part.weight <= 0) return;
+    weightedTotal += part.value * part.weight;
+    totalWeight += part.weight;
+  });
+  if (totalWeight <= 0) return null;
+  return weightedTotal / totalWeight;
+}
+
 const CURRENT_LINE_RECENCY_EMA_ALPHA = (() => {
   const raw = Number(process.env.SNAPSHOT_CURRENT_LINE_RECENCY_EMA_ALPHA);
   if (Number.isFinite(raw) && raw > 0 && raw < 1) return raw;
@@ -78,6 +93,8 @@ export function computeCurrentLineRecencyMetrics(input: {
   const actualValues = normalizeFiniteValues(input.recentActualValues);
   const recentMinutes = normalizeFiniteValues(input.recentMinutes);
   const recentActualValuesL5 = actualValues.slice(-5);
+  const recentActualValuesL10 = actualValues.slice(-10);
+  const recentActualValuesL15 = actualValues.slice(-15);
   const recentMinutesL5 = recentMinutes.slice(-5);
   const line = input.currentLine != null && Number.isFinite(input.currentLine) ? input.currentLine : null;
 
@@ -97,6 +114,9 @@ export function computeCurrentLineRecencyMetrics(input: {
     return {
       l5CurrentLineDeltaAvg: null,
       l5CurrentLineOverRate: null,
+      l10CurrentLineOverRate: null,
+      l15CurrentLineOverRate: null,
+      weightedCurrentLineOverRate: null,
       l5MinutesAvg: l5MinutesAvgRaw == null ? null : round(l5MinutesAvgRaw, 3),
       emaCurrentLineDelta: null,
       emaCurrentLineOverRate: null,
@@ -110,15 +130,28 @@ export function computeCurrentLineRecencyMetrics(input: {
 
   const deltas = recentActualValuesL5.map((value) => value - line);
   const overIndicators = recentActualValuesL5.map((value) => (value > line ? 1 : value < line ? 0 : 0.5));
+  const overIndicatorsL10 = recentActualValuesL10.map((value) => (value > line ? 1 : value < line ? 0 : 0.5));
+  const overIndicatorsL15 = recentActualValuesL15.map((value) => (value > line ? 1 : value < line ? 0 : 0.5));
 
   const l5CurrentLineDeltaAvgRaw = average(deltas);
   const l5CurrentLineOverRateRaw = average(overIndicators);
+  const l10CurrentLineOverRateRaw = average(overIndicatorsL10);
+  const l15CurrentLineOverRateRaw = average(overIndicatorsL15);
+  const weightedCurrentLineOverRateRaw = weightedRate([
+    { value: l5CurrentLineOverRateRaw, weight: 0.45 },
+    { value: l10CurrentLineOverRateRaw, weight: 0.35 },
+    { value: l15CurrentLineOverRateRaw, weight: 0.2 },
+  ]);
   const emaCurrentLineDeltaRaw = ema(deltas, CURRENT_LINE_RECENCY_EMA_ALPHA);
   const emaCurrentLineOverRateRaw = ema(overIndicators, CURRENT_LINE_RECENCY_EMA_ALPHA);
 
   return {
     l5CurrentLineDeltaAvg: l5CurrentLineDeltaAvgRaw == null ? null : round(l5CurrentLineDeltaAvgRaw, 3),
     l5CurrentLineOverRate: l5CurrentLineOverRateRaw == null ? null : round(l5CurrentLineOverRateRaw, 3),
+    l10CurrentLineOverRate: l10CurrentLineOverRateRaw == null ? null : round(l10CurrentLineOverRateRaw, 3),
+    l15CurrentLineOverRate: l15CurrentLineOverRateRaw == null ? null : round(l15CurrentLineOverRateRaw, 3),
+    weightedCurrentLineOverRate:
+      weightedCurrentLineOverRateRaw == null ? null : round(weightedCurrentLineOverRateRaw, 3),
     l5MinutesAvg: l5MinutesAvgRaw == null ? null : round(l5MinutesAvgRaw, 3),
     emaCurrentLineDelta: emaCurrentLineDeltaRaw == null ? null : round(emaCurrentLineDeltaRaw, 3),
     emaCurrentLineOverRate: emaCurrentLineOverRateRaw == null ? null : round(emaCurrentLineOverRateRaw, 3),

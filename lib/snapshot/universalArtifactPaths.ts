@@ -10,6 +10,10 @@ export const DEFAULT_UNIVERSAL_LIVE_PROJECTION_DISTRIBUTION_RELATIVE_PATH = path
   "exports",
   "universal-live-projection-distribution.json",
 );
+export const DEFAULT_UNIVERSAL_LIVE_QUALIFICATION_SETTINGS_RELATIVE_PATH = path.join(
+  "exports",
+  "universal-live-qualification-settings.json",
+);
 export const DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH = path.join("exports", "projection-backtest-allplayers-with-rows-live.json");
 export const DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH = path.join(
   "exports",

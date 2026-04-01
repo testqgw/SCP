@@ -339,6 +339,58 @@ const BIG_ROLE_INJURY_TEAMMATE_MARKET_WEIGHT: Partial<Record<SnapshotMarket, num
   RA: 1.19,
 };
 
+const SAME_OPPONENT_SIGNAL_ENABLED = (() => {
+  const raw = process.env.SNAPSHOT_SAME_OPPONENT_ENABLED?.trim().toLowerCase();
+  if (!raw) return true;
+  return raw !== "0" && raw !== "false" && raw !== "off" && raw !== "no";
+})();
+
+const SAME_OPPONENT_MIN_SAMPLES = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SAME_OPPONENT_MIN_SAMPLES);
+  if (!Number.isFinite(parsed)) return 2;
+  return clamp(Math.floor(parsed), 1, 5);
+})();
+
+const SAME_OPPONENT_MAX_GAMES = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SAME_OPPONENT_MAX_GAMES);
+  if (!Number.isFinite(parsed)) return 4;
+  return clamp(Math.floor(parsed), 2, 8);
+})();
+
+const SAME_OPPONENT_STRENGTH = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SAME_OPPONENT_STRENGTH);
+  if (!Number.isFinite(parsed)) return 0.1;
+  return clamp(parsed, 0, 0.35);
+})();
+
+const SAME_OPPONENT_MINUTES_TOLERANCE = (() => {
+  const parsed = Number(process.env.SNAPSHOT_SAME_OPPONENT_MINUTES_TOLERANCE);
+  if (!Number.isFinite(parsed)) return 8;
+  return clamp(parsed, 3, 14);
+})();
+
+const SAME_OPPONENT_MARKET_WEIGHT: Record<SnapshotMarket, number> = {
+  PTS: 1,
+  REB: 0.96,
+  AST: 0.98,
+  THREES: 0.82,
+  PRA: 1.03,
+  PA: 1,
+  PR: 1.02,
+  RA: 0.97,
+};
+
+const SAME_OPPONENT_MARKET_CAP: Record<SnapshotMarket, number> = {
+  PTS: 0.9,
+  REB: 0.55,
+  AST: 0.55,
+  THREES: 0.28,
+  PRA: 1.15,
+  PA: 0.95,
+  PR: 1,
+  RA: 0.72,
+};
+
 type ProjectMarketInput = {
   market: SnapshotMarket;
   last3Average: number | null;
@@ -354,6 +406,8 @@ type ProjectMarketInput = {
   minutesSeasonAvg: number | null;
   historyValues: number[];
   historyMinutes: number[];
+  sameOpponentValues: number[];
+  sameOpponentMinutes: number[];
   minutesLast3Avg: number | null;
   minutesLast10Avg: number | null;
   minutesVolatility: number | null;
@@ -375,6 +429,8 @@ export type ProjectTonightInput = {
   last10ByMarket: Record<SnapshotMarket, number[]>;
   historyByMarket: Record<SnapshotMarket, number[]>;
   historyMinutes: number[];
+  sameOpponentByMarket?: Record<SnapshotMarket, number[]>;
+  sameOpponentMinutes?: number[];
   sampleSize: number;
   personalModels?: PlayerPersonalModels | null;
   minutesSeasonAvg?: number | null;
@@ -422,6 +478,16 @@ export type BuildPlayerPersonalModelsInput = {
   historyByMarket: Record<SnapshotMarket, number[]>;
   minutesSeasonAvg: number | null;
   minSamples?: number;
+};
+
+export type SameOpponentProjectionSignal = {
+  average: number | null;
+  weightedAverage: number | null;
+  sample: number;
+  minutesAverage: number | null;
+  minutesSimilarity: number | null;
+  deltaVsAnchor: number | null;
+  adjustment: number;
 };
 
 function blankMetricRecord(): SnapshotMetricRecord {
@@ -626,6 +692,77 @@ function weightedBlend(parts: Array<{ value: number | null; weight: number }>): 
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export function buildSameOpponentProjectionSignal(input: {
+  market: SnapshotMarket;
+  sameOpponentValues: number[];
+  sameOpponentMinutes: number[];
+  expectedMinutes: number | null;
+  anchorValue: number | null;
+}): SameOpponentProjectionSignal {
+  const pairs = input.sameOpponentValues
+    .map((value, index) => ({
+      value,
+      minutes: input.sameOpponentMinutes[index] ?? null,
+    }))
+    .filter((item) => Number.isFinite(item.value))
+    .slice(0, SAME_OPPONENT_MAX_GAMES);
+  const values = pairs.map((item) => item.value);
+  const sample = values.length;
+  const averageValue = average(values);
+  const weightedAverage =
+    weightedBlend([
+      { value: ewmaRecentFirst(values, 0.58), weight: 0.62 },
+      { value: averageValue, weight: 0.38 },
+    ]) ?? averageValue;
+  const validMinutes = pairs
+    .map((item) => item.minutes)
+    .filter((value): value is number => value != null && Number.isFinite(value) && value > 0);
+  const minutesAverage = average(validMinutes);
+  const minutesSimilarity =
+    input.expectedMinutes == null || input.expectedMinutes <= 0 || minutesAverage == null
+      ? null
+      : round(
+          clamp(1 - Math.abs(minutesAverage - input.expectedMinutes) / SAME_OPPONENT_MINUTES_TOLERANCE, 0.35, 1),
+          3,
+        );
+  const deltaVsAnchor =
+    weightedAverage == null || input.anchorValue == null ? null : round(weightedAverage - input.anchorValue, 2);
+  if (
+    !SAME_OPPONENT_SIGNAL_ENABLED ||
+    weightedAverage == null ||
+    input.anchorValue == null ||
+    sample < SAME_OPPONENT_MIN_SAMPLES ||
+    SAME_OPPONENT_STRENGTH <= 0
+  ) {
+    return {
+      average: averageValue,
+      weightedAverage,
+      sample,
+      minutesAverage,
+      minutesSimilarity,
+      deltaVsAnchor,
+      adjustment: 0,
+    };
+  }
+
+  const confidenceDenom = Math.max(1, SAME_OPPONENT_MAX_GAMES - SAME_OPPONENT_MIN_SAMPLES + 1);
+  const sampleConfidence = clamp((sample - SAME_OPPONENT_MIN_SAMPLES + 1) / confidenceDenom, 0.24, 1);
+  const minuteWeight = minutesSimilarity ?? 0.78;
+  const marketWeight = SAME_OPPONENT_MARKET_WEIGHT[input.market] ?? 1;
+  const cap = SAME_OPPONENT_MARKET_CAP[input.market] ?? 0.8;
+  const rawAdjustment = (deltaVsAnchor ?? 0) * SAME_OPPONENT_STRENGTH * marketWeight * sampleConfidence * minuteWeight;
+  const adjustment = round(clamp(rawAdjustment, -cap, cap), 2);
+  return {
+    average: averageValue,
+    weightedAverage,
+    sample,
+    minutesAverage,
+    minutesSimilarity,
+    deltaVsAnchor,
+    adjustment,
+  };
 }
 
 function applyOpeningTotalEnvironmentAdjustment(
@@ -1351,6 +1488,13 @@ function projectMarket(input: ProjectMarketInput): number | null {
   const minuteDelta =
     minutesProfile.expected == null || input.minutesLast10Avg == null ? 0 : minutesProfile.expected - input.minutesLast10Avg;
   const expectedMinutes = minutesProfile.expected ?? input.minutesLast10Avg ?? input.minutesLast3Avg ?? 0;
+  const sameOpponentSignal = buildSameOpponentProjectionSignal({
+    market: input.market,
+    sameOpponentValues: input.sameOpponentValues,
+    sameOpponentMinutes: input.sameOpponentMinutes,
+    expectedMinutes,
+    anchorValue: seasonAnchor,
+  });
   const perMinuteRate =
     input.minutesLast10Avg == null || input.minutesLast10Avg <= 0
       ? null
@@ -1378,7 +1522,12 @@ function projectMarket(input: ProjectMarketInput): number | null {
   const playerSpecificTier = seasonMinutes >= PLAYER_SPECIFIC_MINUTES_THRESHOLD;
 
   const globalProjection =
-    seasonAnchor + (base - seasonAnchor) * volatilityShrink + minutesAdjustment + opponentAdjustment + trendAdjustment;
+    seasonAnchor +
+    (base - seasonAnchor) * volatilityShrink +
+    minutesAdjustment +
+    opponentAdjustment +
+    trendAdjustment +
+    sameOpponentSignal.adjustment;
   let projected = globalProjection;
 
   if (playerSpecificTier) {
@@ -1568,6 +1717,8 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
     last10Values: input.last10ByMarket[market],
     historyValues: input.historyByMarket[market],
     historyMinutes: input.historyMinutes,
+    sameOpponentValues: input.sameOpponentByMarket?.[market] ?? [],
+    sameOpponentMinutes: input.sameOpponentMinutes ?? [],
     sampleSize: input.sampleSize,
     minutesProfile,
     personalModel: input.personalModels?.[market] ?? null,
