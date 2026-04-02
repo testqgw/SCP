@@ -35,6 +35,11 @@ type SnapshotRefreshApiResponse = {
   error?: string;
 };
 
+type BoardLoadOptions = {
+  bustCache?: boolean;
+  background?: boolean;
+};
+
 const AUTO_REFRESH_STALE_AFTER_MS = 900_000; // 15 minutes
 const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
 const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 5_000;
@@ -854,6 +859,7 @@ export function SnapshotDashboard({
   const router = useRouter();
   const boardLoadTargetRef = useRef<string | null>(hasInitialBoardSnapshot ? initialData.dateEt : null);
   const boardRequestRef = useRef(0);
+  const boardLoadingRequestRef = useRef<number | null>(null);
   const playerDetailRequestRef = useRef(0);
   const lastVisitRefreshRef = useRef<{ key: string | null; at: number }>({ key: null, at: 0 });
   const refreshInFlightRef = useRef(false);
@@ -900,6 +906,13 @@ export function SnapshotDashboard({
   const [playerBacktestLoading, setPlayerBacktestLoading] = useState(false);
   const [playerBacktestError, setPlayerBacktestError] = useState<string | null>(null);
   const isAllMarketsView = market === "ALL";
+  const hasActiveBoardSnapshot = hasBoardSnapshotData(activeData);
+  const precisionCardTargetCount = activeData.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
+  const precisionCardSelectedCount = activeData.precisionCardSummary?.selectedCount ?? activeData.precisionCard?.length ?? 0;
+  const activePrecisionCardUnderfilled =
+    activeData.dateEt === getTodayEtDateString(new Date()) &&
+    precisionCardTargetCount > 0 &&
+    precisionCardSelectedCount < precisionCardTargetCount;
   const resolveManualRefreshMode = useCallback(
     (targetDate: string): "FAST" | "DELTA" => {
       const isTodaySlate = targetDate === getTodayEtDateString(new Date());
@@ -939,7 +952,7 @@ export function SnapshotDashboard({
     };
   }, [lineMap, scopedLineKey, selectedPlayer]);
 
-  const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<SnapshotBoardData> => {
+  const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: BoardLoadOptions): Promise<SnapshotBoardData> => {
     const params = new URLSearchParams();
     params.set("date", targetDate);
     if (options?.bustCache) {
@@ -970,11 +983,15 @@ export function SnapshotDashboard({
     return payload.result;
   }, []);
 
-  const loadBoardData = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<void> => {
+  const loadBoardData = useCallback(async (targetDate: string, options?: BoardLoadOptions): Promise<void> => {
     const requestId = boardRequestRef.current + 1;
     boardRequestRef.current = requestId;
     boardLoadTargetRef.current = targetDate;
-    setIsBoardLoading(true);
+    const backgroundLoad = options?.background ?? false;
+    if (!backgroundLoad) {
+      boardLoadingRequestRef.current = requestId;
+      setIsBoardLoading(true);
+    }
     setBoardError(null);
 
     try {
@@ -985,7 +1002,8 @@ export function SnapshotDashboard({
       if (requestId !== boardRequestRef.current) return;
       setBoardError(error instanceof Error ? error.message : "Board load failed.");
     } finally {
-      if (requestId === boardRequestRef.current) {
+      if (boardLoadingRequestRef.current === requestId) {
+        boardLoadingRequestRef.current = null;
         setIsBoardLoading(false);
       }
     }
@@ -998,14 +1016,14 @@ export function SnapshotDashboard({
 
     pendingBoardReloadTimeoutRef.current = window.setTimeout(() => {
       pendingBoardReloadTimeoutRef.current = null;
-      void loadBoardData(targetDate, { bustCache: true });
+      void loadBoardData(targetDate, { bustCache: true, background: true });
     }, delayMs);
   }, [loadBoardData]);
 
   const runBoardRefresh = useCallback(async (targetDate: string, source: "manual" | "visit"): Promise<void> => {
     const isTodaySlate = targetDate === getTodayEtDateString(new Date());
     if (!isTodaySlate) {
-      await loadBoardData(targetDate, { bustCache: true });
+      await loadBoardData(targetDate, { bustCache: true, background: true });
       return;
     }
 
@@ -1031,7 +1049,7 @@ export function SnapshotDashboard({
 
     try {
       if (source === "visit") {
-        await loadBoardData(targetDate, { bustCache: true });
+        await loadBoardData(targetDate, { bustCache: true, background: true });
         setRefreshMessage("Live board updated for this visit.");
         return;
       }
@@ -1064,7 +1082,7 @@ export function SnapshotDashboard({
             ? "This slate was refreshed recently. Loading the latest live board."
             : "This slate was refreshed recently. Loading the latest board.",
         );
-        await loadBoardData(targetDate, { bustCache: true });
+        await loadBoardData(targetDate, { bustCache: true, background: true });
         return;
       }
 
@@ -1073,12 +1091,12 @@ export function SnapshotDashboard({
           ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest live board...`
           : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest board...`,
       );
-      await loadBoardData(targetDate, { bustCache: true });
+      await loadBoardData(targetDate, { bustCache: true, background: true });
     } catch (error) {
       if (source === "visit") {
         const message = error instanceof Error ? error.message : "Auto refresh failed.";
         setRefreshError(`Auto refresh failed: ${message}`);
-        await loadBoardData(targetDate, { bustCache: true });
+        await loadBoardData(targetDate, { bustCache: true, background: true });
         return;
       }
 
@@ -1147,14 +1165,12 @@ export function SnapshotDashboard({
   }, [initialData, loadBoardData, refreshBoardForVisit]);
 
   useEffect(() => {
-    if (!hasBoardSnapshotData(activeData)) return;
+    if (!hasActiveBoardSnapshot) return;
     refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
-  }, [activeData, refreshBoardForVisit]);
+  }, [activeData.dateEt, activeData.lastUpdatedAt, hasActiveBoardSnapshot, refreshBoardForVisit]);
 
   useEffect(() => {
-    const isTodaySlate = activeData.dateEt === getTodayEtDateString(new Date());
-    const underfilled = isTodaySlate && isPrecisionCardUnderfilled(activeData);
-    if (!underfilled) {
+    if (!activePrecisionCardUnderfilled) {
       if (underfilledSlateReloadRef.current === activeData.dateEt) {
         underfilledSlateReloadRef.current = null;
       }
@@ -1166,8 +1182,8 @@ export function SnapshotDashboard({
 
     underfilledSlateReloadRef.current = activeData.dateEt;
     setRefreshMessage("Precision card loaded short. Pulling the freshest live slate now...");
-    void loadBoardData(activeData.dateEt, { bustCache: true });
-  }, [activeData, isBoardLoading, loadBoardData]);
+    void loadBoardData(activeData.dateEt, { bustCache: true, background: true });
+  }, [activeData.dateEt, activePrecisionCardUnderfilled, isBoardLoading, loadBoardData]);
 
   useEffect(() => {
     const handlePageShow = (): void => {
@@ -1655,7 +1671,6 @@ export function SnapshotDashboard({
     [allQualifiedCandidates],
   );
 
-  const precisionCardTargetCount = activeData.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
   const rowByPlayerId = useMemo(
     () => new Map(activeData.rows.map((row) => [row.playerId, row] as const)),
     [activeData.rows],
