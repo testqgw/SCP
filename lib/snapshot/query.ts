@@ -234,7 +234,7 @@ type SnapshotBoardCacheEntry = {
 
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
-const SNAPSHOT_BOARD_PAYLOAD_VERSION = "full-detail-v1";
+const SNAPSHOT_BOARD_PAYLOAD_VERSION = "modal-preload-v2";
 
 type PersistedSnapshotBoardSetting = {
   sourceSignal: string;
@@ -408,6 +408,8 @@ function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
     ...row,
     detailLevel: "FULL",
     precisionSignals: toBoardPrecisionSignals(row.precisionSignals),
+    // Keep the board modal-ready without shipping the full season log history for every player row.
+    analysisLogs: [],
   };
 }
 
