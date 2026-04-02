@@ -40,7 +40,6 @@ const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
 const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 5_000;
 const MANUAL_REFRESH_MODE = "DELTA";
 const MANUAL_FAST_REFRESH_WINDOW_MS = 20 * 60_000;
-const MANUAL_REFRESH_FOLLOW_UP_LOAD_MS = 3_000;
 
 const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PTS", label: "Points (PTS)" },
@@ -1018,7 +1017,10 @@ export function SnapshotDashboard({
     setIsRefreshing(true);
     setRefreshError(null);
     const manualRefreshMode = source === "manual" ? resolveManualRefreshMode(targetDate) : null;
-    const optimisticBoardReload = source === "manual" ? loadBoardData(targetDate, { bustCache: true }) : null;
+    if (pendingBoardReloadTimeoutRef.current != null) {
+      window.clearTimeout(pendingBoardReloadTimeoutRef.current);
+      pendingBoardReloadTimeoutRef.current = null;
+    }
     setRefreshMessage(
       source === "visit"
         ? "Loading the freshest live board for this visit..."
@@ -1052,12 +1054,7 @@ export function SnapshotDashboard({
             ? "A fast refresh is already running. Loading the newest board shortly."
             : "Refresh is already running. Loading the newest board shortly.",
         );
-        if (optimisticBoardReload) {
-          await optimisticBoardReload;
-        } else {
-          await loadBoardData(targetDate, { bustCache: true });
-        }
-        scheduleBoardReload(targetDate, MANUAL_REFRESH_FOLLOW_UP_LOAD_MS);
+        scheduleBoardReload(targetDate);
         return;
       }
 
@@ -1067,25 +1064,16 @@ export function SnapshotDashboard({
             ? "This slate was refreshed recently. Loading the latest live board."
             : "This slate was refreshed recently. Loading the latest board.",
         );
-        if (optimisticBoardReload) {
-          await optimisticBoardReload;
-        } else {
-          await loadBoardData(targetDate, { bustCache: true });
-        }
+        await loadBoardData(targetDate, { bustCache: true });
         return;
       }
 
       setRefreshMessage(
         refreshMode === "FAST"
-          ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Applying follow-up board update...`
-          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Applying follow-up board update...`,
+          ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest live board...`
+          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest board...`,
       );
-      if (optimisticBoardReload) {
-        await optimisticBoardReload;
-      } else {
-        await loadBoardData(targetDate, { bustCache: true });
-      }
-      scheduleBoardReload(targetDate, MANUAL_REFRESH_FOLLOW_UP_LOAD_MS);
+      await loadBoardData(targetDate, { bustCache: true });
     } catch (error) {
       if (source === "visit") {
         const message = error instanceof Error ? error.message : "Auto refresh failed.";
