@@ -3,6 +3,7 @@ import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import {
   buildAdaptivePrecisionFloorPick,
+  buildShortfallPrecisionRescuePick,
   buildPrecision80Pick,
   selectPrecisionCardWithTopOff,
   type PrecisionSlateCandidate,
@@ -120,6 +121,7 @@ async function main(): Promise<void> {
     const rows = byDate.get(date) ?? [];
     const candidates: CandidateRecord[] = [];
     const adaptiveCandidates: CandidateRecord[] = [];
+    const shortfallCandidates: CandidateRecord[] = [];
 
     rows.forEach((row) => {
       const playerPosition = playerPositions.get(row.playerId) ?? null;
@@ -193,22 +195,47 @@ async function main(): Promise<void> {
 
       const adaptiveSignal = buildAdaptivePrecisionFloorPick(input);
       const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
-      if (!adaptiveSignal || !adaptiveQualified) return;
-      adaptiveCandidates.push({
+      if (adaptiveSignal && adaptiveQualified) {
+        adaptiveCandidates.push({
+          playerId: row.playerId,
+          playerName: row.playerName,
+          matchupKey: `${row.gameDateEt}:${row.playerId}`,
+          market: row.market,
+          signal: adaptiveSignal,
+          selectionScore: adaptiveSignal.selectionScore ?? 0,
+          source: "PRECISION",
+          correct: row.actualSide === adaptiveSignal.side,
+        });
+        return;
+      }
+
+      const shortfallSignal = buildShortfallPrecisionRescuePick(input);
+      const shortfallQualified = shortfallSignal?.qualified ?? shortfallSignal?.side !== "NEUTRAL";
+      if (!shortfallSignal || !shortfallQualified) return;
+      shortfallCandidates.push({
         playerId: row.playerId,
         playerName: row.playerName,
         matchupKey: `${row.gameDateEt}:${row.playerId}`,
         market: row.market,
-        signal: adaptiveSignal,
-        selectionScore: adaptiveSignal.selectionScore ?? 0,
+        signal: shortfallSignal,
+        selectionScore: shortfallSignal.selectionScore ?? 0,
         source: "PRECISION",
-        correct: row.actualSide === adaptiveSignal.side,
+        correct: row.actualSide === shortfallSignal.side,
       });
     });
 
-    const daySelections = selectPrecisionCardWithTopOff(candidates, adaptiveCandidates);
+    const daySelections = selectPrecisionCardWithTopOff(
+      candidates,
+      adaptiveCandidates,
+      {
+        candidates: adaptiveCandidates,
+        ignorePlayerLimit: true,
+        ignoreMarketCaps: true,
+      },
+      shortfallCandidates,
+    );
     const resolvedSelections = daySelections.flatMap((pick) => {
-      const found = [...candidates, ...adaptiveCandidates].find(
+      const found = [...candidates, ...adaptiveCandidates, ...shortfallCandidates].find(
         (candidate) => candidate.playerId === pick.playerId && candidate.market === pick.market,
       );
       return found ? [found] : [];

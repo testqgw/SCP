@@ -1,67 +1,72 @@
 {
-  "generatedAt": "2026-04-02T04:48:57.222Z",
+  "generatedAt": "2026-04-02T06:02:40.116Z",
   "inputPath": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live.json",
   "summary": {
-    "totalPicks": 864,
-    "totalCorrect": 611,
+    "totalPicks": 888,
+    "totalCorrect": 628,
     "overallAccuracy": 70.72,
-    "picksPerDay": 5.84,
+    "picksPerDay": 6,
     "bySource": {
-      "PRECISION": 864
+      "PRECISION": 888
     },
     "byMarket": {
       "REB": {
-        "picks": 57,
-        "correct": 40,
-        "accuracyPct": 70.18
+        "picks": 60,
+        "correct": 42,
+        "accuracyPct": 70
       },
       "AST": {
-        "picks": 53,
-        "correct": 36,
-        "accuracyPct": 67.92
+        "picks": 59,
+        "correct": 41,
+        "accuracyPct": 69.49
       },
       "THREES": {
-        "picks": 63,
-        "correct": 42,
-        "accuracyPct": 66.67
+        "picks": 65,
+        "correct": 43,
+        "accuracyPct": 66.15
       },
       "PRA": {
-        "picks": 385,
-        "correct": 278,
-        "accuracyPct": 72.21
+        "picks": 388,
+        "correct": 280,
+        "accuracyPct": 72.16
+      },
+      "PA": {
+        "picks": 1,
+        "correct": 1,
+        "accuracyPct": 100
       },
       "PR": {
-        "picks": 181,
-        "correct": 123,
-        "accuracyPct": 67.96
+        "picks": 188,
+        "correct": 128,
+        "accuracyPct": 68.09
       },
       "RA": {
-        "picks": 125,
-        "correct": 92,
-        "accuracyPct": 73.6
+        "picks": 127,
+        "correct": 93,
+        "accuracyPct": 73.23
       }
     },
     "last14": {
       "days": 14,
-      "picks": 80,
-      "correct": 55,
-      "accuracyPct": 68.75,
-      "picksPerDay": 5.71
+      "picks": 84,
+      "correct": 57,
+      "accuracyPct": 67.86,
+      "picksPerDay": 6
     },
     "last30": {
       "days": 30,
-      "picks": 170,
-      "correct": 121,
-      "accuracyPct": 71.18,
-      "picksPerDay": 5.67
+      "picks": 180,
+      "correct": 129,
+      "accuracyPct": 71.67,
+      "picksPerDay": 6
     }
   },
   "daily": [
     {
       "date": "2025-10-23",
-      "picks": 5,
-      "correct": 3,
-      "accuracy": 60
+      "picks": 6,
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-10-24",
@@ -335,8 +340,8 @@
     },
     {
       "date": "2025-12-09",
-      "picks": 2,
-      "correct": 1,
+      "picks": 6,
+      "correct": 3,
       "accuracy": 50
     },
     {
@@ -377,14 +382,14 @@
     },
     {
       "date": "2025-12-16",
-      "picks": 5,
-      "correct": 3,
-      "accuracy": 60
+      "picks": 6,
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-12-17",
-      "picks": 5,
-      "correct": 5,
+      "picks": 6,
+      "correct": 6,
       "accuracy": 100
     },
     {
@@ -509,8 +514,8 @@
     },
     {
       "date": "2026-01-08",
-      "picks": 3,
-      "correct": 1,
+      "picks": 6,
+      "correct": 2,
       "accuracy": 33.33
     },
     {
@@ -695,9 +700,9 @@
     },
     {
       "date": "2026-02-08",
-      "picks": 3,
-      "correct": 0,
-      "accuracy": 0
+      "picks": 6,
+      "correct": 2,
+      "accuracy": 33.33
     },
     {
       "date": "2026-02-09",
@@ -749,9 +754,9 @@
     },
     {
       "date": "2026-02-23",
-      "picks": 5,
-      "correct": 2,
-      "accuracy": 40
+      "picks": 6,
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-02-24",
@@ -779,8 +784,8 @@
     },
     {
       "date": "2026-02-28",
-      "picks": 3,
-      "correct": 3,
+      "picks": 6,
+      "correct": 6,
       "accuracy": 100
     },
     {
@@ -791,9 +796,9 @@
     },
     {
       "date": "2026-03-02",
-      "picks": 3,
-      "correct": 2,
-      "accuracy": 66.67
+      "picks": 6,
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-03-03",
@@ -911,9 +916,9 @@
     },
     {
       "date": "2026-03-22",
-      "picks": 4,
-      "correct": 1,
-      "accuracy": 25
+      "picks": 6,
+      "correct": 2,
+      "accuracy": 33.33
     },
     {
       "date": "2026-03-23",
@@ -935,8 +940,8 @@
     },
     {
       "date": "2026-03-26",
-      "picks": 4,
-      "correct": 2,
+      "picks": 6,
+      "correct": 3,
       "accuracy": 50
     },
     {

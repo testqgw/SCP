@@ -38,6 +38,7 @@ import {
 } from "@/lib/snapshot/pointsContext";
 import {
   buildAdaptivePrecisionFloorPick,
+  buildShortfallPrecisionRescuePick,
   buildPrecision80Pick,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
@@ -2663,6 +2664,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
   const precisionAdaptiveCardCandidates: PrecisionCardCandidateRecord[] = [];
+  const precisionShortfallCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
 
   for (const player of players) {
@@ -3549,6 +3551,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const adaptivePrecisionSignals: Partial<
       Record<SnapshotMarket, NonNullable<ReturnType<typeof buildAdaptivePrecisionFloorPick>>>
     > = {};
+    const shortfallPrecisionSignals: Partial<
+      Record<SnapshotMarket, NonNullable<ReturnType<typeof buildShortfallPrecisionRescuePick>>>
+    > = {};
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
       const precisionInput = buildPrecisionCardInputForMarket(market);
       const strictSignal = buildPrecision80Pick(precisionInput);
@@ -3563,6 +3568,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         const adaptiveQualified = adaptiveSignal.qualified ?? adaptiveSignal.side !== "NEUTRAL";
         if (!strictQualified && adaptiveQualified) {
           precisionSignals[market] = adaptiveSignal;
+        }
+      }
+      const shortfallSignal = buildShortfallPrecisionRescuePick(precisionInput);
+      if (shortfallSignal != null) {
+        shortfallPrecisionSignals[market] = shortfallSignal;
+        const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
+        const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
+        const shortfallQualified = shortfallSignal.qualified ?? shortfallSignal.side !== "NEUTRAL";
+        if (!strictQualified && !adaptiveQualified && shortfallQualified) {
+          precisionSignals[market] = shortfallSignal;
         }
       }
     });
@@ -3592,6 +3607,21 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           market,
           signal: adaptiveSignal,
           selectionScore: adaptiveSignal.selectionScore ?? 0,
+          source: "PRECISION",
+        });
+        return;
+      }
+
+      const shortfallSignal = shortfallPrecisionSignals[market];
+      const shortfallQualified = shortfallSignal?.qualified ?? shortfallSignal?.side !== "NEUTRAL";
+      if (shortfallSignal && shortfallQualified) {
+        precisionShortfallCardCandidates.push({
+          playerId: player.id,
+          playerName: player.fullName,
+          matchupKey: matchup.matchupKey,
+          market,
+          signal: shortfallSignal,
+          selectionScore: shortfallSignal.selectionScore ?? 0,
           source: "PRECISION",
         });
       }
@@ -3930,8 +3960,21 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
-  const precisionSelectionPool = [...precisionCardCandidates, ...precisionAdaptiveCardCandidates];
-  const precisionCard = selectPrecisionCardWithTopOff(precisionCardCandidates, precisionAdaptiveCardCandidates);
+  const precisionSelectionPool = [
+    ...precisionCardCandidates,
+    ...precisionAdaptiveCardCandidates,
+    ...precisionShortfallCardCandidates,
+  ];
+  const precisionCard = selectPrecisionCardWithTopOff(
+    precisionCardCandidates,
+    precisionAdaptiveCardCandidates,
+    {
+      candidates: precisionAdaptiveCardCandidates,
+      ignorePlayerLimit: true,
+      ignoreMarketCaps: true,
+    },
+    precisionShortfallCardCandidates,
+  );
   const precisionCardSummary = {
     targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
     truePickCount: precisionSelectionPool.filter((candidate) => candidate.source === "PRECISION").length,

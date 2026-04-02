@@ -1748,7 +1748,7 @@ export function SnapshotDashboard({
                   {`This section only shows the final backend ${activeData.precisionSystem.label} card. ${dailyCardCandidates.length} of ${precisionCardTargetCount} card slot${precisionCardTargetCount === 1 ? "" : "s"} ${dailyCardCandidates.length === 1 ? "is" : "are"} loaded for this slate.`}
                 </p>
                 <p className="mt-2">
-                  Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.
+                  Every pick shown here comes from the final precision-only backend card and is ranked from strongest to weakest for today&apos;s slate.
                 </p>
               </div>
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -2927,7 +2927,7 @@ export function SnapshotDashboard({
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
                 <ol className="mt-2 space-y-1 text-xs text-slate-300">
-                  <li>1. Check the <strong>{activeData.precisionSystem?.label ?? "Bettable Card"}</strong> for the strongest one-prop-per-player picks today.</li>
+                  <li>1. Check the <strong>{activeData.precisionSystem?.label ?? "Bettable Card"}</strong> for the strongest precision-ranked picks today.</li>
                   <li>2. Use <strong>Player Search</strong> to open the full raw-data panel for any player and inspect every market.</li>
                   <li>3. Open <strong>Lower-Priority Signals</strong> only if you want broader raw-model context beyond the promoted card.</li>
                   <li>4. Use <strong>Advanced Data</strong> toggle anywhere to reveal deeper stats if you want more detail.</li>

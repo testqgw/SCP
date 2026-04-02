@@ -108,6 +108,17 @@ export type PrecisionSlateCandidate = {
   source: SnapshotPrecisionCardSource;
 };
 
+type PrecisionCardTopOffOptions = {
+  ignorePlayerLimit?: boolean;
+  ignoreMarketCaps?: boolean;
+};
+
+type PrecisionCardTopOffStage =
+  | PrecisionSlateCandidate[]
+  | ({
+      candidates: PrecisionSlateCandidate[];
+    } & PrecisionCardTopOffOptions);
+
 type PrecisionCardCoreThreeVFinalPair = {
   playerId: string;
   market: SnapshotMarket;
@@ -386,19 +397,19 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   label: "Precision Selector v2",
   historicalAccuracy: 70.72,
-  historicalPicks: 864,
+  historicalPicks: 888,
   historicalCoveragePct: 0.01,
-  historicalPicksPerDay: 5.84,
+  historicalPicksPerDay: 6,
   supportedMarkets: DAILY_6_CURRENT_MARKETS,
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Day",
   note:
-    "Backtested 2025-10-23 through 2026-03-27. The market-capped selector now replays at 70.72% overall and 71.18% over the last 30 days on 5.84 picks/day while topping off thin slates with precision-only near-miss markets.",
+    "Backtested 2025-10-23 through 2026-03-27. The staged precision selector now replays at 70.72% overall and 71.67% over the last 30 days on exactly 6 picks/day by rescuing thin slates with precision-only near-miss markets after the core card runs short.",
   targetCardCount: 6,
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-01-precision-selector-v2-market-mix-nearmiss-topoff";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-02-precision-selector-v2-shortfall-rescue";
 
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
@@ -725,6 +736,14 @@ const PRECISION_ADAPTIVE_TOP_OFF_RULES: Partial<Record<SnapshotMarket, Precision
     minProjectionWinProbability: 0.64,
   },
 };
+const PRECISION_SHORTFALL_RESCUE_RULES: Partial<Record<SnapshotMarket, PrecisionAdaptiveTopOffConfig>> = {
+  REB: {
+    minProjectionWinProbability: 0.64,
+  },
+  THREES: {
+    minProjectionWinProbability: 0.64,
+  },
+};
 
 const PRECISION_SELECTOR_MARKET_BOOSTS: Partial<Record<SnapshotMarket, number>> = {
   PTS: -0.08,
@@ -994,6 +1013,7 @@ export function selectPrecisionCard(candidates: PrecisionSlateCandidate[]): Snap
 function topOffPrecisionCard(
   selected: SnapshotPrecisionCardEntry[],
   candidates: PrecisionSlateCandidate[],
+  options: PrecisionCardTopOffOptions = {},
 ): SnapshotPrecisionCardEntry[] {
   const next = [...selected];
   const selectedPlayers = new Set(selected.map((entry) => entry.playerId));
@@ -1005,8 +1025,14 @@ function topOffPrecisionCard(
   const pool = candidates.filter((candidate) => candidate.source === "PRECISION").sort(sortPrecisionSlateCandidates);
   for (const candidate of pool) {
     if (next.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
-    if (selectedPlayers.has(candidate.playerId)) continue;
-    if ((marketCounts.get(candidate.market) ?? 0) >= (PRECISION_SELECTOR_MARKET_CAPS[candidate.market] ?? 0)) continue;
+    if (next.some((entry) => entry.playerId === candidate.playerId && entry.market === candidate.market)) continue;
+    if (!options.ignorePlayerLimit && selectedPlayers.has(candidate.playerId)) continue;
+    if (
+      !options.ignoreMarketCaps &&
+      (marketCounts.get(candidate.market) ?? 0) >= (PRECISION_SELECTOR_MARKET_CAPS[candidate.market] ?? 0)
+    ) {
+      continue;
+    }
 
     next.push({
       playerId: candidate.playerId,
@@ -1025,12 +1051,16 @@ function topOffPrecisionCard(
 
 export function selectPrecisionCardWithTopOff(
   primaryCandidates: PrecisionSlateCandidate[],
-  ...topOffPools: PrecisionSlateCandidate[][]
+  ...topOffPools: PrecisionCardTopOffStage[]
 ): SnapshotPrecisionCardEntry[] {
   let selected = selectPrecisionCard(primaryCandidates);
-  for (const pool of topOffPools) {
+  for (const stage of topOffPools) {
     if (selected.length >= PRECISION_SELECTOR_TARGET_COUNT) break;
-    selected = topOffPrecisionCard(selected, pool);
+    const normalizedStage = Array.isArray(stage) ? { candidates: stage } : stage;
+    selected = topOffPrecisionCard(selected, normalizedStage.candidates, {
+      ignorePlayerLimit: normalizedStage.ignorePlayerLimit,
+      ignoreMarketCaps: normalizedStage.ignoreMarketCaps,
+    });
   }
   return selected;
 }
@@ -1306,6 +1336,63 @@ export function buildAdaptivePrecisionFloorPick(input: PrecisionPickInput): Snap
     reasons: [
       ...(looseSignal.reasons ?? []),
       "Adaptive precision top-off: strong AST/PRA/PA/PR/RA near-miss used only when the core slate runs thin.",
+    ],
+  };
+}
+
+export function buildShortfallPrecisionRescuePick(input: PrecisionPickInput): SnapshotPrecisionPickSignal | null {
+  if (input.market === "PTS") {
+    return null;
+  }
+
+  const strictSignal = buildPrecision80Pick(input);
+  const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
+  if (strictSignal && strictQualified) {
+    return null;
+  }
+
+  const adaptiveSignal = buildAdaptivePrecisionFloorPick(input);
+  const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
+  if (adaptiveSignal && adaptiveQualified) {
+    return null;
+  }
+
+  const rescueConfig = PRECISION_ADAPTIVE_TOP_OFF_RULES[input.market] ?? PRECISION_SHORTFALL_RESCUE_RULES[input.market];
+  if (!rescueConfig) {
+    return null;
+  }
+
+  const looseSignal = buildPrecisionPick(input, LOOSE_RULES);
+  const looseQualified = looseSignal?.qualified ?? looseSignal?.side !== "NEUTRAL";
+  if (!looseSignal || !looseQualified || looseSignal.side === "NEUTRAL") {
+    return null;
+  }
+
+  if ((looseSignal.projectionWinProbability ?? 0) < rescueConfig.minProjectionWinProbability) {
+    return null;
+  }
+
+  const selectionScore = roundSelectorScore(
+    computePrecisionSelectorScore({
+      market: input.market,
+      signal: looseSignal,
+      selectorFamily: "precision",
+      selectorInput: input,
+    }),
+  );
+  const baselineRule = getPrecisionRule(DEFAULT_DAILY_6_RULES, input.market);
+  return {
+    ...looseSignal,
+    qualified: true,
+    historicalAccuracy: baselineRule?.historicalAccuracy ?? looseSignal.historicalAccuracy,
+    historicalPicks: baselineRule?.historicalPicks ?? looseSignal.historicalPicks,
+    historicalCoveragePct: baselineRule?.historicalCoveragePct ?? looseSignal.historicalCoveragePct,
+    selectionScore,
+    selectorFamily: "precision",
+    selectorTier: "shortfall_precision",
+    reasons: [
+      ...(looseSignal.reasons ?? []),
+      "Shortfall precision rescue: thin-slate near-miss admitted only after the core slate and adaptive pool run short.",
     ],
   };
 }
