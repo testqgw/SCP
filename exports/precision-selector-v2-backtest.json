@@ -1,34 +1,34 @@
 {
-  "generatedAt": "2026-04-02T06:02:40.116Z",
+  "generatedAt": "2026-04-02T19:22:17.768Z",
   "inputPath": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live.json",
   "summary": {
     "totalPicks": 888,
-    "totalCorrect": 628,
-    "overallAccuracy": 70.72,
+    "totalCorrect": 623,
+    "overallAccuracy": 70.16,
     "picksPerDay": 6,
     "bySource": {
       "PRECISION": 888
     },
     "byMarket": {
       "REB": {
-        "picks": 60,
-        "correct": 42,
-        "accuracyPct": 70
+        "picks": 58,
+        "correct": 43,
+        "accuracyPct": 74.14
       },
       "AST": {
-        "picks": 59,
-        "correct": 41,
-        "accuracyPct": 69.49
+        "picks": 51,
+        "correct": 38,
+        "accuracyPct": 74.51
       },
       "THREES": {
-        "picks": 65,
-        "correct": 43,
-        "accuracyPct": 66.15
+        "picks": 82,
+        "correct": 56,
+        "accuracyPct": 68.29
       },
       "PRA": {
-        "picks": 388,
-        "correct": 280,
-        "accuracyPct": 72.16
+        "picks": 395,
+        "correct": 273,
+        "accuracyPct": 69.11
       },
       "PA": {
         "picks": 1,
@@ -36,28 +36,28 @@
         "accuracyPct": 100
       },
       "PR": {
-        "picks": 188,
-        "correct": 128,
-        "accuracyPct": 68.09
+        "picks": 181,
+        "correct": 131,
+        "accuracyPct": 72.38
       },
       "RA": {
-        "picks": 127,
-        "correct": 93,
-        "accuracyPct": 73.23
+        "picks": 120,
+        "correct": 81,
+        "accuracyPct": 67.5
       }
     },
     "last14": {
       "days": 14,
       "picks": 84,
-      "correct": 57,
-      "accuracyPct": 67.86,
+      "correct": 51,
+      "accuracyPct": 60.71,
       "picksPerDay": 6
     },
     "last30": {
       "days": 30,
       "picks": 180,
-      "correct": 129,
-      "accuracyPct": 71.67,
+      "correct": 122,
+      "accuracyPct": 67.78,
       "picksPerDay": 6
     }
   },
@@ -65,14 +65,14 @@
     {
       "date": "2025-10-23",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-10-24",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-10-25",
@@ -83,32 +83,32 @@
     {
       "date": "2025-10-26",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2025-10-27",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-10-28",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-10-29",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-10-30",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-10-31",
@@ -143,8 +143,8 @@
     {
       "date": "2025-11-05",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-11-06",
@@ -155,8 +155,8 @@
     {
       "date": "2025-11-07",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-11-08",
@@ -179,8 +179,8 @@
     {
       "date": "2025-11-11",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-11-12",
@@ -209,44 +209,44 @@
     {
       "date": "2025-11-16",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-11-17",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-11-18",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-11-19",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-11-20",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-11-21",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 1,
+      "accuracy": 16.67
     },
     {
       "date": "2025-11-22",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2025-11-23",
@@ -269,14 +269,14 @@
     {
       "date": "2025-11-26",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-11-28",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-11-29",
@@ -287,8 +287,8 @@
     {
       "date": "2025-11-30",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-12-01",
@@ -317,8 +317,8 @@
     {
       "date": "2025-12-05",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-12-06",
@@ -341,8 +341,8 @@
     {
       "date": "2025-12-09",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-12-10",
@@ -365,14 +365,14 @@
     {
       "date": "2025-12-13",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-12-14",
       "picks": 6,
-      "correct": 2,
-      "accuracy": 33.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2025-12-15",
@@ -419,14 +419,14 @@
     {
       "date": "2025-12-22",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2025-12-23",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2025-12-25",
@@ -455,8 +455,8 @@
     {
       "date": "2025-12-29",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2025-12-30",
@@ -467,32 +467,32 @@
     {
       "date": "2025-12-31",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-01",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-01-02",
+      "picks": 6,
+      "correct": 3,
+      "accuracy": 50
+    },
+    {
+      "date": "2026-01-03",
       "picks": 6,
       "correct": 4,
       "accuracy": 66.67
     },
     {
-      "date": "2026-01-03",
-      "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
-    },
-    {
       "date": "2026-01-04",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2026-01-05",
@@ -509,32 +509,32 @@
     {
       "date": "2026-01-07",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-01-08",
       "picks": 6,
-      "correct": 2,
-      "accuracy": 33.33
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2026-01-09",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-01-10",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-01-11",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-01-12",
@@ -545,20 +545,20 @@
     {
       "date": "2026-01-13",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
-    },
-    {
-      "date": "2026-01-14",
-      "picks": 6,
       "correct": 4,
       "accuracy": 66.67
     },
     {
+      "date": "2026-01-14",
+      "picks": 6,
+      "correct": 5,
+      "accuracy": 83.33
+    },
+    {
       "date": "2026-01-15",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-01-16",
@@ -581,8 +581,8 @@
     {
       "date": "2026-01-19",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-20",
@@ -593,8 +593,8 @@
     {
       "date": "2026-01-21",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-22",
@@ -605,8 +605,8 @@
     {
       "date": "2026-01-23",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-24",
@@ -617,20 +617,20 @@
     {
       "date": "2026-01-25",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-01-26",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-27",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-01-28",
@@ -641,8 +641,8 @@
     {
       "date": "2026-01-29",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-01-30",
@@ -665,14 +665,14 @@
     {
       "date": "2026-02-02",
       "picks": 6,
-      "correct": 2,
-      "accuracy": 33.33
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-02-03",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-02-04",
@@ -695,8 +695,8 @@
     {
       "date": "2026-02-07",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2026-02-08",
@@ -707,8 +707,8 @@
     {
       "date": "2026-02-09",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-02-10",
@@ -719,50 +719,50 @@
     {
       "date": "2026-02-11",
       "picks": 6,
-      "correct": 1,
-      "accuracy": 16.67
-    },
-    {
-      "date": "2026-02-12",
-      "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
-    },
-    {
-      "date": "2026-02-19",
-      "picks": 6,
-      "correct": 3,
-      "accuracy": 50
-    },
-    {
-      "date": "2026-02-20",
-      "picks": 6,
       "correct": 2,
       "accuracy": 33.33
     },
     {
-      "date": "2026-02-21",
+      "date": "2026-02-12",
       "picks": 6,
       "correct": 4,
       "accuracy": 66.67
     },
     {
+      "date": "2026-02-19",
+      "picks": 6,
+      "correct": 2,
+      "accuracy": 33.33
+    },
+    {
+      "date": "2026-02-20",
+      "picks": 6,
+      "correct": 5,
+      "accuracy": 83.33
+    },
+    {
+      "date": "2026-02-21",
+      "picks": 6,
+      "correct": 5,
+      "accuracy": 83.33
+    },
+    {
       "date": "2026-02-22",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-02-23",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-02-24",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 6,
+      "accuracy": 100
     },
     {
       "date": "2026-02-25",
@@ -785,14 +785,14 @@
     {
       "date": "2026-02-28",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-03-01",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-03-02",
@@ -809,14 +809,14 @@
     {
       "date": "2026-03-04",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 3,
+      "accuracy": 50
     },
     {
       "date": "2026-03-05",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 2,
+      "accuracy": 33.33
     },
     {
       "date": "2026-03-06",
@@ -833,26 +833,26 @@
     {
       "date": "2026-03-08",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-03-09",
-      "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
-    },
-    {
-      "date": "2026-03-10",
       "picks": 6,
       "correct": 5,
       "accuracy": 83.33
     },
     {
+      "date": "2026-03-10",
+      "picks": 6,
+      "correct": 6,
+      "accuracy": 100
+    },
+    {
       "date": "2026-03-11",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-03-12",
@@ -869,50 +869,50 @@
     {
       "date": "2026-03-14",
       "picks": 6,
-      "correct": 3,
-      "accuracy": 50
+      "correct": 5,
+      "accuracy": 83.33
     },
     {
       "date": "2026-03-15",
       "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
+      "correct": 1,
+      "accuracy": 16.67
     },
     {
       "date": "2026-03-16",
-      "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
-    },
-    {
-      "date": "2026-03-17",
-      "picks": 6,
-      "correct": 6,
-      "accuracy": 100
-    },
-    {
-      "date": "2026-03-18",
-      "picks": 6,
-      "correct": 2,
-      "accuracy": 33.33
-    },
-    {
-      "date": "2026-03-19",
-      "picks": 6,
-      "correct": 4,
-      "accuracy": 66.67
-    },
-    {
-      "date": "2026-03-20",
       "picks": 6,
       "correct": 3,
       "accuracy": 50
     },
     {
+      "date": "2026-03-17",
+      "picks": 6,
+      "correct": 4,
+      "accuracy": 66.67
+    },
+    {
+      "date": "2026-03-18",
+      "picks": 6,
+      "correct": 4,
+      "accuracy": 66.67
+    },
+    {
+      "date": "2026-03-19",
+      "picks": 6,
+      "correct": 3,
+      "accuracy": 50
+    },
+    {
+      "date": "2026-03-20",
+      "picks": 6,
+      "correct": 4,
+      "accuracy": 66.67
+    },
+    {
       "date": "2026-03-21",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-03-22",
@@ -929,8 +929,8 @@
     {
       "date": "2026-03-24",
       "picks": 6,
-      "correct": 6,
-      "accuracy": 100
+      "correct": 4,
+      "accuracy": 66.67
     },
     {
       "date": "2026-03-25",
@@ -947,8 +947,8 @@
     {
       "date": "2026-03-27",
       "picks": 6,
-      "correct": 5,
-      "accuracy": 83.33
+      "correct": 4,
+      "accuracy": 66.67
     }
   ]
 }

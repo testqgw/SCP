@@ -26,6 +26,11 @@ export type PrecisionPickInput = PredictLiveUniversalSideInput & {
   sameOpponentSample?: number | null;
   sameOpponentMinutesSimilarity?: number | null;
   matchupKey?: string | null;
+  opponentMissingCorePts?: number | null;
+  opponentMissingCoreAst?: number | null;
+  opponentMissingCoreReb?: number | null;
+  opponentMissingCoreStocks?: number | null;
+  opponentMissingCoreShare?: number | null;
 };
 
 export type PrecisionRule = {
@@ -42,6 +47,20 @@ export type PrecisionRule = {
 type PrecisionAdaptiveTopOffConfig = {
   minSelectionScore?: number;
   minProjectionWinProbability: number;
+};
+
+type PrecisionAdaptiveExclusionRule = {
+  market: SnapshotMarket;
+  side: Extract<SnapshotModelSide, "OVER" | "UNDER">;
+  reason: string;
+  matches: (input: PrecisionPickInput, signal: SnapshotPrecisionPickSignal) => boolean;
+};
+
+type PrecisionTier2ExclusionRule = {
+  market: SnapshotMarket;
+  side: Extract<SnapshotModelSide, "OVER" | "UNDER">;
+  reason: string;
+  matches: (input: PrecisionPickInput, signal: SnapshotPrecisionPickSignal) => boolean;
 };
 
 export type PrecisionRuleSet = Partial<Record<SnapshotMarket, PrecisionRule>>;
@@ -396,7 +415,7 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   label: "Precision Selector v2",
-  historicalAccuracy: 70.72,
+  historicalAccuracy: 70.16,
   historicalPicks: 888,
   historicalCoveragePct: 0.01,
   historicalPicksPerDay: 6,
@@ -404,12 +423,12 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Day",
   note:
-    "Backtested 2025-10-23 through 2026-03-27. The staged precision selector now replays at 70.72% overall and 71.67% over the last 30 days on exactly 6 picks/day by rescuing thin slates with precision-only near-miss markets after the core card runs short.",
+    "Backtested 2025-10-23 through 2026-03-27. The staged precision selector now replays at 70.16% overall and 67.78% over the last 30 days on exactly 6 picks/day after cutting weak adaptive rescue pockets and low-quality Tier 2 REB OVER / THREES UNDER bypasses.",
   targetCardCount: 6,
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-02-precision-selector-v2-shortfall-rescue";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-02-precision-selector-v2-adaptive-and-tier2-pocket-cuts";
 
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
@@ -745,6 +764,42 @@ const PRECISION_SHORTFALL_RESCUE_RULES: Partial<Record<SnapshotMarket, Precision
   },
 };
 
+const PRECISION_ADAPTIVE_EXCLUSION_RULES: PrecisionAdaptiveExclusionRule[] = [
+  {
+    market: "AST",
+    side: "OVER",
+    reason: "Adaptive AST OVER rejected in the low-volatility near-miss pocket that replayed poorly.",
+    matches: (input) => (input.minutesVolatility ?? Number.POSITIVE_INFINITY) <= 4.16,
+  },
+  {
+    market: "PR",
+    side: "UNDER",
+    reason: "Adaptive PR UNDER rejected in heavy-spread spots that replayed poorly as thin-slate rescues.",
+    matches: (input) => Math.abs(input.openingTeamSpread ?? 0) >= 7.5,
+  },
+  {
+    market: "RA",
+    side: "OVER",
+    reason: "Adaptive RA OVER rejected in the overconfident high-leaf rescue pocket.",
+    matches: (_input, signal) => (signal.leafAccuracy ?? Number.NEGATIVE_INFINITY) >= 74.07,
+  },
+];
+
+const PRECISION_TIER2_EXCLUSION_RULES: PrecisionTier2ExclusionRule[] = [
+  {
+    market: "REB",
+    side: "OVER",
+    reason: "Tier 2 REB OVER rejected in the low-creation team context that replayed poorly.",
+    matches: (input) => (input.activeCoreAst ?? Number.POSITIVE_INFINITY) <= 17.2,
+  },
+  {
+    market: "THREES",
+    side: "UNDER",
+    reason: "Tier 2 THREES UNDER rejected when minutes are lifting into the game.",
+    matches: (input) => (input.minutesLiftPct ?? Number.NEGATIVE_INFINITY) >= 0.0185,
+  },
+];
+
 const PRECISION_SELECTOR_MARKET_BOOSTS: Partial<Record<SnapshotMarket, number>> = {
   PTS: -0.08,
   REB: 0.025,
@@ -783,6 +838,46 @@ function clamp(value: number, min: number, max: number): number {
 
 function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function getPrecisionAdaptiveExclusionReason(
+  input: PrecisionPickInput,
+  signal: SnapshotPrecisionPickSignal,
+): string | null {
+  if (signal.side === "NEUTRAL") {
+    return null;
+  }
+
+  for (const rule of PRECISION_ADAPTIVE_EXCLUSION_RULES) {
+    if (input.market !== rule.market || signal.side !== rule.side) {
+      continue;
+    }
+    if (rule.matches(input, signal)) {
+      return rule.reason;
+    }
+  }
+
+  return null;
+}
+
+function getPrecisionTier2ExclusionReason(
+  input: PrecisionPickInput,
+  signal: SnapshotPrecisionPickSignal,
+): string | null {
+  if (signal.side === "NEUTRAL") {
+    return null;
+  }
+
+  for (const rule of PRECISION_TIER2_EXCLUSION_RULES) {
+    if (input.market !== rule.market || signal.side !== rule.side) {
+      continue;
+    }
+    if (rule.matches(input, signal)) {
+      return rule.reason;
+    }
+  }
+
+  return null;
 }
 
 function getPrecisionPositionAffinity(position: string | null | undefined, market: SnapshotMarket): number {
@@ -1269,6 +1364,19 @@ export function buildPrecision80Pick(input: PrecisionPickInput): SnapshotPrecisi
   }
 
   if (tier === "tier2") {
+    const exclusionReason = getPrecisionTier2ExclusionReason(input, strictSignal);
+    if (exclusionReason) {
+      return {
+        ...strictSignal,
+        selectionScore,
+        selectorFamily: "precision",
+        selectorTier: "none",
+        side: "NEUTRAL",
+        qualified: false,
+        reasons: [...(strictSignal.reasons ?? []), exclusionReason],
+      };
+    }
+
     return {
       ...strictSignal,
       selectionScore,
@@ -1324,6 +1432,10 @@ export function buildAdaptivePrecisionFloorPick(input: PrecisionPickInput): Snap
   }
 
   const baselineRule = getPrecisionRule(DEFAULT_DAILY_6_RULES, input.market);
+  if (getPrecisionAdaptiveExclusionReason(input, looseSignal)) {
+    return null;
+  }
+
   return {
     ...looseSignal,
     qualified: true,
@@ -1380,6 +1492,10 @@ export function buildShortfallPrecisionRescuePick(input: PrecisionPickInput): Sn
       selectorInput: input,
     }),
   );
+  if (getPrecisionAdaptiveExclusionReason(input, looseSignal)) {
+    return null;
+  }
+
   const baselineRule = getPrecisionRule(DEFAULT_DAILY_6_RULES, input.market);
   return {
     ...looseSignal,
