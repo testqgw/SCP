@@ -123,6 +123,17 @@ function lineSourceLabel(customLine: number | null, modelLine: number | null): s
   return "No line";
 }
 
+function activeLineSourceLabel(
+  customLine: number | null,
+  display: MarketSignalDisplay | null,
+  modelLine: SnapshotRow["modelLines"][SnapshotMarket],
+): string {
+  if (customLine != null) return `Your ${formatStat(customLine)}`;
+  if (display?.line != null) return `Live ${formatStat(display.line)}`;
+  if (modelLine.fairLine != null) return `Model ${formatStat(modelLine.fairLine)}`;
+  return "No line";
+}
+
 function modelSideClass(side: "OVER" | "UNDER" | "NEUTRAL"): string {
   if (side === "OVER") return "bg-emerald-500/15 text-emerald-200";
   if (side === "UNDER") return "bg-amber-500/15 text-amber-200";
@@ -3498,7 +3509,7 @@ export function SnapshotDashboard({
             <CollapsibleSection
               id="detail-markets"
               title="All Markets Detail"
-              subtitle="Click any market card to open a full breakdown against the model fair line or your override."
+              subtitle="Click any market card to open a full breakdown using the final live line, or your custom line if you set one."
               collapsed={collapsedSections.markets}
               onToggle={() => toggleSection("markets")}
             >
@@ -3523,7 +3534,12 @@ export function SnapshotDashboard({
                   const key = lineKey(selectedPlayer.playerId, m);
                   const customLine = parseLine(lineMap[key] ?? "");
                   const modelLine = selectedPlayer.modelLines[m];
-                  const selectedLine = lineInFocus(customLine, modelLine.fairLine);
+                  const display = resolveMarketSignalDisplay(signalLabelForMarket(m), liveSignalForMarket(selectedPlayer, m), modelLine);
+                  const referenceLine = display?.line ?? modelLine.fairLine;
+                  const finalSide = display?.side ?? modelLine.modelSide;
+                  const finalProjectionGap = display?.projectionGap ?? modelLine.projectionGap;
+                  const activeLineLabel = activeLineSourceLabel(customLine, display, modelLine);
+                  const selectedLine = lineInFocus(customLine, referenceLine);
                   const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
                   const l10Hit = selectedLine == null ? null : hitCounts(l10, selectedLine);
                   const isFocused = focusedMarket === m;
@@ -3567,22 +3583,32 @@ export function SnapshotDashboard({
                         ) : null}
                         <p>Proj Tonight</p>
                         <p className="text-right">{formatAverage(selectedPlayer.projectedTonight[m])}</p>
-                        <p>Fair Line</p>
-                        <p className="text-right">{formatAverage(modelLine.fairLine)}</p>
-                        <p>Model Side</p>
+                        <p>Active Line</p>
+                        <p className="text-right">{formatAverage(referenceLine)}</p>
+                        <p>Final Side</p>
                         <p className="text-right">
-                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${modelSideClass(modelLine.modelSide)}`}>
-                            {modelLine.modelSide}
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
+                            {finalSide}
                           </span>
                         </p>
-                        <p>Decision Zone</p>
-                        <p className="text-right">
-                          {modelLine.fairLine == null
-                            ? "-"
-                            : `O<=${formatStat(modelLine.actionOverLine ?? modelLine.fairLine)} | U>=${formatStat(
-                                modelLine.actionUnderLine ?? modelLine.fairLine,
-                              )}`}
-                        </p>
+                        <p>Line Source</p>
+                        <p className="text-right">{activeLineLabel}</p>
+                        {showAdvancedView ? (
+                          <>
+                            <p>Status</p>
+                            <p className="text-right">{display?.statusText ?? "No live signal"}</p>
+                            <p>Projection Gap</p>
+                            <p className="text-right">{formatAverage(finalProjectionGap, true)}</p>
+                            <p>Model Fair Line</p>
+                            <p className="text-right">{formatAverage(modelLine.fairLine)}</p>
+                            <p>Model Side</p>
+                            <p className="text-right">
+                              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${modelSideClass(modelLine.modelSide)}`}>
+                                {modelLine.modelSide}
+                              </span>
+                            </p>
+                          </>
+                        ) : null}
                       </div>
 
                       <div className="mt-2">
@@ -3603,7 +3629,7 @@ export function SnapshotDashboard({
                           }))
                         }
                         inputMode="decimal"
-                        placeholder={modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)}
+                        placeholder={referenceLine == null ? "Set line" : formatStat(referenceLine)}
                         className="mt-2 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
                       />
 
@@ -3618,7 +3644,7 @@ export function SnapshotDashboard({
                               <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">
                                 Last 5 vs Line
                                 <span className="ml-2 text-slate-400 normal-case tracking-normal">
-                                  {lineSourceLabel(customLine, modelLine.fairLine)}
+                                  {activeLineLabel}
                                 </span>
                               </p>
                               <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
@@ -3642,7 +3668,7 @@ export function SnapshotDashboard({
                               <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">
                                 Last 10 vs Line
                                 <span className="ml-2 text-slate-400 normal-case tracking-normal">
-                                  {lineSourceLabel(customLine, modelLine.fairLine)}
+                                  {activeLineLabel}
                                 </span>
                               </p>
                               <div className="mt-1 grid grid-cols-3 gap-1 text-[10px]">
@@ -3674,7 +3700,11 @@ export function SnapshotDashboard({
                 const key = lineKey(selectedPlayer.playerId, m);
                 const customLine = parseLine(lineMap[key] ?? "");
                 const modelLine = selectedPlayer.modelLines[m];
-                const selectedLine = lineInFocus(customLine, modelLine.fairLine);
+                const display = resolveMarketSignalDisplay(signalLabelForMarket(m), liveSignalForMarket(selectedPlayer, m), modelLine);
+                const referenceLine = display?.line ?? modelLine.fairLine;
+                const finalSide = display?.side ?? modelLine.modelSide;
+                const activeLineLabel = activeLineSourceLabel(customLine, display, modelLine);
+                const selectedLine = lineInFocus(customLine, referenceLine);
                 const l5 = selectedPlayer.last5[m];
                 const l10 = selectedPlayer.last10[m];
                 const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
@@ -3726,7 +3756,7 @@ export function SnapshotDashboard({
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-cyan-100">{focusedLabel} Analyzer</h4>
-                      <p className="text-[11px] text-slate-400">Line-based breakdown for the selected market.</p>
+                      <p className="text-[11px] text-slate-400">Final live read for the selected market, with optional raw model context in Advanced Data.</p>
                     </div>
 
                     <div className="mt-3 grid gap-3 lg:grid-cols-[280px_1fr]">
@@ -3738,36 +3768,42 @@ export function SnapshotDashboard({
                             onChange={(event) =>
                               setLineMap((current) => ({
                                 ...current,
-                                [key]: event.target.value,
+                            [key]: event.target.value,
                               }))
                             }
                             inputMode="decimal"
-                            placeholder={modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)}
+                            placeholder={referenceLine == null ? "Set line" : formatStat(referenceLine)}
                             className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
                         </label>
                         <div className="mt-2 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Model Line</p>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(modelLine.modelSide)}`}>
-                              {modelLine.modelSide}
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Final Read</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
+                              {finalSide}
                             </span>
                           </div>
                           <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
-                            <p>Fair line</p>
-                            <p className="text-right">{formatAverage(modelLine.fairLine)}</p>
-                            <p>Action over</p>
-                            <p className="text-right">
-                              {modelLine.actionOverLine == null ? "-" : `<= ${formatStat(modelLine.actionOverLine)}`}
-                            </p>
-                            <p>Action under</p>
-                            <p className="text-right">
-                              {modelLine.actionUnderLine == null ? "-" : `>= ${formatStat(modelLine.actionUnderLine)}`}
-                            </p>
-                            <p>Projection gap</p>
-                            <p className="text-right">{formatAverage(modelLine.projectionGap, true)}</p>
+                            <p>Active line</p>
+                            <p className="text-right">{formatAverage(referenceLine)}</p>
                             <p>Line source</p>
-                            <p className="text-right">{lineSourceLabel(customLine, modelLine.fairLine)}</p>
+                            <p className="text-right">{activeLineLabel}</p>
+                            <p>Status</p>
+                            <p className="text-right">{display?.statusText ?? "No live signal"}</p>
+                            <p>Projection gap</p>
+                            <p className="text-right">{formatAverage(display?.projectionGap ?? modelLine.projectionGap, true)}</p>
+                            {showAdvancedView ? (
+                              <>
+                                <p>Model fair line</p>
+                                <p className="text-right">{formatAverage(modelLine.fairLine)}</p>
+                                <p>Model side</p>
+                                <p className="text-right">
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(modelLine.modelSide)}`}>
+                                    {modelLine.modelSide}
+                                  </span>
+                                </p>
+                              </>
+                            ) : null}
                           </div>
                         </div>
 
@@ -3869,8 +3905,14 @@ export function SnapshotDashboard({
                             <span>{formatAverage(projectionValue)}</span>
                           </p>
                           <p className="flex items-center justify-between">
-                            <span>Fair Line</span>
-                            <span>{formatAverage(modelLine.fairLine)}</span>
+                            <span>Active Line</span>
+                            <span>{formatAverage(referenceLine)}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Final Side</span>
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
+                              {finalSide}
+                            </span>
                           </p>
                         </div>
 
@@ -3934,7 +3976,7 @@ export function SnapshotDashboard({
                           </p>
                         ) : (
                           <div className="mt-3 space-y-1 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-200">
-                            <p>Line source: {lineSourceLabel(customLine, modelLine.fairLine)}</p>
+                            <p>Line source: {activeLineLabel}</p>
                             <p>
                               L5: {l5Hit?.over ?? 0}/{l5.length} OVER ({formatPercent(l5Hit?.over ?? 0, l5.length)}) |{" "}
                               {l5Hit?.under ?? 0}/{l5.length} UNDER ({formatPercent(l5Hit?.under ?? 0, l5.length)})
@@ -4099,14 +4141,27 @@ export function SnapshotDashboard({
               onToggle={() => toggleSection("summary")}
             >
               <section className="text-xs text-slate-300">
-              <p>
-                Quick read ({focusedMarket}): L5 avg {formatAverage(average(selectedPlayer.last5[focusedMarket]))} | L10 avg{" "}
-                {formatAverage(selectedPlayer.last10Average[focusedMarket])} | Projection {formatAverage(selectedPlayer.projectedTonight[focusedMarket])} | Fair line{" "}
-                {formatAverage(selectedPlayer.modelLines[focusedMarket].fairLine)} | Model side {selectedPlayer.modelLines[focusedMarket].modelSide} | Trend{" "}
-                {formatAverage(selectedPlayer.trendVsSeason[focusedMarket], true)} | Opp +/-{" "}
-                {formatAverage(selectedPlayer.opponentAllowanceDelta[focusedMarket], true)}
-              </p>
-            </section>
+                {(() => {
+                  const modelLine = selectedPlayer.modelLines[focusedMarket];
+                  const display = resolveMarketSignalDisplay(
+                    signalLabelForMarket(focusedMarket),
+                    liveSignalForMarket(selectedPlayer, focusedMarket),
+                    modelLine,
+                  );
+                  const referenceLine = display?.line ?? modelLine.fairLine;
+                  const finalSide = display?.side ?? modelLine.modelSide;
+
+                  return (
+                    <p>
+                      Quick read ({focusedMarket}): L5 avg {formatAverage(average(selectedPlayer.last5[focusedMarket]))} | L10 avg{" "}
+                      {formatAverage(selectedPlayer.last10Average[focusedMarket])} | Projection{" "}
+                      {formatAverage(selectedPlayer.projectedTonight[focusedMarket])} | Active line {formatAverage(referenceLine)} | Final side{" "}
+                      {finalSide} | Trend {formatAverage(selectedPlayer.trendVsSeason[focusedMarket], true)} | Opp +/-{" "}
+                      {formatAverage(selectedPlayer.opponentAllowanceDelta[focusedMarket], true)}
+                    </p>
+                  );
+                })()}
+              </section>
             </CollapsibleSection>
 
             {matchupStatsByKey.has(selectedPlayer.matchupKey) ? (
