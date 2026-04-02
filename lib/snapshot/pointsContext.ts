@@ -690,6 +690,7 @@ function parseScoresAndOddsMarketRow(market: ScoresAndOddsMarket): {
   line: number | null;
   overPrice: number | null;
   underPrice: number | null;
+  sportsbookCount: number;
 } | null {
   const playerName = normalizePlayerName(`${market.player?.first_name ?? ""} ${market.player?.last_name ?? ""}`.trim());
   if (!playerName) return null;
@@ -712,12 +713,16 @@ function parseScoresAndOddsMarketRow(market: ScoresAndOddsMarket): {
   const underEntries = comparisonEntries
     .filter((entry) => Number.isFinite(entry.under))
     .map((entry) => ({ slug: entry.slug, value: entry.value, price: Number.isFinite(entry.under) ? entry.under : null }));
+  const sportsbookCount = countSharedBooks(overEntries, underEntries);
+  const overLine = medianNumber(overEntries.map((entry) => entry.value));
+  const underLine = medianNumber(underEntries.map((entry) => entry.value));
 
   return {
     playerName,
-    line: medianNumber(comparisonEntries.map((entry) => entry.value)),
+    line: deriveLine(overLine, underLine) ?? medianNumber(comparisonEntries.map((entry) => entry.value)),
     overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
     underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+    sportsbookCount: sportsbookCount > 0 ? sportsbookCount : Math.max(overEntries.length, underEntries.length, 1),
   };
 }
 
@@ -771,6 +776,58 @@ function countSharedBooks(
     }
   });
   return matches.size;
+}
+
+const DAILY_PROP_LINE_SOURCE_PRIORITY: Record<DailyPlayerPropLine["source"], number> = {
+  sportsdata: 3,
+  scoresandodds: 2,
+  covers: 1,
+};
+
+function getDailyPropLinePriceCompleteness(line: Pick<DailyPlayerPropLine, "overPrice" | "underPrice">): number {
+  let score = 0;
+  if (line.overPrice != null) score += 1;
+  if (line.underPrice != null) score += 1;
+  return score;
+}
+
+function getDailyPropLineQualityScore(line: DailyPlayerPropLine): number {
+  return (
+    line.sportsbookCount * 100 +
+    getDailyPropLinePriceCompleteness(line) * 10 +
+    DAILY_PROP_LINE_SOURCE_PRIORITY[line.source]
+  );
+}
+
+function shouldPreferDailyPropLine(candidate: DailyPlayerPropLine, existing: DailyPlayerPropLine): boolean {
+  const candidateQuality = getDailyPropLineQualityScore(candidate);
+  const existingQuality = getDailyPropLineQualityScore(existing);
+  if (candidateQuality !== existingQuality) {
+    return candidateQuality > existingQuality;
+  }
+  return false;
+}
+
+function mergeDailyPropLine(
+  result: Map<string, DailyPlayerPropLine>,
+  key: string,
+  candidate: DailyPlayerPropLine,
+): void {
+  const existing = result.get(key);
+  if (!existing || shouldPreferDailyPropLine(candidate, existing)) {
+    result.set(key, candidate);
+  }
+}
+
+function countWeakConsensusPropLines(lines: Iterable<DailyPlayerPropLine>): number {
+  let count = 0;
+  for (const line of lines) {
+    if (line.source === "covers") continue;
+    if (line.sportsbookCount <= 1 || getDailyPropLinePriceCompleteness(line) < 2) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 function parseScoresAndOddsGamePageRows(
@@ -1166,16 +1223,13 @@ async function fetchDailyPropLineMap(
         const overPrice = medianNumber(selected.map((entry) => Number(entry.over?.PayoutAmerican)).filter(Number.isFinite));
         const underPrice = medianNumber(selected.map((entry) => Number(entry.under?.PayoutAmerican)).filter(Number.isFinite));
         const key = `${event.matchupKey}|${playerName}`;
-        const existing = result.get(key);
-        if (!existing || selected.length >= existing.sportsbookCount) {
-          result.set(key, {
-            line,
-            sportsbookCount: selected.length,
-            overPrice,
-            underPrice,
-            source: "sportsdata",
-          });
-        }
+        mergeDailyPropLine(result, key, {
+          line,
+          sportsbookCount: selected.length,
+          overPrice,
+          underPrice,
+          source: "sportsdata",
+        });
       });
     });
 
@@ -1205,28 +1259,25 @@ async function fetchDailyPropLineMap(
 
     const [publicFallbackMap, coversFallbackMap] = await Promise.all([publicFallbackTask, coversFallbackTask]);
     publicFallbackMap.forEach((value, key) => {
-      if (!result.has(key)) {
-        result.set(key, value);
-      }
+      mergeDailyPropLine(result, key, value);
     });
     coversFallbackMap.forEach((value, key) => {
-      if (!result.has(key)) {
-        result.set(key, value);
-      }
+      mergeDailyPropLine(result, key, value);
     });
 
     const scoresAndOddsCoverageFloor = Math.max(events.length * 3, 24);
-    if (scoresAndOddsPageMarketSlug && result.size < scoresAndOddsCoverageFloor) {
+    const weakConsensusCount = countWeakConsensusPropLines(result.values());
+    const shouldFetchScoresAndOddsGamePages =
+      Boolean(scoresAndOddsPageMarketSlug) &&
+      (result.size < scoresAndOddsCoverageFloor || weakConsensusCount >= Math.max(events.length, 8));
+    if (scoresAndOddsPageMarketSlug && shouldFetchScoresAndOddsGamePages) {
       const pageMap = await withTimeoutValue(
         fetchScoresAndOddsPropLineMapFromGamePages(dateEt, scoresAndOddsPageMarketSlug).catch(() => new Map()),
         new Map<string, DailyPlayerPropLine>(),
         SCORES_AND_ODDS_SOURCE_TIMEOUT_MS,
       );
       pageMap.forEach((value, key) => {
-        const existing = result.get(key);
-        if (!existing || (existing.source === "scoresandodds" && value.sportsbookCount > existing.sportsbookCount)) {
-          result.set(key, value);
-        }
+        mergeDailyPropLine(result, key, value);
       });
     }
 
@@ -1253,9 +1304,9 @@ async function fetchScoresAndOddsPropLineMap(
       const parsed = parseScoresAndOddsMarketRow(market);
       if (!parsed || parsed.line == null) return;
       const key = `${event.matchupKey}|${parsed.playerName}`;
-      result.set(key, {
+      mergeDailyPropLine(result, key, {
         line: parsed.line,
-        sportsbookCount: 1,
+        sportsbookCount: parsed.sportsbookCount,
         overPrice: parsed.overPrice,
         underPrice: parsed.underPrice,
         source: "scoresandodds",
@@ -1281,7 +1332,7 @@ async function fetchScoresAndOddsPropLineMapFromGamePages(
     rows.forEach((row) => {
       if (row.line == null) return;
       const key = `${event.matchupKey}|${row.playerName}`;
-      result.set(key, {
+      mergeDailyPropLine(result, key, {
         line: row.line,
         sportsbookCount: row.sportsbookCount,
         overPrice: row.overPrice,

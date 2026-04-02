@@ -129,7 +129,9 @@ function activeLineSourceLabel(
   modelLine: SnapshotRow["modelLines"][SnapshotMarket],
 ): string {
   if (customLine != null) return `Your ${formatStat(customLine)}`;
-  if (display?.line != null) return `Live ${formatStat(display.line)}`;
+  if (display?.line != null) {
+    return `${display.lineOrigin === "MODEL" ? "Model" : "Live"} ${formatStat(display.line)}`;
+  }
   if (modelLine.fairLine != null) return `Model ${formatStat(modelLine.fairLine)}`;
   return "No line";
 }
@@ -252,6 +254,7 @@ type MarketSignalDisplay = {
   projectionGap: number | null;
   minutesRisk: number | null;
   line: number | null;
+  lineOrigin: "LIVE" | "MODEL" | null;
   sportsbookCount: number | null;
 };
 
@@ -311,7 +314,24 @@ function resolveMarketSignalDisplay(
     projectionGap,
     minutesRisk: signal?.minutesRisk ?? null,
     line,
+    lineOrigin: line == null ? null : usingModelFallback ? "MODEL" : "LIVE",
     sportsbookCount: usingModelFallback ? null : signal?.sportsbookCount ?? null,
+  };
+}
+
+function mergeHydratedPlayerRow(current: SnapshotRow, hydrated: SnapshotRow): SnapshotRow {
+  return {
+    ...current,
+    ...hydrated,
+    ptsSignal: hydrated.ptsSignal ?? current.ptsSignal,
+    rebSignal: hydrated.rebSignal ?? current.rebSignal,
+    astSignal: hydrated.astSignal ?? current.astSignal,
+    threesSignal: hydrated.threesSignal ?? current.threesSignal,
+    praSignal: hydrated.praSignal ?? current.praSignal,
+    paSignal: hydrated.paSignal ?? current.paSignal,
+    prSignal: hydrated.prSignal ?? current.prSignal,
+    raSignal: hydrated.raSignal ?? current.raSignal,
+    precisionSignals: hydrated.precisionSignals ?? current.precisionSignals,
   };
 }
 
@@ -396,12 +416,7 @@ function buildFocusCandidate(
   const display = resolveMarketSignalDisplay(signalLabelForMarket(market), signal, modelLine);
   const customLine = parseLine(customLineValue ?? "");
   const currentLine = lineInFocus(customLine, display?.line ?? modelLine.fairLine);
-  const currentLineLabel =
-    customLine != null
-      ? lineSourceLabel(customLine, modelLine.fairLine)
-      : display?.line != null
-        ? `Live ${formatStat(display.line)}`
-        : lineSourceLabel(customLine, modelLine.fairLine);
+  const currentLineLabel = activeLineSourceLabel(customLine, display, modelLine);
   const side = display?.side ?? modelLine.modelSide;
   const gap = Math.abs(display?.projectionGap ?? modelLine.projectionGap ?? 0);
   const confidence = display?.confidence ?? null;
@@ -1118,7 +1133,12 @@ export function SnapshotDashboard({
 
       if (requestId !== playerDetailRequestRef.current) return;
 
-      setSelectedPlayer(payload.result.row);
+      setSelectedPlayer((current) => {
+        if (!current || current.playerId !== payload.result?.row.playerId) {
+          return payload.result!.row;
+        }
+        return mergeHydratedPlayerRow(current, payload.result!.row);
+      });
       if (!existingLookupMeta) {
         setPlayerLookupMeta({
           requestedDateEt: payload.result.requestedDateEt,
@@ -3002,13 +3022,15 @@ export function SnapshotDashboard({
                     </p>
                   ) : null}
                   {(["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as SnapshotMarket[]).map((signalMarket) => {
+                    const modelLine = selectedPlayer.modelLines[signalMarket];
                     const display = resolveMarketSignalDisplay(
                       signalLabelForMarket(signalMarket),
                       liveSignalForMarket(selectedPlayer, signalMarket),
-                      selectedPlayer.modelLines[signalMarket],
+                      modelLine,
                     );
                     if (!display) return null;
                     const hitChance = resolveMarketHitChance(selectedPlayer, signalMarket, display);
+                    const activeLineLabel = activeLineSourceLabel(null, display, modelLine);
 
                     return (
                       <div key={signalMarket} className="mt-2">
@@ -3020,7 +3042,7 @@ export function SnapshotDashboard({
                             {display.side}
                           </span>
                           <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                            Line {formatAverage(display.line)}
+                            {activeLineLabel}
                           </span>
                           {hitChance.value != null ? (
                             <span className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-2 py-0.5 font-semibold text-emerald-100">
