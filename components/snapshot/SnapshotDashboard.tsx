@@ -956,31 +956,45 @@ export function SnapshotDashboard({
     const params = new URLSearchParams();
     params.set("date", targetDate);
     if (options?.bustCache) {
+      params.set("refresh", "1");
       params.set("t", String(Date.now()));
     }
 
-    const response = await fetch(
-      `/api/snapshot/board?${params.toString()}`,
-      options?.bustCache ? { cache: "no-store" } : undefined,
-    );
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.toLowerCase().includes("application/json")) {
-      const body = await response.text();
-      const normalizedBody = body.replace(/\s+/g, " ").trim();
-      const bodyHint =
-        normalizedBody.length === 0
-          ? "The server returned an empty response."
-          : normalizedBody.startsWith("<!DOCTYPE")
-            ? "The server returned an HTML error page instead of the board JSON."
-            : normalizedBody.slice(0, 180);
-      throw new Error(`Board request failed (${response.status}). ${bodyHint}`);
-    }
+    const requestBoard = async (requestParams: URLSearchParams, useNoStore = false): Promise<SnapshotBoardData> => {
+      const response = await fetch(
+        `/api/snapshot/board?${requestParams.toString()}`,
+        useNoStore ? { cache: "no-store" } : undefined,
+      );
+      const contentType = response.headers.get("content-type") ?? "";
+      if (!contentType.toLowerCase().includes("application/json")) {
+        const body = await response.text();
+        const normalizedBody = body.replace(/\s+/g, " ").trim();
+        const bodyHint =
+          normalizedBody.length === 0
+            ? "The server returned an empty response."
+            : normalizedBody.startsWith("<!DOCTYPE")
+              ? "The server returned an HTML error page instead of the board JSON."
+              : normalizedBody.slice(0, 180);
+        throw new Error(`Board request failed (${response.status}). ${bodyHint}`);
+      }
 
-    const payload = (await response.json()) as SnapshotBoardApiResponse;
-    if (!response.ok || !payload.ok || !payload.result) {
-      throw new Error(payload.error ?? `Board request failed (${response.status}).`);
+      const payload = (await response.json()) as SnapshotBoardApiResponse;
+      if (!response.ok || !payload.ok || !payload.result) {
+        throw new Error(payload.error ?? `Board request failed (${response.status}).`);
+      }
+      return payload.result;
+    };
+
+    try {
+      return await requestBoard(params, options?.bustCache);
+    } catch (error) {
+      if (!options?.bustCache) {
+        throw error;
+      }
+      const fallbackParams = new URLSearchParams();
+      fallbackParams.set("date", targetDate);
+      return requestBoard(fallbackParams, false);
     }
-    return payload.result;
   }, []);
 
   const loadBoardData = useCallback(async (targetDate: string, options?: BoardLoadOptions): Promise<void> => {

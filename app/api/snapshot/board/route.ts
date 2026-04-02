@@ -13,10 +13,11 @@ export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
     const dateEt = isValidEtDate(searchParams.get('date')) ? (searchParams.get('date') as string) : getTodayEtDateString();
-    const bustCache = searchParams.has('refresh') || searchParams.has('t');
-    const result = await getSnapshotBoardData(dateEt, bustCache);
+    const bypassResponseCache = searchParams.has('refresh') || searchParams.has('t');
+    const rebuildBoard = searchParams.get('rebuild') === '1';
+    const result = await getSnapshotBoardData(dateEt, rebuildBoard);
     const response = NextResponse.json({ ok: true, result });
-    if (bustCache) {
+    if (bypassResponseCache) {
       response.headers.set('Cache-Control', 'no-store');
     } else {
       response.headers.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
