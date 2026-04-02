@@ -449,6 +449,7 @@ export type ProjectTonightInput = {
   openingTeamSpread?: number | null;
   availabilitySeverity?: number | null;
   teammateSynergy?: TeamSynergyInput | null;
+  opponentAvailability?: OpponentAvailabilityInput | null;
 };
 
 export type TeamSynergyInput = {
@@ -456,6 +457,23 @@ export type TeamSynergyInput = {
   missingCoreAverage: SnapshotMetricRecord;
   activeCoreCount: number;
   missingCoreCount: number;
+};
+
+export type OpponentAvailabilityInput = {
+  activeCoreAverage: SnapshotMetricRecord;
+  missingCoreAverage: SnapshotMetricRecord;
+  activeCoreCount: number;
+  missingCoreCount: number;
+  activeCoreStocksPer36: number | null;
+  missingCoreStocksPer36: number | null;
+  missingFrontcourtRebLoad: number | null;
+  missingFrontcourtRebShare: number | null;
+  missingGuardWingAstLoad: number | null;
+  missingGuardWingDisruptionLoad: number | null;
+  missingGuardWingDisruptionShare: number | null;
+  missingBigBlocksPer36Load: number | null;
+  missingBigStocksPer36Load: number | null;
+  missingRimProtectionShare: number | null;
 };
 
 export type MinutesProjectionInput = {
@@ -1406,6 +1424,52 @@ function applyTeammateSynergyAdjustments(
   }
 }
 
+function averageStocksPerCore(context: OpponentAvailabilityInput, side: "active" | "missing"): number {
+  const total =
+    side === "active"
+      ? (context.activeCoreStocksPer36 ?? 0) * context.activeCoreCount
+      : (context.missingCoreStocksPer36 ?? 0) * context.missingCoreCount;
+  return round(total, 2);
+}
+
+function applyOpponentAvailabilityAdjustments(
+  result: SnapshotMetricRecord,
+  last10Average: SnapshotMetricRecord,
+  context: OpponentAvailabilityInput | null | undefined,
+): void {
+  if (!context || context.missingCoreCount <= 0) return;
+
+  const missing = context.missingCoreAverage;
+  const missingStocks = averageStocksPerCore(context, "missing");
+  const activeStocks = averageStocksPerCore(context, "active");
+  const defensiveRelief = clamp((missingStocks - activeStocks * 0.2) / 4.8, 0, 1.35);
+  const glassRelief = clamp(((missing.REB ?? 0) * context.missingCoreCount) / 15, 0, 1.35);
+
+  if (result.PTS != null) {
+    const scorerRole = roleScale(result.PTS, last10Average.PTS, 20, 0.24, 1.18);
+    const reliefBoost = defensiveRelief * scorerRole * 0.72 + glassRelief * scorerRole * 0.18;
+    result.PTS = round(Math.max(0, result.PTS + clamp(reliefBoost, 0, 1.15)), 2);
+  }
+
+  if (result.REB != null) {
+    const boardRole = roleScale(result.REB, last10Average.REB, 8, 0.24, 1.15);
+    const glassBoost = glassRelief * boardRole * 0.9 + defensiveRelief * boardRole * 0.14;
+    result.REB = round(Math.max(0, result.REB + clamp(glassBoost, 0, 1.2)), 2);
+  }
+
+  if (result.AST != null) {
+    const creatorRole = roleScale(result.AST, last10Average.AST, 6, 0.24, 1.2);
+    const reliefBoost = defensiveRelief * creatorRole * 0.48;
+    result.AST = round(Math.max(0, result.AST + clamp(reliefBoost, 0, 0.85)), 2);
+  }
+
+  if (result.THREES != null) {
+    const spacingRole = roleScale(result.THREES, last10Average.THREES, 2.4, 0.24, 1.2);
+    const reliefBoost = defensiveRelief * spacingRole * 0.24;
+    result.THREES = round(Math.max(0, result.THREES + clamp(reliefBoost, 0, 0.4)), 2);
+  }
+}
+
 function lineupMinutesDelta(lineupStarter: boolean | null, starterRateLast10: number | null): number {
   if (lineupStarter == null) {
     return 0;
@@ -1738,6 +1802,7 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   });
 
   applyTeammateSynergyAdjustments(result, input.last10Average, input.teammateSynergy);
+  applyOpponentAvailabilityAdjustments(result, input.last10Average, input.opponentAvailability);
 
   baseMarkets.forEach((market) => {
     result[market] = applyOpeningTotalEnvironmentAdjustment(result[market], market, input.openingTotal);
