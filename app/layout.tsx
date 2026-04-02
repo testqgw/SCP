@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Archivo_Black } from "next/font/google";
+import { Manrope, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const spaceGrotesk = Manrope({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
 });
 
-const archivoBlack = Archivo_Black({
-  weight: "400",
+const archivoBlack = Barlow_Condensed({
+  weight: ["600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-archivo-black",
 });
 
 export const metadata: Metadata = {
-  title: "NBA Snapshot Board",
+  title: "ULTOPS NBA | Player Prop Intelligence",
   description:
-    "NBA player data board with today’s slate, recent game logs, and manual line tracking.",
+    "Professional NBA player prop intelligence with ranked precision picks, live line context, and full player-by-player research tools.",
   robots: {
     index: false,
     follow: false,
