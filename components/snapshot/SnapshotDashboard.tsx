@@ -74,6 +74,14 @@ type DetailSectionMeta = {
   title: string;
 };
 
+type ResearchTabKey = "trends" | "splits" | "matchup" | "recent" | "notes";
+
+type ResearchTabMeta = {
+  key: ResearchTabKey;
+  label: string;
+  description: string;
+};
+
 const DETAIL_SECTIONS: DetailSectionMeta[] = [
   { key: "context", id: "detail-context", title: "Player Context" },
   { key: "intel", id: "detail-intel", title: "Game Intelligence" },
@@ -82,6 +90,14 @@ const DETAIL_SECTIONS: DetailSectionMeta[] = [
   { key: "logs", id: "detail-logs", title: "Last 10 Completed Games" },
   { key: "summary", id: "detail-summary", title: "Quick Read" },
   { key: "team", id: "detail-team", title: "Team Context" },
+];
+
+const RESEARCH_TABS: ResearchTabMeta[] = [
+  { key: "trends", label: "Trends", description: "System-level benchmarks and board coverage." },
+  { key: "splits", label: "Splits", description: "How the slate is distributing by market and edge." },
+  { key: "matchup", label: "Matchup", description: "Where tonight's game environments stand out." },
+  { key: "recent", label: "Recent Form", description: "Current card and projection pockets worth reviewing." },
+  { key: "notes", label: "Notes", description: "Product guidance and operator notes for the slate." },
 ];
 
 function defaultCollapsedSections(compact = false): Record<DetailSectionKey, boolean> {
@@ -710,6 +726,7 @@ export function SnapshotDashboard({
   const [showSecondarySignals, setShowSecondarySignals] = useState(false);
 
   const [showAdvancedView, setShowAdvancedView] = useState(false);
+  const [activeResearchTab, setActiveResearchTab] = useState<ResearchTabKey>("trends");
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
     defaultCollapsedSections(true),
   );
@@ -1472,6 +1489,58 @@ export function SnapshotDashboard({
     () => backendDailyCardCandidates,
     [backendDailyCardCandidates],
   );
+  const leadDailyCardCandidate = dailyCardCandidates[0] ?? null;
+  const leadDailyCardHitChance = useMemo(
+    () => resolvePrecisionHitChance(leadDailyCardCandidate?.precision),
+    [leadDailyCardCandidate],
+  );
+
+  const researchTabMeta = useMemo(
+    () => RESEARCH_TABS.find((tab) => tab.key === activeResearchTab) ?? RESEARCH_TABS[0],
+    [activeResearchTab],
+  );
+
+  const researchMatchupPreview = useMemo(() => {
+    const matchupsOnPage = matchup
+      ? activeData.teamMatchups.filter((item) => item.matchupKey === matchup)
+      : activeData.teamMatchups;
+
+    return matchupsOnPage.slice(0, 3).map((item) => {
+      const matchupSignals = allQualifiedCandidates.filter((candidate) => candidate.row.matchupKey === item.matchupKey);
+      return {
+        item,
+        signalCount: matchupSignals.length,
+        topSignals: matchupSignals.slice(0, 2),
+      };
+    });
+  }, [activeData.teamMatchups, allQualifiedCandidates, matchup]);
+
+  const recentResearchPreview = useMemo(() => {
+    const precisionPreview = dailyCardCandidates.slice(0, 3).map((entry) => {
+      const chance = resolvePrecisionHitChance(entry.precision);
+      return {
+        id: `precision-${entry.candidate.row.playerId}-${entry.candidate.market}`,
+        title: `${entry.candidate.row.playerName} ${entry.candidate.market}`,
+        subtitle: `${entry.candidate.row.teamCode} vs ${entry.candidate.row.opponentCode} | ${entry.candidate.row.gameTimeEt}`,
+        metric: formatChanceValue(chance.value),
+        note: entry.candidate.reasons[0] ?? entry.candidate.supportText,
+      };
+    });
+
+    if (precisionPreview.length > 0) {
+      return precisionPreview;
+    }
+
+    return strongProjectionCandidates.slice(0, 3).map((candidate) => ({
+      id: `projection-${candidate.row.playerId}-${candidate.market}`,
+      title: `${candidate.row.playerName} ${candidate.market}`,
+      subtitle: `${candidate.row.teamCode} vs ${candidate.row.opponentCode} | ${candidate.row.gameTimeEt}`,
+      metric: `Gap ${formatAverage(candidate.projGap, true)}`,
+      note: candidate.reasons[0] ?? candidate.supportText,
+    }));
+  }, [dailyCardCandidates, strongProjectionCandidates]);
+
+  const scoutFeedPreview = useMemo(() => allQualifiedCandidates.slice(0, 3), [allQualifiedCandidates]);
 
   const [showAllStrongProjections, setShowAllStrongProjections] = useState(false);
   const STRONG_PROJ_PREVIEW = 6;
@@ -1572,30 +1641,34 @@ export function SnapshotDashboard({
 
   return (
     <main className="app-shell mx-auto max-w-[1680px] px-4 pb-16 pt-5 sm:px-6 lg:px-10">
-      <section className="mb-8 space-y-5">
+      <section className="space-y-5">
         <div className="surface-nav">
           <div className="flex items-center gap-4">
             <div>
-              <p className="surface-eyebrow">ULTOPS Research Suite</p>
-              <p className="title-font text-[1.9rem] leading-none text-white sm:text-[2.5rem]">NBA Prop Desk</p>
+              <p className="surface-eyebrow">ULTOPS NBA</p>
+              <p className="title-font text-[1.9rem] leading-none text-white sm:text-[2.5rem]">Player Prop Intelligence</p>
             </div>
-            <span className="product-chip product-chip--cyan">Precision + Live Research</span>
+            <span className="product-chip product-chip--cyan">Premium Research Platform</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => jumpToSection("daily-card-section")} className="nav-link">
               Precision Card
             </button>
-            <button type="button" onClick={focusPlayerLookup} className="nav-link">
+            <button type="button" onClick={() => jumpToSection("raw-model-section")} className="nav-link">
               Research Center
             </button>
-            <button type="button" onClick={() => setShowSecondarySignals((current) => !current)} className="nav-link">
+            <button
+              type="button"
+              onClick={showSecondarySignals ? () => setShowSecondarySignals(false) : openAllQualifiedBoard}
+              className="nav-link"
+            >
               {showSecondarySignals ? "Hide Scout Feed" : "Scout Feed"}
             </button>
             <button
               type="button"
               onClick={openFeedbackPage}
-              className="rounded-full border border-violet-300/25 bg-violet-500/10 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-100 transition hover:bg-violet-500/20"
+              className="secondary-action"
             >
               Feedback
             </button>
@@ -1605,7 +1678,7 @@ export function SnapshotDashboard({
                 void openDonationCheckout();
               }}
               disabled={isDonationLoading}
-              className="rounded-full border border-amber-300/30 bg-amber-500/12 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-500/18 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isDonationLoading ? "Opening Support..." : "Support ULTOPS"}
             </button>
@@ -1616,32 +1689,32 @@ export function SnapshotDashboard({
         </div>
 
         <div className="product-hero px-5 py-5 sm:px-6 sm:py-6">
-          <div className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
+          <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <div className="hero-copy-stack space-y-6">
               <div>
-                <p className="hero-kicker">Professional NBA Prop Intelligence</p>
-                <h1 className="hero-title">Built to feel like a premium prop research terminal.</h1>
+                <p className="hero-kicker">Institutional NBA Prop Research</p>
+                <h1 className="hero-title">ULTOPS finds the best NBA prop edges fast.</h1>
                 <p className="hero-copy">
-                  ULTOPS combines a ranked precision card, live line context, and player-by-player market research into a
-                  cleaner front-end that looks ready for customers, not just internal testing.
+                  Precision Card first. Live line context, matchup research, and full player-by-player detail stay close
+                  behind it so the product feels sharp, credible, and ready to sell.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <span className="product-chip product-chip--teal">Ranked Precision Picks</span>
-                <span className="product-chip product-chip--cyan">Consensus Line Tracking</span>
-                <span className="product-chip product-chip--gold">Full Player Market Intel</span>
+                <span className="product-chip product-chip--cyan">Ranked Precision Card</span>
+                <span className="product-chip product-chip--teal">Consensus Line Tracking</span>
+                <span className="product-chip product-chip--gold">Premium Research Tools</span>
               </div>
 
-              <div className="stat-grid sm:grid-cols-2 xl:grid-cols-4">
+              <div className="stat-grid md:grid-cols-3">
                 <div className="stat-tile">
-                  <p className="stat-label">Today&apos;s Card</p>
+                  <p className="stat-label">Live Card</p>
                   <p className="stat-value">
                     {activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}
                   </p>
                   <p className="stat-note">
                     {activeData.precisionSystem
-                      ? `${activeData.precisionSystem.label} loaded`
+                      ? `${activeData.precisionSystem.label} ready`
                       : "Precision board warming up"}
                   </p>
                 </div>
@@ -1652,106 +1725,180 @@ export function SnapshotDashboard({
                   <p className="stat-value">
                     {activeData.precisionSystem ? `${formatStat(activeData.precisionSystem.historicalAccuracy)}%` : "-"}
                   </p>
-                  <p className="stat-note">Live promoted card benchmark</p>
-                </div>
-                <div className="stat-tile">
-                  <p className="stat-label">WF Raw Model</p>
-                  <p className="stat-value">
-                    {activeData.universalSystem ? `${formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%` : "-"}
-                  </p>
-                  <p className="stat-note">Raw research model accuracy</p>
+                  <p className="stat-note">Verified benchmark for the promoted card</p>
                 </div>
                 <div className="stat-tile">
                   <p className="stat-label">Rows On Slate</p>
                   <p className="stat-value">{filteredRows.length}</p>
-                  <p className="stat-note">{qualifiedFocusCount} lower-priority signals available</p>
+                  <p className="stat-note">{qualifiedFocusCount} lower-priority signals behind the card</p>
                 </div>
               </div>
 
-              <div className="hero-footnote">
-                <p className="hero-footnote-label">Live board status</p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  Last updated {formatIsoToEtTime(activeData.lastUpdatedAt)}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  The precision card stays front and center, while deeper player research, raw model context, and secondary
-                  signals remain one click away for sellable product depth.
-                </p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => jumpToSection("daily-card-section")} className="primary-action">
+                  View Precision Card
+                </button>
+                <button type="button" onClick={() => jumpToSection("raw-model-section")} className="secondary-action">
+                  Open Research Center
+                </button>
+                <button type="button" onClick={showSecondarySignals ? () => setShowSecondarySignals(false) : openAllQualifiedBoard} className="tertiary-action">
+                  {showSecondarySignals ? "Hide Scout Feed" : "Open Scout Feed"}
+                </button>
               </div>
             </div>
 
-            <div className="control-panel">
+            <div className="hero-preview-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="control-kicker">Slate Controls</p>
-                  <h2 className="control-title">Load the board, refresh the lines, inspect any player fast.</h2>
-                  <p className="control-copy">
-                    Filter the slate like a product customer would, then drop into any player for the full market breakdown.
+                  <p className="section-kicker">Live Precision Preview</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Tonight&apos;s headline edge</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    A live preview of the top-ranked precision case, so the page sells the value immediately before anyone
+                    dives into the deeper research workflow.
                   </p>
                 </div>
-                <span className="product-chip product-chip--gold">
-                  {activeData.precisionSystem?.picksPerDayLabel ?? "Picks/Day"}{" "}
-                  {activeData.precisionSystem?.historicalPicksPerDay != null
-                    ? formatStat(activeData.precisionSystem.historicalPicksPerDay)
-                    : "-"}
-                </span>
+                <span className="badge badge-premium">Premium View</span>
               </div>
 
-              <form onSubmit={handleLoadData} className="mt-5 grid gap-3 md:grid-cols-2">
-                <label className="control-label">
-                  Date
-                  <input
-                    type="date"
-                    value={dateInput}
-                    onChange={(e) => setDateInput(e.target.value)}
-                    className="control-input cursor-pointer"
-                  />
-                </label>
-                <label className="control-label">
-                  Matchup
-                  <select
-                    value={matchup}
-                    onChange={(e) => setMatchup(e.target.value)}
-                    className="control-input cursor-pointer"
-                  >
-                    <option value="">All Matchups</option>
-                    {activeData.matchups.map((o) => (
-                      <option key={o.key} value={o.key}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="control-label">
-                  Market
-                  <select
-                    value={market}
-                    onChange={(e) => setMarket(e.target.value as MarketFilter)}
-                    className="control-input cursor-pointer"
-                  >
-                    {MARKET_FILTER_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="grid gap-3 md:grid-cols-2">
-                  <button type="submit" disabled={isBoardLoading} className="primary-action disabled:opacity-50">
-                    {isBoardLoading ? "Loading..." : "Load Board"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleRefresh()}
-                    disabled={isRefreshing}
-                    className="secondary-action disabled:opacity-50"
-                  >
-                    {isRefreshing ? "Refreshing..." : "Refresh Live"}
-                  </button>
+              {leadDailyCardCandidate ? (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-[22px] border border-white/10 bg-black/15 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="badge badge-premium">Top Precision Pick</span>
+                          <span className="badge">{leadDailyCardCandidate.candidate.market}</span>
+                        </div>
+                        <h3 className="mt-3 text-2xl font-semibold text-white">
+                          {leadDailyCardCandidate.candidate.row.playerName}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-400">
+                          {leadDailyCardCandidate.candidate.row.teamCode} vs {leadDailyCardCandidate.candidate.row.opponentCode} | {leadDailyCardCandidate.candidate.row.gameTimeEt}
+                        </p>
+                      </div>
+                      <div className="rounded-[20px] border border-blue-300/20 bg-blue-500/10 px-5 py-4 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">Recommendation</p>
+                        <p className="mt-2 text-2xl font-semibold text-white">
+                          {leadDailyCardCandidate.precision?.side ?? leadDailyCardCandidate.candidate.display?.side ?? leadDailyCardCandidate.candidate.modelLine.modelSide}{" "}
+                          {formatAverage(leadDailyCardCandidate.candidate.currentLine)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="insight-card">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Hit Chance</p>
+                        <p className="mt-2 text-xl font-semibold text-white">{formatChanceValue(leadDailyCardHitChance.value)}</p>
+                      </div>
+                      <div className="insight-card">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Line In Focus</p>
+                        <p className="mt-2 text-xl font-semibold text-white">
+                          {leadDailyCardCandidate.candidate.currentLineLabel}
+                        </p>
+                      </div>
+                      <div className="insight-card">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Case Summary</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-200">
+                          {leadDailyCardCandidate.candidate.reasons[0] ?? leadDailyCardCandidate.candidate.supportText}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="stat-tile">
+                      <p className="stat-label">Last Updated</p>
+                      <p className="stat-value text-[1.2rem]">{formatIsoToEtTime(activeData.lastUpdatedAt)}</p>
+                    </div>
+                    <div className="stat-tile">
+                      <p className="stat-label">{activeData.precisionSystem?.picksPerDayLabel ?? "Picks/Day"}</p>
+                      <p className="stat-value">
+                        {activeData.precisionSystem?.historicalPicksPerDay != null
+                          ? formatStat(activeData.precisionSystem.historicalPicksPerDay)
+                          : "-"}
+                      </p>
+                    </div>
+                    <div className="stat-tile">
+                      <p className="stat-label">Research Depth</p>
+                      <p className="stat-value">{allQualifiedCandidates.length}</p>
+                      <p className="stat-note">Broader signals behind the main card</p>
+                    </div>
+                  </div>
                 </div>
-              </form>
+              ) : (
+                <div className="mt-5 rounded-[22px] border border-white/10 bg-black/15 px-5 py-5 text-sm leading-6 text-slate-300">
+                  The live preview will populate as soon as the board loads a precision card for the selected date.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
 
-              <div className="relative mt-4">
+        <div className="sticky-toolbar">
+          <div className="command-bar">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="control-kicker">Trading Toolbar</p>
+                <h2 className="control-title">Load the slate, refresh the market, and inspect any player instantly.</h2>
+                <p className="control-copy">
+                  Keep the controls tight and visible while you move between the Precision Card, Research Center, and Scout Feed.
+                </p>
+              </div>
+              <span className="badge">
+                {activeData.matchups.length} game{activeData.matchups.length === 1 ? "" : "s"} on slate
+              </span>
+            </div>
+
+            <form onSubmit={handleLoadData} className="mt-4 grid gap-3 xl:grid-cols-[150px_220px_180px_145px_145px_minmax(320px,1fr)]">
+              <label className="control-label">
+                Date
+                <input
+                  type="date"
+                  value={dateInput}
+                  onChange={(e) => setDateInput(e.target.value)}
+                  className="control-input cursor-pointer"
+                />
+              </label>
+              <label className="control-label">
+                Matchup
+                <select
+                  value={matchup}
+                  onChange={(e) => setMatchup(e.target.value)}
+                  className="control-input cursor-pointer"
+                >
+                  <option value="">All Matchups</option>
+                  {activeData.matchups.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="control-label">
+                Market
+                <select
+                  value={market}
+                  onChange={(e) => setMarket(e.target.value as MarketFilter)}
+                  className="control-input cursor-pointer"
+                >
+                  {MARKET_FILTER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" disabled={isBoardLoading} className="primary-action self-end disabled:opacity-50">
+                {isBoardLoading ? "Loading..." : "Load Board"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRefresh()}
+                disabled={isRefreshing}
+                className="secondary-action self-end disabled:opacity-50"
+              >
+                {isRefreshing ? "Refreshing..." : "Refresh Live"}
+              </button>
+
+              <div className="relative self-end">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1808,7 +1955,7 @@ export function SnapshotDashboard({
                       setPlayerSuggestIndex(-1);
                     }
                   }}
-                  placeholder="Search any player, then open full market intel..."
+                  placeholder="Search any player and open the full case..."
                   className="control-input pl-10 pr-3"
                 />
                 {playerSuggestOpen && playerSuggestions.length > 0 && (
@@ -1822,7 +1969,7 @@ export function SnapshotDashboard({
                           applyPlayerSuggestion(row);
                         }}
                         className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs ${
-                          idx === playerSuggestIndex ? "bg-cyan-500/20 text-cyan-100" : "text-slate-200 hover:bg-white/5"
+                          idx === playerSuggestIndex ? "bg-blue-500/18 text-blue-100" : "text-slate-200 hover:bg-white/5"
                         }`}
                       >
                         <span className="font-medium">{row.playerName}</span>
@@ -1834,16 +1981,7 @@ export function SnapshotDashboard({
                   </div>
                 )}
               </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => jumpToSection("daily-card-section")} className="tertiary-action">
-                  Go To Precision Card
-                </button>
-                <button type="button" onClick={focusPlayerLookup} className="secondary-action">
-                  Open Research Flow
-                </button>
-              </div>
-            </div>
+            </form>
           </div>
         </div>
 
@@ -2153,89 +2291,263 @@ export function SnapshotDashboard({
         </section>
       )}
 
-      <section id="raw-model-section" className="section-shell section-shell--emerald mt-6 p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <section id="raw-model-section" className="section-shell section-shell--emerald mt-6 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Research Layer</p>
-            <h2 className="mt-1 text-2xl font-semibold text-white">Precision First, Full Player Intel Right Behind It</h2>
-            <p className="mt-1 max-w-3xl text-sm text-slate-300">
-              The homepage now prioritizes the live {activeData.precisionSystem?.label ?? "Precision Card"} and the raw
-              player model. Broader signal boards are still available, but they are intentionally treated as lower-priority.
+            <p className="section-kicker">Research Center</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Full player intelligence without the clutter.</h2>
+            <p className="section-copy mt-2 max-w-3xl">
+              Switch between the core research lenses instead of stacking long utility blocks. The player search in the
+              toolbar still opens the full case for any player on the slate.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={focusPlayerLookup}
-              className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/20"
-            >
-              Jump To Player Raw Data
-            </button>
-            <button
-              type="button"
-              onClick={showSecondarySignals ? () => setShowSecondarySignals(false) : openAllQualifiedBoard}
-              className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-            >
-              {showSecondarySignals ? "Hide Lower-Priority Signals" : `Show Lower-Priority Signals (${allQualifiedCandidates.length})`}
-            </button>
-          </div>
+          <button type="button" onClick={focusPlayerLookup} className="secondary-action">
+            Open Player Lookup
+          </button>
         </div>
 
-        {activeData.universalSystem ? (
+        <div className="research-tabs mt-5">
+          {RESEARCH_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveResearchTab(tab.key)}
+              className={`research-tab ${activeResearchTab === tab.key ? "research-tab--active" : ""}`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-3 text-sm text-slate-400">{researchTabMeta.description}</p>
+
+        {activeResearchTab === "trends" ? (
+          activeData.universalSystem ? (
+            <div className="mt-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="insight-card">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">WF Raw</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%</p>
+                </div>
+                <div className="insight-card">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">30D Raw</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayRawAccuracy)}%</p>
+                </div>
+                <div className="insight-card">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">WF Blended</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardBlendedAccuracy)}%</p>
+                </div>
+                <div className="insight-card">
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Coverage</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardCoveragePct)}%</p>
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-amber-300/15 bg-amber-500/[0.08] px-4 py-4 text-sm leading-6 text-slate-200">
+                {activeData.universalSystem.note}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+              Raw model summary is still loading, but the player lookup will still open a full research case from the toolbar.
+            </div>
+          )
+        ) : null}
+
+        {activeResearchTab === "splits" ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="insight-card">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Card Target</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{precisionCardTargetCount}</p>
+              </div>
+              <div className="insight-card">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Rows On Slate</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{filteredRows.length}</p>
+              </div>
+              <div className="insight-card">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Lower-Priority Signals</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
+              </div>
+            </div>
+            <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Market Mix</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {allQualifiedMarketSummary.length > 0 ? (
+                  allQualifiedMarketSummary.map((option) => (
+                    <span key={`research-split-${option.value}`} className="badge">
+                      {option.value}: {option.count}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-sm text-slate-300">No broader market mix available under the current filters yet.</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {activeResearchTab === "matchup" ? (
+          <div className="mt-4 grid gap-3">
+            {researchMatchupPreview.length > 0 ? (
+              researchMatchupPreview.map(({ item, signalCount, topSignals }) => (
+                <div key={`research-matchup-${item.matchupKey}`} className="editorial-card">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.awayTeam} at {item.homeTeam}</p>
+                      <p className="editorial-meta mt-1">{item.gameTimeEt}</p>
+                    </div>
+                    <span className="badge">{signalCount} signals</span>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {topSignals.length > 0 ? (
+                      topSignals.map((candidate) => (
+                        <button
+                          key={`matchup-preview-${candidate.row.playerId}-${candidate.market}`}
+                          type="button"
+                          onClick={() => {
+                            setPlayerLookupError(null);
+                            openPlayerDetail(candidate.row, null, candidate.market);
+                          }}
+                          className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-white/10 bg-black/15 px-3 py-3 text-left hover:bg-white/[0.04]"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-white">{candidate.row.playerName}</p>
+                            <p className="editorial-meta mt-1">{candidate.market} | {candidate.currentLineLabel}</p>
+                          </div>
+                          <span className="badge">{candidate.display?.side ?? candidate.modelLine.modelSide}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-300">No standout signals for this matchup under the current filters yet.</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+                Matchup research will populate once the slate loads game environments for the selected filters.
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {activeResearchTab === "recent" ? (
+          <div className="mt-4 grid gap-3">
+            {recentResearchPreview.length > 0 ? (
+              recentResearchPreview.map((item) => (
+                <div key={item.id} className="editorial-card">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-white">{item.title}</p>
+                      <p className="editorial-meta mt-1">{item.subtitle}</p>
+                    </div>
+                    <span className="badge">{item.metric}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-200">{item.note}</p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+                Recent form previews will appear here once the board has either a live precision card or projection pocket data.
+              </div>
+            )}
+          </div>
+        ) : null}
+
+        {activeResearchTab === "notes" ? (
           <div className="mt-4 space-y-3">
-            <div className="grid gap-3 md:grid-cols-5">
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">WF Raw</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">30D Raw</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayRawAccuracy)}%</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">WF Blended</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardBlendedAccuracy)}%</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">Coverage</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardCoveragePct)}%</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-4 py-3 text-xs text-slate-300">
-                <p className="uppercase tracking-[0.14em] text-slate-400">Player Rows</p>
-                <p className="mt-1 text-2xl font-semibold text-white">{filteredRows.length}</p>
-              </div>
+            <div className="editorial-card">
+              <p className="text-sm font-semibold text-white">Product positioning</p>
+              <p className="mt-2 text-sm leading-6 text-slate-200">
+                Precision Card is the sellable front door. Research Center is the premium support layer that explains the
+                edge without overpowering the main picks.
+              </p>
             </div>
-            <p className="rounded-2xl border border-amber-300/15 bg-amber-500/[0.08] px-4 py-3 text-xs text-amber-50/90">
-              {activeData.universalSystem.note}
-            </p>
-            <div className="rounded-2xl border border-cyan-300/15 bg-cyan-500/[0.08] px-4 py-4 text-sm text-cyan-50/90">
-              Precision Card is the only promoted betting product. Everything else on this page is now framed as raw-player
-              context: live lines, per-market reads, player detail panels, and deep-board inspection.
+            <div className="editorial-card">
+              <p className="text-sm font-semibold text-white">Operator note</p>
+              <p className="mt-2 text-sm leading-6 text-slate-200">
+                {activeData.precisionSystem?.note ?? "Load the board to view the latest precision note for this slate."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setGuideOpen(true)} className="secondary-action">
+                View Methodology
+              </button>
+              <button type="button" onClick={focusPlayerLookup} className="primary-action">
+                Search A Player
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
-            Raw model summary is loading. The player lookup still gives you the full raw data view for any player on the slate.
-          </div>
-        )}
+        ) : null}
       </section>
 
-      <section id="player-raw-section" className="section-shell section-shell--gold mt-6 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <section id="player-raw-section" className="section-shell section-shell--violet mt-6 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-[#f3d99b]">Player Research Center</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Open Any Player For The Full Market Story</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Open any player to inspect the full raw model read: every market, every live line, matchup context, recent logs,
-              backtest notes, and team-role data. This is now the main research workflow outside the live Precision Card.
+            <p className="section-kicker">Scout Feed</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">Editorial looks beyond the main card.</h2>
+            <p className="section-copy mt-2">
+              These are broader raw-model signals rendered as a calmer analyst feed. They support the product, but they do
+              not compete with the Precision Card.
             </p>
           </div>
+          <span className="badge badge-premium">{scoutFeedPreview.length} previewed</span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {scoutFeedPreview.length > 0 ? (
+            scoutFeedPreview.map((candidate) => {
+              const side = candidate.display?.side ?? candidate.modelLine.modelSide;
+              const hitChance = resolveMarketHitChance(candidate.row, candidate.market, candidate.display);
+              return (
+                <button
+                  key={`scout-preview-${candidate.row.playerId}-${candidate.market}`}
+                  type="button"
+                  onClick={() => {
+                    setPlayerLookupError(null);
+                    openPlayerDetail(candidate.row, null, candidate.market);
+                  }}
+                  className="editorial-card w-full text-left transition hover:bg-white/[0.04]"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="badge">{candidate.market}</span>
+                        <span className="badge">{side === "NEUTRAL" ? "Hold" : `${side} ${formatAverage(candidate.currentLine)}`}</span>
+                      </div>
+                      <p className="mt-3 text-lg font-semibold text-white">{candidate.row.playerName}</p>
+                      <p className="editorial-meta mt-1">
+                        {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
+                      </p>
+                    </div>
+                    <div className="rounded-[16px] border border-white/10 bg-black/15 px-4 py-3 text-right">
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Edge</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-200">
+                    {candidate.reasons[0] ?? candidate.supportText}
+                  </p>
+                </button>
+              );
+            })
+          ) : (
+            <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+              No broader feed items are available on this slate yet.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={focusPlayerLookup}
-            className="rounded-full border border-[#f0d7a1]/35 bg-[#f59e0b]/16 px-4 py-2 text-sm font-semibold text-amber-50 transition hover:bg-[#f59e0b]/24"
+            onClick={showSecondarySignals ? () => setShowSecondarySignals(false) : openAllQualifiedBoard}
+            className="secondary-action"
           >
-            Focus Player Search
+            {showSecondarySignals ? "Hide Full Scout Feed" : `Open Full Scout Feed (${allQualifiedCandidates.length})`}
+          </button>
+          <button type="button" onClick={() => jumpToSection("deep-board")} className="tertiary-action">
+            Open Full Slate Board
           </button>
         </div>
       </section>

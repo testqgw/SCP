@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Manrope, Barlow_Condensed } from "next/font/google";
+import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Manrope({
+const bodyFont = Inter({
   subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-body",
 });
 
-const archivoBlack = Barlow_Condensed({
-  weight: ["600", "700", "800"],
+const displayFont = Oswald({
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
-  variable: "--font-archivo-black",
+  variable: "--font-display",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +30,7 @@ export default function RootLayout({
 }>): React.ReactElement {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${archivoBlack.variable}`}>{children}</body>
+      <body className={`${bodyFont.variable} ${displayFont.variable}`}>{children}</body>
     </html>
   );
 }
