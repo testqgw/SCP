@@ -64,7 +64,7 @@ export type DailyPlayerPropLine = {
   sportsbookCount: number;
   overPrice: number | null;
   underPrice: number | null;
-  source: "sportsdata" | "scoresandodds" | "covers";
+  source: "sportsdata" | "scoresandodds" | "covers" | "derived";
 };
 
 export type DailyMatchupHint = {
@@ -121,6 +121,11 @@ export type LivePtsSignalInput = {
   missingCoreAst?: number | null;
   missingCoreShare?: number | null;
   stepUpRoleFlag?: number | null;
+  opponentMissingCorePts?: number | null;
+  opponentMissingCoreAst?: number | null;
+  opponentMissingCoreReb?: number | null;
+  opponentMissingCoreStocks?: number | null;
+  opponentMissingCoreShare?: number | null;
   playerShotPressure: ShotPressureSummary | null;
   opponentShotVolume: OpponentShotVolumeMetrics | null;
   completenessScore: number | null;
@@ -782,6 +787,7 @@ const DAILY_PROP_LINE_SOURCE_PRIORITY: Record<DailyPlayerPropLine["source"], num
   sportsdata: 3,
   scoresandodds: 2,
   covers: 1,
+  derived: 0,
 };
 
 function getDailyPropLinePriceCompleteness(line: Pick<DailyPlayerPropLine, "overPrice" | "underPrice">): number {
@@ -822,12 +828,54 @@ function mergeDailyPropLine(
 function countWeakConsensusPropLines(lines: Iterable<DailyPlayerPropLine>): number {
   let count = 0;
   for (const line of lines) {
-    if (line.source === "covers") continue;
+    if (line.source === "covers" || line.source === "derived") continue;
     if (line.sportsbookCount <= 1 || getDailyPropLinePriceCompleteness(line) < 2) {
       count += 1;
     }
   }
   return count;
+}
+
+function deriveComboSportsbookCount(lines: DailyPlayerPropLine[]): number {
+  const conservativeFloor = Math.min(...lines.map((line) => Math.max(1, line.sportsbookCount)));
+  return Math.max(1, Math.ceil(conservativeFloor * 0.5));
+}
+
+function buildDerivedComboPropLine(lines: Array<DailyPlayerPropLine | null>): DailyPlayerPropLine | null {
+  const resolved = lines.filter((line): line is DailyPlayerPropLine => line != null);
+  if (resolved.length !== lines.length) return null;
+
+  const line = round(
+    resolved.reduce((sum, entry) => sum + entry.line, 0),
+    1,
+  );
+
+  return {
+    line,
+    sportsbookCount: deriveComboSportsbookCount(resolved),
+    overPrice: null,
+    underPrice: null,
+    source: "derived",
+  };
+}
+
+function mergeDerivedComboLineMaps(
+  result: Map<string, DailyPlayerPropLine>,
+  componentMaps: Array<Map<string, DailyPlayerPropLine>>,
+): void {
+  if (componentMaps.length === 0) return;
+
+  const keys = new Set<string>();
+  componentMaps.forEach((componentMap) => {
+    componentMap.forEach((_, key) => keys.add(key));
+  });
+
+  keys.forEach((key) => {
+    const derivedLine = buildDerivedComboPropLine(componentMaps.map((componentMap) => componentMap.get(key) ?? null));
+    if (derivedLine) {
+      mergeDailyPropLine(result, key, derivedLine);
+    }
+  });
 }
 
 function parseScoresAndOddsGamePageRows(
@@ -1267,9 +1315,15 @@ async function fetchDailyPropLineMap(
 
     const scoresAndOddsCoverageFloor = Math.max(events.length * 3, 24);
     const weakConsensusCount = countWeakConsensusPropLines(result.values());
+    const forceScoresAndOddsGamePageSweep =
+      market === "THREES" || market === "PRA" || market === "PA" || market === "PR" || market === "RA";
     const shouldFetchScoresAndOddsGamePages =
       Boolean(scoresAndOddsPageMarketSlug) &&
-      (result.size < scoresAndOddsCoverageFloor || weakConsensusCount >= Math.max(events.length, 8));
+      (
+        forceScoresAndOddsGamePageSweep ||
+        result.size < scoresAndOddsCoverageFloor ||
+        weakConsensusCount >= Math.max(events.length, 8)
+      );
     if (scoresAndOddsPageMarketSlug && shouldFetchScoresAndOddsGamePages) {
       const pageMap = await withTimeoutValue(
         fetchScoresAndOddsPropLineMapFromGamePages(dateEt, scoresAndOddsPageMarketSlug).catch(() => new Map()),
@@ -1300,10 +1354,12 @@ async function fetchScoresAndOddsPropLineMap(
 
   await mapLimit(events, 4, async (event) => {
     const markets = await fetchScoresAndOddsMarketsByEvent(event.identifier, marketSlug).catch(() => []);
+    let parsedCount = 0;
     markets.forEach((market) => {
       const parsed = parseScoresAndOddsMarketRow(market);
       if (!parsed || parsed.line == null) return;
       const key = `${event.matchupKey}|${parsed.playerName}`;
+      parsedCount += 1;
       mergeDailyPropLine(result, key, {
         line: parsed.line,
         sportsbookCount: parsed.sportsbookCount,
@@ -1312,6 +1368,23 @@ async function fetchScoresAndOddsPropLineMap(
         source: "scoresandodds",
       });
     });
+
+    if (parsedCount === 0 && event.pageUrl) {
+      const html = await fetchTextWithRetry(event.pageUrl).catch(() => "");
+      if (!html) return;
+      const rows = parseScoresAndOddsGamePageRows(html, event.identifier, marketSlug);
+      rows.forEach((row) => {
+        if (row.line == null) return;
+        const key = `${event.matchupKey}|${row.playerName}`;
+        mergeDailyPropLine(result, key, {
+          line: row.line,
+          sportsbookCount: row.sportsbookCount,
+          overPrice: row.overPrice,
+          underPrice: row.underPrice,
+          source: "scoresandodds",
+        });
+      });
+    }
   });
 
   return result;
@@ -1388,54 +1461,91 @@ export function fetchDailyThreesLineMap(
   );
 }
 
-export function fetchDailyPraLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(
-    dateEt,
-    "PRA",
-    [
-      "points, rebounds & assists",
-      "points + rebounds + assists",
-      "points, rebounds and assists",
-      "total points, rebounds and assists",
-      "pts + reb + ast",
-    ],
-    null,
-    ["points, rebounds, & assists", "points,-rebounds,-&-assists"],
-    "points,-rebounds,-&-assists",
-  );
+export async function fetchDailyPraLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const [result, ptsMap, rebMap, astMap] = await Promise.all([
+    fetchDailyPropLineMap(
+      dateEt,
+      "PRA",
+      [
+        "points, rebounds & assists",
+        "points + rebounds + assists",
+        "points, rebounds and assists",
+        "total points, rebounds and assists",
+        "pts + reb + ast",
+      ],
+      null,
+      ["points, rebounds, & assists", "points,-rebounds,-&-assists"],
+      "points,-rebounds,-&-assists",
+    ),
+    fetchDailyPtsLineMap(dateEt, coversMatchupHints),
+    fetchDailyRebLineMap(dateEt, coversMatchupHints),
+    fetchDailyAstLineMap(dateEt, coversMatchupHints),
+  ]);
+  mergeDerivedComboLineMaps(result, [ptsMap, rebMap, astMap]);
+  return result;
 }
 
-export function fetchDailyPaLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(
-    dateEt,
-    "PA",
-    ["points & assists", "points + assists", "total points and assists", "pts + ast"],
-    null,
-    ["points & assists", "points-&-assists"],
-    "points-&-assists",
-  );
+export async function fetchDailyPaLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const [result, ptsMap, astMap] = await Promise.all([
+    fetchDailyPropLineMap(
+      dateEt,
+      "PA",
+      ["points & assists", "points + assists", "total points and assists", "pts + ast"],
+      null,
+      ["points & assists", "points-&-assists"],
+      "points-&-assists",
+    ),
+    fetchDailyPtsLineMap(dateEt, coversMatchupHints),
+    fetchDailyAstLineMap(dateEt, coversMatchupHints),
+  ]);
+  mergeDerivedComboLineMaps(result, [ptsMap, astMap]);
+  return result;
 }
 
-export function fetchDailyPrLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(
-    dateEt,
-    "PR",
-    ["points & rebounds", "points + rebounds", "total points and rebounds", "pts + reb"],
-    null,
-    ["points & rebounds", "points-&-rebounds"],
-    "points-&-rebounds",
-  );
+export async function fetchDailyPrLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const [result, ptsMap, rebMap] = await Promise.all([
+    fetchDailyPropLineMap(
+      dateEt,
+      "PR",
+      ["points & rebounds", "points + rebounds", "total points and rebounds", "pts + reb"],
+      null,
+      ["points & rebounds", "points-&-rebounds"],
+      "points-&-rebounds",
+    ),
+    fetchDailyPtsLineMap(dateEt, coversMatchupHints),
+    fetchDailyRebLineMap(dateEt, coversMatchupHints),
+  ]);
+  mergeDerivedComboLineMaps(result, [ptsMap, rebMap]);
+  return result;
 }
 
-export function fetchDailyRaLineMap(dateEt: string): Promise<Map<string, DailyPlayerPropLine>> {
-  return fetchDailyPropLineMap(
-    dateEt,
-    "RA",
-    ["rebounds & assists", "rebounds + assists", "total rebounds and assists", "reb + ast"],
-    null,
-    ["rebounds & assists", "rebounds-&-assists"],
-    "rebounds-&-assists",
-  );
+export async function fetchDailyRaLineMap(
+  dateEt: string,
+  coversMatchupHints?: DailyMatchupHint[] | null,
+): Promise<Map<string, DailyPlayerPropLine>> {
+  const [result, rebMap, astMap] = await Promise.all([
+    fetchDailyPropLineMap(
+      dateEt,
+      "RA",
+      ["rebounds & assists", "rebounds + assists", "total rebounds and assists", "reb + ast"],
+      null,
+      ["rebounds & assists", "rebounds-&-assists"],
+      "rebounds-&-assists",
+    ),
+    fetchDailyRebLineMap(dateEt, coversMatchupHints),
+    fetchDailyAstLineMap(dateEt, coversMatchupHints),
+  ]);
+  mergeDerivedComboLineMaps(result, [rebMap, astMap]);
+  return result;
 }
 
 function clamp(value: number, min: number, max: number): number {

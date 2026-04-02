@@ -214,12 +214,18 @@ function resolveMarketHitChance(
   market: SnapshotMarket,
   display: MarketSignalDisplay | null,
 ): HitChanceDisplay {
-  const precisionChance = resolvePrecisionHitChance(precisionSignalForMarket(row, market));
+  const precisionSignal = precisionSignalForMarket(row, market);
+  const canUsePrecisionChance =
+    precisionSignal?.qualified === true &&
+    precisionSignal.side !== "NEUTRAL" &&
+    display?.lineOrigin === "LIVE" &&
+    display.line != null;
+  const precisionChance = canUsePrecisionChance ? resolvePrecisionHitChance(precisionSignal) : { value: null, subtitle: null };
   if (precisionChance.value != null) {
     return precisionChance;
   }
 
-  if (display?.confidence != null) {
+  if (display?.confidence != null && display.lineOrigin === "LIVE" && display.line != null) {
     return {
       value: display.confidence,
       subtitle: "Final live hit chance for the current game line.",
@@ -266,6 +272,15 @@ type MarketSignalDisplay = {
   line: number | null;
   lineOrigin: "LIVE" | "MODEL" | null;
   sportsbookCount: number | null;
+};
+
+type MarketRecommendationView = {
+  display: MarketSignalDisplay | null;
+  precision: SnapshotPrecisionPickSignal | null;
+  finalSide: SnapshotModelSide;
+  marketLine: number | null;
+  marketLineLabel: string;
+  hitChance: HitChanceDisplay;
 };
 
 type FocusTier = "TOP" | "STRONG" | "WATCH" | "DEEP";
@@ -326,6 +341,50 @@ function resolveMarketSignalDisplay(
     line,
     lineOrigin: line == null ? null : usingModelFallback ? "MODEL" : "LIVE",
     sportsbookCount: usingModelFallback ? null : signal?.sportsbookCount ?? null,
+  };
+}
+
+function resolveDisplayedMarketLine(customLine: number | null, display: MarketSignalDisplay | null): {
+  line: number | null;
+  label: string;
+} {
+  if (customLine != null) {
+    return {
+      line: customLine,
+      label: `Your ${formatStat(customLine)}`,
+    };
+  }
+  if (display?.lineOrigin === "LIVE" && display.line != null) {
+    return {
+      line: display.line,
+      label: `Live ${formatStat(display.line)}`,
+    };
+  }
+  return {
+    line: null,
+    label: "Awaiting market line",
+  };
+}
+
+function resolveMarketRecommendationView(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  customLine: number | null = null,
+): MarketRecommendationView {
+  const modelLine = row.modelLines[market];
+  const display = resolveMarketSignalDisplay(signalLabelForMarket(market), liveSignalForMarket(row, market), modelLine);
+  const precision = precisionSignalForMarket(row, market);
+  const hasPrecisionCall = precision?.qualified === true && precision.side !== "NEUTRAL";
+  const finalSide = hasPrecisionCall ? precision.side : display?.side ?? modelLine.modelSide;
+  const displayedLine = resolveDisplayedMarketLine(customLine, display);
+
+  return {
+    display,
+    precision,
+    finalSide,
+    marketLine: displayedLine.line,
+    marketLineLabel: displayedLine.label,
+    hitChance: displayedLine.line != null && customLine == null ? resolveMarketHitChance(row, market, display) : { value: null, subtitle: null },
   };
 }
 
@@ -2056,15 +2115,15 @@ export function SnapshotDashboard({
 
                   return (
                     <button
-                      key={`daily-card-${entry.candidate.row.playerId}-${entry.candidate.market}`}
-                      type="button"
-                      onClick={() => {
-                        setPlayerLookupError(null);
-                        openPlayerDetail(entry.candidate.row, null, entry.candidate.market);
-                      }}
-                      className={`group rounded-[28px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
-                        isLead
-                          ? "border-fuchsia-300/30 bg-[linear-gradient(150deg,rgba(168,85,247,0.14)_0%,rgba(17,24,39,0.94)_45%,rgba(8,15,29,0.98)_100%)] xl:col-span-3"
+                        key={`daily-card-${entry.candidate.row.playerId}-${entry.candidate.market}`}
+                        type="button"
+                        onClick={() => {
+                          setPlayerLookupError(null);
+                          openPlayerDetail(entry.candidate.row, null, entry.candidate.market);
+                        }}
+                        className={`group rounded-[28px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
+                          isLead
+                          ? "border-blue-300/28 bg-[linear-gradient(150deg,rgba(88,166,255,0.14)_0%,rgba(17,24,39,0.94)_45%,rgba(8,15,29,0.98)_100%)] xl:col-span-3"
                           : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
                       }`}
                     >
@@ -2072,7 +2131,7 @@ export function SnapshotDashboard({
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
                             {isLead && (
-                              <span className="rounded-full border border-fuchsia-300/30 bg-[linear-gradient(110deg,#c026d3,#9333ea)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_12px_rgba(192,38,211,0.5)]">
+                              <span className="rounded-full border border-blue-300/30 bg-[linear-gradient(110deg,rgba(88,166,255,0.9),rgba(59,130,246,0.9))] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white shadow-[0_0_12px_rgba(59,130,246,0.35)]">
                                 Top Pick
                               </span>
                             )}
@@ -3162,7 +3221,8 @@ export function SnapshotDashboard({
                     const l10Consistency = consistencyPct(l10Values);
                     const floor = minValue(l10Values);
                     const ceiling = maxValue(l10Values);
-                    const liveSignalDisplay = candidate.display;
+                    const marketView = resolveMarketRecommendationView(row, candidateMarket);
+                    const liveSignalDisplay = marketView.display;
                     const modelLine = candidate.modelLine;
                     const currentLine = candidate.currentLine;
                     const l10Hit = currentLine == null ? null : hitCounts(l10Values, currentLine);
@@ -3274,15 +3334,15 @@ export function SnapshotDashboard({
                             </span>
                           </div>
                         </td>
-                        {liveSignalDisplay != null ? (
+                        {liveSignalDisplay != null && marketView.marketLine != null ? (
                           <td className="px-4 py-3 text-xs">
                             <div className="space-y-1">
                               <div className="flex flex-wrap items-center gap-1">
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${liveSignalDisplay.statusClass}`}>
                                   {liveSignalDisplay.statusText}
                                 </span>
-                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(liveSignalDisplay.side)}`}>
-                                  {liveSignalDisplay.side}
+                                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(marketView.finalSide)}`}>
+                                  {marketView.finalSide}
                                 </span>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ptsConfidenceClass(liveSignalDisplay.confidenceTier ?? null)}`}>
                                   {liveSignalDisplay.confidence == null
@@ -3291,24 +3351,20 @@ export function SnapshotDashboard({
                                 </span>
                               </div>
                               <div className="text-slate-300">
-                                Line {formatAverage(liveSignalDisplay.line)} | Gap {formatAverage(liveSignalDisplay.projectionGap, true)}
+                                {marketView.marketLineLabel} | Gap {formatAverage(liveSignalDisplay.projectionGap, true)}
                               </div>
                               <div className="text-slate-400">
                                 Risk {formatAverage(liveSignalDisplay.minutesRisk)} | Books {liveSignalDisplay.sportsbookCount || "-"}
                               </div>
-                              {(() => {
-                                const hitChance = resolveMarketHitChance(row, candidateMarket, liveSignalDisplay);
-                                if (hitChance.value == null) return null;
-                                return (
-                                  <div className="max-w-[240px] text-[10px] text-emerald-200">
-                                    Hit chance {formatChanceValue(hitChance.value)}
-                                  </div>
-                                );
-                              })()}
+                              {marketView.hitChance.value != null ? (
+                                <div className="max-w-[240px] text-[10px] text-emerald-200">
+                                  Hit chance {formatChanceValue(marketView.hitChance.value)}
+                                </div>
+                              ) : null}
                             </div>
                           </td>
                         ) : (
-                          <td className="px-4 py-3 text-xs text-slate-400">No live {candidateMarket} line</td>
+                          <td className="px-4 py-3 text-xs text-slate-400">Awaiting confirmed {candidateMarket} market line</td>
                         )}
                         <td className="px-4 py-3">
                           <div className="mb-1 text-[10px] text-slate-400">
@@ -3485,59 +3541,60 @@ export function SnapshotDashboard({
                       {playerDetailError}
                     </p>
                   ) : null}
-                  {(["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as SnapshotMarket[]).map((signalMarket) => {
-                    const modelLine = selectedPlayer.modelLines[signalMarket];
-                    const display = resolveMarketSignalDisplay(
-                      signalLabelForMarket(signalMarket),
-                      liveSignalForMarket(selectedPlayer, signalMarket),
-                      modelLine,
-                    );
-                    if (!display) return null;
-                    const hitChance = resolveMarketHitChance(selectedPlayer, signalMarket, display);
-                    const activeLineLabel = activeLineSourceLabel(null, display, modelLine);
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {MARKET_OPTIONS.map((option) => {
+                      const signalMarket = option.value;
+                      const marketView = resolveMarketRecommendationView(selectedPlayer, signalMarket);
+                      const isFocused = focusedMarket === signalMarket;
+                      const modelLine = selectedPlayer.modelLines[signalMarket];
+                      const display = marketView.display;
+                      if (!display && modelLine.fairLine == null) return null;
 
-                    return (
-                      <div key={signalMarket} className="mt-2">
-                        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-                          <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 font-semibold text-white">
-                            {signalLabelForMarket(signalMarket)}
-                          </span>
-                          <span className={`rounded-full border px-2 py-0.5 font-semibold ${modelSideClass(display.side)}`}>
-                            {display.side}
-                          </span>
-                          <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                            {activeLineLabel}
-                          </span>
-                          {hitChance.value != null ? (
-                            <span className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-2 py-0.5 font-semibold text-emerald-100">
-                              Hit {formatChanceValue(hitChance.value)}
+                      return (
+                        <button
+                          key={signalMarket}
+                          type="button"
+                          onClick={() => setFocusedMarket(signalMarket)}
+                          className={`rounded-2xl border p-3 text-left transition ${
+                            isFocused
+                              ? "border-blue-300/45 bg-blue-500/12 shadow-[0_18px_30px_-24px_rgba(59,130,246,0.9)]"
+                              : "border-white/10 bg-black/15 hover:border-blue-300/25 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-[11px] font-semibold text-white">
+                              {signalLabelForMarket(signalMarket)}
                             </span>
-                          ) : null}
+                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${modelSideClass(marketView.finalSide)}`}>
+                              {marketView.finalSide}
+                            </span>
+                          </div>
+
+                          <p className="mt-3 text-xs font-medium text-slate-200">{marketView.marketLineLabel}</p>
+                          {marketView.hitChance.value != null ? (
+                            <p className="mt-2 text-sm font-semibold text-emerald-100">
+                              Hit {formatChanceValue(marketView.hitChance.value)}
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-xs text-slate-400">
+                              {display?.lineOrigin === "MODEL"
+                                ? "Waiting on a confirmed game line."
+                                : "No confirmed game hit chance yet."}
+                            </p>
+                          )}
+
                           {showAdvancedView ? (
-                            <>
-                              <span className={`rounded-full border px-2 py-0.5 font-semibold ${display.statusClass}`}>
-                                {display.statusText}
-                              </span>
-                              <span className={`rounded-full border px-2 py-0.5 font-semibold ${ptsConfidenceClass(display.confidenceTier)}`}>
-                                Signal {display.confidence == null ? "-" : formatStat(display.confidence)}
-                              </span>
-                              <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                                Edge {formatAverage(display.projectionGap, true)}
-                              </span>
-                              <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                                Minutes Risk {formatAverage(display.minutesRisk)}
-                              </span>
-                              {hitChance.subtitle ? (
-                                <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                                  {hitChance.subtitle}
-                                </span>
-                              ) : null}
-                            </>
+                            <div className="mt-3 space-y-1 text-[10px] text-slate-300">
+                              <p>Status: {display?.statusText ?? "No live signal"}</p>
+                              <p>Gap: {formatAverage(display?.projectionGap ?? modelLine.projectionGap, true)}</p>
+                              <p>Minutes Risk: {formatAverage(display?.minutesRisk ?? null)}</p>
+                              <p>Model Fair Line: {formatAverage(modelLine.fairLine)}</p>
+                            </div>
                           ) : null}
-                        </div>
-                      </div>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -3968,15 +4025,17 @@ export function SnapshotDashboard({
                   const key = lineKey(selectedPlayer.playerId, m);
                   const customLine = parseLine(lineMap[key] ?? "");
                   const modelLine = selectedPlayer.modelLines[m];
-                  const display = resolveMarketSignalDisplay(signalLabelForMarket(m), liveSignalForMarket(selectedPlayer, m), modelLine);
-                  const referenceLine = display?.line ?? modelLine.fairLine;
-                  const finalSide = display?.side ?? modelLine.modelSide;
+                  const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
+                  const display = marketView.display;
+                  const referenceLine = marketView.marketLine;
+                  const finalSide = marketView.finalSide;
                   const finalProjectionGap = display?.projectionGap ?? modelLine.projectionGap;
-                  const activeLineLabel = activeLineSourceLabel(customLine, display, modelLine);
-                  const selectedLine = lineInFocus(customLine, referenceLine);
+                  const activeLineLabel = marketView.marketLineLabel;
+                  const selectedLine = referenceLine;
                   const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
                   const l10Hit = selectedLine == null ? null : hitCounts(l10, selectedLine);
                   const isFocused = focusedMarket === m;
+                  const hitChance = marketView.hitChance;
                   return (
                     <article
                       key={m}
@@ -4017,7 +4076,7 @@ export function SnapshotDashboard({
                         ) : null}
                         <p>Proj Tonight</p>
                         <p className="text-right">{formatAverage(selectedPlayer.projectedTonight[m])}</p>
-                        <p>Active Line</p>
+                        <p>Game Line</p>
                         <p className="text-right">{formatAverage(referenceLine)}</p>
                         <p>Final Side</p>
                         <p className="text-right">
@@ -4027,6 +4086,12 @@ export function SnapshotDashboard({
                         </p>
                         <p>Line Source</p>
                         <p className="text-right">{activeLineLabel}</p>
+                        {hitChance.value != null ? (
+                          <>
+                            <p>Hit Chance</p>
+                            <p className="text-right">{formatChanceValue(hitChance.value)}</p>
+                          </>
+                        ) : null}
                         {showAdvancedView ? (
                           <>
                             <p>Status</p>
@@ -4134,11 +4199,12 @@ export function SnapshotDashboard({
                 const key = lineKey(selectedPlayer.playerId, m);
                 const customLine = parseLine(lineMap[key] ?? "");
                 const modelLine = selectedPlayer.modelLines[m];
-                const display = resolveMarketSignalDisplay(signalLabelForMarket(m), liveSignalForMarket(selectedPlayer, m), modelLine);
-                const referenceLine = display?.line ?? modelLine.fairLine;
-                const finalSide = display?.side ?? modelLine.modelSide;
-                const activeLineLabel = activeLineSourceLabel(customLine, display, modelLine);
-                const selectedLine = lineInFocus(customLine, referenceLine);
+                const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
+                const display = marketView.display;
+                const referenceLine = marketView.marketLine;
+                const finalSide = marketView.finalSide;
+                const activeLineLabel = marketView.marketLineLabel;
+                const selectedLine = referenceLine;
                 const l5 = selectedPlayer.last5[m];
                 const l10 = selectedPlayer.last10[m];
                 const l5Hit = selectedLine == null ? null : hitCounts(l5, selectedLine);
@@ -4185,6 +4251,7 @@ export function SnapshotDashboard({
                   analysisLogs.length === 0
                     ? "-"
                     : `${analysisLogs[analysisLogs.length - 1]?.gameDateEt ?? "-"} to ${analysisLogs[0]?.gameDateEt ?? "-"}`;
+                const hitChance = marketView.hitChance;
 
                 return (
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
@@ -4206,7 +4273,7 @@ export function SnapshotDashboard({
                               }))
                             }
                             inputMode="decimal"
-                            placeholder={referenceLine == null ? "Set line" : formatStat(referenceLine)}
+                            placeholder={referenceLine == null ? (modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)) : formatStat(referenceLine)}
                             className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
                         </label>
@@ -4218,10 +4285,12 @@ export function SnapshotDashboard({
                             </span>
                           </div>
                           <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
-                            <p>Active line</p>
+                            <p>Game line</p>
                             <p className="text-right">{formatAverage(referenceLine)}</p>
                             <p>Line source</p>
                             <p className="text-right">{activeLineLabel}</p>
+                            <p>Hit chance</p>
+                            <p className="text-right">{formatChanceValue(hitChance.value)}</p>
                             <p>Status</p>
                             <p className="text-right">{display?.statusText ?? "No live signal"}</p>
                             <p>Projection gap</p>
@@ -4339,8 +4408,12 @@ export function SnapshotDashboard({
                             <span>{formatAverage(projectionValue)}</span>
                           </p>
                           <p className="flex items-center justify-between">
-                            <span>Active Line</span>
+                            <span>Game Line</span>
                             <span>{formatAverage(referenceLine)}</span>
+                          </p>
+                          <p className="flex items-center justify-between">
+                            <span>Hit Chance</span>
+                            <span>{formatChanceValue(hitChance.value)}</span>
                           </p>
                           <p className="flex items-center justify-between">
                             <span>Final Side</span>
@@ -4576,20 +4649,15 @@ export function SnapshotDashboard({
             >
               <section className="text-xs text-slate-300">
                 {(() => {
-                  const modelLine = selectedPlayer.modelLines[focusedMarket];
-                  const display = resolveMarketSignalDisplay(
-                    signalLabelForMarket(focusedMarket),
-                    liveSignalForMarket(selectedPlayer, focusedMarket),
-                    modelLine,
-                  );
-                  const referenceLine = display?.line ?? modelLine.fairLine;
-                  const finalSide = display?.side ?? modelLine.modelSide;
+                  const marketView = resolveMarketRecommendationView(selectedPlayer, focusedMarket);
+                  const referenceLine = marketView.marketLine;
+                  const finalSide = marketView.finalSide;
 
                   return (
                     <p>
                       Quick read ({focusedMarket}): L5 avg {formatAverage(average(selectedPlayer.last5[focusedMarket]))} | L10 avg{" "}
                       {formatAverage(selectedPlayer.last10Average[focusedMarket])} | Projection{" "}
-                      {formatAverage(selectedPlayer.projectedTonight[focusedMarket])} | Active line {formatAverage(referenceLine)} | Final side{" "}
+                      {formatAverage(selectedPlayer.projectedTonight[focusedMarket])} | Game line {formatAverage(referenceLine)} | Final side{" "}
                       {finalSide} | Trend {formatAverage(selectedPlayer.trendVsSeason[focusedMarket], true)} | Opp +/-{" "}
                       {formatAverage(selectedPlayer.opponentAllowanceDelta[focusedMarket], true)}
                     </p>

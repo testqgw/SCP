@@ -69,6 +69,7 @@ import {
   projectMinutesProfile,
   projectTonightMetrics,
   type MinutesProjectionProfile,
+  type OpponentAvailabilityInput,
   type SameOpponentProjectionSignal,
   type TeamSynergyInput,
 } from "@/lib/snapshot/projection";
@@ -167,6 +168,8 @@ type PlayerProfile = {
   minutesLast10Avg: number | null;
   minutesTrend: number | null;
   minutesVolatility: number | null;
+  stealsPer36Last10: number | null;
+  blocksPer36Last10: number | null;
   stocksPer36Last10: number | null;
   startsLast10: number;
   starterRateLast10: number | null;
@@ -177,7 +180,7 @@ type PlayerProfile = {
 
 const LIVE_FEED_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_LIVE_FEED_TIMEOUT_MS);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 6_000;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 12_000;
   return Math.min(Math.max(3_000, Math.floor(parsed)), 25_000);
 })();
 
@@ -516,6 +519,61 @@ function averageMetricRecordFromProfiles(profiles: PlayerProfile[]): SnapshotMet
   return result;
 }
 
+function averageStocksPer36FromProfiles(profiles: PlayerProfile[]): number | null {
+  return average(
+    profiles
+      .map((profile) => profile.stocksPer36Last10)
+      .filter((value): value is number => value != null && Number.isFinite(value)),
+  );
+}
+
+function roleAvailabilityWeight(profile: Pick<PlayerProfile, "minutesLast10Avg" | "starterRateLast10">): number {
+  const minutesFactor = clamp((profile.minutesLast10Avg ?? 0) / 24, 0.35, 1.35);
+  const starterFactor = clamp(0.68 + (profile.starterRateLast10 ?? 0.4) * 0.52, 0.68, 1.22);
+  return round(minutesFactor * starterFactor, 3);
+}
+
+function isFrontcourtProfile(profile: Pick<PlayerProfile, "positionTokens">): boolean {
+  return profile.positionTokens.has("F") || profile.positionTokens.has("C");
+}
+
+function isGuardWingProfile(profile: Pick<PlayerProfile, "positionTokens">): boolean {
+  return profile.positionTokens.has("G") || (profile.positionTokens.has("F") && !profile.positionTokens.has("C"));
+}
+
+function isBigRimProfile(
+  profile: Pick<PlayerProfile, "positionTokens" | "last10Average" | "blocksPer36Last10" | "stocksPer36Last10">,
+): boolean {
+  if (!isFrontcourtProfile(profile)) return false;
+  return (
+    profile.positionTokens.has("C") ||
+    (profile.last10Average.REB ?? 0) >= 6.2 ||
+    (profile.blocksPer36Last10 ?? 0) >= 0.9 ||
+    (profile.stocksPer36Last10 ?? 0) >= 2.8
+  );
+}
+
+function sumWeightedProfileLoad(
+  profiles: PlayerProfile[],
+  selector: (profile: PlayerProfile) => number | null,
+): number | null {
+  let total = 0;
+  let seen = 0;
+  profiles.forEach((profile) => {
+    const value = selector(profile);
+    if (value == null || !Number.isFinite(value) || value <= 0) return;
+    total += value * roleAvailabilityWeight(profile);
+    seen += 1;
+  });
+  return seen > 0 ? round(total, 2) : null;
+}
+
+function loadShare(missingLoad: number | null, activeLoad: number | null): number | null {
+  const total = (missingLoad ?? 0) + (activeLoad ?? 0);
+  if (!Number.isFinite(total) || total <= 0) return null;
+  return round(Math.max(0, Math.min(1, (missingLoad ?? 0) / total)), 4);
+}
+
 function sumProjectedRotationPoints(profiles: PlayerProfile[], take = 8): number | null {
   const values = profiles
     .slice(0, take)
@@ -525,7 +583,7 @@ function sumProjectedRotationPoints(profiles: PlayerProfile[], take = 8): number
   return round(values.reduce((sum, value) => sum + value, 0), 2);
 }
 
-function isLikelyMissingCoreTeammate(input: {
+function isLikelyMissingCorePlayer(input: {
   profile: PlayerProfile;
   teamCode: string;
   lineupMap: Map<string, LineupTeamSignal>;
@@ -552,20 +610,28 @@ function isLikelyMissingCoreTeammate(input: {
   return latestStatus?.played === false && (input.profile.minutesLast10Avg ?? 0) >= 24;
 }
 
-function buildTeammateSynergyInput(input: {
-  playerId: string;
+type CoreAvailabilityContext = {
+  activeProfiles: PlayerProfile[];
+  missingProfiles: PlayerProfile[];
+};
+
+function buildCoreAvailabilityContext(input: {
+  excludedPlayerId?: string | null;
   teamCode: string;
   teamProfiles: PlayerProfile[];
   lineupMap: Map<string, LineupTeamSignal>;
   statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
-}): TeamSynergyInput | null {
-  const coreProfiles = input.teamProfiles.filter((profile) => profile.playerId !== input.playerId).slice(0, 4);
+  take?: number;
+}): CoreAvailabilityContext | null {
+  const coreProfiles = input.teamProfiles
+    .filter((profile) => profile.playerId !== input.excludedPlayerId)
+    .slice(0, input.take ?? 4);
   if (coreProfiles.length === 0) return null;
 
   const missingCoreIds = new Set(
     coreProfiles
       .filter((profile) =>
-        isLikelyMissingCoreTeammate({
+        isLikelyMissingCorePlayer({
           profile,
           teamCode: input.teamCode,
           lineupMap: input.lineupMap,
@@ -576,10 +642,98 @@ function buildTeammateSynergyInput(input: {
   );
 
   return {
-    activeCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId))),
-    missingCoreAverage: averageMetricRecordFromProfiles(coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId))),
-    activeCoreCount: coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId)).length,
-    missingCoreCount: coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId)).length,
+    activeProfiles: coreProfiles.filter((profile) => !missingCoreIds.has(profile.playerId)),
+    missingProfiles: coreProfiles.filter((profile) => missingCoreIds.has(profile.playerId)),
+  };
+}
+
+function toOpponentAvailabilityInput(context: CoreAvailabilityContext): OpponentAvailabilityInput {
+  const activeFrontcourtRebLoad = sumWeightedProfileLoad(
+    context.activeProfiles.filter((profile) => isFrontcourtProfile(profile)),
+    (profile) => profile.last10Average.REB,
+  );
+  const missingFrontcourtRebLoad = sumWeightedProfileLoad(
+    context.missingProfiles.filter((profile) => isFrontcourtProfile(profile)),
+    (profile) => profile.last10Average.REB,
+  );
+  const activeGuardWingAstLoad = sumWeightedProfileLoad(
+    context.activeProfiles.filter((profile) => isGuardWingProfile(profile)),
+    (profile) => profile.last10Average.AST,
+  );
+  const missingGuardWingAstLoad = sumWeightedProfileLoad(
+    context.missingProfiles.filter((profile) => isGuardWingProfile(profile)),
+    (profile) => profile.last10Average.AST,
+  );
+  const activeGuardWingDisruptionLoad = sumWeightedProfileLoad(
+    context.activeProfiles.filter((profile) => isGuardWingProfile(profile)),
+    (profile) => profile.stealsPer36Last10 ?? profile.stocksPer36Last10,
+  );
+  const missingGuardWingDisruptionLoad = sumWeightedProfileLoad(
+    context.missingProfiles.filter((profile) => isGuardWingProfile(profile)),
+    (profile) => profile.stealsPer36Last10 ?? profile.stocksPer36Last10,
+  );
+  const activeBigBlocksPer36Load = sumWeightedProfileLoad(
+    context.activeProfiles.filter((profile) => isBigRimProfile(profile)),
+    (profile) => profile.blocksPer36Last10,
+  );
+  const missingBigBlocksPer36Load = sumWeightedProfileLoad(
+    context.missingProfiles.filter((profile) => isBigRimProfile(profile)),
+    (profile) => profile.blocksPer36Last10,
+  );
+  const activeBigStocksPer36Load = sumWeightedProfileLoad(
+    context.activeProfiles.filter((profile) => isBigRimProfile(profile)),
+    (profile) => profile.stocksPer36Last10,
+  );
+  const missingBigStocksPer36Load = sumWeightedProfileLoad(
+    context.missingProfiles.filter((profile) => isBigRimProfile(profile)),
+    (profile) => profile.stocksPer36Last10,
+  );
+  const activeGuardWingReliefLoad =
+    (activeGuardWingAstLoad ?? 0) * 0.62 + (activeGuardWingDisruptionLoad ?? 0) * 0.38;
+  const missingGuardWingReliefLoad =
+    (missingGuardWingAstLoad ?? 0) * 0.62 + (missingGuardWingDisruptionLoad ?? 0) * 0.38;
+  const activeRimProtectionLoad = (activeBigBlocksPer36Load ?? 0) * 0.72 + (activeBigStocksPer36Load ?? 0) * 0.28;
+  const missingRimProtectionLoad =
+    (missingBigBlocksPer36Load ?? 0) * 0.72 + (missingBigStocksPer36Load ?? 0) * 0.28;
+  return {
+    activeCoreAverage: averageMetricRecordFromProfiles(context.activeProfiles),
+    missingCoreAverage: averageMetricRecordFromProfiles(context.missingProfiles),
+    activeCoreCount: context.activeProfiles.length,
+    missingCoreCount: context.missingProfiles.length,
+    activeCoreStocksPer36: averageStocksPer36FromProfiles(context.activeProfiles),
+    missingCoreStocksPer36: averageStocksPer36FromProfiles(context.missingProfiles),
+    missingFrontcourtRebLoad,
+    missingFrontcourtRebShare: loadShare(missingFrontcourtRebLoad, activeFrontcourtRebLoad),
+    missingGuardWingAstLoad,
+    missingGuardWingDisruptionLoad,
+    missingGuardWingDisruptionShare: loadShare(missingGuardWingReliefLoad, activeGuardWingReliefLoad),
+    missingBigBlocksPer36Load,
+    missingBigStocksPer36Load,
+    missingRimProtectionShare: loadShare(missingRimProtectionLoad, activeRimProtectionLoad),
+  };
+}
+
+function buildTeammateSynergyInput(input: {
+  playerId: string;
+  teamCode: string;
+  teamProfiles: PlayerProfile[];
+  lineupMap: Map<string, LineupTeamSignal>;
+  statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
+}): TeamSynergyInput | null {
+  const context = buildCoreAvailabilityContext({
+    excludedPlayerId: input.playerId,
+    teamCode: input.teamCode,
+    teamProfiles: input.teamProfiles,
+    lineupMap: input.lineupMap,
+    statusLogsByPlayerId: input.statusLogsByPlayerId,
+  });
+  if (!context) return null;
+
+  return {
+    activeCoreAverage: averageMetricRecordFromProfiles(context.activeProfiles),
+    missingCoreAverage: averageMetricRecordFromProfiles(context.missingProfiles),
+    activeCoreCount: context.activeProfiles.length,
+    missingCoreCount: context.missingProfiles.length,
   };
 }
 
@@ -784,6 +938,10 @@ function standardDeviation(values: number[]): number | null {
   if (avg == null) return null;
   const variance = values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
   return round(Math.sqrt(variance), 2);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function parsePositionTokens(position: string | null): Set<PositionToken> {
@@ -1795,6 +1953,14 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
     minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
       ? null
       : round(((stealsLast10Avg + blocksLast10Avg) / minutesLast10Avg) * 36, 2);
+  const stealsPer36Last10 =
+    minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null
+      ? null
+      : round((stealsLast10Avg / minutesLast10Avg) * 36, 2);
+  const blocksPer36Last10 =
+    minutesLast10Avg == null || minutesLast10Avg <= 0 || blocksLast10Avg == null
+      ? null
+      : round((blocksLast10Avg / minutesLast10Avg) * 36, 2);
   const playerProfile: PlayerProfile = {
     playerId: player.id,
     playerName: player.fullName,
@@ -1806,6 +1972,8 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
     minutesTrend:
       minutesLast3Avg == null || minutesLast10Avg == null ? null : round(minutesLast3Avg - minutesLast10Avg, 2),
     minutesVolatility,
+    stealsPer36Last10,
+    blocksPer36Last10,
     stocksPer36Last10,
     startsLast10: computedStartsLast10,
     starterRateLast10: computedStarterRateLast10,
@@ -2439,10 +2607,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       withTimeoutFallback(fetchDailyRebLineMap(dateEt, dailyMatchupHints), new Map()),
       withTimeoutFallback(fetchDailyAstLineMap(dateEt, dailyMatchupHints), new Map()),
       withTimeoutFallback(fetchDailyThreesLineMap(dateEt, dailyMatchupHints), new Map()),
-      withTimeoutFallback(fetchDailyPraLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyPaLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyPrLineMap(dateEt), new Map()),
-      withTimeoutFallback(fetchDailyRaLineMap(dateEt), new Map()),
+      withTimeoutFallback(fetchDailyPraLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyPaLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyPrLineMap(dateEt, dailyMatchupHints), new Map()),
+      withTimeoutFallback(fetchDailyRaLineMap(dateEt, dailyMatchupHints), new Map()),
     ]);
   const positionByExternalId = new Map(
     allPlayerPositions
@@ -2625,6 +2793,14 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null || blocksLast10Avg == null
         ? null
         : round(((stealsLast10Avg + blocksLast10Avg) / minutesLast10Avg) * 36, 2);
+    const stealsPer36Last10 =
+      minutesLast10Avg == null || minutesLast10Avg <= 0 || stealsLast10Avg == null
+        ? null
+        : round((stealsLast10Avg / minutesLast10Avg) * 36, 2);
+    const blocksPer36Last10 =
+      minutesLast10Avg == null || minutesLast10Avg <= 0 || blocksLast10Avg == null
+        ? null
+        : round((blocksLast10Avg / minutesLast10Avg) * 36, 2);
 
     const profile: PlayerProfile = {
       playerId: player.id,
@@ -2636,6 +2812,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       minutesLast10Avg,
       minutesTrend,
       minutesVolatility,
+      stealsPer36Last10,
+      blocksPer36Last10,
       stocksPer36Last10,
       startsLast10,
       starterRateLast10,
@@ -2711,11 +2889,23 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const playerProfile = playerProfilesById.get(player.id) ?? null;
     const teamProfiles = teamProfilesByTeamId.get(player.teamId) ?? [];
     const opponentProfiles = teamProfilesByTeamId.get(matchup.opponentTeamId) ?? [];
+    const opponentAvailabilityContext = buildCoreAvailabilityContext({
+      teamCode: matchup.opponentCode,
+      teamProfiles: opponentProfiles,
+      lineupMap,
+      statusLogsByPlayerId,
+    });
+    const opponentAvailability = opponentAvailabilityContext
+      ? toOpponentAvailabilityInput(opponentAvailabilityContext)
+      : null;
+    const missingOpponentIds = new Set(opponentAvailabilityContext?.missingProfiles.map((profile) => profile.playerId) ?? []);
+    const activeOpponentProfiles = opponentProfiles.filter((profile) => !missingOpponentIds.has(profile.playerId));
+    const availableOpponentProfiles = activeOpponentProfiles.length > 0 ? activeOpponentProfiles : opponentProfiles;
     const teamSummary = teamSummaryByTeamId.get(player.teamId) ?? emptyTeamSummary();
     const opponentSummary = teamSummaryByTeamId.get(matchup.opponentTeamId) ?? emptyTeamSummary();
     const rotationRankIndex = teamProfiles.findIndex((profile) => profile.playerId === player.id);
     const rotationRank = rotationRankIndex >= 0 ? rotationRankIndex + 1 : null;
-    const primaryDefender = playerProfile ? choosePrimaryDefender(playerProfile, opponentProfiles) : null;
+    const primaryDefender = playerProfile ? choosePrimaryDefender(playerProfile, availableOpponentProfiles) : null;
     const teammateCore: SnapshotTeammateCore[] = teamProfiles
       .filter((profile) => profile.playerId !== player.id)
       .slice(0, 3)
@@ -2742,7 +2932,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       const latest = statusLogsByPlayerId.get(teammate.playerId)?.[0];
       return count + (latest == null || latest.played == null ? 1 : 0);
     }, 0);
-    const opponentTop5 = opponentProfiles.slice(0, 5);
+    const opponentTop5 = availableOpponentProfiles.slice(0, 5);
     const opponentStarterShareTop5 =
       opponentTop5.length > 0
         ? round(
@@ -2852,6 +3042,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         openingTotal,
         availabilitySeverity,
         teammateSynergy,
+        opponentAvailability,
       }),
       lineupSignal,
     );
@@ -2871,11 +3062,31 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       teammateSynergy == null
         ? null
         : round((teammateSynergy.missingCoreAverage.AST ?? 0) * teammateSynergy.missingCoreCount, 2);
+    const opponentMissingCorePts =
+      opponentAvailability == null
+        ? null
+        : round((opponentAvailability.missingCoreAverage.PTS ?? 0) * opponentAvailability.missingCoreCount, 2);
+    const opponentMissingCoreAst =
+      opponentAvailability == null
+        ? null
+        : round((opponentAvailability.missingCoreAverage.AST ?? 0) * opponentAvailability.missingCoreCount, 2);
+    const opponentMissingCoreReb =
+      opponentAvailability == null
+        ? null
+        : round((opponentAvailability.missingCoreAverage.REB ?? 0) * opponentAvailability.missingCoreCount, 2);
+    const opponentMissingCoreStocks =
+      opponentAvailability == null || opponentAvailability.missingCoreStocksPer36 == null
+        ? null
+        : round(opponentAvailability.missingCoreStocksPer36 * opponentAvailability.missingCoreCount, 2);
     const teamRotationProjectedPts = sumProjectedRotationPoints(teamProfiles);
     const missingCoreShare =
       missingCorePts == null || teamRotationProjectedPts == null || teamRotationProjectedPts <= 0
         ? null
         : round(Math.max(0, Math.min(1, missingCorePts / teamRotationProjectedPts)), 4);
+    const opponentMissingCoreShare =
+      opponentAvailability == null
+        ? null
+        : round(Math.max(0, Math.min(1, opponentAvailability.missingCoreCount / 4)), 4);
     const minutesLiftPct =
       minutesProfile.expected == null || seasonMinutesAvg == null || seasonMinutesAvg <= 0
         ? null
@@ -2896,6 +3107,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       missingCoreAst,
       missingCoreShare,
       stepUpRoleFlag,
+      opponentMissingCorePts,
+      opponentMissingCoreAst,
+      opponentMissingCoreReb,
+      opponentMissingCoreStocks,
+      opponentMissingCoreShare,
     } as const;
     const playerShotPressure = buildShotPressureSummary(seasonVolumeLogs, player.externalId, dateEt);
     const opponentShotVolume = resolveOpponentShotVolumeMetrics({
@@ -3263,6 +3479,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         missingCoreAst: universalUsageContext.missingCoreAst ?? null,
         missingCoreShare: universalUsageContext.missingCoreShare ?? null,
         stepUpRoleFlag: universalUsageContext.stepUpRoleFlag ?? null,
+        opponentMissingCorePts: universalUsageContext.opponentMissingCorePts ?? null,
+        opponentMissingCoreAst: universalUsageContext.opponentMissingCoreAst ?? null,
+        opponentMissingCoreReb: universalUsageContext.opponentMissingCoreReb ?? null,
+        opponentMissingCoreStocks: universalUsageContext.opponentMissingCoreStocks ?? null,
+        opponentMissingCoreShare: universalUsageContext.opponentMissingCoreShare ?? null,
         expectedMinutes: minutesProfile.expected,
         minutesVolatility,
         benchBigRoleStability,
@@ -3410,6 +3631,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       missingCoreAst: universalUsageContext.missingCoreAst ?? null,
       missingCoreShare: universalUsageContext.missingCoreShare ?? null,
       stepUpRoleFlag: universalUsageContext.stepUpRoleFlag ?? null,
+      opponentMissingCorePts: universalUsageContext.opponentMissingCorePts ?? null,
+      opponentMissingCoreAst: universalUsageContext.opponentMissingCoreAst ?? null,
+      opponentMissingCoreReb: universalUsageContext.opponentMissingCoreReb ?? null,
+      opponentMissingCoreStocks: universalUsageContext.opponentMissingCoreStocks ?? null,
+      opponentMissingCoreShare: universalUsageContext.opponentMissingCoreShare ?? null,
       completenessScore: dataCompleteness.score,
       playerPosition: player.position,
       pointsProjection: projectedTonight.PTS,
@@ -3636,7 +3862,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       openingTotal,
       playerProfile,
       teamProfiles,
-      opponentProfiles,
+      opponentProfiles: availableOpponentProfiles,
       primaryDefender,
       teammateCore,
       last10Logs,
