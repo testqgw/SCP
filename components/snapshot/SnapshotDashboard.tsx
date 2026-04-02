@@ -129,23 +129,6 @@ function parseLine(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function lineInFocus(customLine: number | null, modelLine: number | null): number | null {
-  return customLine ?? modelLine;
-}
-
-function activeLineSourceLabel(
-  customLine: number | null,
-  display: MarketSignalDisplay | null,
-  modelLine: SnapshotRow["modelLines"][SnapshotMarket],
-): string {
-  if (customLine != null) return `Your ${formatStat(customLine)}`;
-  if (display?.line != null) {
-    return `${display.lineOrigin === "MODEL" ? "Model" : "Live"} ${formatStat(display.line)}`;
-  }
-  if (modelLine.fairLine != null) return `Model ${formatStat(modelLine.fairLine)}`;
-  return "No line";
-}
-
 function modelSideClass(side: "OVER" | "UNDER" | "NEUTRAL"): string {
   if (side === "OVER") return "bg-emerald-500/15 text-emerald-200";
   if (side === "UNDER") return "bg-amber-500/15 text-amber-200";
@@ -250,6 +233,13 @@ function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
     data.rows.length > 0 ||
     Boolean(data.precisionSystem)
   );
+}
+
+function isPrecisionCardUnderfilled(data: SnapshotBoardData): boolean {
+  const targetCardCount = data.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
+  if (targetCardCount <= 0) return false;
+  const selectedCount = data.precisionCardSummary?.selectedCount ?? data.precisionCard?.length ?? 0;
+  return selectedCount < targetCardCount;
 }
 
 function shouldAutoRefreshBoard(targetDate: string, lastUpdatedAt: string | null): boolean {
@@ -375,8 +365,17 @@ function resolveMarketRecommendationView(
   const display = resolveMarketSignalDisplay(signalLabelForMarket(market), liveSignalForMarket(row, market), modelLine);
   const precision = precisionSignalForMarket(row, market);
   const hasPrecisionCall = precision?.qualified === true && precision.side !== "NEUTRAL";
-  const finalSide = hasPrecisionCall ? precision.side : display?.side ?? modelLine.modelSide;
   const displayedLine = resolveDisplayedMarketLine(customLine, display);
+  const projection = row.projectedTonight[market];
+  const customLineSide =
+    customLine == null || projection == null
+      ? null
+      : projection > customLine
+        ? ("OVER" as const)
+        : projection < customLine
+          ? ("UNDER" as const)
+          : ("NEUTRAL" as const);
+  const finalSide = customLineSide ?? (hasPrecisionCall ? precision.side : display?.side ?? modelLine.modelSide);
 
   return {
     display,
@@ -484,10 +483,16 @@ function buildFocusCandidate(
   const modelLine = row.modelLines[market];
   const display = resolveMarketSignalDisplay(signalLabelForMarket(market), signal, modelLine);
   const customLine = parseLine(customLineValue ?? "");
-  const currentLine = lineInFocus(customLine, display?.line ?? modelLine.fairLine);
-  const currentLineLabel = activeLineSourceLabel(customLine, display, modelLine);
-  const side = display?.side ?? modelLine.modelSide;
-  const gap = Math.abs(display?.projectionGap ?? modelLine.projectionGap ?? 0);
+  const marketView = resolveMarketRecommendationView(row, market, customLine);
+  const currentLine = marketView.marketLine;
+  const currentLineLabel = marketView.marketLineLabel;
+  const side = marketView.finalSide;
+  const projectionValue = row.projectedTonight[market];
+  const gapBase =
+    currentLine != null && projectionValue != null
+      ? projectionValue - currentLine
+      : display?.projectionGap ?? modelLine.projectionGap ?? 0;
+  const gap = Math.abs(gapBase);
   const confidence = display?.confidence ?? null;
   const minutesRisk = display?.minutesRisk ?? null;
   const confidenceScore = confidence == null ? 0 : clampNumber((confidence - 50) * 0.7, 0, 24);
@@ -521,7 +526,7 @@ function buildFocusCandidate(
       : `${display.statusText} ${display.side === "NEUTRAL" ? "" : display.side}`.trim(),
   );
   if (display?.projectionGap != null) {
-    reasons.push(`Gap ${formatAverage(display.projectionGap, true)} vs ${currentLineLabel.toLowerCase()}.`);
+    reasons.push(`Gap ${formatAverage(gapBase, true)} vs ${currentLineLabel.toLowerCase()}.`);
   }
   if (confidence != null || minutesRisk != null) {
     reasons.push(
@@ -563,12 +568,12 @@ function average(values: number[]): number | null {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function lineKey(playerId: string, market: SnapshotMarket): string {
-  return `${playerId}:${market}`;
+function lineKey(dateEt: string, playerId: string, market: SnapshotMarket): string {
+  return `${dateEt}:${playerId}:${market}`;
 }
 
-function minuteFloorKey(playerId: string, market: SnapshotMarket): string {
-  return `${playerId}:${market}:minutes-floor`;
+function minuteFloorKey(dateEt: string, playerId: string, market: SnapshotMarket): string {
+  return `${dateEt}:${playerId}:${market}:minutes-floor`;
 }
 
 function parseMinutesFloor(value: string): number | null {
@@ -765,6 +770,7 @@ export function SnapshotDashboard({
   const lastVisitRefreshRef = useRef<{ key: string | null; at: number }>({ key: null, at: 0 });
   const refreshInFlightRef = useRef(false);
   const pendingBoardReloadTimeoutRef = useRef<number | null>(null);
+  const underfilledSlateReloadRef = useRef<string | null>(null);
   const [boardData, setBoardData] = useState<SnapshotBoardData>(initialData);
   const activeData = boardData;
   const [matchup, setMatchup] = useState(
@@ -806,6 +812,14 @@ export function SnapshotDashboard({
   const [playerBacktestLoading, setPlayerBacktestLoading] = useState(false);
   const [playerBacktestError, setPlayerBacktestError] = useState<string | null>(null);
   const isAllMarketsView = market === "ALL";
+  const scopedLineKey = useCallback(
+    (playerId: string, slateMarket: SnapshotMarket): string => lineKey(activeData.dateEt, playerId, slateMarket),
+    [activeData.dateEt],
+  );
+  const scopedMinuteFloorKey = useCallback(
+    (playerId: string, slateMarket: SnapshotMarket): string => minuteFloorKey(activeData.dateEt, playerId, slateMarket),
+    [activeData.dateEt],
+  );
 
   const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<SnapshotBoardData> => {
     const params = new URLSearchParams();
@@ -1006,6 +1020,24 @@ export function SnapshotDashboard({
     if (!hasBoardSnapshotData(activeData)) return;
     refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
   }, [activeData, refreshBoardForVisit]);
+
+  useEffect(() => {
+    const isTodaySlate = activeData.dateEt === getTodayEtDateString(new Date());
+    const underfilled = isTodaySlate && isPrecisionCardUnderfilled(activeData);
+    if (!underfilled) {
+      if (underfilledSlateReloadRef.current === activeData.dateEt) {
+        underfilledSlateReloadRef.current = null;
+      }
+      return;
+    }
+    if (underfilledSlateReloadRef.current === activeData.dateEt || isBoardLoading) {
+      return;
+    }
+
+    underfilledSlateReloadRef.current = activeData.dateEt;
+    setRefreshMessage("Precision card loaded short. Pulling the freshest live slate now...");
+    void loadBoardData(activeData.dateEt, { bustCache: true });
+  }, [activeData, isBoardLoading, loadBoardData]);
 
   useEffect(() => {
     const handlePageShow = (): void => {
@@ -1410,7 +1442,7 @@ export function SnapshotDashboard({
     () => {
       if (!showAdvancedView || market === "ALL") return [];
       return filteredRows
-        .map((row) => buildFocusCandidate(row, market, lineMap[lineKey(row.playerId, market)]))
+        .map((row) => buildFocusCandidate(row, market, lineMap[scopedLineKey(row.playerId, market)]))
         .sort((left, right) => {
           if (right.focusScore !== left.focusScore) return right.focusScore - left.focusScore;
           const leftConfidence = left.display?.confidence ?? 0;
@@ -1419,7 +1451,7 @@ export function SnapshotDashboard({
           return left.row.playerName.localeCompare(right.row.playerName);
         });
     },
-    [filteredRows, lineMap, market, showAdvancedView],
+    [filteredRows, lineMap, market, scopedLineKey, showAdvancedView],
   );
 
   const allQualifiedCandidates = useMemo(
@@ -1427,7 +1459,7 @@ export function SnapshotDashboard({
       filteredRows
         .flatMap((row) =>
           MARKET_OPTIONS.map((option) =>
-            buildFocusCandidate(row, option.value, lineMap[lineKey(row.playerId, option.value)]),
+            buildFocusCandidate(row, option.value, lineMap[scopedLineKey(row.playerId, option.value)]),
           ).filter((candidate) => candidate.signalQualified),
         )
         .sort((left, right) => {
@@ -1439,7 +1471,7 @@ export function SnapshotDashboard({
           if (left.row.playerName !== right.row.playerName) return left.row.playerName.localeCompare(right.row.playerName);
           return left.market.localeCompare(right.market);
         }),
-    [filteredRows, lineMap],
+    [filteredRows, lineMap, scopedLineKey],
   );
 
   const allFocusCandidates = useMemo(
@@ -1447,7 +1479,9 @@ export function SnapshotDashboard({
       if (!showAdvancedView) return [];
       return filteredRows
         .flatMap((row) =>
-          MARKET_OPTIONS.map((option) => buildFocusCandidate(row, option.value, lineMap[lineKey(row.playerId, option.value)])),
+          MARKET_OPTIONS.map((option) =>
+            buildFocusCandidate(row, option.value, lineMap[scopedLineKey(row.playerId, option.value)]),
+          ),
         )
         .sort((left, right) => {
           const leftConfidence = left.display?.confidence ?? 0;
@@ -1459,7 +1493,7 @@ export function SnapshotDashboard({
           return left.market.localeCompare(right.market);
         });
     },
-    [filteredRows, lineMap, showAdvancedView],
+    [filteredRows, lineMap, scopedLineKey, showAdvancedView],
   );
 
   const focusCandidates = useMemo(() => {
@@ -1503,13 +1537,13 @@ export function SnapshotDashboard({
         if (!row) return [];
         return [
           {
-            candidate: buildFocusCandidate(row, entry.market, lineMap[lineKey(entry.playerId, entry.market)]),
+            candidate: buildFocusCandidate(row, entry.market, lineMap[scopedLineKey(entry.playerId, entry.market)]),
             precision: entry.precisionSignal ?? precisionSignalForMarket(row, entry.market),
             source: entry.source,
           } satisfies DailyCardCandidate,
         ];
       }),
-    [activeData.precisionCard, lineMap, rowByPlayerId],
+    [activeData.precisionCard, lineMap, rowByPlayerId, scopedLineKey],
   );
 
   const strongProjectionCandidates = useMemo(() => {
@@ -1529,7 +1563,7 @@ export function SnapshotDashboard({
         const gap = projection - currentLine;
         if (gap < threshold) return;
         results.push({
-          ...buildFocusCandidate(row, mkt, lineMap[lineKey(row.playerId, mkt)]),
+          ...buildFocusCandidate(row, mkt, lineMap[scopedLineKey(row.playerId, mkt)]),
           projGap: gap,
           threshold,
         });
@@ -1541,7 +1575,7 @@ export function SnapshotDashboard({
       return bRatio - aRatio;
     });
     return results;
-  }, [filteredRows, lineMap]);
+  }, [filteredRows, lineMap, scopedLineKey]);
 
 
   const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
@@ -3375,12 +3409,12 @@ export function SnapshotDashboard({
                                 )}`}
                           </div>
                           <input
-                            value={lineMap[lineKey(row.playerId, candidateMarket)] ?? ""}
+                            value={lineMap[scopedLineKey(row.playerId, candidateMarket)] ?? ""}
                             onClick={(event) => event.stopPropagation()}
                             onChange={(event) =>
                               setLineMap((current) => ({
                                 ...current,
-                                [lineKey(row.playerId, candidateMarket)]: event.target.value,
+                                [scopedLineKey(row.playerId, candidateMarket)]: event.target.value,
                               }))
                             }
                             inputMode="decimal"
@@ -3544,16 +3578,17 @@ export function SnapshotDashboard({
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     {MARKET_OPTIONS.map((option) => {
                       const signalMarket = option.value;
-                      const marketView = resolveMarketRecommendationView(selectedPlayer, signalMarket);
+                      const key = scopedLineKey(selectedPlayer.playerId, signalMarket);
+                      const customLine = parseLine(lineMap[key] ?? "");
+                      const marketView = resolveMarketRecommendationView(selectedPlayer, signalMarket, customLine);
                       const isFocused = focusedMarket === signalMarket;
                       const modelLine = selectedPlayer.modelLines[signalMarket];
                       const display = marketView.display;
                       if (!display && modelLine.fairLine == null) return null;
 
                       return (
-                        <button
+                        <article
                           key={signalMarket}
-                          type="button"
                           onClick={() => setFocusedMarket(signalMarket)}
                           className={`rounded-2xl border p-3 text-left transition ${
                             isFocused
@@ -3577,11 +3612,33 @@ export function SnapshotDashboard({
                             </p>
                           ) : (
                             <p className="mt-2 text-xs text-slate-400">
-                              {display?.lineOrigin === "MODEL"
-                                ? "Waiting on a confirmed game line."
-                                : "No confirmed game hit chance yet."}
+                              {customLine != null
+                                ? "Custom line active. Scroll for the updated read."
+                                : display?.lineOrigin === "MODEL"
+                                  ? "Waiting on a confirmed game line."
+                                  : "No confirmed game hit chance yet."}
                             </p>
                           )}
+
+                          <label className="mt-3 block text-[10px] uppercase tracking-[0.12em] text-slate-400">
+                            Use your line
+                            <input
+                              value={lineMap[key] ?? ""}
+                              onClick={(event) => event.stopPropagation()}
+                              onFocus={() => setFocusedMarket(signalMarket)}
+                              onChange={(event) => {
+                                const nextValue = event.target.value;
+                                setFocusedMarket(signalMarket);
+                                setLineMap((current) => ({
+                                  ...current,
+                                  [key]: nextValue,
+                                }));
+                              }}
+                              inputMode="decimal"
+                              placeholder={marketView.marketLine != null ? formatStat(marketView.marketLine) : modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)}
+                              className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                            />
+                          </label>
 
                           {showAdvancedView ? (
                             <div className="mt-3 space-y-1 text-[10px] text-slate-300">
@@ -3591,7 +3648,7 @@ export function SnapshotDashboard({
                               <p>Model Fair Line: {formatAverage(modelLine.fairLine)}</p>
                             </div>
                           ) : null}
-                        </button>
+                        </article>
                       );
                     })}
                   </div>
@@ -4022,7 +4079,7 @@ export function SnapshotDashboard({
                   const m = option.value;
                   const l5 = selectedPlayer.last5[m];
                   const l10 = selectedPlayer.last10[m];
-                  const key = lineKey(selectedPlayer.playerId, m);
+                  const key = scopedLineKey(selectedPlayer.playerId, m);
                   const customLine = parseLine(lineMap[key] ?? "");
                   const modelLine = selectedPlayer.modelLines[m];
                   const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
@@ -4196,7 +4253,7 @@ export function SnapshotDashboard({
 
               {(() => {
                 const m = focusedMarket;
-                const key = lineKey(selectedPlayer.playerId, m);
+                const key = scopedLineKey(selectedPlayer.playerId, m);
                 const customLine = parseLine(lineMap[key] ?? "");
                 const modelLine = selectedPlayer.modelLines[m];
                 const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
@@ -4233,7 +4290,7 @@ export function SnapshotDashboard({
                 const oneSdBandHigh = selectedLine == null || l10StdDev == null ? null : selectedLine + l10StdDev;
                 const projectionValue = selectedPlayer.projectedTonight[m];
                 const projectionVsLine = selectedLine == null || projectionValue == null ? null : projectionValue - selectedLine;
-                const minutesKey = minuteFloorKey(selectedPlayer.playerId, m);
+                const minutesKey = scopedMinuteFloorKey(selectedPlayer.playerId, m);
                 const projectedFloorDefault =
                   selectedPlayer.playerContext.projectedMinutesFloor == null
                     ? 22
@@ -4649,7 +4706,9 @@ export function SnapshotDashboard({
             >
               <section className="text-xs text-slate-300">
                 {(() => {
-                  const marketView = resolveMarketRecommendationView(selectedPlayer, focusedMarket);
+                  const key = scopedLineKey(selectedPlayer.playerId, focusedMarket);
+                  const customLine = parseLine(lineMap[key] ?? "");
+                  const marketView = resolveMarketRecommendationView(selectedPlayer, focusedMarket, customLine);
                   const referenceLine = marketView.marketLine;
                   const finalSide = marketView.finalSide;
 

@@ -283,6 +283,14 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
   };
 }
 
+function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
+  if (dateEt !== getTodayEtDateString()) return false;
+  const targetCardCount = PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6;
+  if (targetCardCount <= 0) return false;
+  const selectedCount = data.precisionCardSummary?.selectedCount ?? data.precisionCard?.length ?? 0;
+  return selectedCount < targetCardCount;
+}
+
 function getSnapshotBoardRowKey(row: Pick<SnapshotRow, "matchupKey" | "playerId">): string {
   return `${row.matchupKey}|${row.playerId}`;
 }
@@ -422,6 +430,27 @@ function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
     ...data,
     rows: data.rows.map((row) => toBoardSnapshotRow(row)),
   };
+}
+
+function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): PrecisionSlateCandidate[] {
+  return rows.flatMap((row) =>
+    MARKETS.flatMap((market) => {
+      const signal = row.precisionSignals?.[market] ?? null;
+      const qualified = signal?.qualified ?? signal?.side !== "NEUTRAL";
+      if (!signal || !qualified || signal.side === "NEUTRAL") return [];
+      return [
+        {
+          playerId: row.playerId,
+          playerName: row.playerName,
+          matchupKey: row.matchupKey,
+          market,
+          signal,
+          selectionScore: signal.selectionScore ?? 0,
+          source: "PRECISION" as const,
+        } satisfies PrecisionSlateCandidate,
+      ];
+    }),
+  );
 }
 
 function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
@@ -2331,7 +2360,13 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
-  if (!bustCache && cached && cached.sourceSignal === sourceSignal && cached.expiresAt > Date.now()) {
+  if (
+    !bustCache &&
+    cached &&
+    cached.sourceSignal === sourceSignal &&
+    cached.expiresAt > Date.now() &&
+    !isUnderfilledPrecisionBoard(dateEt, cached.data)
+  ) {
     return toBoardSnapshotData(cached.data);
   }
 
@@ -2341,7 +2376,12 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
   const persistedRowMap = buildPersistedSnapshotRowMap(persistedBoard);
-  if (!bustCache && persistedBoard && persistedBoard.sourceSignal === sourceSignal) {
+  if (
+    !bustCache &&
+    persistedBoard &&
+    persistedBoard.sourceSignal === sourceSignal &&
+    !isUnderfilledPrecisionBoard(dateEt, persistedBoard.data)
+  ) {
     const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
     snapshotBoardCache.set(cacheKey, {
       data: normalizedPersistedBoard,
@@ -4201,11 +4241,28 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     },
     precisionShortfallCardCandidates,
   );
+  const rowDerivedPrecisionCandidates = buildPrecisionRecoveryCandidatesFromRows(rowsWithSortKeys.map((item) => item.row));
+  const recoveredPrecisionCard =
+    precisionCard.length < (PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6)
+      ? selectPrecisionCardWithTopOff(
+          rowDerivedPrecisionCandidates,
+          {
+            candidates: rowDerivedPrecisionCandidates,
+            ignorePlayerLimit: true,
+            ignoreMarketCaps: true,
+          },
+        )
+      : precisionCard;
+  const finalPrecisionCard =
+    recoveredPrecisionCard.length > precisionCard.length ? recoveredPrecisionCard : precisionCard;
   const precisionCardSummary = {
     targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
-    truePickCount: precisionSelectionPool.filter((candidate) => candidate.source === "PRECISION").length,
+    truePickCount: Math.max(
+      precisionSelectionPool.filter((candidate) => candidate.source === "PRECISION").length,
+      rowDerivedPrecisionCandidates.length,
+    ),
     fillCount: 0,
-    selectedCount: precisionCard.length,
+    selectedCount: finalPrecisionCard.length,
   };
 
   const result = toBoardSnapshotData({
@@ -4214,7 +4271,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
     rows: rowsWithSortKeys.map((item) => item.row),
-    precisionCard,
+    precisionCard: finalPrecisionCard,
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
