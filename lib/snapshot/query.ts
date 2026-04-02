@@ -178,6 +178,11 @@ type PlayerProfile = {
   positionTokens: Set<PositionToken>;
 };
 
+type CachedPlayerPosition = {
+  externalId: string | null;
+  position: string | null;
+};
+
 const LIVE_FEED_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_LIVE_FEED_TIMEOUT_MS);
   if (!Number.isFinite(parsed) || parsed <= 0) return 12_000;
@@ -229,6 +234,7 @@ const SNAPSHOT_BOARD_CACHE_TTL_MS = (() => {
   if (!Number.isFinite(parsed) || parsed <= 0) return 300_000;
   return Math.min(Math.max(5_000, Math.floor(parsed)), 10 * 60_000);
 })();
+const PLAYER_POSITION_CACHE_TTL_MS = 30 * 60_000;
 
 type SnapshotBoardCacheEntry = {
   data: SnapshotBoardData;
@@ -237,6 +243,7 @@ type SnapshotBoardCacheEntry = {
 };
 
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
+let cachedPlayerPositions: { data: CachedPlayerPosition[]; expiresAt: number } | null = null;
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
 const SNAPSHOT_BOARD_PAYLOAD_VERSION = "modal-preload-v2";
 
@@ -258,6 +265,22 @@ function latestUpdatedAtIso(...values: Array<Date | null | undefined>): string |
   }, null);
 
   return latestMs == null ? null : new Date(latestMs).toISOString();
+}
+
+async function getCachedPlayerPositions(): Promise<CachedPlayerPosition[]> {
+  if (cachedPlayerPositions && cachedPlayerPositions.expiresAt > Date.now()) {
+    return cachedPlayerPositions.data;
+  }
+
+  const data = await prisma.player.findMany({
+    where: { externalId: { not: null } },
+    select: { externalId: true, position: true },
+  });
+  cachedPlayerPositions = {
+    data,
+    expiresAt: Date.now() + PLAYER_POSITION_CACHE_TTL_MS,
+  };
+  return data;
 }
 
 function isSnapshotBoardData(value: unknown): value is SnapshotBoardData {
@@ -2638,10 +2661,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     dailyPrLineMap,
     dailyRaLineMap,
   ] = await Promise.all([
-      prisma.player.findMany({
-        where: { externalId: { not: null } },
-        select: { externalId: true, position: true },
-      }),
+      getCachedPlayerPositions(),
       withTimeoutFallback(fetchSeasonVolumeLogs(dateEt), []),
       withTimeoutFallback(fetchDailyPtsLineMap(dateEt, dailyMatchupHints), new Map()),
       withTimeoutFallback(fetchDailyRebLineMap(dateEt, dailyMatchupHints), new Map()),

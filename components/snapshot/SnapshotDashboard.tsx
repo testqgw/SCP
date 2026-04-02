@@ -37,9 +37,10 @@ type SnapshotRefreshApiResponse = {
 
 const AUTO_REFRESH_STALE_AFTER_MS = 900_000; // 15 minutes
 const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
-const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 15_000;
-const VISIT_REFRESH_MODE = "FAST";
+const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 5_000;
 const MANUAL_REFRESH_MODE = "DELTA";
+const MANUAL_FAST_REFRESH_WINDOW_MS = 20 * 60_000;
+const MANUAL_REFRESH_FOLLOW_UP_LOAD_MS = 3_000;
 
 const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PTS", label: "Points (PTS)" },
@@ -251,10 +252,19 @@ function shouldAutoRefreshBoard(targetDate: string, lastUpdatedAt: string | null
   return Date.now() - lastUpdatedMs >= AUTO_REFRESH_STALE_AFTER_MS;
 }
 
+function wasBoardUpdatedRecently(lastUpdatedAt: string | null, maxAgeMs = MANUAL_FAST_REFRESH_WINDOW_MS): boolean {
+  if (!lastUpdatedAt) return false;
+  const lastUpdatedMs = Date.parse(lastUpdatedAt);
+  if (!Number.isFinite(lastUpdatedMs)) return false;
+  return Date.now() - lastUpdatedMs <= maxAgeMs;
+}
+
 type MarketSignalDisplay = {
   statusText: string;
   statusClass: string;
   side: SnapshotModelSide;
+  baselineSide: SnapshotModelSide;
+  hasOverrideConflict: boolean;
   confidence: number | null;
   confidenceTier: SnapshotPtsConfidenceTier | null;
   projectionGap: number | null;
@@ -271,7 +281,10 @@ type MarketRecommendationView = {
   marketLine: number | null;
   marketLineLabel: string;
   hitChance: HitChanceDisplay;
+  note: string | null;
 };
+
+type MarketRecommendationSource = "CUSTOM" | "PRECISION" | "LIVE_MODEL" | "MODEL_FALLBACK" | "UNAVAILABLE";
 
 type FocusTier = "TOP" | "STRONG" | "WATCH" | "DEEP";
 
@@ -324,6 +337,13 @@ function resolveMarketSignalDisplay(
     statusText: usingModelFallback ? `${marketLabel} MODEL` : `${marketLabel} ${cardStatusLabel(qualified)}`,
     statusClass: usingModelFallback ? "bg-cyan-500/15 text-cyan-200" : ptsFilterClass(qualified),
     side: usingModelFallback ? modelLine.modelSide : signal?.side ?? "NEUTRAL",
+    baselineSide: usingModelFallback ? modelLine.modelSide : signal?.baselineSide ?? "NEUTRAL",
+    hasOverrideConflict:
+      !usingModelFallback &&
+      signal?.baselineSide != null &&
+      signal.baselineSide !== "NEUTRAL" &&
+      signal.side !== "NEUTRAL" &&
+      signal.side !== signal.baselineSide,
     confidence: usingModelFallback ? null : signal?.confidence ?? null,
     confidenceTier: usingModelFallback ? null : signal?.confidenceTier ?? null,
     projectionGap,
@@ -367,6 +387,7 @@ function resolveMarketRecommendationView(
   const hasPrecisionCall = precision?.qualified === true && precision.side !== "NEUTRAL";
   const displayedLine = resolveDisplayedMarketLine(customLine, display);
   const projection = row.projectedTonight[market];
+  const hasDisplayConflict = customLine == null && !hasPrecisionCall && display?.hasOverrideConflict === true;
   const customLineSide =
     customLine == null || projection == null
       ? null
@@ -375,7 +396,10 @@ function resolveMarketRecommendationView(
         : projection < customLine
           ? ("UNDER" as const)
           : ("NEUTRAL" as const);
-  const finalSide = customLineSide ?? (hasPrecisionCall ? precision.side : display?.side ?? modelLine.modelSide);
+  const finalSide = customLineSide ?? (hasPrecisionCall ? precision.side : hasDisplayConflict ? "NEUTRAL" : display?.side ?? modelLine.modelSide);
+  const note = hasDisplayConflict
+    ? "Live override conflicts with the projection gap. This market stays neutral unless it qualifies in Precision."
+    : null;
 
   return {
     display,
@@ -383,7 +407,72 @@ function resolveMarketRecommendationView(
     finalSide,
     marketLine: displayedLine.line,
     marketLineLabel: displayedLine.label,
-    hitChance: displayedLine.line != null && customLine == null ? resolveMarketHitChance(row, market, display) : { value: null, subtitle: null },
+    hitChance:
+      displayedLine.line != null && customLine == null && !hasDisplayConflict
+        ? resolveMarketHitChance(row, market, display)
+        : { value: null, subtitle: null },
+    note,
+  };
+}
+
+function resolveMarketRecommendationSource(
+  marketView: MarketRecommendationView,
+  customLine: number | null,
+): {
+  source: MarketRecommendationSource;
+  label: string;
+  detail: string;
+  className: string;
+} {
+  if (customLine != null) {
+    return {
+      source: "CUSTOM",
+      label: "Custom Scenario",
+      detail: "Using your line for the side read below.",
+      className: "border-blue-300/35 bg-blue-500/12 text-blue-100",
+    };
+  }
+
+  if (marketView.precision?.qualified && marketView.precision.side !== "NEUTRAL") {
+    return {
+      source: "PRECISION",
+      label: "Precision Call",
+      detail: "Qualified precision selector result for this market.",
+      className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+    };
+  }
+
+  if (marketView.display?.lineOrigin === "LIVE") {
+    if (marketView.note) {
+      return {
+        source: "LIVE_MODEL",
+        label: "Conflicted Live Read",
+        detail: marketView.note,
+        className: "border-amber-300/35 bg-amber-500/12 text-amber-100",
+      };
+    }
+    return {
+      source: "LIVE_MODEL",
+      label: "Live Model",
+      detail: "Final live side-model lean for the current sportsbook line.",
+      className: "border-slate-300/20 bg-white/5 text-slate-200",
+    };
+  }
+
+  if (marketView.display?.lineOrigin === "MODEL") {
+    return {
+      source: "MODEL_FALLBACK",
+      label: "Model Fallback",
+      detail: "No confirmed game line yet, so this uses the model fallback.",
+      className: "border-cyan-300/30 bg-cyan-500/10 text-cyan-100",
+    };
+  }
+
+  return {
+    source: "UNAVAILABLE",
+    label: "No Active Line",
+    detail: "Waiting on a confirmed game line.",
+    className: "border-slate-300/20 bg-white/5 text-slate-300",
   };
 }
 
@@ -812,6 +901,17 @@ export function SnapshotDashboard({
   const [playerBacktestLoading, setPlayerBacktestLoading] = useState(false);
   const [playerBacktestError, setPlayerBacktestError] = useState<string | null>(null);
   const isAllMarketsView = market === "ALL";
+  const resolveManualRefreshMode = useCallback(
+    (targetDate: string): "FAST" | "DELTA" => {
+      const isTodaySlate = targetDate === getTodayEtDateString(new Date());
+      if (!isTodaySlate) return MANUAL_REFRESH_MODE;
+      if (activeData.dateEt !== targetDate) return MANUAL_REFRESH_MODE;
+      if (!hasBoardSnapshotData(activeData)) return MANUAL_REFRESH_MODE;
+      if (isPrecisionCardUnderfilled(activeData)) return MANUAL_REFRESH_MODE;
+      return wasBoardUpdatedRecently(activeData.lastUpdatedAt) ? "FAST" : MANUAL_REFRESH_MODE;
+    },
+    [activeData],
+  );
   const scopedLineKey = useCallback(
     (playerId: string, slateMarket: SnapshotMarket): string => lineKey(activeData.dateEt, playerId, slateMarket),
     [activeData.dateEt],
@@ -820,6 +920,25 @@ export function SnapshotDashboard({
     (playerId: string, slateMarket: SnapshotMarket): string => minuteFloorKey(activeData.dateEt, playerId, slateMarket),
     [activeData.dateEt],
   );
+  const selectedPlayerMarketSystemMix = useMemo(() => {
+    if (!selectedPlayer) return null;
+    let hasPrecisionCall = false;
+    let hasNonPrecisionCall = false;
+    for (const option of MARKET_OPTIONS) {
+      const key = scopedLineKey(selectedPlayer.playerId, option.value);
+      const customLine = parseLine(lineMap[key] ?? "");
+      const marketView = resolveMarketRecommendationView(selectedPlayer, option.value, customLine);
+      const source = resolveMarketRecommendationSource(marketView, customLine).source;
+      if (source === "PRECISION") hasPrecisionCall = true;
+      if (source === "LIVE_MODEL" || source === "MODEL_FALLBACK") hasNonPrecisionCall = true;
+    }
+    if (!hasPrecisionCall || !hasNonPrecisionCall) return null;
+    return {
+      title: "Mixed market systems",
+      body:
+        "Qualified markets use the precision selector. The rest show the live model lean or a model fallback. Combo props like PR can disagree with PTS and REB because they use their own line. If a live override conflicts with the projection gap, the market stays neutral here unless it qualifies in Precision.",
+    };
+  }, [lineMap, scopedLineKey, selectedPlayer]);
 
   const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: { bustCache?: boolean }): Promise<SnapshotBoardData> => {
     const params = new URLSearchParams();
@@ -898,14 +1017,24 @@ export function SnapshotDashboard({
     refreshInFlightRef.current = true;
     setIsRefreshing(true);
     setRefreshError(null);
+    const manualRefreshMode = source === "manual" ? resolveManualRefreshMode(targetDate) : null;
+    const optimisticBoardReload = source === "manual" ? loadBoardData(targetDate, { bustCache: true }) : null;
     setRefreshMessage(
       source === "visit"
-        ? "Refreshing the live board for this visit..."
-        : "Refresh started. The page stays usable while the newest board finishes loading.",
+        ? "Loading the freshest live board for this visit..."
+        : manualRefreshMode === "FAST"
+          ? "Fast refresh started. Updating lineups and rebuilding the board with the newest live lines."
+          : "Full refresh started. The page stays usable while the newest board finishes loading.",
     );
 
     try {
-      const refreshMode = source === "visit" ? VISIT_REFRESH_MODE : MANUAL_REFRESH_MODE;
+      if (source === "visit") {
+        await loadBoardData(targetDate, { bustCache: true });
+        setRefreshMessage("Live board updated for this visit.");
+        return;
+      }
+
+      const refreshMode = manualRefreshMode ?? MANUAL_REFRESH_MODE;
       const response = await fetch("/api/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -919,31 +1048,44 @@ export function SnapshotDashboard({
       const warnings = payload.result?.warnings ?? [];
       if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
         setRefreshMessage(
-          source === "visit"
-            ? "A live refresh is already running. Loading the newest board as soon as it finishes."
+          refreshMode === "FAST"
+            ? "A fast refresh is already running. Loading the newest board shortly."
             : "Refresh is already running. Loading the newest board shortly.",
         );
-        scheduleBoardReload(targetDate);
-        await loadBoardData(targetDate, { bustCache: true });
+        if (optimisticBoardReload) {
+          await optimisticBoardReload;
+        } else {
+          await loadBoardData(targetDate, { bustCache: true });
+        }
+        scheduleBoardReload(targetDate, MANUAL_REFRESH_FOLLOW_UP_LOAD_MS);
         return;
       }
 
       if (warnings.some((item) => item.toLowerCase().includes("completed recently"))) {
         setRefreshMessage(
-          source === "visit"
-            ? "The live board was refreshed recently. Loading the latest snapshot."
+          refreshMode === "FAST"
+            ? "This slate was refreshed recently. Loading the latest live board."
             : "This slate was refreshed recently. Loading the latest board.",
         );
-        await loadBoardData(targetDate, { bustCache: true });
+        if (optimisticBoardReload) {
+          await optimisticBoardReload;
+        } else {
+          await loadBoardData(targetDate, { bustCache: true });
+        }
         return;
       }
 
       setRefreshMessage(
-        source === "visit"
-          ? `Board refreshed for this visit (${payload.result?.status ?? "SUCCESS"}).`
-          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Updating board...`,
+        refreshMode === "FAST"
+          ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Applying follow-up board update...`
+          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Applying follow-up board update...`,
       );
-      await loadBoardData(targetDate, { bustCache: true });
+      if (optimisticBoardReload) {
+        await optimisticBoardReload;
+      } else {
+        await loadBoardData(targetDate, { bustCache: true });
+      }
+      scheduleBoardReload(targetDate, MANUAL_REFRESH_FOLLOW_UP_LOAD_MS);
     } catch (error) {
       if (source === "visit") {
         const message = error instanceof Error ? error.message : "Auto refresh failed.";
@@ -957,7 +1099,7 @@ export function SnapshotDashboard({
       refreshInFlightRef.current = false;
       setIsRefreshing(false);
     }
-  }, [loadBoardData, scheduleBoardReload]);
+  }, [loadBoardData, resolveManualRefreshMode, scheduleBoardReload]);
 
   const refreshBoardForVisit = useCallback(
     (targetDate: string, options?: { lastUpdatedAt?: string | null; minIntervalMs?: number }): void => {
@@ -3575,12 +3717,19 @@ export function SnapshotDashboard({
                       {playerDetailError}
                     </p>
                   ) : null}
+                  {selectedPlayerMarketSystemMix ? (
+                    <p className="mt-2 max-w-3xl rounded-lg border border-violet-300/20 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-100">
+                      <span className="font-semibold text-violet-50">{selectedPlayerMarketSystemMix.title}:</span>{" "}
+                      {selectedPlayerMarketSystemMix.body}
+                    </p>
+                  ) : null}
                   <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     {MARKET_OPTIONS.map((option) => {
                       const signalMarket = option.value;
                       const key = scopedLineKey(selectedPlayer.playerId, signalMarket);
                       const customLine = parseLine(lineMap[key] ?? "");
                       const marketView = resolveMarketRecommendationView(selectedPlayer, signalMarket, customLine);
+                      const sourceMeta = resolveMarketRecommendationSource(marketView, customLine);
                       const isFocused = focusedMarket === signalMarket;
                       const modelLine = selectedPlayer.modelLines[signalMarket];
                       const display = marketView.display;
@@ -3604,6 +3753,12 @@ export function SnapshotDashboard({
                               {marketView.finalSide}
                             </span>
                           </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${sourceMeta.className}`}>
+                              {sourceMeta.label}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-[11px] text-slate-400">{sourceMeta.detail}</p>
 
                           <p className="mt-3 text-xs font-medium text-slate-200">{marketView.marketLineLabel}</p>
                           {marketView.hitChance.value != null ? (
@@ -3614,6 +3769,8 @@ export function SnapshotDashboard({
                             <p className="mt-2 text-xs text-slate-400">
                               {customLine != null
                                 ? "Custom line active. Scroll for the updated read."
+                                : marketView.note
+                                  ? marketView.note
                                 : display?.lineOrigin === "MODEL"
                                   ? "Waiting on a confirmed game line."
                                   : "No confirmed game hit chance yet."}
@@ -4143,6 +4300,12 @@ export function SnapshotDashboard({
                         </p>
                         <p>Line Source</p>
                         <p className="text-right">{activeLineLabel}</p>
+                        {marketView.note ? (
+                          <>
+                            <p>Read Status</p>
+                            <p className="text-right text-amber-200">{marketView.note}</p>
+                          </>
+                        ) : null}
                         {hitChance.value != null ? (
                           <>
                             <p>Hit Chance</p>

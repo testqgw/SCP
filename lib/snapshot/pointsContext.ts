@@ -1880,6 +1880,37 @@ function buildComboPassReasons(input: {
   return reasons;
 }
 
+const PROJECTION_SIDE_CONSISTENCY_GAPS: Partial<Record<SnapshotMarket, number>> = {
+  PTS: 2,
+  REB: 0.75,
+  AST: 0.75,
+  THREES: 0.5,
+  PRA: 2.5,
+  PA: 2,
+  PR: 2,
+  RA: 1.25,
+};
+
+function enforceProjectionSideConsistency(input: {
+  market: SnapshotMarket;
+  projection: number;
+  marketLine: number | null;
+  projectionGap: number | null;
+  side: SnapshotModelSide;
+}): SnapshotModelSide {
+  if (input.side !== "OVER" && input.side !== "UNDER") return input.side;
+  if (input.marketLine == null || input.projectionGap == null) return input.side;
+  const projectionSide: SnapshotModelSide =
+    input.projection > input.marketLine
+      ? "OVER"
+      : input.projection < input.marketLine
+        ? "UNDER"
+        : "NEUTRAL";
+  if (projectionSide === "NEUTRAL" || projectionSide === input.side) return input.side;
+  const minGap = PROJECTION_SIDE_CONSISTENCY_GAPS[input.market] ?? 1;
+  return Math.abs(input.projectionGap) >= minGap ? projectionSide : input.side;
+}
+
 function applyJokicRebLiveOverride(input: {
   playerName: string | null;
   projection: number | null;
@@ -2336,6 +2367,13 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
     }
   }
 
+  side = enforceProjectionSideConsistency({
+    market: "PTS",
+    projection: input.projection,
+    marketLine,
+    projectionGap,
+    side,
+  });
   scoreGap = round(overScore - underScore, 3);
   const passReasons = buildPassReasons({
     marketLine,
@@ -2528,6 +2566,13 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
     confidence = round(clamp(confidence + 4.5, 46, 90), 2);
   }
 
+  side = enforceProjectionSideConsistency({
+    market: "REB",
+    projection: input.projection,
+    marketLine,
+    projectionGap,
+    side,
+  });
   const passReasons = buildRebPassReasons({
     marketLine,
     side,
@@ -2736,6 +2781,13 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
     confidence = round(clamp(confidence + 4.5, 46, 92), 2);
   }
 
+  side = enforceProjectionSideConsistency({
+    market: "AST",
+    projection: input.projection,
+    marketLine,
+    projectionGap,
+    side,
+  });
   const passReasons = buildAstPassReasons({
     marketLine,
     side,
@@ -2918,6 +2970,13 @@ export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThr
     confidence = round(clamp(confidence + 4.5, 45, 92), 2);
   }
 
+  side = enforceProjectionSideConsistency({
+    market: "THREES",
+    projection: input.projection,
+    marketLine,
+    projectionGap,
+    side,
+  });
   const passReasons = buildThreesPassReasons({
     marketLine,
     side,
@@ -3217,6 +3276,13 @@ function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | 
       ? round(clamp(adjustedConfidence + 4.5, 46, 90), 2)
       : adjustedConfidence;
 
+  side = enforceProjectionSideConsistency({
+    market: input.market,
+    projection: input.projection,
+    marketLine,
+    projectionGap,
+    side,
+  });
   const passReasons = buildComboPassReasons({
     marketLabel: input.market,
     marketLine,
