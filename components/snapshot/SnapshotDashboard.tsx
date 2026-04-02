@@ -117,12 +117,6 @@ function lineInFocus(customLine: number | null, modelLine: number | null): numbe
   return customLine ?? modelLine;
 }
 
-function lineSourceLabel(customLine: number | null, modelLine: number | null): string {
-  if (customLine != null) return `Your ${formatStat(customLine)}`;
-  if (modelLine != null) return `Model ${formatStat(modelLine)}`;
-  return "No line";
-}
-
 function activeLineSourceLabel(
   customLine: number | null,
   display: MarketSignalDisplay | null,
