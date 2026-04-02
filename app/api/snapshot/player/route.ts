@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSnapshotPlayerLookupData } from "@/lib/snapshot/playerLookup";
+import { getSnapshotPlayerLookupData } from "@/lib/snapshot/query";
 import { getTodayEtDateString } from "@/lib/snapshot/time";
 
 export const dynamic = "force-dynamic";

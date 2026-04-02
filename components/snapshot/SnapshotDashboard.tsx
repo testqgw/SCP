@@ -174,6 +174,49 @@ function precisionSignalForMarket(row: SnapshotRow, market: SnapshotMarket): Sna
   return row.precisionSignals?.[market] ?? null;
 }
 
+type HitChanceDisplay = {
+  value: number | null;
+  subtitle: string | null;
+};
+
+function resolvePrecisionHitChance(signal: SnapshotPrecisionPickSignal | null | undefined): HitChanceDisplay {
+  if (!signal) {
+    return { value: null, subtitle: null };
+  }
+
+  if (signal.projectionWinProbability != null) {
+    return {
+      value: roundNumber(signal.projectionWinProbability * 100, 1),
+      subtitle: "Best available game hit chance for tonight's line.",
+    };
+  }
+
+  return {
+    value: signal.historicalAccuracy,
+    subtitle: "Best available hit estimate from the precision replay.",
+  };
+}
+
+function resolveMarketHitChance(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  display: MarketSignalDisplay | null,
+): HitChanceDisplay {
+  const precisionChance = resolvePrecisionHitChance(precisionSignalForMarket(row, market));
+  if (precisionChance.value != null) {
+    return precisionChance;
+  }
+
+  if (display?.confidence != null) {
+    return {
+      value: display.confidence,
+      subtitle: "Final live hit chance for the current game line.",
+    };
+  }
+
+  return { value: null, subtitle: null };
+}
+
 function comparePrecisionSignals(
   left: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
     Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
@@ -253,7 +296,6 @@ type MarketSignalDisplay = {
   minutesRisk: number | null;
   line: number | null;
   sportsbookCount: number | null;
-  message: string | null;
 };
 
 type FocusTier = "TOP" | "STRONG" | "WATCH" | "DEEP";
@@ -306,13 +348,6 @@ function resolveMarketSignalDisplay(
   const qualified = signal?.qualified ?? false;
   const line = usingModelFallback ? modelLine.fairLine : signal?.marketLine ?? null;
   const projectionGap = usingModelFallback ? modelLine.projectionGap : signal?.projectionGap ?? null;
-  const message = usingModelFallback
-    ? `Live line unavailable. Using model fair line ${formatAverage(modelLine.fairLine)}. Action zone O <= ${formatAverage(
-        modelLine.actionOverLine ?? modelLine.fairLine,
-      )} / U >= ${formatAverage(modelLine.actionUnderLine ?? modelLine.fairLine)}.`
-    : !qualified && signal && signal.passReasons.length > 0
-      ? signal.passReasons.join(" ")
-      : null;
 
   return {
     statusText: usingModelFallback ? `${marketLabel} MODEL` : `${marketLabel} ${cardStatusLabel(qualified)}`,
@@ -324,7 +359,6 @@ function resolveMarketSignalDisplay(
     minutesRisk: signal?.minutesRisk ?? null,
     line,
     sportsbookCount: usingModelFallback ? null : signal?.sportsbookCount ?? null,
-    message,
   };
 }
 
@@ -578,6 +612,11 @@ function consistencyPct(values: number[]): number | null {
 function formatPercentValue(value: number | null): string {
   if (value == null) return "-";
   return `${value.toFixed(0)}%`;
+}
+
+function formatChanceValue(value: number | null): string {
+  if (value == null) return "-";
+  return `${formatStat(value)}%`;
 }
 
 
@@ -885,6 +924,15 @@ export function SnapshotDashboard({
       setFocusedMarket(market === "ALL" ? "PTS" : market);
     }
   }, [selectedPlayer, market]);
+
+  useEffect(() => {
+    if (!selectedPlayer) return;
+    const refreshedRow = activeData.rows.find(
+      (row) => row.playerId === selectedPlayer.playerId && row.matchupKey === selectedPlayer.matchupKey,
+    );
+    if (!refreshedRow || refreshedRow === selectedPlayer) return;
+    setSelectedPlayer(refreshedRow);
+  }, [activeData.rows, selectedPlayer]);
 
   useEffect(() => {
     setDateInput(initialData.dateEt);
@@ -1290,6 +1338,9 @@ export function SnapshotDashboard({
 
   const recentLogsPending =
     selectedPlayer != null && selectedPlayer.detailLevel !== "FULL" && selectedPlayer.recentLogs.length === 0;
+  const showPlayerLookupContext =
+    playerLookupMeta != null &&
+    (playerLookupMeta.requestedDateEt !== playerLookupMeta.resolvedDateEt || Boolean(playerLookupMeta.note));
 
   const currentMarketLabel = useMemo(
     () => MARKET_FILTER_OPTIONS.find((option) => option.value === market)?.label ?? market,
@@ -1800,6 +1851,7 @@ export function SnapshotDashboard({
                   const side =
                     entry.precision?.side ?? entry.candidate.display?.side ?? entry.candidate.modelLine.modelSide;
                   const isLead = index === 0;
+                  const hitChance = resolvePrecisionHitChance(entry.precision);
 
                   return (
                     <button
@@ -1851,21 +1903,13 @@ export function SnapshotDashboard({
                       </div>
 
                       <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
-                        <p className="text-sm font-medium leading-relaxed text-slate-200">
-                          {entry.candidate.reasons[0] ?? entry.candidate.supportText}
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                          Hit Chance
                         </p>
-                        <div className="mt-3 flex items-center gap-2 text-xs text-slate-400">
-                          <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {entry.source === "PRECISION" && entry.precision ? (
-                            <span>
-                              Rule prior: <strong>{formatStat(entry.precision.historicalAccuracy)}%</strong> on the full-sample replay in similar spots
-                            </span>
-                          ) : (
-                            <span>True precision selection from the live backend card.</span>
-                          )}
-                        </div>
+                        <p className="mt-2 text-2xl font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                          {hitChance.subtitle ?? "Best available hit estimate for this pick."}
+                        </p>
                       </div>
                     </button>
                   );
@@ -1879,7 +1923,7 @@ export function SnapshotDashboard({
                       {precisionCandidates.length} true {activeData.precisionSystem.label} pick{precisionCandidates.length === 1 ? "" : "s"} under the current filters
                     </h3>
                     <p className="mt-1 max-w-3xl text-sm text-slate-300">
-                      This list shows every true {activeData.precisionSystem.label} selection under the current filters. The historical rate shown on each row is the same forward-tested similar-spot prior used by the live precision system.
+                      This list shows every true {activeData.precisionSystem.label} selection under the current filters. Each row leads with the best available hit chance for tonight&apos;s call, using the game-specific precision probability when available.
                     </p>
                   </div>
                   {precisionCandidates.length > precisionCardTargetCount ? (
@@ -1895,6 +1939,7 @@ export function SnapshotDashboard({
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   {visibleCoreSixCandidates.map((candidate, index) => {
                     const side = candidate.precision.side ?? candidate.display?.side ?? candidate.modelLine.modelSide;
+                    const hitChance = resolvePrecisionHitChance(candidate.precision);
                     return (
                       <button
                         key={`all-core-six-${candidate.row.playerId}-${candidate.market}`}
@@ -1929,8 +1974,8 @@ export function SnapshotDashboard({
                         </div>
                         <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
-                            <p className="uppercase tracking-[0.12em] text-slate-500">Rule Prior</p>
-                            <p className="mt-1 text-sm font-semibold text-white">{formatStat(candidate.precision.historicalAccuracy)}%</p>
+                            <p className="uppercase tracking-[0.12em] text-slate-500">Hit Chance</p>
+                            <p className="mt-1 text-sm font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                           </div>
                           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
                             <p className="uppercase tracking-[0.12em] text-slate-500">Gap</p>
@@ -2874,11 +2919,15 @@ export function SnapshotDashboard({
                               <div className="text-slate-400">
                                 Risk {formatAverage(liveSignalDisplay.minutesRisk)} | Books {liveSignalDisplay.sportsbookCount || "-"}
                               </div>
-                              {liveSignalDisplay.message ? (
-                                <div className="max-w-[240px] text-[10px] text-rose-200">
-                                  {liveSignalDisplay.message}
-                                </div>
-                              ) : null}
+                              {(() => {
+                                const hitChance = resolveMarketHitChance(row, candidateMarket, liveSignalDisplay);
+                                if (hitChance.value == null) return null;
+                                return (
+                                  <div className="max-w-[240px] text-[10px] text-emerald-200">
+                                    Hit chance {formatChanceValue(hitChance.value)}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </td>
                         ) : (
@@ -3034,17 +3083,17 @@ export function SnapshotDashboard({
                     {selectedPlayer.teamCode} vs {selectedPlayer.opponentCode} ({selectedPlayer.isHome ? "Home" : "Away"})
                   </p>
                   <p className="text-xs text-slate-400">{selectedPlayer.gameTimeEt}</p>
-                  {playerLookupMeta ? (
+                  {showPlayerLookupContext ? (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                       <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-0.5 text-cyan-100">
-                        Requested {playerLookupMeta.requestedDateEt}
+                        Requested {playerLookupMeta?.requestedDateEt}
                       </span>
                       <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
-                        Loaded {playerLookupMeta.resolvedDateEt}
+                        Loaded {playerLookupMeta?.resolvedDateEt}
                       </span>
                     </div>
                   ) : null}
-                  {playerLookupMeta?.note ? (
+                  {showPlayerLookupContext && playerLookupMeta?.note ? (
                     <p className="mt-2 max-w-2xl rounded-lg border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
                       {playerLookupMeta.note}
                     </p>
@@ -3066,6 +3115,7 @@ export function SnapshotDashboard({
                       selectedPlayer.modelLines[signalMarket],
                     );
                     if (!display) return null;
+                    const hitChance = resolveMarketHitChance(selectedPlayer, signalMarket, display);
 
                     return (
                       <div key={signalMarket} className="mt-2">
@@ -3079,6 +3129,11 @@ export function SnapshotDashboard({
                           <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
                             Line {formatAverage(display.line)}
                           </span>
+                          {hitChance.value != null ? (
+                            <span className="rounded-full border border-emerald-300/30 bg-emerald-500/12 px-2 py-0.5 font-semibold text-emerald-100">
+                              Hit {formatChanceValue(hitChance.value)}
+                            </span>
+                          ) : null}
                           {showAdvancedView ? (
                             <>
                               <span className={`rounded-full border px-2 py-0.5 font-semibold ${display.statusClass}`}>
@@ -3093,14 +3148,14 @@ export function SnapshotDashboard({
                               <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
                                 Minutes Risk {formatAverage(display.minutesRisk)}
                               </span>
+                              {hitChance.subtitle ? (
+                                <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
+                                  {hitChance.subtitle}
+                                </span>
+                              ) : null}
                             </>
                           ) : null}
                         </div>
-                        {display.message ? (
-                          <p className="mt-2 max-w-2xl rounded-lg border border-rose-300/20 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100">
-                            {display.message}
-                          </p>
-                        ) : null}
                       </div>
                     );
                   })}

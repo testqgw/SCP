@@ -234,6 +234,7 @@ type SnapshotBoardCacheEntry = {
 
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
+const SNAPSHOT_BOARD_PAYLOAD_VERSION = "full-detail-v1";
 
 type PersistedSnapshotBoardSetting = {
   sourceSignal: string;
@@ -287,6 +288,9 @@ function buildPersistedSnapshotRowMap(
 ): Map<string, SnapshotRow> {
   const map = new Map<string, SnapshotRow>();
   if (!persistedBoard) return map;
+  if (persistedBoard.data.rows.some((row) => row.detailLevel !== "FULL")) {
+    return map;
+  }
 
   persistedBoard.data.rows.forEach((row) => {
     map.set(getSnapshotBoardRowKey(row), row);
@@ -402,19 +406,8 @@ function toBoardPrecisionSignals(
 function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
   return {
     ...row,
-    detailLevel: "BOARD",
+    detailLevel: "FULL",
     precisionSignals: toBoardPrecisionSignals(row.precisionSignals),
-    recentLogs: [],
-    analysisLogs: [],
-    playerContext: {
-      ...row.playerContext,
-      primaryDefender: null,
-      teammateCore: [],
-    },
-    gameIntel: {
-      generatedAt: "",
-      modules: [],
-    },
   };
 }
 
@@ -2156,6 +2149,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       latestDataWrite._max.updatedAt?.toISOString() ?? "none",
       lineupUpdatedAtIso ?? "none",
     refreshUpdatedAtIso ?? "none",
+      SNAPSHOT_BOARD_PAYLOAD_VERSION,
       UNIVERSAL_SYSTEM_SUMMARY_VERSION,
       PRECISION_80_SYSTEM_SUMMARY_VERSION,
       promotedPraRuntime.enabled
