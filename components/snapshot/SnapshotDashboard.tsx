@@ -217,49 +217,6 @@ function resolveMarketHitChance(
   return { value: null, subtitle: null };
 }
 
-function comparePrecisionSignals(
-  left: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
-    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
-  right: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy" | "absLineGap" | "leafAccuracy" | "bucketRecentAccuracy"> &
-    Partial<Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "projectionPriceEdge">>,
-): number {
-  if (right.historicalAccuracy !== left.historicalAccuracy) {
-    return right.historicalAccuracy - left.historicalAccuracy;
-  }
-
-  const rightWinProbability = right.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
-  const leftWinProbability = left.projectionWinProbability ?? Number.NEGATIVE_INFINITY;
-  if (rightWinProbability !== leftWinProbability) {
-    return rightWinProbability - leftWinProbability;
-  }
-
-  const rightPriceEdge = right.projectionPriceEdge ?? Number.NEGATIVE_INFINITY;
-  const leftPriceEdge = left.projectionPriceEdge ?? Number.NEGATIVE_INFINITY;
-  if (rightPriceEdge !== leftPriceEdge) {
-    return rightPriceEdge - leftPriceEdge;
-  }
-
-  const rightGap = right.absLineGap ?? Number.NEGATIVE_INFINITY;
-  const leftGap = left.absLineGap ?? Number.NEGATIVE_INFINITY;
-  if (rightGap !== leftGap) {
-    return rightGap - leftGap;
-  }
-
-  const rightLeaf = right.leafAccuracy ?? Number.NEGATIVE_INFINITY;
-  const leftLeaf = left.leafAccuracy ?? Number.NEGATIVE_INFINITY;
-  if (rightLeaf !== leftLeaf) {
-    return rightLeaf - leftLeaf;
-  }
-
-  const rightBucket = right.bucketRecentAccuracy ?? Number.NEGATIVE_INFINITY;
-  const leftBucket = left.bucketRecentAccuracy ?? Number.NEGATIVE_INFINITY;
-  if (rightBucket !== leftBucket) {
-    return rightBucket - leftBucket;
-  }
-
-  return 0;
-}
-
 function isUnavailableForDailyCard(row: SnapshotRow): boolean {
   const availabilityStatus = row.playerContext.availabilityStatus;
   if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") return true;
@@ -313,10 +270,6 @@ type FocusCandidate = {
   signalQualified: boolean;
   supportText: string;
   reasons: string[];
-};
-
-type PrecisionCandidate = FocusCandidate & {
-  precision: SnapshotPrecisionPickSignal;
 };
 
 type DailyCardSource = "PRECISION";
@@ -742,7 +695,6 @@ export function SnapshotDashboard({
   const [focusedMarket, setFocusedMarket] = useState<SnapshotMarket>(initialMarket === "ALL" ? "PTS" : initialMarket);
   const [compactDetail, setCompactDetail] = useState(true);
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(true);
-  const [showAllCoreSixPicks, setShowAllCoreSixPicks] = useState(false);
   const [showSecondarySignals, setShowSecondarySignals] = useState(false);
 
   const [showAdvancedView, setShowAdvancedView] = useState(false);
@@ -1446,41 +1398,6 @@ export function SnapshotDashboard({
     [allQualifiedCandidates],
   );
 
-  const precisionCandidates = useMemo(
-    () => {
-      const ranked = filteredRows
-        .flatMap((row) =>
-          (activeData.precisionSystem?.supportedMarkets ?? []).flatMap((supportedMarket) => {
-            const precision = precisionSignalForMarket(row, supportedMarket);
-            if (!precision) return [];
-            const isPrecisionQualified = precision?.qualified ?? precision?.side !== "NEUTRAL";
-            if (!isPrecisionQualified) return [];
-            return [
-              {
-                ...buildFocusCandidate(row, supportedMarket, lineMap[lineKey(row.playerId, supportedMarket)]),
-                precision,
-              } satisfies PrecisionCandidate,
-            ];
-          }),
-        )
-        .sort((left, right) => {
-          const signalComparison = comparePrecisionSignals(left.precision, right.precision);
-          if (signalComparison !== 0) return signalComparison;
-          if (right.focusScore !== left.focusScore) return right.focusScore - left.focusScore;
-          return left.row.playerName.localeCompare(right.row.playerName);
-        });
-
-      const seenPlayers = new Set<string>();
-      return ranked.filter((candidate) => {
-        if (isUnavailableForDailyCard(candidate.row)) return false;
-        if (seenPlayers.has(candidate.row.playerId)) return false;
-        seenPlayers.add(candidate.row.playerId);
-        return true;
-      });
-    },
-    [activeData.precisionSystem?.supportedMarkets, filteredRows, lineMap],
-  );
-
   const precisionCardTargetCount = activeData.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
   const rowByPlayerId = useMemo(
     () => new Map(activeData.rows.map((row) => [row.playerId, row] as const)),
@@ -1535,41 +1452,8 @@ export function SnapshotDashboard({
 
 
   const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
-    () => {
-      if (backendDailyCardCandidates.length > 0) {
-        return backendDailyCardCandidates;
-      }
-
-      const ranked: DailyCardCandidate[] = [];
-      const seenPlayers = new Set<string>();
-
-      const addCandidate = (
-        candidate: FocusCandidate,
-        source: DailyCardSource,
-        precision: SnapshotPrecisionPickSignal | null,
-      ) => {
-        if (ranked.length >= precisionCardTargetCount) return;
-        if (seenPlayers.has(candidate.row.playerId)) return;
-        if (isUnavailableForDailyCard(candidate.row)) return;
-        const side = candidate.display?.side ?? candidate.modelLine.modelSide;
-        if (side === "NEUTRAL") return;
-        if (candidate.currentLine == null && candidate.modelLine.fairLine == null) return;
-        seenPlayers.add(candidate.row.playerId);
-        ranked.push({ candidate, precision, source });
-      };
-
-      precisionCandidates.forEach((candidate) => {
-        addCandidate(candidate, "PRECISION", candidate.precision);
-      });
-
-      return ranked;
-    },
-    [backendDailyCardCandidates, precisionCandidates, precisionCardTargetCount],
-  );
-
-  const visibleCoreSixCandidates = useMemo(
-    () => (showAllCoreSixPicks ? precisionCandidates : precisionCandidates.slice(0, precisionCardTargetCount)),
-    [precisionCandidates, precisionCardTargetCount, showAllCoreSixPicks],
+    () => backendDailyCardCandidates,
+    [backendDailyCardCandidates],
   );
 
   const [showAllStrongProjections, setShowAllStrongProjections] = useState(false);
@@ -1767,7 +1651,7 @@ export function SnapshotDashboard({
         <div className="flex flex-wrap items-center gap-6 px-3 text-sm">
            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.6)]" />
-              <span className="text-slate-400"><strong className="text-white font-medium">{activeData.precisionSystem ? precisionCandidates.length : allQualifiedCandidates.length}</strong> {activeData.precisionSystem ? activeData.precisionSystem.label : "Daily Picks"}</span>
+              <span className="text-slate-400"><strong className="text-white font-medium">{activeData.precisionSystem ? dailyCardCandidates.length : allQualifiedCandidates.length}</strong> {activeData.precisionSystem ? activeData.precisionSystem.label : "Daily Picks"}</span>
            </div>
            <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
@@ -1823,10 +1707,6 @@ export function SnapshotDashboard({
                 </p>
                 <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalAccuracy)}%</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">True Picks</p>
-                <p className="mt-1 text-xl font-semibold text-white">{precisionCandidates.length}</p>
-              </div>
               {activeData.precisionSystem.historicalPicksPerDay != null ? (
                 <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
                   <p className="uppercase tracking-[0.12em] text-slate-300/70">
@@ -1851,9 +1731,7 @@ export function SnapshotDashboard({
             <div className="mt-5 space-y-4">
               <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
                 <p className="font-semibold text-white">
-                  {precisionCandidates.length >= precisionCardTargetCount
-                    ? `The slate produced ${precisionCandidates.length} true ${activeData.precisionSystem.label} pick${precisionCandidates.length === 1 ? "" : "s"}. This card shows the top ${precisionCardTargetCount}, and the full true list is below.`
-                    : `Only ${dailyCardCandidates.length} true ${activeData.precisionSystem.label} pick${dailyCardCandidates.length === 1 ? "" : "s"} cleared today, and this card tops off thin strict slates with adaptive precision instead of secondary fill.`}
+                  {`This section only shows the final backend ${activeData.precisionSystem.label} card. ${dailyCardCandidates.length} of ${precisionCardTargetCount} card slot${precisionCardTargetCount === 1 ? "" : "s"} ${dailyCardCandidates.length === 1 ? "is" : "are"} loaded for this slate.`}
                 </p>
                 <p className="mt-2">
                   Every pick shown here follows the one-prop-per-player rule and is ranked from strongest to weakest for today&apos;s slate.
@@ -1928,6 +1806,7 @@ export function SnapshotDashboard({
                   );
                 })}
               </div>
+              {/*
               <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -2008,6 +1887,7 @@ export function SnapshotDashboard({
                   })}
                 </div>
               </div>
+              */}
             </div>
           )}
         </section>
