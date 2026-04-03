@@ -119,6 +119,10 @@ function boxScoreCacheTtlMs(game: NormalizedNbaScheduleGame): number {
     : NBA_CURRENT_DAY_FINAL_BOXSCORE_CACHE_TTL_MS;
 }
 
+function joinTeamNameParts(...parts: Array<string | null | undefined>): string {
+  return parts.filter((part): part is string => Boolean(part)).join(" ");
+}
+
 type FetchJsonAttemptResult =
   | { ok: true; data: unknown }
   | { ok: false; error: Error; retryable: boolean };
@@ -221,6 +225,35 @@ function ingestBoxScoreSide(params: {
       total: null,
     });
   }
+}
+
+function normalizeScheduleGame(game: UnknownRecord, dateEt: string): NormalizedNbaScheduleGame | null {
+  const homeTeam = asRecord(game.homeTeam);
+  const awayTeam = asRecord(game.awayTeam);
+  const homeTricode = toStringOrNull(homeTeam?.teamTricode);
+  const awayTricode = toStringOrNull(awayTeam?.teamTricode);
+  const gameId = toStringOrNull(game.gameId);
+  if (!homeTricode || !awayTricode || !gameId) {
+    return null;
+  }
+
+  const commenceTimeUtc =
+    toDate(toStringOrNull(game.gameDateTimeUTC)) ??
+    toDate(toStringOrNull(game.gameDateTimeEst)) ??
+    null;
+
+  return {
+    externalGameId: gameId,
+    gameDateEt: dateEt,
+    commenceTimeUtc,
+    status: toStringOrNull(game.gameStatusText),
+    statusNumber: toNumber(game.gameStatus) ?? 0,
+    homeTeamAbbr: homeTricode.toUpperCase(),
+    awayTeamAbbr: awayTricode.toUpperCase(),
+    homeTeamName: joinTeamNameParts(toStringOrNull(homeTeam?.teamCity), toStringOrNull(homeTeam?.teamName)),
+    awayTeamName: joinTeamNameParts(toStringOrNull(awayTeam?.teamCity), toStringOrNull(awayTeam?.teamName)),
+    season: inferSeasonFromEtDate(dateEt),
+  };
 }
 
 function parseScheduleDateToEt(input: string | null): string | null {
@@ -366,37 +399,10 @@ export class NbaDataClient {
           if (!game) {
             return;
           }
-
-          const homeTeam = asRecord(game.homeTeam);
-          const awayTeam = asRecord(game.awayTeam);
-          const homeTricode = toStringOrNull(homeTeam?.teamTricode);
-          const awayTricode = toStringOrNull(awayTeam?.teamTricode);
-          const gameId = toStringOrNull(game.gameId);
-          if (!homeTricode || !awayTricode || !gameId) {
-            return;
+          const normalizedGame = normalizeScheduleGame(game, dateEt);
+          if (normalizedGame) {
+            results.push(normalizedGame);
           }
-
-          const commenceTimeUtc =
-            toDate(toStringOrNull(game.gameDateTimeUTC)) ??
-            toDate(toStringOrNull(game.gameDateTimeEst)) ??
-            null;
-
-          results.push({
-            externalGameId: gameId,
-            gameDateEt: dateEt,
-            commenceTimeUtc,
-            status: toStringOrNull(game.gameStatusText),
-            statusNumber: toNumber(game.gameStatus) ?? 0,
-            homeTeamAbbr: homeTricode.toUpperCase(),
-            awayTeamAbbr: awayTricode.toUpperCase(),
-            homeTeamName: [toStringOrNull(homeTeam?.teamCity), toStringOrNull(homeTeam?.teamName)]
-              .filter((part): part is string => Boolean(part))
-              .join(" "),
-            awayTeamName: [toStringOrNull(awayTeam?.teamCity), toStringOrNull(awayTeam?.teamName)]
-              .filter((part): part is string => Boolean(part))
-              .join(" "),
-            season: inferSeasonFromEtDate(dateEt),
-          });
         });
       });
 

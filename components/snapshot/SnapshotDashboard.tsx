@@ -77,6 +77,8 @@ const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
   THREES: 1,
 };
 const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
+type ManualRefreshMode = "FAST" | typeof MANUAL_REFRESH_MODE;
+type BoardRefreshSource = "manual" | "visit";
 
 type DetailSectionKey = "context" | "intel" | "backtest" | "markets" | "logs" | "summary" | "team";
 
@@ -111,6 +113,33 @@ const RESEARCH_TABS: ResearchTabMeta[] = [
   { key: "recent", label: "Recent Form", description: "Current card and projection pockets worth reviewing." },
   { key: "notes", label: "Notes", description: "Product guidance and operator notes for the slate." },
 ];
+
+function refreshStartMessage(source: BoardRefreshSource, manualRefreshMode: ManualRefreshMode | null): string {
+  if (source === "visit") {
+    return "Loading the freshest live board for this visit...";
+  }
+  return manualRefreshMode === "FAST"
+    ? "Fast refresh started. Updating lineups and rebuilding the board with the newest live lines."
+    : "Full refresh started. The page stays usable while the newest board finishes loading.";
+}
+
+function alreadyRunningRefreshMessage(refreshMode: ManualRefreshMode): string {
+  return refreshMode === "FAST"
+    ? "A fast refresh is already running. Loading the newest board shortly."
+    : "Refresh is already running. Loading the newest board shortly.";
+}
+
+function recentlyCompletedRefreshMessage(refreshMode: ManualRefreshMode): string {
+  return refreshMode === "FAST"
+    ? "This slate was refreshed recently. Loading the latest live board."
+    : "This slate was refreshed recently. Loading the latest board.";
+}
+
+function completedRefreshMessage(refreshMode: ManualRefreshMode, status: string | undefined): string {
+  return refreshMode === "FAST"
+    ? `Fast refresh complete (${status ?? "SUCCESS"}). Loading the latest live board...`
+    : `Refresh complete (${status ?? "SUCCESS"}). Loading the latest board...`;
+}
 
 function defaultCollapsedSections(compact = false): Record<DetailSectionKey, boolean> {
   return {
@@ -1123,7 +1152,67 @@ export function SnapshotDashboard({
     }, delayMs);
   }, [loadBoardData]);
 
-  const runBoardRefresh = useCallback(async (targetDate: string, source: "manual" | "visit"): Promise<void> => {
+  const clearPendingBoardReload = useCallback((): void => {
+    if (pendingBoardReloadTimeoutRef.current != null) {
+      window.clearTimeout(pendingBoardReloadTimeoutRef.current);
+      pendingBoardReloadTimeoutRef.current = null;
+    }
+  }, []);
+
+  const loadLatestBoard = useCallback(async (targetDate: string): Promise<void> => {
+    await loadBoardData(targetDate, { background: true });
+  }, [loadBoardData]);
+
+  const handleVisitRefreshFailure = useCallback(async (targetDate: string, error: unknown): Promise<void> => {
+    const message = error instanceof Error ? error.message : "Auto refresh failed.";
+    setRefreshError(`Auto refresh failed: ${message}`);
+    await loadLatestBoard(targetDate);
+  }, [loadLatestBoard]);
+
+  const handleManualRefreshWarnings = useCallback(async (
+    targetDate: string,
+    refreshMode: ManualRefreshMode,
+    warnings: string[],
+  ): Promise<boolean> => {
+    if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
+      setRefreshMessage(alreadyRunningRefreshMessage(refreshMode));
+      scheduleBoardReload(targetDate);
+      return true;
+    }
+
+    if (warnings.some((item) => item.toLowerCase().includes("completed recently"))) {
+      setRefreshMessage(recentlyCompletedRefreshMessage(refreshMode));
+      await loadLatestBoard(targetDate);
+      return true;
+    }
+
+    return false;
+  }, [loadLatestBoard, scheduleBoardReload]);
+
+  const runManualBoardRefresh = useCallback(async (
+    targetDate: string,
+    refreshMode: ManualRefreshMode,
+  ): Promise<void> => {
+    const response = await fetch("/api/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: refreshMode, source: "manual" }),
+    });
+    const payload = (await response.json()) as SnapshotRefreshApiResponse;
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Refresh failed");
+    }
+
+    const warnings = payload.result?.warnings ?? [];
+    if (await handleManualRefreshWarnings(targetDate, refreshMode, warnings)) {
+      return;
+    }
+
+    setRefreshMessage(completedRefreshMessage(refreshMode, payload.result?.status));
+    await loadLatestBoard(targetDate);
+  }, [handleManualRefreshWarnings, loadLatestBoard]);
+
+  const runBoardRefresh = useCallback(async (targetDate: string, source: BoardRefreshSource): Promise<void> => {
     const isTodaySlate = targetDate === getTodayEtDateString(new Date());
     if (!isTodaySlate) {
       await loadBoardData(targetDate, { bustCache: true, background: true });
@@ -1138,68 +1227,21 @@ export function SnapshotDashboard({
     setIsRefreshing(true);
     setRefreshError(null);
     const manualRefreshMode = source === "manual" ? resolveManualRefreshMode(targetDate) : null;
-    if (pendingBoardReloadTimeoutRef.current != null) {
-      window.clearTimeout(pendingBoardReloadTimeoutRef.current);
-      pendingBoardReloadTimeoutRef.current = null;
-    }
-    setRefreshMessage(
-      source === "visit"
-        ? "Loading the freshest live board for this visit..."
-        : manualRefreshMode === "FAST"
-          ? "Fast refresh started. Updating lineups and rebuilding the board with the newest live lines."
-          : "Full refresh started. The page stays usable while the newest board finishes loading.",
-    );
+    clearPendingBoardReload();
+    setRefreshMessage(refreshStartMessage(source, manualRefreshMode));
 
     try {
       if (source === "visit") {
-        await loadBoardData(targetDate, { background: true });
+        await loadLatestBoard(targetDate);
         setRefreshMessage("Live board updated for this visit.");
         return;
       }
 
       const refreshMode = manualRefreshMode ?? MANUAL_REFRESH_MODE;
-      const response = await fetch("/api/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: refreshMode, source }),
-      });
-      const payload = (await response.json()) as SnapshotRefreshApiResponse;
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Refresh failed");
-      }
-
-      const warnings = payload.result?.warnings ?? [];
-      if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
-        setRefreshMessage(
-          refreshMode === "FAST"
-            ? "A fast refresh is already running. Loading the newest board shortly."
-            : "Refresh is already running. Loading the newest board shortly.",
-        );
-        scheduleBoardReload(targetDate);
-        return;
-      }
-
-      if (warnings.some((item) => item.toLowerCase().includes("completed recently"))) {
-        setRefreshMessage(
-          refreshMode === "FAST"
-            ? "This slate was refreshed recently. Loading the latest live board."
-            : "This slate was refreshed recently. Loading the latest board.",
-        );
-        await loadBoardData(targetDate, { background: true });
-        return;
-      }
-
-      setRefreshMessage(
-        refreshMode === "FAST"
-          ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest live board...`
-          : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest board...`,
-      );
-      await loadBoardData(targetDate, { background: true });
+      await runManualBoardRefresh(targetDate, refreshMode);
     } catch (error) {
       if (source === "visit") {
-        const message = error instanceof Error ? error.message : "Auto refresh failed.";
-        setRefreshError(`Auto refresh failed: ${message}`);
-        await loadBoardData(targetDate, { background: true });
+        await handleVisitRefreshFailure(targetDate, error);
         return;
       }
 
@@ -1208,7 +1250,7 @@ export function SnapshotDashboard({
       refreshInFlightRef.current = false;
       setIsRefreshing(false);
     }
-  }, [loadBoardData, resolveManualRefreshMode, scheduleBoardReload]);
+  }, [clearPendingBoardReload, handleVisitRefreshFailure, loadBoardData, loadLatestBoard, resolveManualRefreshMode, runManualBoardRefresh]);
 
   const refreshBoardForVisit = useCallback(
     (targetDate: string, options?: VisitRefreshOptions): void => {
