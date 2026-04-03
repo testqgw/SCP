@@ -1,11 +1,11 @@
 "use client";
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatIsoToEtTime, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
   SnapshotMarket,
+  SnapshotPrecisionCardEntry,
   SnapshotModelSide,
   SnapshotPlayerBacktestReport,
   SnapshotPlayerLookupData,
@@ -14,45 +14,39 @@ import type {
   SnapshotPtsSignal,
   SnapshotRow,
 } from "@/lib/types/snapshot";
-
 type MarketFilter = SnapshotMarket | "ALL";
-
 type SnapshotDashboardProps = {
   data: SnapshotBoardData;
   initialMarket: MarketFilter;
   initialMatchup: string;
   initialPlayerSearch: string;
 };
-
 type SnapshotBoardApiResponse = {
   ok?: boolean;
   result?: SnapshotBoardData;
   error?: string;
 };
-
 type SnapshotRefreshApiResponse = {
-  result?: { status?: string; warnings?: string[] };
+  ok?: boolean;
+  result?: { status?: string; warnings?: string[]; board?: SnapshotBoardData };
   error?: string;
 };
-
 type BoardLoadOptions = {
   bustCache?: boolean;
   background?: boolean;
 };
-
 type VisitRefreshOptions = {
   lastUpdatedAt?: string | null;
   minIntervalMs?: number;
 };
-
 type RefreshBoardForVisit = (targetDate: string, options?: VisitRefreshOptions) => void;
-
-const AUTO_REFRESH_STALE_AFTER_MS = 900_000; // 15 minutes
+const AUTO_REFRESH_STALE_AFTER_MS = 60_000; // 1 minute
 const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
 const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 5_000;
 const MANUAL_REFRESH_MODE = "DELTA";
 const MANUAL_FAST_REFRESH_WINDOW_MS = 20 * 60_000;
-
+const MANUAL_SKIP_REFRESH_WINDOW_MS = 5 * 60_000;
+const VISIT_REFRESH_MODE = "FAST";
 const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PTS", label: "Points (PTS)" },
   { value: "REB", label: "Rebounds (REB)" },
@@ -63,12 +57,10 @@ const MARKET_OPTIONS: Array<{ value: SnapshotMarket; label: string }> = [
   { value: "PR", label: "PR" },
   { value: "RA", label: "RA" },
 ];
-
 const MARKET_FILTER_OPTIONS: Array<{ value: MarketFilter; label: string }> = [
   { value: "ALL", label: "All Markets" },
   ...MARKET_OPTIONS,
 ];
-
 const DAILY_CARD_TARGET_COUNT = 6;
 const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
   PTS: 5,
@@ -79,23 +71,18 @@ const STRONG_PROJECTION_THRESHOLDS: Partial<Record<SnapshotMarket, number>> = {
 const STRONG_PROJECTION_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES"];
 type ManualRefreshMode = "FAST" | typeof MANUAL_REFRESH_MODE;
 type BoardRefreshSource = "manual" | "visit";
-
 type DetailSectionKey = "context" | "intel" | "backtest" | "markets" | "logs" | "summary" | "team";
-
 type DetailSectionMeta = {
   key: DetailSectionKey;
   id: string;
   title: string;
 };
-
 type ResearchTabKey = "trends" | "splits" | "matchup" | "recent" | "notes";
-
 type ResearchTabMeta = {
   key: ResearchTabKey;
   label: string;
   description: string;
 };
-
 const DETAIL_SECTIONS: DetailSectionMeta[] = [
   { key: "context", id: "detail-context", title: "Player Context" },
   { key: "intel", id: "detail-intel", title: "Game Intelligence" },
@@ -105,7 +92,6 @@ const DETAIL_SECTIONS: DetailSectionMeta[] = [
   { key: "summary", id: "detail-summary", title: "Quick Read" },
   { key: "team", id: "detail-team", title: "Team Context" },
 ];
-
 const RESEARCH_TABS: ResearchTabMeta[] = [
   { key: "trends", label: "Trends", description: "System-level benchmarks and board coverage." },
   { key: "splits", label: "Splits", description: "How the slate is distributing by market and edge." },
@@ -113,34 +99,29 @@ const RESEARCH_TABS: ResearchTabMeta[] = [
   { key: "recent", label: "Recent Form", description: "Current card and projection pockets worth reviewing." },
   { key: "notes", label: "Notes", description: "Product guidance and operator notes for the slate." },
 ];
-
-function refreshStartMessage(source: BoardRefreshSource, manualRefreshMode: ManualRefreshMode | null): string {
+function refreshStartMessage(source: BoardRefreshSource, manualRefreshMode: ManualRefreshMode | null): string | null {
   if (source === "visit") {
-    return "Loading the freshest live board for this visit...";
+    return null;
   }
   return manualRefreshMode === "FAST"
     ? "Fast refresh started. Updating lineups and rebuilding the board with the newest live lines."
     : "Full refresh started. The page stays usable while the newest board finishes loading.";
 }
-
 function alreadyRunningRefreshMessage(refreshMode: ManualRefreshMode): string {
   return refreshMode === "FAST"
     ? "A fast refresh is already running. Loading the newest board shortly."
     : "Refresh is already running. Loading the newest board shortly.";
 }
-
 function recentlyCompletedRefreshMessage(refreshMode: ManualRefreshMode): string {
   return refreshMode === "FAST"
     ? "This slate was refreshed recently. Loading the latest live board."
     : "This slate was refreshed recently. Loading the latest board.";
 }
-
 function completedRefreshMessage(refreshMode: ManualRefreshMode, status: string | undefined): string {
   return refreshMode === "FAST"
     ? `Fast refresh complete (${status ?? "SUCCESS"}). Loading the latest live board...`
     : `Refresh complete (${status ?? "SUCCESS"}). Loading the latest board...`;
 }
-
 function defaultCollapsedSections(compact = false): Record<DetailSectionKey, boolean> {
   return {
     context: false,
@@ -152,44 +133,46 @@ function defaultCollapsedSections(compact = false): Record<DetailSectionKey, boo
     team: compact,
   };
 }
-
 function formatStat(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
-
 function formatAverage(value: number | null, withSign = false): string {
   if (value == null) return "-";
   const text = formatStat(value);
   return withSign && value > 0 ? `+${text}` : text;
 }
-
+function normalizeDashboardSearchText(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .join(" ");
+}
 function parseLine(value: string): number | null {
   const normalized = value.trim();
   if (!normalized) return null;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
 }
-
 function modelSideClass(side: "OVER" | "UNDER" | "NEUTRAL"): string {
   if (side === "OVER") return "bg-emerald-500/15 text-emerald-200";
   if (side === "UNDER") return "bg-amber-500/15 text-amber-200";
   return "bg-slate-500/20 text-slate-200";
 }
-
 function ptsFilterClass(qualified: boolean): string {
   return qualified ? "bg-emerald-500/15 text-emerald-200" : "bg-rose-500/15 text-rose-200";
 }
-
 function cardStatusLabel(qualified: boolean): string {
   return qualified ? "PRECISION READY" : "RAW ONLY";
 }
-
 function ptsConfidenceClass(tier: "HIGH" | "MEDIUM" | "LOW" | null): string {
   if (tier === "HIGH") return "bg-emerald-500/15 text-emerald-200";
   if (tier === "MEDIUM") return "bg-amber-500/15 text-amber-200";
   return "bg-slate-500/20 text-slate-200";
 }
-
 function liveSignalForMarket(row: SnapshotRow, market: SnapshotMarket) {
   if (market === "PTS") return row.ptsSignal;
   if (market === "REB") return row.rebSignal;
@@ -201,58 +184,43 @@ function liveSignalForMarket(row: SnapshotRow, market: SnapshotMarket) {
   if (market === "RA") return row.raSignal;
   return null;
 }
-
 function signalLabelForMarket(market: SnapshotMarket): string {
   return market === "THREES" ? "3PM" : market;
 }
-
 function precisionSignalForMarket(row: SnapshotRow, market: SnapshotMarket): SnapshotPrecisionPickSignal | null {
   return row.precisionSignals?.[market] ?? null;
 }
-
-type HitChanceMetric = "HIT_CHANCE" | "CONFIDENCE_SCORE";
-
 type HitChanceDisplay = {
   value: number | null;
   subtitle: string | null;
   label: string;
-  metric: HitChanceMetric;
 };
-
 const EMPTY_HIT_CHANCE: HitChanceDisplay = {
   value: null,
   subtitle: null,
-  label: "Hit Chance",
-  metric: "HIT_CHANCE",
+  label: "",
 };
-
 function formatHitChanceDisplay(display: HitChanceDisplay): string {
   if (display.value == null) return "-";
-  return display.metric === "CONFIDENCE_SCORE" ? formatStat(display.value) : formatChanceValue(display.value);
+  return formatChanceValue(display.value);
 }
-
 function resolvePrecisionHitChance(signal: SnapshotPrecisionPickSignal | null | undefined): HitChanceDisplay {
   if (!signal) {
     return EMPTY_HIT_CHANCE;
   }
-
   if (signal.projectionWinProbability != null) {
     return {
       value: roundNumber(signal.projectionWinProbability * 100, 1),
-      subtitle: "Best available game hit chance for tonight's line.",
-      label: "Hit Chance",
-      metric: "HIT_CHANCE",
+      subtitle: "",
+      label: "",
     };
   }
-
   return {
     value: signal.historicalAccuracy,
-    subtitle: "Best available hit estimate from the precision replay.",
-    label: "Hit Chance",
-    metric: "HIT_CHANCE",
+    subtitle: "",
+    label: "",
   };
 }
-
 function resolveMarketHitChance(
   row: SnapshotRow,
   market: SnapshotMarket,
@@ -268,26 +236,21 @@ function resolveMarketHitChance(
   if (precisionChance.value != null) {
     return precisionChance;
   }
-
   if (display?.confidence != null && display.lineOrigin === "LIVE" && display.line != null) {
     return {
       value: display.confidence,
-      subtitle: "Live model confidence score for the current sportsbook line.",
-      label: "Live Score",
-      metric: "CONFIDENCE_SCORE",
+      subtitle: "",
+      label: "",
     };
   }
-
   return EMPTY_HIT_CHANCE;
 }
-
 function isUnavailableForDailyCard(row: SnapshotRow): boolean {
   const availabilityStatus = row.playerContext.availabilityStatus;
   if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") return true;
   if (availabilityStatus === "QUESTIONABLE" && (row.playerContext.availabilityPercentPlay ?? 100) <= 55) return true;
   return false;
 }
-
 function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
   return (
     data.lastUpdatedAt !== null ||
@@ -297,7 +260,6 @@ function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
     Boolean(data.precisionSystem)
   );
 }
-
 function isPrecisionCardUnderfilled(data: SnapshotBoardData): boolean {
   const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
   if (!hasSlateGames) return false;
@@ -306,23 +268,19 @@ function isPrecisionCardUnderfilled(data: SnapshotBoardData): boolean {
   const selectedCount = data.precisionCardSummary?.selectedCount ?? data.precisionCard?.length ?? 0;
   return selectedCount < targetCardCount;
 }
-
 function shouldAutoRefreshBoard(targetDate: string, lastUpdatedAt: string | null): boolean {
   if (targetDate !== getTodayEtDateString(new Date())) return false;
   if (!lastUpdatedAt) return true;
-
   const lastUpdatedMs = Date.parse(lastUpdatedAt);
   if (!Number.isFinite(lastUpdatedMs)) return true;
   return Date.now() - lastUpdatedMs >= AUTO_REFRESH_STALE_AFTER_MS;
 }
-
 function wasBoardUpdatedRecently(lastUpdatedAt: string | null, maxAgeMs = MANUAL_FAST_REFRESH_WINDOW_MS): boolean {
   if (!lastUpdatedAt) return false;
   const lastUpdatedMs = Date.parse(lastUpdatedAt);
   if (!Number.isFinite(lastUpdatedMs)) return false;
   return Date.now() - lastUpdatedMs <= maxAgeMs;
 }
-
 type MarketSignalDisplay = {
   statusText: string;
   statusClass: string;
@@ -337,7 +295,6 @@ type MarketSignalDisplay = {
   lineOrigin: "LIVE" | "MODEL" | null;
   sportsbookCount: number | null;
 };
-
 type MarketRecommendationView = {
   display: MarketSignalDisplay | null;
   precision: SnapshotPrecisionPickSignal | null;
@@ -347,11 +304,8 @@ type MarketRecommendationView = {
   hitChance: HitChanceDisplay;
   note: string | null;
 };
-
 type MarketRecommendationSource = "CUSTOM" | "PRECISION" | "LIVE_MODEL" | "MODEL_FALLBACK" | "UNAVAILABLE";
-
 type FocusTier = "TOP" | "STRONG" | "WATCH" | "DEEP";
-
 type FocusCandidate = {
   row: SnapshotRow;
   market: SnapshotMarket;
@@ -366,30 +320,32 @@ type FocusCandidate = {
   supportText: string;
   reasons: string[];
 };
-
 type DailyCardSource = "PRECISION";
-
 type DailyCardCandidate = {
   candidate: FocusCandidate;
   precision: SnapshotPrecisionPickSignal | null;
   source: DailyCardSource;
 };
-
+type PlayerMarketSummaryMeta = {
+  label: string;
+  detail: string;
+  className: string;
+};
 const DAILY_CARD_SOURCE_META: Record<DailyCardSource, { label: string; className: string }> = {
   PRECISION: {
     label: "Precision Model",
     className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
   },
 };
-
 function dailyCardSourceLabel(source: DailyCardSource): string {
   return DAILY_CARD_SOURCE_META[source].label;
 }
-
 function dailyCardSourceClass(source: DailyCardSource): string {
   return DAILY_CARD_SOURCE_META[source].className;
 }
-
+function precisionCardEntryKey(playerId: string, market: SnapshotMarket): string {
+  return `${playerId}:${market}`;
+}
 function resolveMarketSignalLineContext(
   signal: SnapshotPtsSignal | null,
   modelLine: SnapshotRow["modelLines"][SnapshotMarket],
@@ -405,7 +361,6 @@ function resolveMarketSignalLineContext(
     projectionGap: usingModelFallback ? modelLine.projectionGap : signal?.projectionGap ?? null,
   };
 }
-
 function hasLiveOverrideConflict(signal: SnapshotPtsSignal | null, usingModelFallback: boolean): boolean {
   return (
     !usingModelFallback &&
@@ -415,7 +370,6 @@ function hasLiveOverrideConflict(signal: SnapshotPtsSignal | null, usingModelFal
     signal.side !== signal.baselineSide
   );
 }
-
 function resolveMarketSignalDisplay(
   marketLabel: string,
   signal: SnapshotPtsSignal | null,
@@ -423,9 +377,7 @@ function resolveMarketSignalDisplay(
 ): MarketSignalDisplay | null {
   const { usingModelFallback, line, projectionGap } = resolveMarketSignalLineContext(signal, modelLine);
   if (!signal && !usingModelFallback) return null;
-
   const qualified = signal?.qualified ?? false;
-
   return {
     statusText: usingModelFallback ? `${marketLabel} MODEL` : `${marketLabel} ${cardStatusLabel(qualified)}`,
     statusClass: usingModelFallback ? "bg-cyan-500/15 text-cyan-200" : ptsFilterClass(qualified),
@@ -441,7 +393,6 @@ function resolveMarketSignalDisplay(
     sportsbookCount: usingModelFallback ? null : signal?.sportsbookCount ?? null,
   };
 }
-
 function resolveDisplayedMarketLine(customLine: number | null, display: MarketSignalDisplay | null): {
   line: number | null;
   label: string;
@@ -463,7 +414,6 @@ function resolveDisplayedMarketLine(customLine: number | null, display: MarketSi
     label: "Awaiting market line",
   };
 }
-
 function resolveMarketRecommendationView(
   row: SnapshotRow,
   market: SnapshotMarket,
@@ -488,21 +438,104 @@ function resolveMarketRecommendationView(
   const note = hasDisplayConflict
     ? "Live override conflicts with the projection gap. This market stays neutral unless it qualifies in Precision."
     : null;
-
+  const baseHitChance = displayedLine.line != null && customLine == null ? resolveMarketHitChance(row, market, display) : EMPTY_HIT_CHANCE;
+  const hitChance =
+    hasDisplayConflict && baseHitChance.value != null
+      ? {
+          ...baseHitChance,
+          label: "",
+          subtitle: "",
+        }
+      : baseHitChance;
   return {
     display,
     precision,
     finalSide,
     marketLine: displayedLine.line,
     marketLineLabel: displayedLine.label,
-    hitChance:
-      displayedLine.line != null && customLine == null && !hasDisplayConflict
-        ? resolveMarketHitChance(row, market, display)
-        : EMPTY_HIT_CHANCE,
+    hitChance,
     note,
   };
 }
-
+function resolveFinalMarketRecommendationView(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  customLine: number | null = null,
+  lockedPrecisionEntry: SnapshotPrecisionCardEntry | null = null,
+): MarketRecommendationView {
+  const baseView = resolveMarketRecommendationView(row, market, customLine);
+  const lockedPrecisionSignal = lockedPrecisionEntry?.precisionSignal ?? null;
+  const hasLockedPrecisionCall =
+    customLine == null &&
+    lockedPrecisionSignal?.qualified === true &&
+    lockedPrecisionSignal.side !== "NEUTRAL";
+  if (!hasLockedPrecisionCall) {
+    return baseView;
+  }
+  const lockedLine = lockedPrecisionEntry?.lockedLine ?? baseView.marketLine;
+  return {
+    ...baseView,
+    precision: lockedPrecisionSignal,
+    finalSide: lockedPrecisionSignal.side,
+    marketLine: lockedLine,
+    marketLineLabel: lockedLine == null ? baseView.marketLineLabel : `Final ${formatStat(lockedLine)}`,
+    hitChance: resolvePrecisionHitChance(lockedPrecisionSignal),
+    note: null,
+  };
+}
+function resolvePlayerMarketSummaryMeta(
+  marketView: MarketRecommendationView,
+  customLine: number | null,
+  lockedPrecisionEntry: SnapshotPrecisionCardEntry | null,
+): PlayerMarketSummaryMeta {
+  const hasLockedPrecisionCall =
+    customLine == null &&
+    lockedPrecisionEntry?.precisionSignal?.qualified === true &&
+    lockedPrecisionEntry.precisionSignal.side !== "NEUTRAL";
+  if (customLine != null) {
+    return {
+      label: "Custom Line",
+      detail: "Using your custom line for the final projection result.",
+      className: "border-blue-300/35 bg-blue-500/12 text-blue-100",
+    };
+  }
+  if (hasLockedPrecisionCall) {
+    return {
+      label: "Final Pick",
+      detail: "Locked precision result for this slate.",
+      className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+    };
+  }
+  if (marketView.finalSide === "NEUTRAL" && marketView.marketLine != null) {
+    return {
+      label: "",
+      detail:
+        marketView.hitChance.value != null
+          ? "No final pick on the current sportsbook line. The hit chance below is only the underlying model lean."
+          : "No final pick on the current sportsbook line.",
+      className: "border-amber-300/35 bg-amber-500/12 text-amber-100",
+    };
+  }
+  if (marketView.marketLine != null) {
+    return {
+      label: "Final Read",
+      detail: "Final result for the current sportsbook line.",
+      className: "border-slate-300/20 bg-white/5 text-slate-200",
+    };
+  }
+  if (marketView.display?.lineOrigin === "MODEL") {
+    return {
+      label: "Awaiting Line",
+      detail: "Waiting on a confirmed game line.",
+      className: "border-cyan-300/30 bg-cyan-500/10 text-cyan-100",
+    };
+  }
+  return {
+    label: "Unavailable",
+    detail: "No active line is available for this market yet.",
+    className: "border-slate-300/20 bg-white/5 text-slate-300",
+  };
+}
 function resolveMarketRecommendationSource(
   marketView: MarketRecommendationView,
   customLine: number | null,
@@ -520,7 +553,6 @@ function resolveMarketRecommendationSource(
       className: "border-blue-300/35 bg-blue-500/12 text-blue-100",
     };
   }
-
   if (marketView.precision?.qualified && marketView.precision.side !== "NEUTRAL") {
     return {
       source: "PRECISION",
@@ -529,7 +561,6 @@ function resolveMarketRecommendationSource(
       className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
     };
   }
-
   if (marketView.display?.lineOrigin === "LIVE") {
     if (marketView.note) {
       return {
@@ -546,7 +577,6 @@ function resolveMarketRecommendationSource(
       className: "border-slate-300/20 bg-white/5 text-slate-200",
     };
   }
-
   if (marketView.display?.lineOrigin === "MODEL") {
     return {
       source: "MODEL_FALLBACK",
@@ -555,7 +585,6 @@ function resolveMarketRecommendationSource(
       className: "border-cyan-300/30 bg-cyan-500/10 text-cyan-100",
     };
   }
-
   return {
     source: "UNAVAILABLE",
     label: "No Active Line",
@@ -563,7 +592,6 @@ function resolveMarketRecommendationSource(
     className: "border-slate-300/20 bg-white/5 text-slate-300",
   };
 }
-
 function mergeHydratedPlayerRow(current: SnapshotRow, hydrated: SnapshotRow): SnapshotRow {
   return {
     ...current,
@@ -579,43 +607,36 @@ function mergeHydratedPlayerRow(current: SnapshotRow, hydrated: SnapshotRow): Sn
     precisionSignals: hydrated.precisionSignals ?? current.precisionSignals,
   };
 }
-
 function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
-
 function roundNumber(value: number, digits = 1): number {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;
 }
-
 function focusTierLabel(tier: FocusTier): string {
   if (tier === "TOP") return "Top Focus";
   if (tier === "STRONG") return "Strong Look";
   if (tier === "WATCH") return "Watchlist";
   return "Deep Read";
 }
-
 function focusTierClass(tier: FocusTier): string {
   if (tier === "TOP") return "border-emerald-300/45 bg-emerald-500/12 text-emerald-100";
   if (tier === "STRONG") return "border-amber-300/45 bg-amber-500/12 text-amber-100";
   if (tier === "WATCH") return "border-cyan-300/40 bg-cyan-500/10 text-cyan-100";
   return "border-slate-300/20 bg-slate-500/10 text-slate-200";
 }
-
 function focusRowAccentClass(tier: FocusTier): string {
   if (tier === "TOP") return "bg-emerald-400/[0.06]";
   if (tier === "STRONG") return "bg-amber-400/[0.05]";
   if (tier === "WATCH") return "bg-cyan-400/[0.04]";
   return "";
 }
-
 function qualityBonus(tier: "HIGH" | "MEDIUM" | "LOW"): number {
   if (tier === "HIGH") return 10;
   if (tier === "MEDIUM") return 6;
   return 2;
 }
-
 function directionalSupport(
   side: SnapshotModelSide,
   trendVsSeason: number | null,
@@ -624,11 +645,9 @@ function directionalSupport(
   if (side !== "OVER" && side !== "UNDER") {
     return { score: 0, text: "No directional support" };
   }
-
   const signedTrend = trendVsSeason == null ? 0 : side === "OVER" ? trendVsSeason : -trendVsSeason;
   const signedOpponent = opponentAllowanceDelta == null ? 0 : side === "OVER" ? opponentAllowanceDelta : -opponentAllowanceDelta;
   const score = clampNumber(signedTrend * 4 + signedOpponent * 2.5, -8, 12);
-
   const trendLabel =
     trendVsSeason == null
       ? "Trend -"
@@ -637,20 +656,17 @@ function directionalSupport(
     opponentAllowanceDelta == null
       ? "Opp -"
       : `Opp ${formatAverage(side === "OVER" ? opponentAllowanceDelta : -opponentAllowanceDelta, true)}`;
-
   return {
     score,
     text: `${trendLabel} | ${oppLabel}`,
   };
 }
-
 function focusTierFromScore(score: number, signalQualified: boolean): FocusTier {
   if (signalQualified || score >= 78) return "TOP";
   if (score >= 64) return "STRONG";
   if (score >= 50) return "WATCH";
   return "DEEP";
 }
-
 function resolveFocusGap(
   projectionValue: number | null,
   currentLine: number | null,
@@ -666,7 +682,6 @@ function resolveFocusGap(
     gap: Math.abs(gapBase),
   };
 }
-
 function resolveFocusScore(
   row: SnapshotRow,
   market: SnapshotMarket,
@@ -704,7 +719,6 @@ function resolveFocusScore(
     supportText: support.text,
   };
 }
-
 function buildFocusReasons(
   row: SnapshotRow,
   display: MarketSignalDisplay | null,
@@ -721,13 +735,12 @@ function buildFocusReasons(
   }
   if (confidence != null || minutesRisk != null) {
     reasons.push(
-      `Score ${confidence == null ? "-" : formatStat(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
+      `Hit chance ${confidence == null ? "-" : formatChanceValue(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
     );
   }
   reasons.push(`Data ${row.dataCompleteness.score} ${row.dataCompleteness.tier}.`);
   return reasons;
 }
-
 function buildFocusCandidate(
   row: SnapshotRow,
   market: SnapshotMarket,
@@ -747,7 +760,6 @@ function buildFocusCandidate(
   const { score, supportText } = resolveFocusScore(row, market, side, display, modelLine, gap, signalQualified);
   const focusTier = focusTierFromScore(score, signalQualified);
   const reasons = buildFocusReasons(row, display, gapBase, currentLineLabel);
-
   return {
     row,
     market,
@@ -763,7 +775,6 @@ function buildFocusCandidate(
     reasons,
   };
 }
-
 function hitCounts(values: number[], line: number): { over: number; under: number; push: number } {
   let over = 0;
   let under = 0;
@@ -775,32 +786,26 @@ function hitCounts(values: number[], line: number): { over: number; under: numbe
   });
   return { over, under, push };
 }
-
 function average(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
-
 function lineKey(dateEt: string, playerId: string, market: SnapshotMarket): string {
   return `${dateEt}:${playerId}:${market}`;
 }
-
 function minuteFloorKey(dateEt: string, playerId: string, market: SnapshotMarket): string {
   return `${dateEt}:${playerId}:${market}:minutes-floor`;
 }
-
 function parseMinutesFloor(value: string): number | null {
   const parsed = parseLine(value);
   if (parsed == null) return null;
   const clamped = Math.min(48, Math.max(0, parsed));
   return Math.round(clamped * 10) / 10;
 }
-
 function edge(offense: number | null, defenseAllowed: number | null): number | null {
   if (offense == null || defenseAllowed == null) return null;
   return offense - defenseAllowed;
 }
-
 function marketValueFromLog(
   log: SnapshotRow["recentLogs"][number],
   market: SnapshotMarket,
@@ -814,19 +819,16 @@ function marketValueFromLog(
   if (market === "PR") return log.points + log.rebounds;
   return log.rebounds + log.assists;
 }
-
 function formatPercent(numerator: number, denominator: number): string {
   if (denominator === 0) return "-";
   const pct = (numerator / denominator) * 100;
   return `${pct.toFixed(0)}%`;
 }
-
 function resultLabel(value: number, line: number): "OVER" | "UNDER" | "PUSH" {
   if (value > line) return "OVER";
   if (value < line) return "UNDER";
   return "PUSH";
 }
-
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -836,7 +838,6 @@ function median(values: number[]): number | null {
   }
   return sorted[middle];
 }
-
 function standardDeviation(values: number[]): number | null {
   const avg = average(values);
   if (avg == null || values.length === 0) return null;
@@ -844,17 +845,14 @@ function standardDeviation(values: number[]): number | null {
     values.reduce((sum, value) => sum + (value - avg) * (value - avg), 0) / values.length;
   return Math.sqrt(variance);
 }
-
 function minValue(values: number[]): number | null {
   if (values.length === 0) return null;
   return Math.min(...values);
 }
-
 function maxValue(values: number[]): number | null {
   if (values.length === 0) return null;
   return Math.max(...values);
 }
-
 function consistencyPct(values: number[]): number | null {
   const avg = average(values);
   const sd = standardDeviation(values);
@@ -863,18 +861,14 @@ function consistencyPct(values: number[]): number | null {
   const withinBand = values.filter((value) => Math.abs(value - avg) <= sd).length;
   return (withinBand / values.length) * 100;
 }
-
 function formatPercentValue(value: number | null): string {
   if (value == null) return "-";
   return `${value.toFixed(0)}%`;
 }
-
 function formatChanceValue(value: number | null): string {
   if (value == null) return "-";
   return `${formatStat(value)}%`;
 }
-
-
 function percentile(values: number[], p: number): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -885,12 +879,10 @@ function percentile(values: number[], p: number): number | null {
   const weight = index - low;
   return sorted[low] * (1 - weight) + sorted[high] * weight;
 }
-
 type InfoTipProps = {
   label: string;
   definition: string;
 };
-
 function InfoTip({ label, definition }: InfoTipProps): React.ReactElement {
   return (
     <span
@@ -902,12 +894,10 @@ function InfoTip({ label, definition }: InfoTipProps): React.ReactElement {
     </span>
   );
 }
-
 type HeaderWithTipProps = {
   label: string;
   definition: string;
 };
-
 function HeaderWithTip({ label, definition }: HeaderWithTipProps): React.ReactElement {
   return (
     <span className="inline-flex items-center gap-1">
@@ -916,19 +906,16 @@ function HeaderWithTip({ label, definition }: HeaderWithTipProps): React.ReactEl
     </span>
   );
 }
-
 function intelStatusClass(status: "LIVE" | "DERIVED" | "PENDING"): string {
   if (status === "LIVE") return "bg-emerald-400/20 text-emerald-200";
   if (status === "DERIVED") return "bg-cyan-400/20 text-cyan-100";
   return "bg-amber-400/20 text-amber-200";
 }
-
 function completenessTierClass(tier: "HIGH" | "MEDIUM" | "LOW"): string {
   if (tier === "HIGH") return "bg-emerald-400/20 text-emerald-200";
   if (tier === "MEDIUM") return "bg-amber-400/20 text-amber-200";
   return "bg-rose-400/20 text-rose-200";
 }
-
 type CollapsibleSectionProps = {
   id: string;
   title: string;
@@ -937,7 +924,6 @@ type CollapsibleSectionProps = {
   onToggle: () => void;
   children: React.ReactNode;
 };
-
 function CollapsibleSection({
   id,
   title,
@@ -968,7 +954,6 @@ function CollapsibleSection({
     </section>
   );
 }
-
 export function SnapshotDashboard({
   data: initialData,
   initialMarket,
@@ -1004,7 +989,6 @@ export function SnapshotDashboard({
   const [compactDetail, setCompactDetail] = useState(true);
   const [showQualifiedOnly, setShowQualifiedOnly] = useState(true);
   const [showSecondarySignals, setShowSecondarySignals] = useState(false);
-
   const [showAdvancedView, setShowAdvancedView] = useState(false);
   const [activeResearchTab, setActiveResearchTab] = useState<ResearchTabKey>("trends");
   const [collapsedSections, setCollapsedSections] = useState<Record<DetailSectionKey, boolean>>(
@@ -1050,6 +1034,23 @@ export function SnapshotDashboard({
     (playerId: string, slateMarket: SnapshotMarket): string => minuteFloorKey(activeData.dateEt, playerId, slateMarket),
     [activeData.dateEt],
   );
+  const precisionCardEntryByKey = useMemo(
+    () =>
+      new Map(
+        (activeData.precisionCard ?? []).map((entry) => [precisionCardEntryKey(entry.playerId, entry.market), entry] as const),
+      ),
+    [activeData.precisionCard],
+  );
+  const resolveSelectedPlayerMarketView = useCallback(
+    (row: SnapshotRow, market: SnapshotMarket, customLine: number | null = null): MarketRecommendationView =>
+      resolveFinalMarketRecommendationView(
+        row,
+        market,
+        customLine,
+        precisionCardEntryByKey.get(precisionCardEntryKey(row.playerId, market)) ?? null,
+      ),
+    [precisionCardEntryByKey],
+  );
   const selectedPlayerMarketSystemMix = useMemo(() => {
     if (!selectedPlayer) return null;
     let hasPrecisionCall = false;
@@ -1057,7 +1058,7 @@ export function SnapshotDashboard({
     for (const option of MARKET_OPTIONS) {
       const key = scopedLineKey(selectedPlayer.playerId, option.value);
       const customLine = parseLine(lineMap[key] ?? "");
-      const marketView = resolveMarketRecommendationView(selectedPlayer, option.value, customLine);
+      const marketView = resolveSelectedPlayerMarketView(selectedPlayer, option.value, customLine);
       const source = resolveMarketRecommendationSource(marketView, customLine).source;
       if (source === "PRECISION") hasPrecisionCall = true;
       if (source === "LIVE_MODEL" || source === "MODEL_FALLBACK") hasNonPrecisionCall = true;
@@ -1068,8 +1069,7 @@ export function SnapshotDashboard({
       body:
         "Qualified markets use the precision selector. The rest show the live model lean or a model fallback. Combo props like PR can disagree with PTS and REB because they use their own line. If a live override conflicts with the projection gap, the market stays neutral here unless it qualifies in Precision.",
     };
-  }, [lineMap, scopedLineKey, selectedPlayer]);
-
+  }, [lineMap, resolveSelectedPlayerMarketView, scopedLineKey, selectedPlayer]);
   const fetchBoardSnapshot = useCallback(async (targetDate: string, options?: BoardLoadOptions): Promise<SnapshotBoardData> => {
     const params = new URLSearchParams();
     params.set("date", targetDate);
@@ -1077,7 +1077,6 @@ export function SnapshotDashboard({
       params.set("refresh", "1");
       params.set("t", String(Date.now()));
     }
-
     const requestBoard = async (requestParams: URLSearchParams, useNoStore = false): Promise<SnapshotBoardData> => {
       const response = await fetch(
         `/api/snapshot/board?${requestParams.toString()}`,
@@ -1095,14 +1094,12 @@ export function SnapshotDashboard({
               : normalizedBody.slice(0, 180);
         throw new Error(`Board request failed (${response.status}). ${bodyHint}`);
       }
-
       const payload = (await response.json()) as SnapshotBoardApiResponse;
       if (!response.ok || !payload.ok || !payload.result) {
         throw new Error(payload.error ?? `Board request failed (${response.status}).`);
       }
       return payload.result;
     };
-
     try {
       return await requestBoard(params, options?.bustCache);
     } catch (error) {
@@ -1114,7 +1111,6 @@ export function SnapshotDashboard({
       return requestBoard(fallbackParams, false);
     }
   }, []);
-
   const loadBoardData = useCallback(async (targetDate: string, options?: BoardLoadOptions): Promise<void> => {
     const requestId = boardRequestRef.current + 1;
     boardRequestRef.current = requestId;
@@ -1125,7 +1121,6 @@ export function SnapshotDashboard({
       setIsBoardLoading(true);
     }
     setBoardError(null);
-
     try {
       const result = await fetchBoardSnapshot(targetDate, options);
       if (requestId !== boardRequestRef.current) return;
@@ -1140,55 +1135,70 @@ export function SnapshotDashboard({
       }
     }
   }, [fetchBoardSnapshot]);
-
   const scheduleBoardReload = useCallback((targetDate: string, delayMs = VISIT_REFRESH_FOLLOW_UP_LOAD_MS): void => {
     if (pendingBoardReloadTimeoutRef.current != null) {
       window.clearTimeout(pendingBoardReloadTimeoutRef.current);
     }
-
     pendingBoardReloadTimeoutRef.current = window.setTimeout(() => {
       pendingBoardReloadTimeoutRef.current = null;
       loadBoardData(targetDate, { bustCache: true, background: true });
     }, delayMs);
   }, [loadBoardData]);
-
   const clearPendingBoardReload = useCallback((): void => {
     if (pendingBoardReloadTimeoutRef.current != null) {
       window.clearTimeout(pendingBoardReloadTimeoutRef.current);
       pendingBoardReloadTimeoutRef.current = null;
     }
   }, []);
-
   const loadLatestBoard = useCallback(async (targetDate: string): Promise<void> => {
-    await loadBoardData(targetDate, { background: true });
+    await loadBoardData(targetDate, {
+      background: true,
+      bustCache: targetDate === getTodayEtDateString(new Date()),
+    });
   }, [loadBoardData]);
-
+  const applyReturnedBoard = useCallback((targetDate: string, board: SnapshotBoardData | undefined): boolean => {
+    if (!board || board.dateEt !== targetDate) {
+      return false;
+    }
+    boardRequestRef.current += 1;
+    boardLoadingRequestRef.current = null;
+    boardLoadTargetRef.current = targetDate;
+    setBoardData(board);
+    setBoardError(null);
+    setIsBoardLoading(false);
+    return true;
+  }, []);
   const handleVisitRefreshFailure = useCallback(async (targetDate: string, error: unknown): Promise<void> => {
     const message = error instanceof Error ? error.message : "Auto refresh failed.";
     setRefreshError(`Auto refresh failed: ${message}`);
     await loadLatestBoard(targetDate);
   }, [loadLatestBoard]);
-
   const handleManualRefreshWarnings = useCallback(async (
     targetDate: string,
     refreshMode: ManualRefreshMode,
     warnings: string[],
+    returnedBoard?: SnapshotBoardData,
+    showMessage = true,
   ): Promise<boolean> => {
+    const appliedBoard = applyReturnedBoard(targetDate, returnedBoard);
     if (warnings.some((item) => item.toLowerCase().includes("already running"))) {
-      setRefreshMessage(alreadyRunningRefreshMessage(refreshMode));
+      if (showMessage) {
+        setRefreshMessage(alreadyRunningRefreshMessage(refreshMode));
+      }
       scheduleBoardReload(targetDate);
       return true;
     }
-
     if (warnings.some((item) => item.toLowerCase().includes("completed recently"))) {
-      setRefreshMessage(recentlyCompletedRefreshMessage(refreshMode));
-      await loadLatestBoard(targetDate);
+      if (showMessage) {
+        setRefreshMessage(recentlyCompletedRefreshMessage(refreshMode));
+      }
+      if (!appliedBoard) {
+        await loadLatestBoard(targetDate);
+      }
       return true;
     }
-
     return false;
-  }, [loadLatestBoard, scheduleBoardReload]);
-
+  }, [applyReturnedBoard, loadLatestBoard, scheduleBoardReload]);
   const runManualBoardRefresh = useCallback(async (
     targetDate: string,
     refreshMode: ManualRefreshMode,
@@ -1202,41 +1212,58 @@ export function SnapshotDashboard({
     if (!response.ok) {
       throw new Error(payload.error ?? "Refresh failed");
     }
-
     const warnings = payload.result?.warnings ?? [];
-    if (await handleManualRefreshWarnings(targetDate, refreshMode, warnings)) {
+    const returnedBoard = payload.result?.board;
+    if (await handleManualRefreshWarnings(targetDate, refreshMode, warnings, returnedBoard)) {
       return;
     }
-
+    const appliedBoard = applyReturnedBoard(targetDate, returnedBoard);
     setRefreshMessage(completedRefreshMessage(refreshMode, payload.result?.status));
-    await loadLatestBoard(targetDate);
-  }, [handleManualRefreshWarnings, loadLatestBoard]);
-
+    if (!appliedBoard) {
+      await loadLatestBoard(targetDate);
+    }
+  }, [applyReturnedBoard, handleManualRefreshWarnings, loadLatestBoard]);
+  const runVisitBoardRefresh = useCallback(async (targetDate: string): Promise<void> => {
+    const response = await fetch("/api/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: VISIT_REFRESH_MODE, source: "visit" }),
+    });
+    const payload = (await response.json()) as SnapshotRefreshApiResponse;
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Auto refresh failed");
+    }
+    const warnings = payload.result?.warnings ?? [];
+    const returnedBoard = payload.result?.board;
+    if (await handleManualRefreshWarnings(targetDate, VISIT_REFRESH_MODE, warnings, returnedBoard, false)) {
+      return;
+    }
+    const appliedBoard = applyReturnedBoard(targetDate, returnedBoard);
+    setRefreshMessage(null);
+    if (!appliedBoard) {
+      await loadLatestBoard(targetDate);
+    }
+  }, [applyReturnedBoard, handleManualRefreshWarnings, loadLatestBoard]);
   const runBoardRefresh = useCallback(async (targetDate: string, source: BoardRefreshSource): Promise<void> => {
     const isTodaySlate = targetDate === getTodayEtDateString(new Date());
     if (!isTodaySlate) {
       await loadBoardData(targetDate, { bustCache: true, background: true });
       return;
     }
-
     if (refreshInFlightRef.current) {
       return;
     }
-
     refreshInFlightRef.current = true;
     setIsRefreshing(true);
     setRefreshError(null);
     const manualRefreshMode = source === "manual" ? resolveManualRefreshMode(targetDate) : null;
     clearPendingBoardReload();
     setRefreshMessage(refreshStartMessage(source, manualRefreshMode));
-
     try {
       if (source === "visit") {
-        await loadLatestBoard(targetDate);
-        setRefreshMessage("Live board updated for this visit.");
+        await runVisitBoardRefresh(targetDate);
         return;
       }
-
       const refreshMode = manualRefreshMode ?? MANUAL_REFRESH_MODE;
       await runManualBoardRefresh(targetDate, refreshMode);
     } catch (error) {
@@ -1244,37 +1271,31 @@ export function SnapshotDashboard({
         await handleVisitRefreshFailure(targetDate, error);
         return;
       }
-
       setRefreshError(error instanceof Error ? error.message : "Refresh failed");
     } finally {
       refreshInFlightRef.current = false;
       setIsRefreshing(false);
     }
-  }, [clearPendingBoardReload, handleVisitRefreshFailure, loadBoardData, loadLatestBoard, resolveManualRefreshMode, runManualBoardRefresh]);
-
+  }, [clearPendingBoardReload, handleVisitRefreshFailure, loadBoardData, resolveManualRefreshMode, runManualBoardRefresh, runVisitBoardRefresh]);
   const refreshBoardForVisit = useCallback(
     (targetDate: string, options?: VisitRefreshOptions): void => {
       if (!shouldAutoRefreshBoard(targetDate, options?.lastUpdatedAt ?? null)) {
         return;
       }
-
       const now = Date.now();
       const visitKey = `live-refresh:${targetDate}`;
       const minIntervalMs = options?.minIntervalMs ?? AUTO_REFRESH_ATTEMPT_COOLDOWN_MS;
       if (lastVisitRefreshRef.current.key === visitKey && now - lastVisitRefreshRef.current.at < minIntervalMs) {
         return;
       }
-
       lastVisitRefreshRef.current = { key: visitKey, at: now };
       runBoardRefresh(targetDate, "visit");
     },
     [runBoardRefresh],
   );
-
   useEffect(() => {
     refreshBoardForVisitRef.current = refreshBoardForVisit;
   }, [refreshBoardForVisit]);
-
   useEffect(() => {
     return () => {
       if (pendingBoardReloadTimeoutRef.current != null) {
@@ -1282,13 +1303,11 @@ export function SnapshotDashboard({
       }
     };
   }, []);
-
   useEffect(() => {
     if (!selectedPlayer) {
       setFocusedMarket(market === "ALL" ? "PTS" : market);
     }
   }, [selectedPlayer, market]);
-
   useEffect(() => {
     if (!selectedPlayer) return;
     const refreshedRow = activeData.rows.find(
@@ -1297,11 +1316,9 @@ export function SnapshotDashboard({
     if (!refreshedRow || refreshedRow === selectedPlayer) return;
     setSelectedPlayer(refreshedRow);
   }, [activeData.rows, selectedPlayer]);
-
   useEffect(() => {
     setDateInput(initialData.dateEt);
   }, [initialData.dateEt]);
-
   useEffect(() => {
     setBoardData(initialData);
     setBoardError(null);
@@ -1313,12 +1330,10 @@ export function SnapshotDashboard({
     setIsBoardLoading(false);
     refreshBoardForVisitRef.current?.(initialData.dateEt, { lastUpdatedAt: initialData.lastUpdatedAt });
   }, [initialData, loadBoardData]);
-
   useEffect(() => {
     if (!hasActiveBoardSnapshot) return;
     refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
   }, [activeData.dateEt, activeData.lastUpdatedAt, hasActiveBoardSnapshot, refreshBoardForVisit]);
-
   useEffect(() => {
     if (!activePrecisionCardUnderfilled) {
       if (underfilledSlateReloadRef.current === activeData.dateEt) {
@@ -1329,43 +1344,35 @@ export function SnapshotDashboard({
     if (underfilledSlateReloadRef.current === activeData.dateEt || isBoardLoading) {
       return;
     }
-
     underfilledSlateReloadRef.current = activeData.dateEt;
     setRefreshMessage("Precision card loaded short. Pulling the freshest live slate now...");
     loadBoardData(activeData.dateEt, { bustCache: true, background: true });
   }, [activeData.dateEt, activePrecisionCardUnderfilled, isBoardLoading, loadBoardData]);
-
   useEffect(() => {
     const handlePageShow = (): void => {
       refreshBoardForVisit(activeData.dateEt, { lastUpdatedAt: activeData.lastUpdatedAt });
     };
-
     window.addEventListener("pageshow", handlePageShow);
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, [activeData.dateEt, activeData.lastUpdatedAt, refreshBoardForVisit]);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const donationStatus = params.get("donation");
     if (!donationStatus) return;
-
     if (donationStatus === "success") {
       setDonationMessage("Thanks for supporting ULTOPS. Your donation came through.");
       setDonationError(null);
     }
-
     params.delete("donation");
     const nextQuery = params.toString();
     const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
     window.history.replaceState({}, "", nextUrl);
   }, []);
-
   useEffect(() => {
     if (matchup && !activeData.matchups.some((option) => option.key === matchup)) {
       setMatchup("");
     }
   }, [activeData.matchups, matchup]);
-
   useEffect(() => {
     if (!selectedPlayer && !guideOpen) return;
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -1380,7 +1387,6 @@ export function SnapshotDashboard({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [selectedPlayer, guideOpen]);
-
   useEffect(() => {
     if (!selectedPlayer) return;
     const scrollY = window.scrollY;
@@ -1393,14 +1399,12 @@ export function SnapshotDashboard({
       width: body.style.width,
       overflowY: body.style.overflowY,
     };
-
     body.style.position = "fixed";
     body.style.top = `-${scrollY}px`;
     body.style.left = "0";
     body.style.right = "0";
     body.style.width = "100%";
     body.style.overflowY = "scroll";
-
     return () => {
       body.style.position = previousStyles.position;
       body.style.top = previousStyles.top;
@@ -1411,12 +1415,10 @@ export function SnapshotDashboard({
       window.scrollTo(0, scrollY);
     };
   }, [selectedPlayer]);
-
   useEffect(() => {
     if (!selectedPlayer) return;
     setCollapsedSections(defaultCollapsedSections(compactDetail));
   }, [compactDetail, selectedPlayer]);
-
   useEffect(() => {
     if (!selectedPlayer) {
       setPlayerBacktest(null);
@@ -1424,12 +1426,10 @@ export function SnapshotDashboard({
       setPlayerBacktestLoading(false);
       return;
     }
-
     const controller = new AbortController();
     const playerName = selectedPlayer.playerName;
     setPlayerBacktestLoading(true);
     setPlayerBacktestError(null);
-
     fetch(`/api/snapshot/player/backtest?player=${encodeURIComponent(playerName)}`, {
       cache: "no-store",
       signal: controller.signal,
@@ -1455,10 +1455,8 @@ export function SnapshotDashboard({
           setPlayerBacktestLoading(false);
         }
       });
-
     return () => controller.abort();
   }, [selectedPlayer]);
-
   function closePlayerDetail(): void {
     playerDetailRequestRef.current += 1;
     setPlayerLookupMeta(null);
@@ -1466,7 +1464,6 @@ export function SnapshotDashboard({
     setPlayerDetailError(null);
     setSelectedPlayer(null);
   }
-
   const hydratePlayerDetail = useCallback(async (
     row: SnapshotRow,
     existingLookupMeta: Omit<SnapshotPlayerLookupData, "row"> | null,
@@ -1476,12 +1473,10 @@ export function SnapshotDashboard({
       setPlayerDetailError(null);
       return;
     }
-
     const requestId = playerDetailRequestRef.current + 1;
     playerDetailRequestRef.current = requestId;
     setIsPlayerDetailLoading(true);
     setPlayerDetailError(null);
-
     if (row.recentLogs.length === 0) {
       fetch(`/api/snapshot/player/logs?date=${encodeURIComponent(activeData.dateEt)}&playerId=${encodeURIComponent(row.playerId)}`, {
         cache: "no-store",
@@ -1496,13 +1491,10 @@ export function SnapshotDashboard({
             };
             error?: string;
           };
-
           if (!response.ok || !payload.ok || !payload.result) {
             throw new Error(payload.error ?? "Player recent logs load failed.");
           }
-
           if (requestId !== playerDetailRequestRef.current) return;
-
           setSelectedPlayer((current) => {
             if (!current || current.playerId !== row.playerId) return current;
             return {
@@ -1516,7 +1508,6 @@ export function SnapshotDashboard({
           // Keep the heavier detail fetch as the fallback path if the lightweight log hydrate misses.
         });
     }
-
     try {
       const params = new URLSearchParams();
       params.set("date", activeData.dateEt);
@@ -1527,13 +1518,10 @@ export function SnapshotDashboard({
         result?: SnapshotPlayerLookupData;
         error?: string;
       };
-
       if (!response.ok || !payload.ok || !payload.result) {
         throw new Error(payload.error ?? "Player detail load failed.");
       }
-
       if (requestId !== playerDetailRequestRef.current) return;
-
       setSelectedPlayer((current) => {
         if (!current || current.playerId !== payload.result?.row.playerId) {
           return payload.result!.row;
@@ -1556,7 +1544,6 @@ export function SnapshotDashboard({
       }
     }
   }, [activeData.dateEt]);
-
   const openPlayerDetail = useCallback((
     row: SnapshotRow,
     lookupMeta: Omit<SnapshotPlayerLookupData, "row"> | null = null,
@@ -1572,21 +1559,48 @@ export function SnapshotDashboard({
     }
     setIsPlayerDetailLoading(false);
   }, [hydratePlayerDetail, market]);
-
+  const runToolbarBoardAction = useCallback(async (
+    targetDate: string,
+    targetUrl: string,
+  ): Promise<void> => {
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== targetUrl) {
+      window.history.pushState({}, "", targetUrl);
+    }
+    setBoardError(null);
+    setRefreshError(null);
+    setRefreshMessage(null);
+    const isTodayTarget = targetDate === getTodayEtDateString(new Date());
+    const hasTargetBoardLoaded = hasBoardSnapshotData(activeData) && activeData.dateEt === targetDate;
+    if (!hasTargetBoardLoaded) {
+      await loadBoardData(targetDate);
+      return;
+    }
+    if (!isTodayTarget) {
+      await loadBoardData(targetDate);
+      return;
+    }
+    const shouldRunLiveRefresh =
+      isPrecisionCardUnderfilled(activeData) ||
+      !wasBoardUpdatedRecently(activeData.lastUpdatedAt, MANUAL_SKIP_REFRESH_WINDOW_MS);
+    if (shouldRunLiveRefresh) {
+      await runBoardRefresh(targetDate, "manual");
+      return;
+    }
+    await loadBoardData(targetDate);
+  }, [activeData, loadBoardData, runBoardRefresh]);
   function toggleSection(key: DetailSectionKey): void {
     setCollapsedSections((current) => ({
       ...current,
       [key]: !current[key],
     }));
   }
-
   function jumpToDetailSection(sectionId: string): void {
     const target = document.getElementById(sectionId);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
-
   function handleLoadData(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const params = new URLSearchParams();
@@ -1597,30 +1611,12 @@ export function SnapshotDashboard({
     const player = playerSearch.trim();
     if (player) params.set("player", player);
     params.sort();
-
-    const targetQuery = params.toString();
-    const targetUrl = targetQuery ? `/?${targetQuery}` : "/";
-
-    const current = new URLSearchParams(window.location.search);
-    current.sort();
-    if (current.toString() === targetQuery) {
-      setRefreshMessage(null);
-      setRefreshError(null);
-      loadBoardData(normalizedDate);
-      return;
-    }
-    setBoardError(null);
-    setRefreshError(null);
-    setRefreshMessage(null);
-    setIsBoardLoading(true);
-    router.push(targetUrl);
+    const targetUrl = params.size > 0 ? `/?${params.toString()}` : "/";
+    runToolbarBoardAction(normalizedDate, targetUrl).catch((error) => {
+      setBoardError(error instanceof Error ? error.message : "Board load failed.");
+      setRefreshError(error instanceof Error ? error.message : "Refresh failed.");
+    });
   }
-
-  async function handleRefresh(): Promise<void> {
-    if (isRefreshing) return;
-    await runBoardRefresh(/^\d{4}-\d{2}-\d{2}$/.test(dateInput) ? dateInput : activeData.dateEt, "manual");
-  }
-
   async function handlePlayerLookup(): Promise<void> {
     const search = playerSearch.trim();
     if (!search || isPlayerLookupLoading) {
@@ -1629,14 +1625,13 @@ export function SnapshotDashboard({
       }
       return;
     }
-
-    const directMatch = activeData.rows.find((row) => row.playerName.toLowerCase() === search.toLowerCase());
+    const normalizedSearch = normalizeDashboardSearchText(search);
+    const directMatch = activeData.rows.find((row) => normalizeDashboardSearchText(row.playerName) === normalizedSearch);
     if (directMatch) {
       setPlayerLookupError(null);
       openPlayerDetail(directMatch, null);
       return;
     }
-
     setIsPlayerLookupLoading(true);
     setPlayerLookupError(null);
     try {
@@ -1649,11 +1644,9 @@ export function SnapshotDashboard({
         result?: SnapshotPlayerLookupData;
         error?: string;
       };
-
       if (!response.ok || !payload.ok || !payload.result) {
         throw new Error(payload.error ?? "Player lookup failed.");
       }
-
       openPlayerDetail(payload.result.row, {
         requestedDateEt: payload.result.requestedDateEt,
         resolvedDateEt: payload.result.resolvedDateEt,
@@ -1665,34 +1658,29 @@ export function SnapshotDashboard({
       setIsPlayerLookupLoading(false);
     }
   }
-
   const matchupStatsByKey = useMemo(() => {
     const map = new Map<string, SnapshotBoardData["teamMatchups"][number]>();
     activeData.teamMatchups.forEach((item) => map.set(item.matchupKey, item));
     return map;
   }, [activeData.teamMatchups]);
-
   const filteredRows = useMemo(() => {
-    const search = playerSearch.trim().toLowerCase();
+    const search = normalizeDashboardSearchText(playerSearch);
     return activeData.rows.filter((row) => {
       if (matchup && row.matchupKey !== matchup) return false;
-      if (search && !row.playerName.toLowerCase().includes(search)) return false;
+      if (search && !normalizeDashboardSearchText(row.playerName).includes(search)) return false;
       return true;
     });
   }, [activeData.rows, matchup, playerSearch]);
-
   useEffect(() => {
     const query = initialPlayerSearch.trim();
     if (!query) return;
     if (filteredRows.length === 0) return;
-
-    const queryLower = query.toLowerCase();
-    const exact = filteredRows.find((row) => row.playerName.toLowerCase() === queryLower);
-    const startsWith = filteredRows.find((row) => row.playerName.toLowerCase().startsWith(queryLower));
+    const normalizedQuery = normalizeDashboardSearchText(query);
+    const exact = filteredRows.find((row) => normalizeDashboardSearchText(row.playerName) === normalizedQuery);
+    const startsWith = filteredRows.find((row) => normalizeDashboardSearchText(row.playerName).startsWith(normalizedQuery));
     const bestMatch = exact ?? startsWith ?? filteredRows[0];
     openPlayerDetail(bestMatch);
   }, [filteredRows, initialPlayerSearch, openPlayerDetail]);
-
   const playerSuggestionPool = useMemo(() => {
     const rows = matchup ? activeData.rows.filter((row) => row.matchupKey === matchup) : activeData.rows;
     const deduped = new Map<string, SnapshotRow>();
@@ -1703,37 +1691,35 @@ export function SnapshotDashboard({
     });
     return Array.from(deduped.values()).sort((a, b) => a.playerName.localeCompare(b.playerName));
   }, [activeData.rows, matchup]);
-
   const playerSuggestions = useMemo(() => {
-    const query = playerSearch.trim().toLowerCase();
+    const query = normalizeDashboardSearchText(playerSearch);
     if (!query) {
       return playerSuggestionPool.slice(0, 10);
     }
-    const starts = playerSuggestionPool.filter((row) => row.playerName.toLowerCase().startsWith(query));
+    const starts = playerSuggestionPool.filter((row) => normalizeDashboardSearchText(row.playerName).startsWith(query));
     const contains = playerSuggestionPool.filter(
-      (row) => row.playerName.toLowerCase().includes(query) && !row.playerName.toLowerCase().startsWith(query),
+      (row) => {
+        const normalizedName = normalizeDashboardSearchText(row.playerName);
+        return normalizedName.includes(query) && !normalizedName.startsWith(query);
+      },
     );
     return [...starts, ...contains].slice(0, 10);
   }, [playerSuggestionPool, playerSearch]);
-
   const filteredTeamMatchups = useMemo(() => {
     if (!showAdvancedView) return [];
     if (!matchup) return activeData.teamMatchups;
     return activeData.teamMatchups.filter((item) => item.matchupKey === matchup);
   }, [activeData.teamMatchups, matchup, showAdvancedView]);
-
   const recentLogsPending =
     selectedPlayer != null && selectedPlayer.detailLevel !== "FULL" && selectedPlayer.recentLogs.length === 0;
   const showPlayerLookupContext =
     playerLookupMeta != null &&
     (playerLookupMeta.requestedDateEt !== playerLookupMeta.resolvedDateEt || Boolean(playerLookupMeta.note));
-
   const currentMarketLabel = useMemo(
     () => MARKET_FILTER_OPTIONS.find((option) => option.value === market)?.label ?? market,
     [market],
   );
   const teamStatsMarket = market === "ALL" ? null : market;
-
   const marketFocusCandidates = useMemo(
     () => {
       if (!showAdvancedView || market === "ALL") return [];
@@ -1749,7 +1735,6 @@ export function SnapshotDashboard({
     },
     [filteredRows, lineMap, market, scopedLineKey, showAdvancedView],
   );
-
   const allQualifiedCandidates = useMemo(
     () =>
       filteredRows
@@ -1769,7 +1754,6 @@ export function SnapshotDashboard({
         }),
     [filteredRows, lineMap, scopedLineKey],
   );
-
   const allFocusCandidates = useMemo(
     () => {
       if (!showAdvancedView) return [];
@@ -1791,22 +1775,18 @@ export function SnapshotDashboard({
     },
     [filteredRows, lineMap, scopedLineKey, showAdvancedView],
   );
-
   const focusCandidates = useMemo(() => {
     if (!showAdvancedView) return [];
     return market === "ALL" ? allFocusCandidates : marketFocusCandidates;
   }, [allFocusCandidates, market, marketFocusCandidates, showAdvancedView]);
-
   const topFocusCandidates = useMemo(
     () => focusCandidates.filter((candidate) => candidate.focusTier !== "DEEP").slice(0, 8),
     [focusCandidates],
   );
-
   const qualifiedCandidates = useMemo(
     () => focusCandidates.filter((candidate) => candidate.signalQualified),
     [focusCandidates],
   );
-
   const allQualifiedMarketSummary = useMemo(
     () => {
       const counts = new Map<SnapshotMarket, number>();
@@ -1820,7 +1800,6 @@ export function SnapshotDashboard({
     },
     [allQualifiedCandidates],
   );
-
   const rowByPlayerId = useMemo(
     () => new Map(activeData.rows.map((row) => [row.playerId, row] as const)),
     [activeData.rows],
@@ -1840,7 +1819,6 @@ export function SnapshotDashboard({
       }),
     [activeData.precisionCard, lineMap, rowByPlayerId, scopedLineKey],
   );
-
   const strongProjectionCandidates = useMemo(() => {
     const results: (FocusCandidate & { projGap: number; threshold: number })[] = [];
     filteredRows.forEach((row) => {
@@ -1871,8 +1849,6 @@ export function SnapshotDashboard({
     });
     return results;
   }, [filteredRows, lineMap, scopedLineKey]);
-
-
   const dailyCardCandidates = useMemo<DailyCardCandidate[]>(
     () => backendDailyCardCandidates,
     [backendDailyCardCandidates],
@@ -1882,17 +1858,14 @@ export function SnapshotDashboard({
     () => resolvePrecisionHitChance(leadDailyCardCandidate?.precision),
     [leadDailyCardCandidate],
   );
-
   const researchTabMeta = useMemo(
     () => RESEARCH_TABS.find((tab) => tab.key === activeResearchTab) ?? RESEARCH_TABS[0],
     [activeResearchTab],
   );
-
   const researchMatchupPreview = useMemo(() => {
     const matchupsOnPage = matchup
       ? activeData.teamMatchups.filter((item) => item.matchupKey === matchup)
       : activeData.teamMatchups;
-
     return matchupsOnPage.slice(0, 3).map((item) => {
       const matchupSignals = allQualifiedCandidates.filter((candidate) => candidate.row.matchupKey === item.matchupKey);
       return {
@@ -1902,7 +1875,6 @@ export function SnapshotDashboard({
       };
     });
   }, [activeData.teamMatchups, allQualifiedCandidates, matchup]);
-
   const recentResearchPreview = useMemo(() => {
     const precisionPreview = dailyCardCandidates.slice(0, 3).map((entry) => {
       const chance = resolvePrecisionHitChance(entry.precision);
@@ -1914,34 +1886,28 @@ export function SnapshotDashboard({
         note: entry.candidate.reasons[0] ?? entry.candidate.supportText,
       };
     });
-
     if (precisionPreview.length > 0) {
       return precisionPreview;
     }
-
     return strongProjectionCandidates.slice(0, 3).map((candidate) => ({
       id: `projection-${candidate.row.playerId}-${candidate.market}`,
       title: `${candidate.row.playerName} ${candidate.market}`,
       subtitle: `${candidate.row.teamCode} vs ${candidate.row.opponentCode} | ${candidate.row.gameTimeEt}`,
-      metric: `Gap ${formatAverage(candidate.projGap, true)}`,
+      metric: `Projection ${formatAverage(candidate.row.projectedTonight[candidate.market])}`,
       note: candidate.reasons[0] ?? candidate.supportText,
     }));
   }, [dailyCardCandidates, strongProjectionCandidates]);
-
   const scoutFeedPreview = useMemo(() => allQualifiedCandidates.slice(0, 3), [allQualifiedCandidates]);
-
   const [showAllStrongProjections, setShowAllStrongProjections] = useState(false);
   const STRONG_PROJ_PREVIEW = 6;
   const visibleStrongProjections = useMemo(
     () => (showAllStrongProjections ? strongProjectionCandidates : strongProjectionCandidates.slice(0, STRONG_PROJ_PREVIEW)),
     [strongProjectionCandidates, showAllStrongProjections],
   );
-
   const displayedCandidates = useMemo(() => {
     if (showQualifiedOnly && qualifiedCandidates.length > 0) return qualifiedCandidates;
     return focusCandidates;
   }, [focusCandidates, qualifiedCandidates, showQualifiedOnly]);
-
   const matchupFocusCards = useMemo(() => {
     if (!showAdvancedView) return [];
     return filteredTeamMatchups.map((item) => {
@@ -1954,7 +1920,6 @@ export function SnapshotDashboard({
       };
     });
   }, [filteredTeamMatchups, focusCandidates, showAdvancedView]);
-
   const selectedMinutesFloor = 22;
   const qualifiedFocusCount = useMemo(
     () =>
@@ -1963,7 +1928,6 @@ export function SnapshotDashboard({
         : allQualifiedCandidates.filter((candidate) => candidate.market === market).length,
     [allQualifiedCandidates, market],
   );
-
   useEffect(() => {
     if (playerSuggestions.length === 0) {
       setPlayerSuggestIndex(-1);
@@ -1973,7 +1937,6 @@ export function SnapshotDashboard({
       setPlayerSuggestIndex(0);
     }
   }, [playerSuggestions, playerSuggestIndex]);
-
   function applyPlayerSuggestion(row: SnapshotRow): void {
     setPlayerSearch(row.playerName);
     setPlayerSuggestOpen(false);
@@ -1981,37 +1944,30 @@ export function SnapshotDashboard({
     setPlayerLookupError(null);
     openPlayerDetail(row, null);
   }
-
   function jumpToSection(sectionId: string): void {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
-
   function openAllQualifiedBoard(): void {
     setShowSecondarySignals(true);
     window.setTimeout(() => jumpToSection("all-qualified-section"), 40);
   }
-
   function openFeedbackPage(): void {
     router.push("/feedback");
   }
-
   async function openDonationCheckout(): Promise<void> {
     if (isDonationLoading) return;
     setDonationError(null);
     setDonationMessage(null);
     setIsDonationLoading(true);
-
     try {
       const response = await fetch("/api/donate/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
       const payload = (await response.json()) as { url?: string; error?: string };
-
       if (!response.ok || !payload.url) {
         throw new Error(payload.error ?? "Unable to open donation checkout right now.");
       }
-
       window.location.assign(payload.url);
     } catch (error) {
       setDonationError(error instanceof Error ? error.message : "Unable to open donation checkout right now.");
@@ -2019,14 +1975,12 @@ export function SnapshotDashboard({
       setIsDonationLoading(false);
     }
   }
-
   function focusPlayerLookup(): void {
     const target = document.getElementById("player-search-input") as HTMLInputElement | null;
     if (!target) return;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     window.setTimeout(() => target.focus(), 120);
   }
-
   return (
     <main className="app-shell mx-auto max-w-[1680px] px-4 pb-16 pt-5 sm:px-6 lg:px-10">
       <section className="space-y-5">
@@ -2038,7 +1992,6 @@ export function SnapshotDashboard({
             </div>
             <span className="product-chip product-chip--cyan">Premium Research Platform</span>
           </div>
-
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => jumpToSection("daily-card-section")} className="nav-link">
               Precision Card
@@ -2073,25 +2026,22 @@ export function SnapshotDashboard({
             </button>
           </div>
         </div>
-
         <div className="product-hero px-5 py-5 sm:px-6 sm:py-6">
           <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
             <div className="hero-copy-stack space-y-6">
               <div>
                 <p className="hero-kicker">Institutional NBA Prop Research</p>
-                <h1 className="hero-title">ULTOPS finds the best NBA prop edges fast.</h1>
+                <h1 className="hero-title">ULTOPS finds the best NBA prop picks fast.</h1>
                 <p className="hero-copy">
                   Precision Card first. Live line context, matchup research, and full player-by-player detail stay close
                   behind it so the product feels sharp, credible, and ready to sell.
                 </p>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 <span className="product-chip product-chip--cyan">Ranked Precision Card</span>
                 <span className="product-chip product-chip--teal">Consensus Line Tracking</span>
                 <span className="product-chip product-chip--gold">Premium Research Tools</span>
               </div>
-
               <div className="stat-grid md:grid-cols-3">
                 <div className="stat-tile">
                   <p className="stat-label">Live Card</p>
@@ -2119,7 +2069,6 @@ export function SnapshotDashboard({
                   <p className="stat-note">{qualifiedFocusCount} lower-priority signals behind the card</p>
                 </div>
               </div>
-
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => jumpToSection("daily-card-section")} className="primary-action">
                   View Precision Card
@@ -2132,12 +2081,10 @@ export function SnapshotDashboard({
                 </button>
               </div>
             </div>
-
             <div className="hero-preview-card">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="section-kicker">Live Precision Preview</p>
-                  <h2 className="mt-2 text-2xl font-semibold text-white">Tonight&apos;s headline edge</h2>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Tonight&apos;s headline pick</h2>
                   <p className="mt-2 text-sm leading-6 text-slate-300">
                     A live preview of the top-ranked precision case, so the page sells the value immediately before anyone
                     dives into the deeper research workflow.
@@ -2145,7 +2092,6 @@ export function SnapshotDashboard({
                 </div>
                 <span className="badge badge-premium">Premium View</span>
               </div>
-
               {leadDailyCardCandidate ? (
                 <div className="mt-5 space-y-4">
                   <div className="rounded-[22px] border border-white/10 bg-black/15 p-4">
@@ -2172,7 +2118,6 @@ export function SnapshotDashboard({
                     </div>
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       <div className="insight-card">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Hit Chance</p>
                         <p className="mt-2 text-xl font-semibold text-white">{formatChanceValue(leadDailyCardHitChance.value)}</p>
                       </div>
                       <div className="insight-card">
@@ -2217,13 +2162,12 @@ export function SnapshotDashboard({
             </div>
           </div>
         </div>
-
         <div className="sticky-toolbar">
           <div className="command-bar">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="control-kicker">Trading Toolbar</p>
-                <h2 className="control-title">Load the slate, refresh the market, and inspect any player instantly.</h2>
+                <h2 className="control-title">Refresh the slate, update the market, and inspect any player instantly.</h2>
                 <p className="control-copy">
                   Keep the controls tight and visible while you move between the Precision Card, Research Center, and Scout Feed.
                 </p>
@@ -2232,15 +2176,17 @@ export function SnapshotDashboard({
                 {activeData.matchups.length} game{activeData.matchups.length === 1 ? "" : "s"} on slate
               </span>
             </div>
-
-            <form onSubmit={handleLoadData} className="mt-4 grid gap-3 xl:grid-cols-[150px_220px_180px_145px_145px_minmax(320px,1fr)]">
+            <form
+              onSubmit={handleLoadData}
+              className="mt-4 grid gap-3 xl:grid-cols-[minmax(176px,190px)_minmax(220px,240px)_minmax(190px,210px)_minmax(170px,182px)_minmax(280px,1fr)]"
+            >
               <label className="control-label">
                 Date
                 <input
                   type="date"
                   value={dateInput}
                   onChange={(e) => setDateInput(e.target.value)}
-                  className="control-input cursor-pointer"
+                  className="control-input control-input--date cursor-pointer"
                 />
               </label>
               <label className="control-label">
@@ -2272,19 +2218,14 @@ export function SnapshotDashboard({
                   ))}
                 </select>
               </label>
-              <button type="submit" disabled={isBoardLoading} className="primary-action self-end disabled:opacity-50">
-                {isBoardLoading ? "Loading..." : "Load Board"}
-              </button>
               <button
-                type="button"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="secondary-action self-end disabled:opacity-50"
+                type="submit"
+                disabled={isBoardLoading || isRefreshing}
+                className="primary-action self-end whitespace-nowrap disabled:opacity-50"
               >
-                {isRefreshing ? "Refreshing..." : "Refresh Live"}
+                {isRefreshing ? "Refreshing..." : isBoardLoading ? "Loading..." : "Refresh Slate"}
               </button>
-
-              <div className="relative self-end">
+              <div className="relative min-w-0 self-end">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                   <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -2341,7 +2282,7 @@ export function SnapshotDashboard({
                       setPlayerSuggestIndex(-1);
                     }
                   }}
-                  placeholder="Search any player and open the full case..."
+                  placeholder="Search any player"
                   className="control-input pl-10 pr-3"
                 />
                 {playerSuggestOpen && playerSuggestions.length > 0 && (
@@ -2370,7 +2311,6 @@ export function SnapshotDashboard({
             </form>
           </div>
         </div>
-
         {donationMessage && <p className="notice-banner notice-banner--info">{donationMessage}</p>}
         {donationError && <p className="notice-banner notice-banner--error">{donationError}</p>}
         {refreshMessage && <p className="notice-banner notice-banner--success">{refreshMessage}</p>}
@@ -2378,7 +2318,6 @@ export function SnapshotDashboard({
         {playerLookupError && <p className="notice-banner notice-banner--error">{playerLookupError}</p>}
         {boardError && <p className="notice-banner notice-banner--error">{boardError}</p>}
       </section>
-
       {activeData.precisionSystem ? (
         <section
           id="daily-card-section"
@@ -2418,7 +2357,6 @@ export function SnapshotDashboard({
               {activeData.precisionSystem.note}
             </p>
           ) : null}
-
           {dailyCardCandidates.length === 0 ? (
             <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
               No live {activeData.precisionSystem.label} picks are ready on this slate yet. Refresh the board once the latest lines finish loading.
@@ -2430,7 +2368,7 @@ export function SnapshotDashboard({
                   {`This section only shows the final backend ${activeData.precisionSystem.label} card. ${dailyCardCandidates.length} of ${precisionCardTargetCount} card slot${precisionCardTargetCount === 1 ? "" : "s"} ${dailyCardCandidates.length === 1 ? "is" : "are"} loaded for this slate.`}
                 </p>
                 <p className="mt-2">
-                  Every pick shown here comes from the final precision-only backend card and is ranked from strongest to weakest for today&apos;s slate.
+                  Every pick shown here comes from the final precision-only backend card and is ranked by the selector&apos;s overall score, not by raw hit chance alone.
                 </p>
               </div>
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -2439,7 +2377,6 @@ export function SnapshotDashboard({
                     entry.precision?.side ?? entry.candidate.display?.side ?? entry.candidate.modelLine.modelSide;
                   const isLead = index === 0;
                   const hitChance = resolvePrecisionHitChance(entry.precision);
-
                   return (
                     <button
                         key={`daily-card-${entry.candidate.row.playerId}-${entry.candidate.market}`}
@@ -2476,11 +2413,10 @@ export function SnapshotDashboard({
                               {entry.candidate.row.playerName}
                             </h3>
                             <p className="mt-1 text-sm font-medium text-slate-400">
-                              {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} • {entry.candidate.row.gameTimeEt}
+                              {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} â€¢ {entry.candidate.row.gameTimeEt}
                             </p>
                           </div>
                         </div>
-
                         <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
                           <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
                           <span className="text-xl font-black">
@@ -2488,14 +2424,12 @@ export function SnapshotDashboard({
                           </span>
                         </div>
                       </div>
-
                       <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
                         <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
                           Hit Chance
                         </p>
                         <p className="mt-2 text-2xl font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                         <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                          {hitChance.subtitle ?? "Best available hit estimate for this pick."}
                         </p>
                       </div>
                     </button>
@@ -2550,7 +2484,7 @@ export function SnapshotDashboard({
                             </div>
                             <h4 className="mt-2 text-lg font-semibold text-white">{candidate.row.playerName}</h4>
                             <p className="mt-1 text-xs text-slate-400">
-                              {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
+                              {candidate.row.teamCode} vs {candidate.row.opponentCode} â€¢ {candidate.row.gameTimeEt}
                             </p>
                           </div>
                           <div className={`flex min-w-[120px] flex-col items-center justify-center rounded-2xl border px-4 py-3 text-center ${side === "OVER" ? "border-sky-400/20 bg-sky-500/10 text-sky-300" : side === "UNDER" ? "border-rose-400/20 bg-rose-500/10 text-rose-300" : "border-slate-400/20 bg-slate-500/10 text-slate-300"}`}>
@@ -2562,7 +2496,6 @@ export function SnapshotDashboard({
                         </div>
                         <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2 xl:grid-cols-4">
                           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
-                            <p className="uppercase tracking-[0.12em] text-slate-500">Hit Chance</p>
                             <p className="mt-1 text-sm font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                           </div>
                           <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
@@ -2588,16 +2521,14 @@ export function SnapshotDashboard({
           )}
         </section>
       ) : null}
-
       {showSecondarySignals && strongProjectionCandidates.length > 0 && (
         <section id="strong-projections-section" className="section-shell section-shell--violet mt-6 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-purple-200/80">Strong Projections</p>
-              <h2 className="mt-1 text-2xl font-semibold text-white">High-Confidence Projection Overs</h2>
+              <h2 className="mt-1 text-2xl font-semibold text-white">Projection Results</h2>
               <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-                Players where the model&apos;s projection clears the live consensus line by a significant margin and the live signal still points over.
-                Thresholds: PTS +5, REB +2, AST +2, THREES +1.
+                Final projection outputs that are standing out on this slate. Open any player if you want the full case.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 text-center">
@@ -2607,7 +2538,6 @@ export function SnapshotDashboard({
               </div>
             </div>
           </div>
-
             <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {visibleStrongProjections.map((candidate, index) => {
               const projection = candidate.row.projectedTonight[candidate.market];
@@ -2638,31 +2568,26 @@ export function SnapshotDashboard({
                       </p>
                     </div>
                     <div className="flex min-w-[120px] flex-col items-center justify-center rounded-2xl border border-sky-400/20 bg-sky-500/10 px-4 py-3 text-center text-sky-300">
-                      <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">Projection</span>
+                      <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">Final Result</span>
                       <span className="mt-1 text-base font-black">
                         OVER {formatAverage(line)}
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-3">
+                  <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2">
                     <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
-                      <p className="uppercase tracking-[0.12em] text-slate-500">Projection</p>
+                      <p className="uppercase tracking-[0.12em] text-slate-500">Final Projection</p>
                       <p className="mt-1 text-sm font-semibold text-white">{formatAverage(projection)}</p>
                     </div>
                     <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
-                      <p className="uppercase tracking-[0.12em] text-slate-500">Line</p>
+                      <p className="uppercase tracking-[0.12em] text-slate-500">Market Line</p>
                       <p className="mt-1 text-sm font-semibold text-white">{formatAverage(line)}</p>
-                    </div>
-                    <div className="rounded-xl border border-purple-400/15 bg-purple-500/8 px-3 py-2">
-                      <p className="uppercase tracking-[0.12em] text-purple-300/80">Gap</p>
-                      <p className="mt-1 text-sm font-semibold text-purple-200">+{formatAverage(candidate.projGap)}</p>
                     </div>
                   </div>
                 </button>
               );
             })}
           </div>
-
           {strongProjectionCandidates.length > STRONG_PROJ_PREVIEW && (
             <div className="mt-4 flex justify-center">
               <button
@@ -2676,7 +2601,6 @@ export function SnapshotDashboard({
           )}
         </section>
       )}
-
       <section id="raw-model-section" className="section-shell section-shell--emerald mt-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -2691,7 +2615,6 @@ export function SnapshotDashboard({
             Open Player Lookup
           </button>
         </div>
-
         <div className="research-tabs mt-5">
           {RESEARCH_TABS.map((tab) => (
             <button
@@ -2704,9 +2627,7 @@ export function SnapshotDashboard({
             </button>
           ))}
         </div>
-
         <p className="mt-3 text-sm text-slate-400">{researchTabMeta.description}</p>
-
         {activeResearchTab === "trends" ? (
           activeData.universalSystem ? (
             <div className="mt-4 space-y-3">
@@ -2738,7 +2659,6 @@ export function SnapshotDashboard({
             </div>
           )
         ) : null}
-
         {activeResearchTab === "splits" ? (
           <div className="mt-4 space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
@@ -2771,7 +2691,6 @@ export function SnapshotDashboard({
             </div>
           </div>
         ) : null}
-
         {activeResearchTab === "matchup" ? (
           <div className="mt-4 grid gap-3">
             {researchMatchupPreview.length > 0 ? (
@@ -2816,7 +2735,6 @@ export function SnapshotDashboard({
             )}
           </div>
         ) : null}
-
         {activeResearchTab === "recent" ? (
           <div className="mt-4 grid gap-3">
             {recentResearchPreview.length > 0 ? (
@@ -2839,14 +2757,13 @@ export function SnapshotDashboard({
             )}
           </div>
         ) : null}
-
         {activeResearchTab === "notes" ? (
           <div className="mt-4 space-y-3">
             <div className="editorial-card">
               <p className="text-sm font-semibold text-white">Product positioning</p>
               <p className="mt-2 text-sm leading-6 text-slate-200">
                 Precision Card is the sellable front door. Research Center is the premium support layer that explains the
-                edge without overpowering the main picks.
+                sharpness without overpowering the main picks.
               </p>
             </div>
             <div className="editorial-card">
@@ -2866,7 +2783,6 @@ export function SnapshotDashboard({
           </div>
         ) : null}
       </section>
-
       <section id="player-raw-section" className="section-shell section-shell--violet mt-6 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
@@ -2879,7 +2795,6 @@ export function SnapshotDashboard({
           </div>
           <span className="badge badge-premium">{scoutFeedPreview.length} previewed</span>
         </div>
-
         <div className="mt-4 space-y-3">
           {scoutFeedPreview.length > 0 ? (
             scoutFeedPreview.map((candidate) => {
@@ -2907,7 +2822,6 @@ export function SnapshotDashboard({
                       </p>
                     </div>
                     <div className="rounded-[16px] border border-white/10 bg-black/15 px-4 py-3 text-right">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Edge</p>
                       <p className="mt-2 text-lg font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                     </div>
                   </div>
@@ -2923,7 +2837,6 @@ export function SnapshotDashboard({
             </div>
           )}
         </div>
-
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -2937,7 +2850,6 @@ export function SnapshotDashboard({
           </button>
         </div>
       </section>
-
       {showSecondarySignals ? (
       <section id="all-qualified-section" className="section-shell section-shell--cyan mt-6 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2954,7 +2866,6 @@ export function SnapshotDashboard({
             <p className="mt-1 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
           </div>
         </div>
-
         {allQualifiedMarketSummary.length > 0 ? (
           <div className="mt-4 flex flex-wrap gap-2">
             {allQualifiedMarketSummary.map((option) => (
@@ -2967,7 +2878,6 @@ export function SnapshotDashboard({
             ))}
           </div>
         ) : null}
-
         {allQualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
             No broader raw-model signals are showing across any market for the current filters yet.
@@ -2976,7 +2886,6 @@ export function SnapshotDashboard({
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {allQualifiedCandidates.map((candidate, index) => {
               const side = candidate.display?.side ?? candidate.modelLine.modelSide;
-
               return (
                 <button
                   key={`qualified-all-${candidate.row.playerId}-${candidate.market}`}
@@ -3001,11 +2910,10 @@ export function SnapshotDashboard({
                       <div>
                         <h3 className="text-xl font-bold tracking-tight text-white">{candidate.row.playerName}</h3>
                         <p className="mt-1 text-sm font-medium text-slate-400">
-                          {candidate.row.teamCode} vs {candidate.row.opponentCode} • {candidate.row.gameTimeEt}
+                          {candidate.row.teamCode} vs {candidate.row.opponentCode} â€¢ {candidate.row.gameTimeEt}
                         </p>
                       </div>
                     </div>
-
                     <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
                       <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
                       <span className="text-xl font-black">
@@ -3013,7 +2921,6 @@ export function SnapshotDashboard({
                       </span>
                     </div>
                   </div>
-
                   <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
                     <p className="text-sm font-medium leading-relaxed text-slate-200">
                       {candidate.reasons[0] ?? candidate.supportText}
@@ -3026,7 +2933,6 @@ export function SnapshotDashboard({
         )}
       </section>
       ) : null}
-
       {showAdvancedView ? (
         <>
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
@@ -3036,7 +2942,7 @@ export function SnapshotDashboard({
               <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Today&apos;s Focus Board</p>
               <h2 className="mt-1 text-2xl font-semibold text-white">{currentMarketLabel}</h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-300">
-                Ranked for quick action using live qualification, confidence, edge size, minutes risk, and data quality.
+                Ranked for quick action using live qualification, confidence, hit chance, minutes risk, and data quality.
               </p>
             </div>
             <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 px-3 py-2 text-right text-xs text-emerald-50">
@@ -3044,7 +2950,6 @@ export function SnapshotDashboard({
               <p className="mt-1 text-2xl font-semibold text-white">{topFocusCandidates.length}</p>
             </div>
           </div>
-
           {topFocusCandidates.length === 0 ? (
             <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
               No strong focus bets surfaced for the current filters yet. Try a different market or matchup.
@@ -3082,22 +2987,20 @@ export function SnapshotDashboard({
                       </span>
                     </div>
                   </div>
-
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
                     <div className="rounded-xl bg-black/15 px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
                       <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
                     </div>
                     <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Confidence</p>
                       <p className="mt-1 font-semibold">
-                        {candidate.display?.confidence == null ? "-" : formatStat(candidate.display.confidence)}
+                        {candidate.display?.confidence == null ? "-" : formatChanceValue(candidate.display.confidence)}
                       </p>
                     </div>
                     <div className="rounded-xl bg-black/15 px-2 py-2">
-                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Line / Gap</p>
+                      <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Final Projection</p>
                       <p className="mt-1 font-semibold">
-                        {formatAverage(candidate.currentLine)} / {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
+                        {formatAverage(candidate.row.projectedTonight[candidate.market])}
                       </p>
                     </div>
                     <div className="rounded-xl bg-black/15 px-2 py-2">
@@ -3107,7 +3010,6 @@ export function SnapshotDashboard({
                       </p>
                     </div>
                   </div>
-
                   <div className="mt-3 space-y-1 text-xs text-slate-100/90">
                     {candidate.reasons.map((reason) => (
                       <p key={`${candidate.row.playerId}-${reason}`}>{reason}</p>
@@ -3119,7 +3021,6 @@ export function SnapshotDashboard({
             </div>
           )}
         </article>
-
         <article className="section-shell section-shell--gold p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -3132,7 +3033,6 @@ export function SnapshotDashboard({
               </p>
             </div>
           </div>
-
           <div className="mt-4 grid gap-3">
             {matchupFocusCards.length === 0 ? (
               <div className="rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
@@ -3155,7 +3055,6 @@ export function SnapshotDashboard({
                       </span>
                     </div>
                   </div>
-
                   {topCandidates.length === 0 ? (
                     <p className="mt-3 text-xs text-slate-400">No standout current-market looks in this matchup yet.</p>
                   ) : (
@@ -3192,8 +3091,6 @@ export function SnapshotDashboard({
           </div>
         </article>
       </section>
-
-
       {showSecondarySignals && !isAllMarketsView ? (
       <section className="section-shell section-shell--gold mt-6 p-4 sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -3209,7 +3106,6 @@ export function SnapshotDashboard({
             <p className="mt-1 text-2xl font-semibold text-white">{qualifiedCandidates.length}</p>
           </div>
         </div>
-
         {qualifiedCandidates.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
             No broader raw-model signals are showing for the current filters and market yet.
@@ -3243,22 +3139,20 @@ export function SnapshotDashboard({
                     </span>
                   </div>
                 </div>
-
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
                   <div className="rounded-xl bg-black/15 px-2 py-2">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
                     <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
                   </div>
                   <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Confidence</p>
                     <p className="mt-1 font-semibold">
-                      {candidate.display?.confidence == null ? "-" : formatStat(candidate.display.confidence)}
+                      {candidate.display?.confidence == null ? "-" : formatChanceValue(candidate.display.confidence)}
                     </p>
                   </div>
                   <div className="rounded-xl bg-black/15 px-2 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Line / Gap</p>
+                    <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Final Projection</p>
                     <p className="mt-1 font-semibold">
-                      {formatAverage(candidate.currentLine)} / {formatAverage(candidate.display?.projectionGap ?? candidate.modelLine.projectionGap, true)}
+                      {formatAverage(candidate.row.projectedTonight[candidate.market])}
                     </p>
                   </div>
                   <div className="rounded-xl bg-black/15 px-2 py-2">
@@ -3268,7 +3162,6 @@ export function SnapshotDashboard({
                     </p>
                   </div>
                 </div>
-
                 <div className="mt-3 space-y-1 text-xs text-slate-200/85">
                   {candidate.reasons.map((reason) => (
                     <p key={`${candidate.row.playerId}-qualified-${reason}`}>{reason}</p>
@@ -3280,7 +3173,6 @@ export function SnapshotDashboard({
         )}
       </section>
       ) : null}
-
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Team Matchup Stats</h2>
         {isAllMarketsView ? (
@@ -3303,7 +3195,6 @@ export function SnapshotDashboard({
                 <article key={item.matchupKey} className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-4 shadow-[0_16px_40px_-30px_rgba(245,158,11,0.45)]">
                   <p className="text-xs uppercase tracking-[0.12em] text-amber-200">{item.matchupKey}</p>
                   <p className="text-xs text-slate-400">{item.gameTimeEt}</p>
-
                   <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                     <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.awayTeam}</p>
@@ -3320,7 +3211,6 @@ export function SnapshotDashboard({
                         Attack vs Opp D: {formatAverage(awayEdge, true)}
                       </p>
                     </div>
-
                     <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.homeTeam}</p>
                       <p className="text-slate-300">
@@ -3343,7 +3233,6 @@ export function SnapshotDashboard({
           </div>
         )}
       </section>
-
       <section id="deep-board" className="mt-6">
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
@@ -3556,7 +3445,6 @@ export function SnapshotDashboard({
                     const minuteFloorLogs = row.analysisLogs.filter((log) => log.minutes >= selectedMinutesFloor);
                     const minuteFloorValues = minuteFloorLogs.map((log) => marketValueFromLog(log, candidateMarket));
                     const minuteFloorHit = currentLine == null ? null : hitCounts(minuteFloorValues, currentLine);
-
                     return (
                       <tr
                         key={`${row.playerId}:${candidateMarket}`}
@@ -3673,19 +3561,18 @@ export function SnapshotDashboard({
                                 </span>
                                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ptsConfidenceClass(liveSignalDisplay.confidenceTier ?? null)}`}>
                                   {liveSignalDisplay.confidence == null
-                                    ? "No Score"
-                                    : `${formatStat(liveSignalDisplay.confidence ?? 0)} ${liveSignalDisplay.confidenceTier ?? ""}`.trim()}
+                                    ? "No Hit Chance"
+                                    : `${formatChanceValue(liveSignalDisplay.confidence ?? 0)} ${liveSignalDisplay.confidenceTier ?? ""}`.trim()}
                                 </span>
                               </div>
                               <div className="text-slate-300">
-                                {marketView.marketLineLabel} | Gap {formatAverage(liveSignalDisplay.projectionGap, true)}
+                                {marketView.marketLineLabel} | Projection {formatAverage(row.projectedTonight[candidateMarket])}
                               </div>
                               <div className="text-slate-400">
                                 Risk {formatAverage(liveSignalDisplay.minutesRisk)} | Books {liveSignalDisplay.sportsbookCount || "-"}
                               </div>
                               {marketView.hitChance.value != null ? (
                                 <div className="max-w-[240px] text-[10px] text-emerald-200">
-                                  {marketView.hitChance.label} {formatHitChanceDisplay(marketView.hitChance)}
                                 </div>
                               ) : null}
                             </div>
@@ -3745,10 +3632,8 @@ export function SnapshotDashboard({
           </div>
         )}
       </section>
-
         </>
       ) : null}
-
       {guideOpen ? (
         <div
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
@@ -3775,7 +3660,6 @@ export function SnapshotDashboard({
                 Close Guide
               </button>
             </div>
-
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
@@ -3787,7 +3671,6 @@ export function SnapshotDashboard({
                   <li>5. Use the player search bar to look up any player directly.</li>
                 </ol>
               </article>
-
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Understanding Recommendations</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
@@ -3797,7 +3680,6 @@ export function SnapshotDashboard({
                   <li>- For custom scenarios, open the player detail and set your own line in any market card.</li>
                 </ul>
               </article>
-
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Player Detail Panel</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
@@ -3807,7 +3689,6 @@ export function SnapshotDashboard({
                   <li>- Use the <strong>Jump to section</strong> dropdown to quickly navigate within the panel.</li>
                 </ul>
               </article>
-
               <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Controls</p>
                 <ul className="mt-2 space-y-1 text-xs text-slate-300">
@@ -3821,7 +3702,6 @@ export function SnapshotDashboard({
           </section>
         </div>
       ) : null}
-
       {selectedPlayer ? (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
@@ -3868,7 +3748,7 @@ export function SnapshotDashboard({
                       {playerDetailError}
                     </p>
                   ) : null}
-                  {selectedPlayerMarketSystemMix ? (
+                  {showAdvancedView && selectedPlayerMarketSystemMix ? (
                     <p className="mt-2 max-w-3xl rounded-lg border border-violet-300/20 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-100">
                       <span className="font-semibold text-violet-50">{selectedPlayerMarketSystemMix.title}:</span>{" "}
                       {selectedPlayerMarketSystemMix.body}
@@ -3879,13 +3759,14 @@ export function SnapshotDashboard({
                       const signalMarket = option.value;
                       const key = scopedLineKey(selectedPlayer.playerId, signalMarket);
                       const customLine = parseLine(lineMap[key] ?? "");
-                      const marketView = resolveMarketRecommendationView(selectedPlayer, signalMarket, customLine);
-                      const sourceMeta = resolveMarketRecommendationSource(marketView, customLine);
+                      const lockedPrecisionEntry =
+                        precisionCardEntryByKey.get(precisionCardEntryKey(selectedPlayer.playerId, signalMarket)) ?? null;
+                      const marketView = resolveSelectedPlayerMarketView(selectedPlayer, signalMarket, customLine);
+                      const summaryMeta = resolvePlayerMarketSummaryMeta(marketView, customLine, lockedPrecisionEntry);
                       const isFocused = focusedMarket === signalMarket;
                       const modelLine = selectedPlayer.modelLines[signalMarket];
                       const display = marketView.display;
                       if (!display && modelLine.fairLine == null) return null;
-
                       return (
                         <article
                           key={signalMarket}
@@ -3905,29 +3786,26 @@ export function SnapshotDashboard({
                             </span>
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${sourceMeta.className}`}>
-                              {sourceMeta.label}
+                            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${summaryMeta.className}`}>
+                              {summaryMeta.label}
                             </span>
                           </div>
-                          <p className="mt-2 text-[11px] text-slate-400">{sourceMeta.detail}</p>
-
+                          <p className="mt-2 text-[11px] text-slate-400">{summaryMeta.detail}</p>
                           <p className="mt-3 text-xs font-medium text-slate-200">{marketView.marketLineLabel}</p>
                           {marketView.hitChance.value != null ? (
                             <p className="mt-2 text-sm font-semibold text-emerald-100">
-                              {marketView.hitChance.label} {formatHitChanceDisplay(marketView.hitChance)}
                             </p>
                           ) : (
                             <p className="mt-2 text-xs text-slate-400">
                               {customLine != null
                                 ? "Custom line active. Scroll for the updated read."
-                                : marketView.note
-                                  ? marketView.note
+                                : marketView.finalSide === "NEUTRAL" && marketView.marketLine != null
+                                  ? "No hit chance is shown because this market does not have a final pick on the current line."
                                 : display?.lineOrigin === "MODEL"
                                   ? "Waiting on a confirmed game line."
-                                  : "No live model score yet."}
+                                  : "Hit chance unavailable for this market."}
                             </p>
                           )}
-
                           <label className="mt-3 block text-[10px] uppercase tracking-[0.12em] text-slate-400">
                             Use your line
                             <input
@@ -3947,7 +3825,6 @@ export function SnapshotDashboard({
                               className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                             />
                           </label>
-
                           {showAdvancedView ? (
                             <div className="mt-3 space-y-1 text-[10px] text-slate-300">
                               <p>Status: {display?.statusText ?? "No live signal"}</p>
@@ -3999,7 +3876,6 @@ export function SnapshotDashboard({
               </div>
               <p className="mt-2 text-[11px] text-slate-400">Tip: press Esc or click outside this panel to close.</p>
             </div>
-
             <div className="px-4 py-4 sm:px-6">
             <CollapsibleSection
               id="detail-context"
@@ -4019,7 +3895,6 @@ export function SnapshotDashboard({
                       />
                     </p>
                     <p className="text-right">{selectedPlayer.playerContext.archetype}</p>
-
                     <p className="inline-flex items-center gap-1">
                       Starter
                       <InfoTip
@@ -4035,7 +3910,6 @@ export function SnapshotDashboard({
                           ? " (Started last game)"
                           : " (Did not start last game)"}
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Starts L10
                       <InfoTip
@@ -4050,7 +3924,6 @@ export function SnapshotDashboard({
                           : selectedPlayer.playerContext.starterRateLast10 * 100,
                       )})
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Rotation Rank
                       <InfoTip
@@ -4061,7 +3934,6 @@ export function SnapshotDashboard({
                     <p className="text-right">
                       {selectedPlayer.playerContext.rotationRank != null ? selectedPlayer.playerContext.rotationRank : "-"}
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Data Completeness
                       <InfoTip
@@ -4078,7 +3950,6 @@ export function SnapshotDashboard({
                         {selectedPlayer.dataCompleteness.score} {selectedPlayer.dataCompleteness.tier}
                       </span>
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Coverage Split
                       <InfoTip
@@ -4092,7 +3963,6 @@ export function SnapshotDashboard({
                       {formatPercentValue(selectedPlayer.dataCompleteness.components.contextCoverage)} | Stb{" "}
                       {formatPercentValue(selectedPlayer.dataCompleteness.components.stabilityCoverage)}
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Minutes L3 / L10
                       <InfoTip
@@ -4104,7 +3974,6 @@ export function SnapshotDashboard({
                       {formatAverage(selectedPlayer.playerContext.minutesLast3Avg)} /{" "}
                       {formatAverage(selectedPlayer.playerContext.minutesLast10Avg)}
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Current Team Min
                       <InfoTip
@@ -4116,7 +3985,6 @@ export function SnapshotDashboard({
                       {formatAverage(selectedPlayer.playerContext.minutesCurrentTeamAvg)} (
                       {selectedPlayer.playerContext.minutesCurrentTeamGames} g)
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Projected Minutes Band
                       <InfoTip
@@ -4134,7 +4002,6 @@ export function SnapshotDashboard({
                               selectedPlayer.playerContext.projectedMinutesFloor,
                             )}-${formatAverage(selectedPlayer.playerContext.projectedMinutesCeiling)})`}
                     </p>
-
                     <p className="inline-flex items-center gap-1">
                       Minutes Trend
                       <InfoTip
@@ -4143,7 +4010,6 @@ export function SnapshotDashboard({
                       />
                     </p>
                     <p className="text-right">{formatAverage(selectedPlayer.playerContext.minutesTrend, true)}</p>
-
                     <p className="inline-flex items-center gap-1">
                       Minutes Volatility
                       <InfoTip
@@ -4166,7 +4032,6 @@ export function SnapshotDashboard({
                     </div>
                   )}
                 </article>
-
                 <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
                   <p className="inline-flex items-center gap-1 font-semibold text-white">
                     Expected Primary Defender
@@ -4190,7 +4055,6 @@ export function SnapshotDashboard({
                   ) : (
                     <p className="mt-2 text-slate-300">No defender projection available yet.</p>
                   )}
-
                   <p className="mt-3 inline-flex items-center gap-1 font-semibold text-white">
                     Top Teammates (By Minutes)
                     <InfoTip
@@ -4213,7 +4077,6 @@ export function SnapshotDashboard({
                 </article>
               </div>
             </CollapsibleSection>
-
             <CollapsibleSection
               id="detail-intel"
               title={`Game Intelligence (${selectedPlayer.gameIntel.modules.length} Modules)`}
@@ -4242,7 +4105,6 @@ export function SnapshotDashboard({
                 ))}
               </div>
             </CollapsibleSection>
-
             <CollapsibleSection
               id="detail-backtest"
               title="PTS Backtest"
@@ -4283,7 +4145,6 @@ export function SnapshotDashboard({
                       </article>
                     ))}
                   </div>
-
                   <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -4296,7 +4157,6 @@ export function SnapshotDashboard({
                         <p className="text-[11px] text-slate-400">Sheet: {playerBacktest.sheetPath.split("\\").slice(-1)[0]}</p>
                       ) : null}
                     </div>
-
                     {playerBacktest.games.length === 0 ? (
                       <p className="mt-3 text-slate-300">No game sheet rows were saved with this report.</p>
                     ) : (
@@ -4361,7 +4221,6 @@ export function SnapshotDashboard({
                 </div>
               )}
             </CollapsibleSection>
-
             <CollapsibleSection
               id="detail-markets"
               title="All Markets Detail"
@@ -4390,7 +4249,7 @@ export function SnapshotDashboard({
                   const key = scopedLineKey(selectedPlayer.playerId, m);
                   const customLine = parseLine(lineMap[key] ?? "");
                   const modelLine = selectedPlayer.modelLines[m];
-                  const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
+                  const marketView = resolveSelectedPlayerMarketView(selectedPlayer, m, customLine);
                   const display = marketView.display;
                   const referenceLine = marketView.marketLine;
                   const finalSide = marketView.finalSide;
@@ -4421,7 +4280,6 @@ export function SnapshotDashboard({
                           {isFocused ? "Selected" : "View"}
                         </span>
                       </div>
-
                       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-300">
                         <p>L3 Avg</p>
                         <p className="text-right">{formatAverage(selectedPlayer.last3Average[m])}</p>
@@ -4449,22 +4307,21 @@ export function SnapshotDashboard({
                             {finalSide}
                           </span>
                         </p>
-                        <p>Line Source</p>
-                        <p className="text-right">{activeLineLabel}</p>
-                        {marketView.note ? (
-                          <>
-                            <p>Read Status</p>
-                            <p className="text-right text-amber-200">{marketView.note}</p>
-                          </>
-                        ) : null}
                         {hitChance.value != null ? (
                           <>
-                            <p>{hitChance.label}</p>
                             <p className="text-right">{formatHitChanceDisplay(hitChance)}</p>
                           </>
                         ) : null}
                         {showAdvancedView ? (
                           <>
+                            <p>Line Source</p>
+                            <p className="text-right">{activeLineLabel}</p>
+                            {marketView.note ? (
+                              <>
+                                <p>Read Status</p>
+                                <p className="text-right text-amber-200">{marketView.note}</p>
+                              </>
+                            ) : null}
                             <p>Status</p>
                             <p className="text-right">{display?.statusText ?? "No live signal"}</p>
                             <p>Projection Gap</p>
@@ -4480,14 +4337,12 @@ export function SnapshotDashboard({
                           </>
                         ) : null}
                       </div>
-
                       <div className="mt-2">
                         <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">L5 Game Log</p>
                         <p className="mt-1 rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1 font-mono text-[11px] text-slate-200">
                           {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}
                         </p>
                       </div>
-
                       <input
                         value={lineMap[key] ?? ""}
                         onClick={(event) => event.stopPropagation()}
@@ -4502,7 +4357,6 @@ export function SnapshotDashboard({
                         placeholder={referenceLine == null ? "Set line" : formatStat(referenceLine)}
                         className="mt-2 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
                       />
-
                       <div className="mt-2 space-y-2 text-[11px]">
                         {selectedLine == null || !l5Hit || !l10Hit ? (
                           <p className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5 text-slate-300">
@@ -4533,7 +4387,6 @@ export function SnapshotDashboard({
                                 {formatPercent(l5Hit.push, l5.length)}
                               </p>
                             </div>
-
                             <div className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5">
                               <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">
                                 Last 10 vs Line
@@ -4564,13 +4417,12 @@ export function SnapshotDashboard({
                   );
                 })}
               </div>
-
               {(() => {
                 const m = focusedMarket;
                 const key = scopedLineKey(selectedPlayer.playerId, m);
                 const customLine = parseLine(lineMap[key] ?? "");
                 const modelLine = selectedPlayer.modelLines[m];
-                const marketView = resolveMarketRecommendationView(selectedPlayer, m, customLine);
+                const marketView = resolveSelectedPlayerMarketView(selectedPlayer, m, customLine);
                 const display = marketView.display;
                 const referenceLine = marketView.marketLine;
                 const finalSide = marketView.finalSide;
@@ -4623,14 +4475,12 @@ export function SnapshotDashboard({
                     ? "-"
                     : `${analysisLogs[analysisLogs.length - 1]?.gameDateEt ?? "-"} to ${analysisLogs[0]?.gameDateEt ?? "-"}`;
                 const hitChance = marketView.hitChance;
-
                 return (
                   <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-cyan-100">{focusedLabel} Analyzer</h4>
-                      <p className="text-[11px] text-slate-400">Final live read for the selected market, with optional raw model context in Advanced Data.</p>
+                      <p className="text-[11px] text-slate-400">Final projection result for the selected market. Turn on Advanced Data only if you want the deeper model context.</p>
                     </div>
-
                     <div className="mt-3 grid gap-3 lg:grid-cols-[280px_1fr]">
                       <div className="rounded-lg border border-slate-300/20 bg-[#101938] p-3">
                         <label className="text-[11px] uppercase tracking-[0.12em] text-slate-300">
@@ -4647,27 +4497,34 @@ export function SnapshotDashboard({
                             placeholder={referenceLine == null ? (modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)) : formatStat(referenceLine)}
                             className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
-                        </label>
+                          </label>
                         <div className="mt-2 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Final Read</p>
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Final Result</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
                               {finalSide}
                             </span>
                           </div>
                           <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+                            <p>Final projection</p>
+                            <p className="text-right">{formatAverage(projectionValue)}</p>
                             <p>Game line</p>
                             <p className="text-right">{formatAverage(referenceLine)}</p>
-                            <p>Line source</p>
-                            <p className="text-right">{activeLineLabel}</p>
-                            <p>{hitChance.label}</p>
                             <p className="text-right">{formatHitChanceDisplay(hitChance)}</p>
-                            <p>Status</p>
-                            <p className="text-right">{display?.statusText ?? "No live signal"}</p>
-                            <p>Projection gap</p>
-                            <p className="text-right">{formatAverage(display?.projectionGap ?? modelLine.projectionGap, true)}</p>
+                            <p>Final side</p>
+                            <p className="text-right">
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
+                                {finalSide}
+                              </span>
+                            </p>
                             {showAdvancedView ? (
                               <>
+                                <p>Line source</p>
+                                <p className="text-right">{activeLineLabel}</p>
+                                <p>Status</p>
+                                <p className="text-right">{display?.statusText ?? "No live signal"}</p>
+                                <p>Projection gap</p>
+                                <p className="text-right">{formatAverage(display?.projectionGap ?? modelLine.projectionGap, true)}</p>
                                 <p>Model fair line</p>
                                 <p className="text-right">{formatAverage(modelLine.fairLine)}</p>
                                 <p>Model side</p>
@@ -4680,7 +4537,8 @@ export function SnapshotDashboard({
                             ) : null}
                           </div>
                         </div>
-
+                        {showAdvancedView ? (
+                          <>
                         <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
                           <div className="flex items-center justify-between gap-2">
                             <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-cyan-100">
@@ -4748,7 +4606,6 @@ export function SnapshotDashboard({
                             )}
                           </div>
                         </div>
-
                         <div className="mt-3 space-y-1 text-xs text-slate-300">
                           <p className="flex items-center justify-between">
                             <span>L3 Avg</span>
@@ -4783,7 +4640,6 @@ export function SnapshotDashboard({
                             <span>{formatAverage(referenceLine)}</span>
                           </p>
                           <p className="flex items-center justify-between">
-                            <span>{hitChance.label}</span>
                             <span>{formatHitChanceDisplay(hitChance)}</span>
                           </p>
                           <p className="flex items-center justify-between">
@@ -4793,7 +4649,6 @@ export function SnapshotDashboard({
                             </span>
                           </p>
                         </div>
-
                         <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2">
                           <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Advanced Metrics</p>
                           <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs text-slate-300">
@@ -4805,7 +4660,6 @@ export function SnapshotDashboard({
                               />
                             </p>
                             <p className="text-right">{formatAverage(l10Median)}</p>
-
                             <p className="inline-flex items-center gap-1">
                               Volatility (SD)
                               <InfoTip
@@ -4814,7 +4668,6 @@ export function SnapshotDashboard({
                               />
                             </p>
                             <p className="text-right">{formatAverage(l10StdDev)}</p>
-
                             <p className="inline-flex items-center gap-1">
                               Consistency
                               <InfoTip
@@ -4823,7 +4676,6 @@ export function SnapshotDashboard({
                               />
                             </p>
                             <p className="text-right">{formatPercentValue(l10Consistency)}</p>
-
                             <p className="inline-flex items-center gap-1">
                               L10 Range
                               <InfoTip
@@ -4836,7 +4688,6 @@ export function SnapshotDashboard({
                                 ? "-"
                                 : `${formatStat(l10Range)} (${formatStat(l10Min)}-${formatStat(l10Max)})`}
                             </p>
-
                             <p className="inline-flex items-center gap-1">
                               Z-Edge
                               <InfoTip
@@ -4847,7 +4698,6 @@ export function SnapshotDashboard({
                             <p className="text-right">{zEdge == null ? "-" : zEdge.toFixed(2)}</p>
                           </div>
                         </div>
-
                         {selectedLine == null ? (
                           <p className="mt-3 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-300">
                             No active line is available for this market yet.
@@ -4879,8 +4729,9 @@ export function SnapshotDashboard({
                             </p>
                           </div>
                         )}
+                          </>
+                        ) : null}
                       </div>
-
                       <div className="overflow-hidden rounded-lg border border-slate-300/20">
                         <table className="w-full text-xs">
                           <thead className="bg-[#162249] text-slate-200/80">
@@ -4947,7 +4798,6 @@ export function SnapshotDashboard({
                 );
               })()}
             </CollapsibleSection>
-
             <CollapsibleSection
               id="detail-logs"
               title="Last 10 Completed Games"
@@ -5011,7 +4861,6 @@ export function SnapshotDashboard({
                 </div>
               )}
             </CollapsibleSection>
-
             <CollapsibleSection
               id="detail-summary"
               title="Quick Read"
@@ -5022,10 +4871,9 @@ export function SnapshotDashboard({
                 {(() => {
                   const key = scopedLineKey(selectedPlayer.playerId, focusedMarket);
                   const customLine = parseLine(lineMap[key] ?? "");
-                  const marketView = resolveMarketRecommendationView(selectedPlayer, focusedMarket, customLine);
+                  const marketView = resolveSelectedPlayerMarketView(selectedPlayer, focusedMarket, customLine);
                   const referenceLine = marketView.marketLine;
                   const finalSide = marketView.finalSide;
-
                   return (
                     <p>
                       Quick read ({focusedMarket}): L5 avg {formatAverage(average(selectedPlayer.last5[focusedMarket]))} | L10 avg{" "}
@@ -5038,7 +4886,6 @@ export function SnapshotDashboard({
                 })()}
               </section>
             </CollapsibleSection>
-
             {matchupStatsByKey.has(selectedPlayer.matchupKey) ? (
               <CollapsibleSection
                 id="detail-team"
@@ -5066,7 +4913,6 @@ export function SnapshotDashboard({
           </div>
         </div>
       ) : null}
-
       <section id="comments-section" className="section-shell section-shell--violet mt-8 p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
@@ -5085,7 +4931,6 @@ export function SnapshotDashboard({
             Open Suggestions Page
           </button>
         </div>
-
         <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
           Leave public comments and suggestions on a dedicated page without crowding the homepage. That page keeps the
           full message list together so people can review older ideas and ongoing feedback in one place.
@@ -5094,3 +4939,6 @@ export function SnapshotDashboard({
     </main>
   );
 }
+
+
+
