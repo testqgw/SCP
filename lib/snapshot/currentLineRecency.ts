@@ -79,6 +79,67 @@ function weightedRate(parts: Array<{ value: number | null; weight: number }>): n
   return weightedTotal / totalWeight;
 }
 
+function roundOrNull(value: number | null, digits: number): number | null {
+  return value == null ? null : round(value, digits);
+}
+
+function buildEmptyCurrentLineRecencyMetrics(raw: {
+  l5MinutesAvgRaw: number | null;
+  emaMinutesAvgRaw: number | null;
+  l15ValueMeanRaw: number | null;
+  l15ValueMedianRaw: number | null;
+  l15ValueStdDevRaw: number | null;
+  l15ValueSkewRaw: number | null;
+}): CurrentLineRecencyMetrics {
+  return {
+    l5CurrentLineDeltaAvg: null,
+    l5CurrentLineOverRate: null,
+    l10CurrentLineOverRate: null,
+    l15CurrentLineOverRate: null,
+    weightedCurrentLineOverRate: null,
+    l5MinutesAvg: roundOrNull(raw.l5MinutesAvgRaw, 3),
+    emaCurrentLineDelta: null,
+    emaCurrentLineOverRate: null,
+    emaMinutesAvg: roundOrNull(raw.emaMinutesAvgRaw, 3),
+    l15ValueMean: roundOrNull(raw.l15ValueMeanRaw, 3),
+    l15ValueMedian: roundOrNull(raw.l15ValueMedianRaw, 3),
+    l15ValueStdDev: roundOrNull(raw.l15ValueStdDevRaw, 3),
+    l15ValueSkew: roundOrNull(raw.l15ValueSkewRaw, 4),
+  };
+}
+
+function buildCurrentLineRecencyMetrics(raw: {
+  l5CurrentLineDeltaAvgRaw: number | null;
+  l5CurrentLineOverRateRaw: number | null;
+  l10CurrentLineOverRateRaw: number | null;
+  l15CurrentLineOverRateRaw: number | null;
+  weightedCurrentLineOverRateRaw: number | null;
+  l5MinutesAvgRaw: number | null;
+  emaCurrentLineDeltaRaw: number | null;
+  emaCurrentLineOverRateRaw: number | null;
+  emaMinutesAvgRaw: number | null;
+  l15ValueMeanRaw: number | null;
+  l15ValueMedianRaw: number | null;
+  l15ValueStdDevRaw: number | null;
+  l15ValueSkewRaw: number | null;
+}): CurrentLineRecencyMetrics {
+  return {
+    l5CurrentLineDeltaAvg: roundOrNull(raw.l5CurrentLineDeltaAvgRaw, 3),
+    l5CurrentLineOverRate: roundOrNull(raw.l5CurrentLineOverRateRaw, 3),
+    l10CurrentLineOverRate: roundOrNull(raw.l10CurrentLineOverRateRaw, 3),
+    l15CurrentLineOverRate: roundOrNull(raw.l15CurrentLineOverRateRaw, 3),
+    weightedCurrentLineOverRate: roundOrNull(raw.weightedCurrentLineOverRateRaw, 3),
+    l5MinutesAvg: roundOrNull(raw.l5MinutesAvgRaw, 3),
+    emaCurrentLineDelta: roundOrNull(raw.emaCurrentLineDeltaRaw, 3),
+    emaCurrentLineOverRate: roundOrNull(raw.emaCurrentLineOverRateRaw, 3),
+    emaMinutesAvg: roundOrNull(raw.emaMinutesAvgRaw, 3),
+    l15ValueMean: roundOrNull(raw.l15ValueMeanRaw, 3),
+    l15ValueMedian: roundOrNull(raw.l15ValueMedianRaw, 3),
+    l15ValueStdDev: roundOrNull(raw.l15ValueStdDevRaw, 3),
+    l15ValueSkew: roundOrNull(raw.l15ValueSkewRaw, 4),
+  };
+}
+
 const CURRENT_LINE_RECENCY_EMA_ALPHA = (() => {
   const raw = Number(process.env.SNAPSHOT_CURRENT_LINE_RECENCY_EMA_ALPHA);
   if (Number.isFinite(raw) && raw > 0 && raw < 1) return raw;
@@ -111,21 +172,14 @@ export function computeCurrentLineRecencyMetrics(input: {
       ? null
       : (l15ValueMeanRaw - l15ValueMedianRaw) / l15ValueStdDevRaw;
   if (line == null || actualValues.length === 0) {
-    return {
-      l5CurrentLineDeltaAvg: null,
-      l5CurrentLineOverRate: null,
-      l10CurrentLineOverRate: null,
-      l15CurrentLineOverRate: null,
-      weightedCurrentLineOverRate: null,
-      l5MinutesAvg: l5MinutesAvgRaw == null ? null : round(l5MinutesAvgRaw, 3),
-      emaCurrentLineDelta: null,
-      emaCurrentLineOverRate: null,
-      emaMinutesAvg: emaMinutesAvgRaw == null ? null : round(emaMinutesAvgRaw, 3),
-      l15ValueMean: l15ValueMeanRaw == null ? null : round(l15ValueMeanRaw, 3),
-      l15ValueMedian: l15ValueMedianRaw == null ? null : round(l15ValueMedianRaw, 3),
-      l15ValueStdDev: l15ValueStdDevRaw == null ? null : round(l15ValueStdDevRaw, 3),
-      l15ValueSkew: l15ValueSkewRaw == null ? null : round(l15ValueSkewRaw, 4),
-    };
+    return buildEmptyCurrentLineRecencyMetrics({
+      l5MinutesAvgRaw,
+      emaMinutesAvgRaw,
+      l15ValueMeanRaw,
+      l15ValueMedianRaw,
+      l15ValueStdDevRaw,
+      l15ValueSkewRaw,
+    });
   }
 
   const deltas = recentActualValuesL5.map((value) => value - line);
@@ -145,22 +199,21 @@ export function computeCurrentLineRecencyMetrics(input: {
   const emaCurrentLineDeltaRaw = ema(deltas, CURRENT_LINE_RECENCY_EMA_ALPHA);
   const emaCurrentLineOverRateRaw = ema(overIndicators, CURRENT_LINE_RECENCY_EMA_ALPHA);
 
-  return {
-    l5CurrentLineDeltaAvg: l5CurrentLineDeltaAvgRaw == null ? null : round(l5CurrentLineDeltaAvgRaw, 3),
-    l5CurrentLineOverRate: l5CurrentLineOverRateRaw == null ? null : round(l5CurrentLineOverRateRaw, 3),
-    l10CurrentLineOverRate: l10CurrentLineOverRateRaw == null ? null : round(l10CurrentLineOverRateRaw, 3),
-    l15CurrentLineOverRate: l15CurrentLineOverRateRaw == null ? null : round(l15CurrentLineOverRateRaw, 3),
-    weightedCurrentLineOverRate:
-      weightedCurrentLineOverRateRaw == null ? null : round(weightedCurrentLineOverRateRaw, 3),
-    l5MinutesAvg: l5MinutesAvgRaw == null ? null : round(l5MinutesAvgRaw, 3),
-    emaCurrentLineDelta: emaCurrentLineDeltaRaw == null ? null : round(emaCurrentLineDeltaRaw, 3),
-    emaCurrentLineOverRate: emaCurrentLineOverRateRaw == null ? null : round(emaCurrentLineOverRateRaw, 3),
-    emaMinutesAvg: emaMinutesAvgRaw == null ? null : round(emaMinutesAvgRaw, 3),
-    l15ValueMean: l15ValueMeanRaw == null ? null : round(l15ValueMeanRaw, 3),
-    l15ValueMedian: l15ValueMedianRaw == null ? null : round(l15ValueMedianRaw, 3),
-    l15ValueStdDev: l15ValueStdDevRaw == null ? null : round(l15ValueStdDevRaw, 3),
-    l15ValueSkew: l15ValueSkewRaw == null ? null : round(l15ValueSkewRaw, 4),
-  };
+  return buildCurrentLineRecencyMetrics({
+    l5CurrentLineDeltaAvgRaw,
+    l5CurrentLineOverRateRaw,
+    l10CurrentLineOverRateRaw,
+    l15CurrentLineOverRateRaw,
+    weightedCurrentLineOverRateRaw,
+    l5MinutesAvgRaw,
+    emaCurrentLineDeltaRaw,
+    emaCurrentLineOverRateRaw,
+    emaMinutesAvgRaw,
+    l15ValueMeanRaw,
+    l15ValueMedianRaw,
+    l15ValueStdDevRaw,
+    l15ValueSkewRaw,
+  });
 }
 
 export function attachCurrentLineRecencyMetrics<T extends CurrentLineRecencyRow>(

@@ -51,19 +51,24 @@ function readNumber(record: UnknownRecord, keys: string[]): number | null {
   return null;
 }
 
+function parseBooleanLike(raw: unknown): boolean | null {
+  if (typeof raw === "boolean") return raw;
+  if (typeof raw === "number") {
+    if (raw === 1) return true;
+    if (raw === 0) return false;
+  }
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (["1", "true", "yes", "y", "active"].includes(normalized)) return true;
+    if (["0", "false", "no", "n", "inactive"].includes(normalized)) return false;
+  }
+  return null;
+}
+
 function readBoolean(record: UnknownRecord, keys: string[]): boolean | null {
   for (const key of keys) {
-    const raw = record[key];
-    if (typeof raw === "boolean") return raw;
-    if (typeof raw === "number") {
-      if (raw === 1) return true;
-      if (raw === 0) return false;
-    }
-    if (typeof raw === "string") {
-      const normalized = raw.trim().toLowerCase();
-      if (["1", "true", "yes", "y", "active"].includes(normalized)) return true;
-      if (["0", "false", "no", "n", "inactive"].includes(normalized)) return false;
-    }
+    const parsed = parseBooleanLike(record[key]);
+    if (parsed != null) return parsed;
   }
   return null;
 }
@@ -248,4 +253,3 @@ export function normalizeInjuries(rawRows: unknown[]): NormalizedInjury[] {
 
   return injuries;
 }
-

@@ -346,14 +346,45 @@ type DailyCardCandidate = {
   source: DailyCardSource;
 };
 
-function dailyCardSourceLabel(_source: DailyCardSource): string {
-  void _source;
-  return "Precision Model";
+const DAILY_CARD_SOURCE_META: Record<DailyCardSource, { label: string; className: string }> = {
+  PRECISION: {
+    label: "Precision Model",
+    className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+  },
+};
+
+function dailyCardSourceLabel(source: DailyCardSource): string {
+  return DAILY_CARD_SOURCE_META[source].label;
 }
 
-function dailyCardSourceClass(_source: DailyCardSource): string {
-  void _source;
-  return "border-teal-300/35 bg-teal-500/12 text-teal-100";
+function dailyCardSourceClass(source: DailyCardSource): string {
+  return DAILY_CARD_SOURCE_META[source].className;
+}
+
+function resolveMarketSignalLineContext(
+  signal: SnapshotPtsSignal | null,
+  modelLine: SnapshotRow["modelLines"][SnapshotMarket],
+): {
+  usingModelFallback: boolean;
+  line: number | null;
+  projectionGap: number | null;
+} {
+  const usingModelFallback = (signal?.marketLine ?? null) == null && modelLine.fairLine != null;
+  return {
+    usingModelFallback,
+    line: usingModelFallback ? modelLine.fairLine : signal?.marketLine ?? null,
+    projectionGap: usingModelFallback ? modelLine.projectionGap : signal?.projectionGap ?? null,
+  };
+}
+
+function hasLiveOverrideConflict(signal: SnapshotPtsSignal | null, usingModelFallback: boolean): boolean {
+  return (
+    !usingModelFallback &&
+    signal?.baselineSide != null &&
+    signal.baselineSide !== "NEUTRAL" &&
+    signal.side !== "NEUTRAL" &&
+    signal.side !== signal.baselineSide
+  );
 }
 
 function resolveMarketSignalDisplay(
@@ -361,24 +392,17 @@ function resolveMarketSignalDisplay(
   signal: SnapshotPtsSignal | null,
   modelLine: SnapshotRow["modelLines"][SnapshotMarket],
 ): MarketSignalDisplay | null {
-  const usingModelFallback = (signal?.marketLine ?? null) == null && modelLine.fairLine != null;
+  const { usingModelFallback, line, projectionGap } = resolveMarketSignalLineContext(signal, modelLine);
   if (!signal && !usingModelFallback) return null;
 
   const qualified = signal?.qualified ?? false;
-  const line = usingModelFallback ? modelLine.fairLine : signal?.marketLine ?? null;
-  const projectionGap = usingModelFallback ? modelLine.projectionGap : signal?.projectionGap ?? null;
 
   return {
     statusText: usingModelFallback ? `${marketLabel} MODEL` : `${marketLabel} ${cardStatusLabel(qualified)}`,
     statusClass: usingModelFallback ? "bg-cyan-500/15 text-cyan-200" : ptsFilterClass(qualified),
     side: usingModelFallback ? modelLine.modelSide : signal?.side ?? "NEUTRAL",
     baselineSide: usingModelFallback ? modelLine.modelSide : signal?.baselineSide ?? "NEUTRAL",
-    hasOverrideConflict:
-      !usingModelFallback &&
-      signal?.baselineSide != null &&
-      signal.baselineSide !== "NEUTRAL" &&
-      signal.side !== "NEUTRAL" &&
-      signal.side !== signal.baselineSide,
+    hasOverrideConflict: hasLiveOverrideConflict(signal, usingModelFallback),
     confidence: usingModelFallback ? null : signal?.confidence ?? null,
     confidenceTier: usingModelFallback ? null : signal?.confidenceTier ?? null,
     projectionGap,
@@ -598,6 +622,83 @@ function focusTierFromScore(score: number, signalQualified: boolean): FocusTier 
   return "DEEP";
 }
 
+function resolveFocusGap(
+  projectionValue: number | null,
+  currentLine: number | null,
+  display: MarketSignalDisplay | null,
+  modelLine: SnapshotRow["modelLines"][SnapshotMarket],
+): { gapBase: number; gap: number } {
+  const gapBase =
+    currentLine != null && projectionValue != null
+      ? projectionValue - currentLine
+      : display?.projectionGap ?? modelLine.projectionGap ?? 0;
+  return {
+    gapBase,
+    gap: Math.abs(gapBase),
+  };
+}
+
+function resolveFocusScore(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  side: SnapshotModelSide,
+  display: MarketSignalDisplay | null,
+  modelLine: SnapshotRow["modelLines"][SnapshotMarket],
+  gap: number,
+  signalQualified: boolean,
+): { score: number; supportText: string } {
+  const confidence = display?.confidence ?? null;
+  const minutesRisk = display?.minutesRisk ?? null;
+  const confidenceScore = confidence == null ? 0 : clampNumber((confidence - 50) * 0.7, 0, 24);
+  const gapScore = clampNumber(gap * 10, 0, 24);
+  const riskScore = minutesRisk == null ? 4 : clampNumber(12 - minutesRisk * 16, 0, 12);
+  const support = directionalSupport(side, row.trendVsSeason[market], row.opponentAllowanceDelta[market]);
+  const modelAgreementBonus = side !== "NEUTRAL" && side === modelLine.modelSide ? 6 : side === "NEUTRAL" ? 0 : -2;
+  const lineAvailabilityBonus = display?.line != null ? 6 : modelLine.fairLine != null ? 3 : 0;
+  const liveQualifiedBonus = signalQualified ? 34 : display != null ? 8 : 0;
+  return {
+    score: roundNumber(
+      clampNumber(
+        liveQualifiedBonus +
+          confidenceScore +
+          gapScore +
+          riskScore +
+          qualityBonus(row.dataCompleteness.tier) +
+          support.score +
+          modelAgreementBonus +
+          lineAvailabilityBonus,
+        0,
+        100,
+      ),
+      1,
+    ),
+    supportText: support.text,
+  };
+}
+
+function buildFocusReasons(
+  row: SnapshotRow,
+  display: MarketSignalDisplay | null,
+  gapBase: number,
+  currentLineLabel: string,
+): string[] {
+  const confidence = display?.confidence ?? null;
+  const minutesRisk = display?.minutesRisk ?? null;
+  const reasons: string[] = [
+    display == null ? "No live signal; using model context." : `${display.statusText} ${display.side === "NEUTRAL" ? "" : display.side}`.trim(),
+  ];
+  if (display?.projectionGap != null) {
+    reasons.push(`Gap ${formatAverage(gapBase, true)} vs ${currentLineLabel.toLowerCase()}.`);
+  }
+  if (confidence != null || minutesRisk != null) {
+    reasons.push(
+      `Score ${confidence == null ? "-" : formatStat(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
+    );
+  }
+  reasons.push(`Data ${row.dataCompleteness.score} ${row.dataCompleteness.tier}.`);
+  return reasons;
+}
+
 function buildFocusCandidate(
   row: SnapshotRow,
   market: SnapshotMarket,
@@ -612,52 +713,11 @@ function buildFocusCandidate(
   const currentLineLabel = marketView.marketLineLabel;
   const side = marketView.finalSide;
   const projectionValue = row.projectedTonight[market];
-  const gapBase =
-    currentLine != null && projectionValue != null
-      ? projectionValue - currentLine
-      : display?.projectionGap ?? modelLine.projectionGap ?? 0;
-  const gap = Math.abs(gapBase);
-  const confidence = display?.confidence ?? null;
-  const minutesRisk = display?.minutesRisk ?? null;
-  const confidenceScore = confidence == null ? 0 : clampNumber((confidence - 50) * 0.7, 0, 24);
-  const gapScore = clampNumber(gap * 10, 0, 24);
-  const riskScore = minutesRisk == null ? 4 : clampNumber(12 - minutesRisk * 16, 0, 12);
-  const support = directionalSupport(side, row.trendVsSeason[market], row.opponentAllowanceDelta[market]);
-  const modelAgreementBonus = side !== "NEUTRAL" && side === modelLine.modelSide ? 6 : side === "NEUTRAL" ? 0 : -2;
-  const lineAvailabilityBonus = display?.line != null ? 6 : modelLine.fairLine != null ? 3 : 0;
   const signalQualified = signal?.qualified ?? false;
-  const liveQualifiedBonus = signalQualified ? 34 : display != null ? 8 : 0;
-  const score = roundNumber(
-    clampNumber(
-      liveQualifiedBonus +
-        confidenceScore +
-        gapScore +
-        riskScore +
-        qualityBonus(row.dataCompleteness.tier) +
-        support.score +
-        modelAgreementBonus +
-        lineAvailabilityBonus,
-      0,
-      100,
-    ),
-    1,
-  );
+  const { gapBase, gap } = resolveFocusGap(projectionValue, currentLine, display, modelLine);
+  const { score, supportText } = resolveFocusScore(row, market, side, display, modelLine, gap, signalQualified);
   const focusTier = focusTierFromScore(score, signalQualified);
-  const reasons: string[] = [];
-  reasons.push(
-    display == null
-      ? "No live signal; using model context."
-      : `${display.statusText} ${display.side === "NEUTRAL" ? "" : display.side}`.trim(),
-  );
-  if (display?.projectionGap != null) {
-    reasons.push(`Gap ${formatAverage(gapBase, true)} vs ${currentLineLabel.toLowerCase()}.`);
-  }
-  if (confidence != null || minutesRisk != null) {
-    reasons.push(
-      `Score ${confidence == null ? "-" : formatStat(confidence)} | Risk ${minutesRisk == null ? "-" : formatStat(minutesRisk)}`,
-    );
-  }
-  reasons.push(`Data ${row.dataCompleteness.score} ${row.dataCompleteness.tier}.`);
+  const reasons = buildFocusReasons(row, display, gapBase, currentLineLabel);
 
   return {
     row,
@@ -670,7 +730,7 @@ function buildFocusCandidate(
     focusScore: score,
     focusTier,
     signalQualified,
-    supportText: support.text,
+    supportText,
     reasons,
   };
 }
@@ -1059,7 +1119,7 @@ export function SnapshotDashboard({
 
     pendingBoardReloadTimeoutRef.current = window.setTimeout(() => {
       pendingBoardReloadTimeoutRef.current = null;
-      void loadBoardData(targetDate, { bustCache: true, background: true });
+      loadBoardData(targetDate, { bustCache: true, background: true });
     }, delayMs);
   }, [loadBoardData]);
 
@@ -1164,7 +1224,7 @@ export function SnapshotDashboard({
       }
 
       lastVisitRefreshRef.current = { key: visitKey, at: now };
-      void runBoardRefresh(targetDate, "visit");
+      runBoardRefresh(targetDate, "visit");
     },
     [runBoardRefresh],
   );
@@ -1205,7 +1265,7 @@ export function SnapshotDashboard({
     setBoardError(null);
     boardLoadTargetRef.current = initialData.dateEt;
     if (!hasBoardSnapshotData(initialData)) {
-      void loadBoardData(initialData.dateEt);
+      loadBoardData(initialData.dateEt);
       return;
     }
     setIsBoardLoading(false);
@@ -1230,7 +1290,7 @@ export function SnapshotDashboard({
 
     underfilledSlateReloadRef.current = activeData.dateEt;
     setRefreshMessage("Precision card loaded short. Pulling the freshest live slate now...");
-    void loadBoardData(activeData.dateEt, { bustCache: true, background: true });
+    loadBoardData(activeData.dateEt, { bustCache: true, background: true });
   }, [activeData.dateEt, activePrecisionCardUnderfilled, isBoardLoading, loadBoardData]);
 
   useEffect(() => {
@@ -1328,7 +1388,7 @@ export function SnapshotDashboard({
     setPlayerBacktestLoading(true);
     setPlayerBacktestError(null);
 
-    void fetch(`/api/snapshot/player/backtest?player=${encodeURIComponent(playerName)}`, {
+    fetch(`/api/snapshot/player/backtest?player=${encodeURIComponent(playerName)}`, {
       cache: "no-store",
       signal: controller.signal,
     })
@@ -1381,7 +1441,7 @@ export function SnapshotDashboard({
     setPlayerDetailError(null);
 
     if (row.recentLogs.length === 0) {
-      void fetch(`/api/snapshot/player/logs?date=${encodeURIComponent(activeData.dateEt)}&playerId=${encodeURIComponent(row.playerId)}`, {
+      fetch(`/api/snapshot/player/logs?date=${encodeURIComponent(activeData.dateEt)}&playerId=${encodeURIComponent(row.playerId)}`, {
         cache: "no-store",
       })
         .then(async (response) => {
@@ -1465,7 +1525,7 @@ export function SnapshotDashboard({
     setPlayerDetailError(null);
     setSelectedPlayer(row);
     if (row.detailLevel !== "FULL") {
-      void hydratePlayerDetail(row, lookupMeta);
+      hydratePlayerDetail(row, lookupMeta);
       return;
     }
     setIsPlayerDetailLoading(false);
@@ -1504,7 +1564,7 @@ export function SnapshotDashboard({
     if (current.toString() === targetQuery) {
       setRefreshMessage(null);
       setRefreshError(null);
-      void loadBoardData(normalizedDate);
+      loadBoardData(normalizedDate);
       return;
     }
     setBoardError(null);
@@ -1960,9 +2020,7 @@ export function SnapshotDashboard({
             </button>
             <button
               type="button"
-              onClick={() => {
-                void openDonationCheckout();
-              }}
+              onClick={openDonationCheckout}
               disabled={isDonationLoading}
               className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-500/18 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -2177,7 +2235,7 @@ export function SnapshotDashboard({
               </button>
               <button
                 type="button"
-                onClick={() => void handleRefresh()}
+                onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="secondary-action self-end disabled:opacity-50"
               >
@@ -2233,7 +2291,7 @@ export function SnapshotDashboard({
                     }
                     if (event.key === "Enter") {
                       event.preventDefault();
-                      void handlePlayerLookup();
+                      handlePlayerLookup();
                       return;
                     }
                     if (event.key === "Escape") {

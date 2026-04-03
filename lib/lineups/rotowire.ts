@@ -132,81 +132,101 @@ export type RotowireAvailabilityImpact = {
   likelyOut: boolean;
 };
 
+function fallbackSeverityFromPercentPlay(percentPlay: number | null): number {
+  return percentPlay == null ? 0 : Math.max(0, Math.min(1, Math.round(((100 - percentPlay) / 100) * 100) / 100));
+}
+
+function buildFixedRotowireImpact(
+  severity: number,
+  minutesMultiplier: number,
+  projectionMultiplier: number,
+  lineupConfidencePenalty: number,
+  minutesRiskBoost: number,
+  hardBlock: boolean,
+  likelyOut: boolean,
+): RotowireAvailabilityImpact {
+  return {
+    severity,
+    minutesMultiplier,
+    projectionMultiplier,
+    lineupConfidencePenalty,
+    minutesRiskBoost,
+    hardBlock,
+    likelyOut,
+  };
+}
+
+function buildQuestionableImpact(percentPlay: number | null, fallbackSeverity: number): RotowireAvailabilityImpact {
+  const severity = percentPlay == null ? 0.58 : Math.max(0.4, fallbackSeverity);
+  return buildFixedRotowireImpact(
+    severity,
+    Math.max(0.56, 1 - severity * 0.46),
+    Math.max(0.7, 1 - severity * 0.28),
+    Math.min(0.18, severity * 0.28),
+    Math.min(0.22, severity * 0.28),
+    false,
+    percentPlay != null ? percentPlay <= 35 : false,
+  );
+}
+
+function buildProbableImpact(percentPlay: number | null, fallbackSeverity: number): RotowireAvailabilityImpact {
+  const severity = percentPlay == null ? 0.16 : Math.min(0.24, fallbackSeverity);
+  return buildFixedRotowireImpact(
+    severity,
+    Math.max(0.88, 1 - severity * 0.35),
+    Math.max(0.92, 1 - severity * 0.18),
+    Math.min(0.06, severity * 0.14),
+    Math.min(0.08, severity * 0.18),
+    false,
+    false,
+  );
+}
+
+function buildActiveImpact(percentPlay: number | null, fallbackSeverity: number): RotowireAvailabilityImpact {
+  return buildFixedRotowireImpact(
+    percentPlay != null && percentPlay < 100 ? Math.min(0.08, fallbackSeverity) : 0,
+    1,
+    1,
+    0,
+    0,
+    false,
+    false,
+  );
+}
+
+function buildDefaultImpact(percentPlay: number | null, fallbackSeverity: number): RotowireAvailabilityImpact {
+  const severity = percentPlay == null ? 0 : fallbackSeverity;
+  return buildFixedRotowireImpact(
+    severity,
+    Math.max(0.72, 1 - severity * 0.42),
+    Math.max(0.82, 1 - severity * 0.24),
+    Math.min(0.12, severity * 0.2),
+    Math.min(0.14, severity * 0.22),
+    false,
+    percentPlay != null ? percentPlay <= 25 : false,
+  );
+}
+
 export function deriveRotowireAvailabilityImpact(
   status: RotowireAvailabilityStatus | null,
   percentPlay: number | null,
 ): RotowireAvailabilityImpact {
-  const fallbackSeverity =
-    percentPlay == null ? 0 : Math.max(0, Math.min(1, Math.round(((100 - percentPlay) / 100) * 100) / 100));
+  const fallbackSeverity = fallbackSeverityFromPercentPlay(percentPlay);
 
-  if (status === "OUT") {
-    return {
-      severity: 1,
-      minutesMultiplier: 0.04,
-      projectionMultiplier: 0.08,
-      lineupConfidencePenalty: 0.42,
-      minutesRiskBoost: 0.48,
-      hardBlock: true,
-      likelyOut: true,
-    };
+  switch (status) {
+    case "OUT":
+      return buildFixedRotowireImpact(1, 0.04, 0.08, 0.42, 0.48, true, true);
+    case "DOUBTFUL":
+      return buildFixedRotowireImpact(0.82, 0.38, 0.48, 0.24, 0.3, true, true);
+    case "QUESTIONABLE":
+      return buildQuestionableImpact(percentPlay, fallbackSeverity);
+    case "PROBABLE":
+      return buildProbableImpact(percentPlay, fallbackSeverity);
+    case "ACTIVE":
+      return buildActiveImpact(percentPlay, fallbackSeverity);
+    default:
+      return buildDefaultImpact(percentPlay, fallbackSeverity);
   }
-  if (status === "DOUBTFUL") {
-    return {
-      severity: 0.82,
-      minutesMultiplier: 0.38,
-      projectionMultiplier: 0.48,
-      lineupConfidencePenalty: 0.24,
-      minutesRiskBoost: 0.3,
-      hardBlock: true,
-      likelyOut: true,
-    };
-  }
-  if (status === "QUESTIONABLE") {
-    const severity = percentPlay == null ? 0.58 : Math.max(0.4, fallbackSeverity);
-    return {
-      severity,
-      minutesMultiplier: Math.max(0.56, 1 - severity * 0.46),
-      projectionMultiplier: Math.max(0.7, 1 - severity * 0.28),
-      lineupConfidencePenalty: Math.min(0.18, severity * 0.28),
-      minutesRiskBoost: Math.min(0.22, severity * 0.28),
-      hardBlock: false,
-      likelyOut: percentPlay != null ? percentPlay <= 35 : false,
-    };
-  }
-  if (status === "PROBABLE") {
-    const severity = percentPlay == null ? 0.16 : Math.min(0.24, fallbackSeverity);
-    return {
-      severity,
-      minutesMultiplier: Math.max(0.88, 1 - severity * 0.35),
-      projectionMultiplier: Math.max(0.92, 1 - severity * 0.18),
-      lineupConfidencePenalty: Math.min(0.06, severity * 0.14),
-      minutesRiskBoost: Math.min(0.08, severity * 0.18),
-      hardBlock: false,
-      likelyOut: false,
-    };
-  }
-  if (status === "ACTIVE") {
-    return {
-      severity: percentPlay != null && percentPlay < 100 ? Math.min(0.08, fallbackSeverity) : 0,
-      minutesMultiplier: 1,
-      projectionMultiplier: 1,
-      lineupConfidencePenalty: 0,
-      minutesRiskBoost: 0,
-      hardBlock: false,
-      likelyOut: false,
-    };
-  }
-
-  const severity = percentPlay == null ? 0 : fallbackSeverity;
-  return {
-    severity,
-    minutesMultiplier: Math.max(0.72, 1 - severity * 0.42),
-    projectionMultiplier: Math.max(0.82, 1 - severity * 0.24),
-    lineupConfidencePenalty: Math.min(0.12, severity * 0.2),
-    minutesRiskBoost: Math.min(0.14, severity * 0.22),
-    hardBlock: false,
-    likelyOut: percentPlay != null ? percentPlay <= 25 : false,
-  };
 }
 
 function statusRank(status: LineupStatus): number {

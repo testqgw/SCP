@@ -119,6 +119,110 @@ function boxScoreCacheTtlMs(game: NormalizedNbaScheduleGame): number {
     : NBA_CURRENT_DAY_FINAL_BOXSCORE_CACHE_TTL_MS;
 }
 
+type FetchJsonAttemptResult =
+  | { ok: true; data: unknown }
+  | { ok: false; error: Error; retryable: boolean };
+
+async function fetchJsonAttempt(url: string): Promise<FetchJsonAttemptResult> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, NBA_HTTP_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      if (RETRYABLE_STATUS.has(response.status)) {
+        return {
+          ok: false,
+          error: new Error(`Retryable NBA endpoint status ${response.status}: ${url}`),
+          retryable: true,
+        };
+      }
+      return {
+        ok: false,
+        error: new Error(`NBA endpoint failed (${response.status}): ${url}`),
+        retryable: false,
+      };
+    }
+
+    return { ok: true, data: (await response.json()) as unknown };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return {
+        ok: false,
+        error: new Error(`NBA endpoint timed out after ${NBA_HTTP_TIMEOUT_MS}ms: ${url}`),
+        retryable: true,
+      };
+    }
+    return {
+      ok: false,
+      error: error instanceof Error ? error : new Error("Unknown network error"),
+      retryable: true,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function ingestBoxScoreSide(params: {
+  teamRecord: UnknownRecord;
+  teamAbbr: string;
+  opponentAbbr: string;
+  isHome: boolean;
+  gameExternalId: string;
+  gameDateEt: string;
+  players: NormalizedPlayerSeason[];
+  logs: NormalizedPlayerGameStat[];
+}): void {
+  for (const rawPlayer of asArray(params.teamRecord.players)) {
+    const player = asRecord(rawPlayer);
+    if (!player) {
+      continue;
+    }
+
+    const parsed = playerFromBoxScore(player, params.teamAbbr, params.opponentAbbr);
+    if (!parsed) {
+      continue;
+    }
+
+    params.players.push(parsed.season);
+    params.logs.push({
+      externalPlayerId: parsed.stats.externalPlayerId as string,
+      externalGameId: params.gameExternalId,
+      gameDateEt: params.gameDateEt,
+      fullName: parsed.stats.fullName ?? null,
+      firstName: parsed.stats.firstName ?? null,
+      lastName: parsed.stats.lastName ?? null,
+      position: parsed.stats.position ?? null,
+      teamAbbr: params.teamAbbr,
+      opponentAbbr: params.opponentAbbr,
+      isHome: params.isHome,
+      starter: parsed.stats.starter ?? null,
+      played: parsed.stats.played ?? null,
+      minutes: parsed.stats.minutes ?? null,
+      points: parsed.stats.points ?? null,
+      rebounds: parsed.stats.rebounds ?? null,
+      assists: parsed.stats.assists ?? null,
+      threes: parsed.stats.threes ?? null,
+      steals: parsed.stats.steals ?? null,
+      blocks: parsed.stats.blocks ?? null,
+      turnovers: parsed.stats.turnovers ?? null,
+      pace: null,
+      total: null,
+    });
+  }
+}
+
 function parseScheduleDateToEt(input: string | null): string | null {
   if (!input) {
     return null;
@@ -217,36 +321,13 @@ export class NbaDataClient {
         await sleep(delay);
       }
 
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-          controller.abort();
-        }, NBA_HTTP_TIMEOUT_MS);
-
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            "User-Agent": "Mozilla/5.0",
-          },
-          cache: "no-store",
-          signal: controller.signal,
-        }).finally(() => clearTimeout(timeout));
-
-        if (!response.ok) {
-          if (RETRYABLE_STATUS.has(response.status)) {
-            lastError = new Error(`Retryable NBA endpoint status ${response.status}: ${url}`);
-            continue;
-          }
-          throw new Error(`NBA endpoint failed (${response.status}): ${url}`);
-        }
-        return (await response.json()) as unknown;
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          lastError = new Error(`NBA endpoint timed out after ${NBA_HTTP_TIMEOUT_MS}ms: ${url}`);
-        } else {
-          lastError = error instanceof Error ? error : new Error("Unknown network error");
-        }
+      const attempt = await fetchJsonAttempt(url);
+      if (attempt.ok) {
+        return attempt.data;
+      }
+      lastError = attempt.error;
+      if (!attempt.retryable) {
+        throw attempt.error;
       }
     }
 
@@ -380,49 +461,26 @@ export class NbaDataClient {
 
       const players: NormalizedPlayerSeason[] = [];
       const logs: NormalizedPlayerGameStat[] = [];
-
-      const ingestSide = (teamRecord: UnknownRecord, teamAbbr: string, opponentAbbr: string, isHome: boolean): void => {
-        const sidePlayers = asArray(teamRecord.players);
-        sidePlayers.forEach((rawPlayer) => {
-          const player = asRecord(rawPlayer);
-          if (!player) {
-            return;
-          }
-          const parsed = playerFromBoxScore(player, teamAbbr, opponentAbbr);
-          if (!parsed) {
-            return;
-          }
-
-          players.push(parsed.season);
-          logs.push({
-            externalPlayerId: parsed.stats.externalPlayerId as string,
-            externalGameId: game.externalGameId,
-            gameDateEt,
-            fullName: parsed.stats.fullName ?? null,
-            firstName: parsed.stats.firstName ?? null,
-            lastName: parsed.stats.lastName ?? null,
-            position: parsed.stats.position ?? null,
-            teamAbbr,
-            opponentAbbr,
-            isHome,
-            starter: parsed.stats.starter ?? null,
-            played: parsed.stats.played ?? null,
-            minutes: parsed.stats.minutes ?? null,
-            points: parsed.stats.points ?? null,
-            rebounds: parsed.stats.rebounds ?? null,
-            assists: parsed.stats.assists ?? null,
-            threes: parsed.stats.threes ?? null,
-            steals: parsed.stats.steals ?? null,
-            blocks: parsed.stats.blocks ?? null,
-            turnovers: parsed.stats.turnovers ?? null,
-            pace: null,
-            total: null,
-          });
-        });
-      };
-
-      ingestSide(home, homeTricode, awayTricode, true);
-      ingestSide(away, awayTricode, homeTricode, false);
+      ingestBoxScoreSide({
+        teamRecord: home,
+        teamAbbr: homeTricode,
+        opponentAbbr: awayTricode,
+        isHome: true,
+        gameExternalId: game.externalGameId,
+        gameDateEt,
+        players,
+        logs,
+      });
+      ingestBoxScoreSide({
+        teamRecord: away,
+        teamAbbr: awayTricode,
+        opponentAbbr: homeTricode,
+        isHome: false,
+        gameExternalId: game.externalGameId,
+        gameDateEt,
+        players,
+        logs,
+      });
 
       const result = { players, logs };
       if (cacheTtlMs > 0) {

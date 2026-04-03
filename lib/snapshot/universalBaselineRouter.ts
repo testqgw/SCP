@@ -134,58 +134,78 @@ function toBinary(value: boolean): number {
   return value ? 1 : 0;
 }
 
+function compareTextValues(left: string, right: string): number {
+  return left.localeCompare(right);
+}
+
+function countMissingValues(values: Array<number | null | undefined>): number {
+  return values.filter((value) => value == null || !Number.isFinite(value)).length;
+}
+
+function matchesFavoredSide(
+  favoredSide: RouterDatasetRow["favoredSide"],
+  side: RouterDatasetRow["qualifiedSide"] | RouterDatasetRow["finalSide"],
+): number {
+  return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(side === favoredSide);
+}
+
+function opposesFavoredSide(
+  favoredSide: RouterDatasetRow["favoredSide"],
+  side: RouterDatasetRow["qualifiedSide"] | RouterDatasetRow["finalSide"],
+): number {
+  return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(side !== favoredSide);
+}
+
+const DERIVED_FEATURE_READERS: Record<string, (row: RouterDatasetRow) => number | null> = {
+  probMargin: (row) =>
+    row.overProbability != null && row.underProbability != null
+      ? round(Math.abs(row.overProbability - row.underProbability), 4)
+      : null,
+  universalProbConfidence: (row) => (row.qualifiedSide === "OVER" ? row.overProbability : row.underProbability),
+  baselineProbConfidence: (row) => (row.finalSide === "OVER" ? row.overProbability : row.underProbability),
+  signedSpreadFromFavoritePerspective: (row) =>
+    row.openingTeamSpread == null ? null : round(-row.openingTeamSpread, 4),
+  missingnessCount: (row) =>
+    countMissingValues([
+      row.bucketRecentAccuracy,
+      row.leafAccuracy,
+      row.priceStrength,
+      row.projectionMarketAgreement,
+      row.expectedMinutes,
+      row.minutesVolatility,
+      row.starterRateLast10,
+      row.openingTeamSpread,
+      row.openingTotal,
+      row.lineupTimingConfidence,
+      row.completenessScore,
+    ]),
+  universalMatchesFavoredSide: (row) => matchesFavoredSide(row.favoredSide, row.qualifiedSide),
+  baselineMatchesFavoredSide: (row) => matchesFavoredSide(row.favoredSide, row.finalSide),
+  universalOpposesFavoredSide: (row) => opposesFavoredSide(row.favoredSide, row.qualifiedSide),
+  baselineOpposesFavoredSide: (row) => opposesFavoredSide(row.favoredSide, row.finalSide),
+  smallEdge: (row) => toBinary(row.absLineGap <= 1.0),
+  verySmallEdge: (row) => toBinary(row.absLineGap <= 0.5),
+  weakBucket: (row) => toBinary((row.bucketLateAccuracy ?? Number.POSITIVE_INFINITY) <= 62),
+  weakLeaf: (row) => toBinary((row.leafAccuracy ?? Number.POSITIVE_INFINITY) <= 56),
+  spreadResolvedFlag: (row) => toBinary(row.spreadResolved),
+};
+
+const CATEGORY_VALUE_READERS: Record<(typeof CATEGORY_PREFIXES)[number], (row: RouterDatasetRow) => string> = {
+  bucketKey: (row) => row.bucketKey,
+  market: (row) => row.market,
+  archetype: (row) => row.archetype,
+  modelKind: (row) => row.modelKind ?? "NULL",
+  qualifiedSide: (row) => row.qualifiedSide,
+  finalSide: (row) => row.finalSide,
+  favoredSide: (row) => row.favoredSide ?? "NULL",
+};
+
 function getDerivedFeature(row: RouterDatasetRow, feature: string): number | null {
-  const favoredSide = row.favoredSide;
-  const universalSide = row.qualifiedSide;
-  const baselineSide = row.finalSide;
-  switch (feature) {
-    case "probMargin":
-      return row.overProbability != null && row.underProbability != null
-        ? round(Math.abs(row.overProbability - row.underProbability), 4)
-        : null;
-    case "universalProbConfidence":
-      return universalSide === "OVER" ? row.overProbability : row.underProbability;
-    case "baselineProbConfidence":
-      return baselineSide === "OVER" ? row.overProbability : row.underProbability;
-    case "signedSpreadFromFavoritePerspective":
-      return row.openingTeamSpread == null ? null : round(-row.openingTeamSpread, 4);
-    case "missingnessCount": {
-      const tracked = [
-        row.bucketRecentAccuracy,
-        row.leafAccuracy,
-        row.priceStrength,
-        row.projectionMarketAgreement,
-        row.expectedMinutes,
-        row.minutesVolatility,
-        row.starterRateLast10,
-        row.openingTeamSpread,
-        row.openingTotal,
-        row.lineupTimingConfidence,
-        row.completenessScore,
-      ];
-      return tracked.filter((value) => value == null || !Number.isFinite(value)).length;
-    }
-    case "universalMatchesFavoredSide":
-      return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(universalSide === favoredSide);
-    case "baselineMatchesFavoredSide":
-      return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(baselineSide === favoredSide);
-    case "universalOpposesFavoredSide":
-      return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(universalSide !== favoredSide);
-    case "baselineOpposesFavoredSide":
-      return favoredSide == null || favoredSide === "NEUTRAL" ? 0 : toBinary(baselineSide !== favoredSide);
-    case "smallEdge":
-      return toBinary(row.absLineGap <= 1.0);
-    case "verySmallEdge":
-      return toBinary(row.absLineGap <= 0.5);
-    case "weakBucket":
-      return toBinary((row.bucketLateAccuracy ?? Number.POSITIVE_INFINITY) <= 62);
-    case "weakLeaf":
-      return toBinary((row.leafAccuracy ?? Number.POSITIVE_INFINITY) <= 56);
-    case "spreadResolvedFlag":
-      return toBinary(row.spreadResolved);
-    default:
-      return (row as Record<string, unknown>)[feature] as number | null | undefined ?? null;
+  const resolver = DERIVED_FEATURE_READERS[feature];
+  if (resolver) {
+    return resolver(row);
   }
+  return ((row as Record<string, unknown>)[feature] as number | null | undefined) ?? null;
 }
 
 export function buildRouterFeatureCatalog(rows: RouterDatasetRow[], featureMode: RouterFeatureMode): string[] {
@@ -197,33 +217,33 @@ export function buildRouterFeatureCatalog(rows: RouterDatasetRow[], featureMode:
   rows
     .map((row) => row.bucketKey)
     .filter(Boolean)
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`bucketKey=${value}`));
   rows
     .map((row) => row.market)
     .filter(Boolean)
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`market=${value}`));
   rows
     .map((row) => row.archetype)
     .filter(Boolean)
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`archetype=${value}`));
   rows
     .map((row) => row.modelKind ?? "NULL")
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`modelKind=${value}`));
   rows
     .map((row) => row.qualifiedSide)
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`qualifiedSide=${value}`));
   rows
     .map((row) => row.finalSide)
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`finalSide=${value}`));
   rows
     .map((row) => row.favoredSide ?? "NULL")
-    .sort()
+    .sort(compareTextValues)
     .forEach((value) => add(`favoredSide=${value}`));
 
   CORE_NUMERIC_FEATURES.forEach((feature) => add(feature));
@@ -238,20 +258,7 @@ export function getRouterFeatureValue(row: RouterDatasetRow, feature: string): n
     const marker = `${prefix}=`;
     if (feature.startsWith(marker)) {
       const expected = feature.slice(marker.length);
-      const rawValue =
-        prefix === "bucketKey"
-          ? row.bucketKey
-          : prefix === "market"
-            ? row.market
-            : prefix === "archetype"
-              ? row.archetype
-              : prefix === "modelKind"
-                ? row.modelKind ?? "NULL"
-                : prefix === "qualifiedSide"
-                  ? row.qualifiedSide
-                  : prefix === "finalSide"
-                    ? row.finalSide
-                    : row.favoredSide ?? "NULL";
+      const rawValue = CATEGORY_VALUE_READERS[prefix](row);
       return rawValue === expected ? 1 : 0;
     }
   }
