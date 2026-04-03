@@ -58,6 +58,14 @@ export type SnapshotPtsSignal = {
   rule: SnapshotPtsQualifiedRule;
 };
 
+export type SnapshotAstSignal = SnapshotPtsSignal;
+export type SnapshotRebSignal = SnapshotPtsSignal;
+export type SnapshotThreesSignal = SnapshotPtsSignal;
+export type SnapshotPraSignal = SnapshotPtsSignal;
+export type SnapshotPaSignal = SnapshotPtsSignal;
+export type SnapshotPrSignal = SnapshotPtsSignal;
+export type SnapshotRaSignal = SnapshotPtsSignal;
+
 export type SnapshotPrecisionPickSignal = {
   side: SnapshotModelSide;
   qualified?: boolean;
