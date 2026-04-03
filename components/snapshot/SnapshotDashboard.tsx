@@ -160,7 +160,7 @@ function parseLine(value: string): number | null {
 function modelSideClass(side: "OVER" | "UNDER" | "NEUTRAL"): string {
   if (side === "OVER") return "bg-emerald-500/15 text-emerald-200";
   if (side === "UNDER") return "bg-amber-500/15 text-amber-200";
-  return "bg-slate-500/20 text-slate-200";
+  return "bg-slate-500/20 text-[var(--text-soft)]";
 }
 function ptsFilterClass(qualified: boolean): string {
   return qualified ? "bg-emerald-500/15 text-emerald-200" : "bg-rose-500/15 text-rose-200";
@@ -171,7 +171,7 @@ function cardStatusLabel(qualified: boolean): string {
 function ptsConfidenceClass(tier: "HIGH" | "MEDIUM" | "LOW" | null): string {
   if (tier === "HIGH") return "bg-emerald-500/15 text-emerald-200";
   if (tier === "MEDIUM") return "bg-amber-500/15 text-amber-200";
-  return "bg-slate-500/20 text-slate-200";
+  return "bg-slate-500/20 text-[var(--text-soft)]";
 }
 function liveSignalForMarket(row: SnapshotRow, market: SnapshotMarket) {
   if (market === "PTS") return row.ptsSignal;
@@ -334,7 +334,7 @@ type PlayerMarketSummaryMeta = {
 const DAILY_CARD_SOURCE_META: Record<DailyCardSource, { label: string; className: string }> = {
   PRECISION: {
     label: "Precision Model",
-    className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+    className: "border-[var(--success)]/35 bg-[var(--success-dim)] text-[var(--success)]",
   },
 };
 function dailyCardSourceLabel(source: DailyCardSource): string {
@@ -496,14 +496,14 @@ function resolvePlayerMarketSummaryMeta(
     return {
       label: "Custom Line",
       detail: "Using your custom line for the final projection result.",
-      className: "border-blue-300/35 bg-blue-500/12 text-blue-100",
+      className: "border-blue-300/35 bg-blue-500/12 text-[var(--brand-primary)]",
     };
   }
   if (hasLockedPrecisionCall) {
     return {
       label: "Final Pick",
       detail: "Locked precision result for this slate.",
-      className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+      className: "border-[var(--success)]/35 bg-[var(--success-dim)] text-[var(--success)]",
     };
   }
   if (marketView.finalSide === "NEUTRAL" && marketView.marketLine != null) {
@@ -513,27 +513,27 @@ function resolvePlayerMarketSummaryMeta(
         marketView.hitChance.value != null
           ? "No final pick on the current sportsbook line. The hit chance below is only the underlying model lean."
           : "No final pick on the current sportsbook line.",
-      className: "border-amber-300/35 bg-amber-500/12 text-amber-100",
+      className: "border-amber-300/35 bg-amber-500/12 text-[var(--gold-primary)]",
     };
   }
   if (marketView.marketLine != null) {
     return {
       label: "Final Read",
       detail: "Final result for the current sportsbook line.",
-      className: "border-slate-300/20 bg-white/5 text-slate-200",
+      className: "border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-soft)]",
     };
   }
   if (marketView.display?.lineOrigin === "MODEL") {
     return {
       label: "Awaiting Line",
       detail: "Waiting on a confirmed game line.",
-      className: "border-cyan-300/30 bg-cyan-500/10 text-cyan-100",
+      className: "border-[var(--brand-primary)]/30 bg-[var(--brand-dim)] text-[var(--brand-primary)]",
     };
   }
   return {
     label: "Unavailable",
     detail: "No active line is available for this market yet.",
-    className: "border-slate-300/20 bg-white/5 text-slate-300",
+    className: "border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-tertiary)]",
   };
 }
 function resolveMarketRecommendationSource(
@@ -550,7 +550,7 @@ function resolveMarketRecommendationSource(
       source: "CUSTOM",
       label: "Custom Scenario",
       detail: "Using your line for the side read below.",
-      className: "border-blue-300/35 bg-blue-500/12 text-blue-100",
+      className: "border-blue-300/35 bg-blue-500/12 text-[var(--brand-primary)]",
     };
   }
   if (marketView.precision?.qualified && marketView.precision.side !== "NEUTRAL") {
@@ -558,7 +558,7 @@ function resolveMarketRecommendationSource(
       source: "PRECISION",
       label: "Precision Call",
       detail: "Qualified precision selector result for this market.",
-      className: "border-teal-300/35 bg-teal-500/12 text-teal-100",
+      className: "border-[var(--success)]/35 bg-[var(--success-dim)] text-[var(--success)]",
     };
   }
   if (marketView.display?.lineOrigin === "LIVE") {
@@ -567,14 +567,14 @@ function resolveMarketRecommendationSource(
         source: "LIVE_MODEL",
         label: "Conflicted Live Read",
         detail: marketView.note,
-        className: "border-amber-300/35 bg-amber-500/12 text-amber-100",
+        className: "border-amber-300/35 bg-amber-500/12 text-[var(--gold-primary)]",
       };
     }
     return {
       source: "LIVE_MODEL",
       label: "Live Model",
       detail: "Final live side-model lean for the current sportsbook line.",
-      className: "border-slate-300/20 bg-white/5 text-slate-200",
+      className: "border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-soft)]",
     };
   }
   if (marketView.display?.lineOrigin === "MODEL") {
@@ -582,14 +582,14 @@ function resolveMarketRecommendationSource(
       source: "MODEL_FALLBACK",
       label: "Model Fallback",
       detail: "No confirmed game line yet, so this uses the model fallback.",
-      className: "border-cyan-300/30 bg-cyan-500/10 text-cyan-100",
+      className: "border-[var(--brand-primary)]/30 bg-[var(--brand-dim)] text-[var(--brand-primary)]",
     };
   }
   return {
     source: "UNAVAILABLE",
     label: "No Active Line",
     detail: "Waiting on a confirmed game line.",
-    className: "border-slate-300/20 bg-white/5 text-slate-300",
+    className: "border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--text-tertiary)]",
   };
 }
 function mergeHydratedPlayerRow(current: SnapshotRow, hydrated: SnapshotRow): SnapshotRow {
@@ -622,9 +622,9 @@ function focusTierLabel(tier: FocusTier): string {
 }
 function focusTierClass(tier: FocusTier): string {
   if (tier === "TOP") return "border-emerald-300/45 bg-emerald-500/12 text-emerald-100";
-  if (tier === "STRONG") return "border-amber-300/45 bg-amber-500/12 text-amber-100";
-  if (tier === "WATCH") return "border-cyan-300/40 bg-cyan-500/10 text-cyan-100";
-  return "border-slate-300/20 bg-slate-500/10 text-slate-200";
+  if (tier === "STRONG") return "border-amber-300/45 bg-amber-500/12 text-[var(--gold-primary)]";
+  if (tier === "WATCH") return "border-cyan-300/40 bg-[var(--brand-dim)] text-[var(--brand-primary)]";
+  return "border-[var(--border)] bg-slate-500/10 text-[var(--text-soft)]";
 }
 function focusRowAccentClass(tier: FocusTier): string {
   if (tier === "TOP") return "bg-emerald-400/[0.06]";
@@ -887,7 +887,7 @@ function InfoTip({ label, definition }: InfoTipProps): React.ReactElement {
   return (
     <span
       title={`${label}: ${definition}`}
-      className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-cyan-200/40 bg-cyan-200/10 text-[10px] font-bold text-cyan-100"
+      className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-[var(--brand-primary)]/40 bg-[var(--brand-dim)] text-[10px] font-bold text-[var(--brand-primary)]"
       aria-label={`${label} help`}
     >
       ?
@@ -908,7 +908,7 @@ function HeaderWithTip({ label, definition }: HeaderWithTipProps): React.ReactEl
 }
 function intelStatusClass(status: "LIVE" | "DERIVED" | "PENDING"): string {
   if (status === "LIVE") return "bg-emerald-400/20 text-emerald-200";
-  if (status === "DERIVED") return "bg-cyan-400/20 text-cyan-100";
+  if (status === "DERIVED") return "bg-cyan-400/20 text-[var(--brand-primary)]";
   return "bg-amber-400/20 text-amber-200";
 }
 function completenessTierClass(tier: "HIGH" | "MEDIUM" | "LOW"): string {
@@ -943,10 +943,10 @@ function CollapsibleSection({
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
       >
         <div>
-          <h3 className="text-xs uppercase tracking-[0.16em] text-cyan-100">{title}</h3>
-          {subtitle ? <p className="mt-0.5 text-[11px] text-slate-400">{subtitle}</p> : null}
+          <h3 className="text-xs uppercase tracking-[0.16em] text-[var(--brand-primary)]">{title}</h3>
+          {subtitle ? <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{subtitle}</p> : null}
         </div>
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-slate-200">
+        <span className="rounded-full border border-white/10 bg-[var(--surface-subtle)] px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-soft)]">
           {collapsed ? "Expand" : "Collapse"}
         </span>
       </button>
@@ -2017,7 +2017,7 @@ export function SnapshotDashboard({
               type="button"
               onClick={openDonationCheckout}
               disabled={isDonationLoading}
-              className="rounded-full border border-amber-300/30 bg-amber-500/10 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-100 transition hover:bg-amber-500/18 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full border border-[var(--gold-primary)]/30 bg-[var(--gold-dim)] px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--gold-primary)] transition hover:bg-[var(--gold-dim)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isDonationLoading ? "Opening Support..." : "Support ULTOPS"}
             </button>
@@ -2085,7 +2085,7 @@ export function SnapshotDashboard({
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="mt-2 text-2xl font-semibold text-white">Tonight&apos;s headline pick</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-tertiary)]">
                     A live preview of the top-ranked precision case, so the page sells the value immediately before anyone
                     dives into the deeper research workflow.
                   </p>
@@ -2094,7 +2094,7 @@ export function SnapshotDashboard({
               </div>
               {leadDailyCardCandidate ? (
                 <div className="mt-5 space-y-4">
-                  <div className="rounded-[22px] border border-white/10 bg-black/15 p-4">
+                  <div className="rounded-[22px] border border-white/10 bg-[var(--surface-subtle)] p-4">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -2104,12 +2104,12 @@ export function SnapshotDashboard({
                         <h3 className="mt-3 text-2xl font-semibold text-white">
                           {leadDailyCardCandidate.candidate.row.playerName}
                         </h3>
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
                           {leadDailyCardCandidate.candidate.row.teamCode} vs {leadDailyCardCandidate.candidate.row.opponentCode} | {leadDailyCardCandidate.candidate.row.gameTimeEt}
                         </p>
                       </div>
-                      <div className="rounded-[20px] border border-blue-300/20 bg-blue-500/10 px-5 py-4 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300">Recommendation</p>
+                      <div className="rounded-[20px] border border-[var(--brand-primary)]/20 bg-[var(--brand-dim)] px-5 py-4 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-tertiary)]">Recommendation</p>
                         <p className="mt-2 text-2xl font-semibold text-white">
                           {leadDailyCardCandidate.precision?.side ?? leadDailyCardCandidate.candidate.display?.side ?? leadDailyCardCandidate.candidate.modelLine.modelSide}{" "}
                           {formatAverage(leadDailyCardCandidate.candidate.currentLine)}
@@ -2121,14 +2121,14 @@ export function SnapshotDashboard({
                         <p className="mt-2 text-xl font-semibold text-white">{formatChanceValue(leadDailyCardHitChance.value)}</p>
                       </div>
                       <div className="insight-card">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Line In Focus</p>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Line In Focus</p>
                         <p className="mt-2 text-xl font-semibold text-white">
                           {leadDailyCardCandidate.candidate.currentLineLabel}
                         </p>
                       </div>
                       <div className="insight-card">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Case Summary</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-200">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Case Summary</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
                           {leadDailyCardCandidate.candidate.reasons[0] ?? leadDailyCardCandidate.candidate.supportText}
                         </p>
                       </div>
@@ -2155,7 +2155,7 @@ export function SnapshotDashboard({
                   </div>
                 </div>
               ) : (
-                <div className="mt-5 rounded-[22px] border border-white/10 bg-black/15 px-5 py-5 text-sm leading-6 text-slate-300">
+                <div className="mt-5 rounded-[22px] border border-white/10 bg-[var(--surface-subtle)] px-5 py-5 text-sm leading-6 text-[var(--text-tertiary)]">
                   The live preview will populate as soon as the board loads a precision card for the selected date.
                 </div>
               )}
@@ -2227,7 +2227,7 @@ export function SnapshotDashboard({
               </button>
               <div className="relative min-w-0 self-end">
                 <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 text-[var(--text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
@@ -2296,11 +2296,11 @@ export function SnapshotDashboard({
                           applyPlayerSuggestion(row);
                         }}
                         className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs ${
-                          idx === playerSuggestIndex ? "bg-blue-500/18 text-blue-100" : "text-slate-200 hover:bg-white/5"
+                          idx === playerSuggestIndex ? "bg-blue-500/18 text-[var(--brand-primary)]" : "text-[var(--text-soft)] hover:bg-[var(--surface-subtle)]"
                         }`}
                       >
                         <span className="font-medium">{row.playerName}</span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-[var(--text-muted)]">
                           {row.teamCode} vs {row.opponentCode}
                         </span>
                       </button>
@@ -2325,26 +2325,26 @@ export function SnapshotDashboard({
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-teal-100/70">{activeData.precisionSystem.label}</p>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--success)]/70">{activeData.precisionSystem.label}</p>
               <h2 className="mt-1 text-3xl font-semibold text-white">Today&apos;s {activeData.precisionSystem.label} Card</h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-200/90">
+              <p className="mt-2 max-w-3xl text-sm text-[var(--text-soft)]/90">
                 {`This card is selected on the backend from precision-only ${activeData.precisionSystem.label} signals. When the strict slate runs thin, the selector uses a narrow precision rescue stage instead of falling back to secondary or raw-model fill.`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <div className="rounded-2xl border border-teal-300/15 bg-teal-500/[0.08] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-teal-100/70">Top Card</p>
+                <p className="uppercase tracking-[0.12em] text-[var(--success)]/70">Top Card</p>
                 <p className="mt-1 text-xl font-semibold text-white">{dailyCardCandidates.length}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                <p className="uppercase tracking-[0.12em] text-slate-300/70">
+                <p className="uppercase tracking-[0.12em] text-[var(--text-tertiary)]/70">
                   {activeData.precisionSystem.accuracyLabel ?? "Hist Rate"}
                 </p>
                 <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalAccuracy)}%</p>
               </div>
               {activeData.precisionSystem.historicalPicksPerDay != null ? (
                 <div className="rounded-2xl border border-white/10 bg-[#0b1628] px-3 py-2">
-                  <p className="uppercase tracking-[0.12em] text-slate-300/70">
+                  <p className="uppercase tracking-[0.12em] text-[var(--text-tertiary)]/70">
                     {activeData.precisionSystem.picksPerDayLabel ?? "Picks/Day"}
                   </p>
                   <p className="mt-1 text-xl font-semibold text-white">{formatStat(activeData.precisionSystem.historicalPicksPerDay)}</p>
@@ -2358,12 +2358,12 @@ export function SnapshotDashboard({
             </p>
           ) : null}
           {dailyCardCandidates.length === 0 ? (
-            <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
+            <div className="mt-5 rounded-3xl border border-white/10 bg-[var(--surface-subtle)] px-5 py-5 text-sm text-[var(--text-tertiary)]">
               No live {activeData.precisionSystem.label} picks are ready on this slate yet. Refresh the board once the latest lines finish loading.
             </div>
           ) : (
             <div className="mt-5 space-y-4">
-              <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5 text-sm text-slate-300">
+              <div className="rounded-[26px] border border-white/10 bg-[var(--surface-subtle)] px-5 py-5 text-sm text-[var(--text-tertiary)]">
                 <p className="font-semibold text-white">
                   {`This section only shows the final backend ${activeData.precisionSystem.label} card. ${dailyCardCandidates.length} of ${precisionCardTargetCount} card slot${precisionCardTargetCount === 1 ? "" : "s"} ${dailyCardCandidates.length === 1 ? "is" : "are"} loaded for this slate.`}
                 </p>
@@ -2404,7 +2404,7 @@ export function SnapshotDashboard({
                             >
                               {dailyCardSourceLabel(entry.source)}
                             </span>
-                            <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                            <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--text-tertiary)] font-semibold border border-white/5">
                               {entry.candidate.market}
                             </span>
                           </div>
@@ -2412,12 +2412,12 @@ export function SnapshotDashboard({
                             <h3 className={`font-bold text-white tracking-tight ${isLead ? "text-3xl" : "text-xl"}`}>
                               {entry.candidate.row.playerName}
                             </h3>
-                            <p className="mt-1 text-sm font-medium text-slate-400">
+                            <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
                               {entry.candidate.row.teamCode} vs {entry.candidate.row.opponentCode} â€¢ {entry.candidate.row.gameTimeEt}
                             </p>
                           </div>
                         </div>
-                        <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
+                        <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-[var(--text-tertiary)]'}`}>
                           <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
                           <span className="text-xl font-black">
                             {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(entry.candidate.currentLine)}`}
@@ -2425,11 +2425,11 @@ export function SnapshotDashboard({
                         </div>
                       </div>
                       <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
                           Hit Chance
                         </p>
                         <p className="mt-2 text-2xl font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                        <p className="mt-2 text-sm leading-relaxed text-[var(--text-tertiary)]">
                         </p>
                       </div>
                     </button>
@@ -2437,14 +2437,14 @@ export function SnapshotDashboard({
                 })}
               </div>
               {/*
-              <div className="rounded-[26px] border border-white/10 bg-black/15 px-5 py-5">
+              <div className="rounded-[26px] border border-white/10 bg-[var(--surface-subtle)] px-5 py-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-teal-100/70">All True {activeData.precisionSystem.label} Picks</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--success)]/70">All True {activeData.precisionSystem.label} Picks</p>
                     <h3 className="mt-1 text-lg font-semibold text-white">
                       {precisionCandidates.length} true {activeData.precisionSystem.label} pick{precisionCandidates.length === 1 ? "" : "s"} under the current filters
                     </h3>
-                    <p className="mt-1 max-w-3xl text-sm text-slate-300">
+                    <p className="mt-1 max-w-3xl text-sm text-[var(--text-tertiary)]">
                       This list shows every true {activeData.precisionSystem.label} selection under the current filters. Each row leads with the best available hit chance for tonight&apos;s call, using the game-specific precision probability when available.
                     </p>
                   </div>
@@ -2452,7 +2452,7 @@ export function SnapshotDashboard({
                     <button
                       type="button"
                       onClick={() => setShowAllCoreSixPicks((current) => !current)}
-                      className="rounded-full border border-teal-300/30 bg-teal-500/12 px-3 py-1.5 text-xs font-semibold text-teal-100 transition hover:bg-teal-500/20"
+                      className="rounded-full border border-teal-300/30 bg-[var(--success-dim)] px-3 py-1.5 text-xs font-semibold text-[var(--success)] transition hover:bg-teal-500/20"
                     >
                       {showAllCoreSixPicks ? `Show Top ${precisionCardTargetCount}` : `Show All ${precisionCandidates.length}`}
                     </button>
@@ -2475,38 +2475,38 @@ export function SnapshotDashboard({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="rounded-full border border-teal-300/35 bg-teal-500/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-teal-100">
+                              <span className="rounded-full border border-[var(--success)]/35 bg-[var(--success-dim)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--success)]">
                                 #{index + 1}
                               </span>
-                              <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                              <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--text-tertiary)] font-semibold border border-white/5">
                                 {candidate.market}
                               </span>
                             </div>
                             <h4 className="mt-2 text-lg font-semibold text-white">{candidate.row.playerName}</h4>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-[var(--text-muted)]">
                               {candidate.row.teamCode} vs {candidate.row.opponentCode} â€¢ {candidate.row.gameTimeEt}
                             </p>
                           </div>
-                          <div className={`flex min-w-[120px] flex-col items-center justify-center rounded-2xl border px-4 py-3 text-center ${side === "OVER" ? "border-sky-400/20 bg-sky-500/10 text-sky-300" : side === "UNDER" ? "border-rose-400/20 bg-rose-500/10 text-rose-300" : "border-slate-400/20 bg-slate-500/10 text-slate-300"}`}>
+                          <div className={`flex min-w-[120px] flex-col items-center justify-center rounded-2xl border px-4 py-3 text-center ${side === "OVER" ? "border-sky-400/20 bg-sky-500/10 text-sky-300" : side === "UNDER" ? "border-rose-400/20 bg-rose-500/10 text-rose-300" : "border-slate-400/20 bg-slate-500/10 text-[var(--text-tertiary)]"}`}>
                             <span className="text-[10px] uppercase tracking-widest font-bold opacity-70">Recommendation</span>
                             <span className="mt-1 text-base font-black">
                               {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(candidate.currentLine)}`}
                             </span>
                           </div>
                         </div>
-                        <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                        <div className="mt-3 grid gap-2 text-xs text-[var(--text-tertiary)] sm:grid-cols-2 xl:grid-cols-4">
+                          <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                             <p className="mt-1 text-sm font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                           </div>
-                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                          <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                             <p className="uppercase tracking-[0.12em] text-slate-500">Gap</p>
                             <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.absLineGap == null ? "-" : formatStat(candidate.precision.absLineGap)}</p>
                           </div>
-                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                          <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                             <p className="uppercase tracking-[0.12em] text-slate-500">Leaf</p>
                             <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.leafAccuracy == null ? "-" : `${formatStat(candidate.precision.leafAccuracy)}%`}</p>
                           </div>
-                          <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                          <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                             <p className="uppercase tracking-[0.12em] text-slate-500">Bucket</p>
                             <p className="mt-1 text-sm font-semibold text-white">{candidate.precision.bucketRecentAccuracy == null ? "-" : `${formatStat(candidate.precision.bucketRecentAccuracy)}%`}</p>
                           </div>
@@ -2527,7 +2527,7 @@ export function SnapshotDashboard({
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-purple-200/80">Strong Projections</p>
               <h2 className="mt-1 text-2xl font-semibold text-white">Projection Results</h2>
-              <p className="mt-2 text-sm text-slate-400 max-w-2xl">
+              <p className="mt-2 text-sm text-[var(--text-muted)] max-w-2xl">
                 Final projection outputs that are standing out on this slate. Open any player if you want the full case.
               </p>
             </div>
@@ -2558,12 +2558,12 @@ export function SnapshotDashboard({
                         <span className="rounded-full border border-purple-300/35 bg-purple-500/12 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-purple-100">
                           #{index + 1}
                         </span>
-                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--text-tertiary)] font-semibold border border-white/5">
                           {candidate.market}
                         </span>
                       </div>
                       <h4 className="mt-2 text-lg font-semibold text-white">{candidate.row.playerName}</h4>
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
                         {candidate.row.teamCode} vs {candidate.row.opponentCode} &bull; {candidate.row.gameTimeEt}
                       </p>
                     </div>
@@ -2574,12 +2574,12 @@ export function SnapshotDashboard({
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3 grid gap-2 text-xs text-slate-300 sm:grid-cols-2">
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                  <div className="mt-3 grid gap-2 text-xs text-[var(--text-tertiary)] sm:grid-cols-2">
+                    <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                       <p className="uppercase tracking-[0.12em] text-slate-500">Final Projection</p>
                       <p className="mt-1 text-sm font-semibold text-white">{formatAverage(projection)}</p>
                     </div>
-                    <div className="rounded-xl border border-white/8 bg-black/15 px-3 py-2">
+                    <div className="rounded-xl border border-white/8 bg-[var(--surface-subtle)] px-3 py-2">
                       <p className="uppercase tracking-[0.12em] text-slate-500">Market Line</p>
                       <p className="mt-1 text-sm font-semibold text-white">{formatAverage(line)}</p>
                     </div>
@@ -2627,34 +2627,34 @@ export function SnapshotDashboard({
             </button>
           ))}
         </div>
-        <p className="mt-3 text-sm text-slate-400">{researchTabMeta.description}</p>
+        <p className="mt-3 text-sm text-[var(--text-muted)]">{researchTabMeta.description}</p>
         {activeResearchTab === "trends" ? (
           activeData.universalSystem ? (
             <div className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="insight-card">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">WF Raw</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">WF Raw</p>
                   <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardRawAccuracy)}%</p>
                 </div>
                 <div className="insight-card">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">30D Raw</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">30D Raw</p>
                   <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.replayRawAccuracy)}%</p>
                 </div>
                 <div className="insight-card">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">WF Blended</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">WF Blended</p>
                   <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardBlendedAccuracy)}%</p>
                 </div>
                 <div className="insight-card">
-                  <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Coverage</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Coverage</p>
                   <p className="mt-2 text-2xl font-semibold text-white">{formatStat(activeData.universalSystem.walkForwardCoveragePct)}%</p>
                 </div>
               </div>
-              <div className="rounded-[18px] border border-amber-300/15 bg-amber-500/[0.08] px-4 py-4 text-sm leading-6 text-slate-200">
+              <div className="rounded-[18px] border border-amber-300/15 bg-amber-500/[0.08] px-4 py-4 text-sm leading-6 text-[var(--text-soft)]">
                 {activeData.universalSystem.note}
               </div>
             </div>
           ) : (
-            <div className="mt-4 rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+            <div className="mt-4 rounded-[18px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-4 text-sm leading-6 text-[var(--text-tertiary)]">
               Raw model summary is still loading, but the player lookup will still open a full research case from the toolbar.
             </div>
           )
@@ -2663,20 +2663,20 @@ export function SnapshotDashboard({
           <div className="mt-4 space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="insight-card">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Card Target</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Card Target</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{precisionCardTargetCount}</p>
               </div>
               <div className="insight-card">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Rows On Slate</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Rows On Slate</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{filteredRows.length}</p>
               </div>
               <div className="insight-card">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Lower-Priority Signals</p>
+                <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Lower-Priority Signals</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
               </div>
             </div>
-            <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4">
-              <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">Market Mix</p>
+            <div className="rounded-[18px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-4">
+              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">Market Mix</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {allQualifiedMarketSummary.length > 0 ? (
                   allQualifiedMarketSummary.map((option) => (
@@ -2685,7 +2685,7 @@ export function SnapshotDashboard({
                     </span>
                   ))
                 ) : (
-                  <span className="text-sm text-slate-300">No broader market mix available under the current filters yet.</span>
+                  <span className="text-sm text-[var(--text-tertiary)]">No broader market mix available under the current filters yet.</span>
                 )}
               </div>
             </div>
@@ -2713,7 +2713,7 @@ export function SnapshotDashboard({
                             setPlayerLookupError(null);
                             openPlayerDetail(candidate.row, null, candidate.market);
                           }}
-                          className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-white/10 bg-black/15 px-3 py-3 text-left hover:bg-white/[0.04]"
+                          className="flex w-full items-center justify-between gap-3 rounded-[16px] border border-white/10 bg-[var(--surface-subtle)] px-3 py-3 text-left hover:bg-white/[0.04]"
                         >
                           <div>
                             <p className="text-sm font-medium text-white">{candidate.row.playerName}</p>
@@ -2723,13 +2723,13 @@ export function SnapshotDashboard({
                         </button>
                       ))
                     ) : (
-                      <p className="text-sm text-slate-300">No standout signals for this matchup under the current filters yet.</p>
+                      <p className="text-sm text-[var(--text-tertiary)]">No standout signals for this matchup under the current filters yet.</p>
                     )}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+              <div className="rounded-[18px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-4 text-sm leading-6 text-[var(--text-tertiary)]">
                 Matchup research will populate once the slate loads game environments for the selected filters.
               </div>
             )}
@@ -2747,11 +2747,11 @@ export function SnapshotDashboard({
                     </div>
                     <span className="badge">{item.metric}</span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">{item.note}</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">{item.note}</p>
                 </div>
               ))
             ) : (
-              <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+              <div className="rounded-[18px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-4 text-sm leading-6 text-[var(--text-tertiary)]">
                 Recent form previews will appear here once the board has either a live precision card or projection pocket data.
               </div>
             )}
@@ -2761,14 +2761,14 @@ export function SnapshotDashboard({
           <div className="mt-4 space-y-3">
             <div className="editorial-card">
               <p className="text-sm font-semibold text-white">Product positioning</p>
-              <p className="mt-2 text-sm leading-6 text-slate-200">
+              <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
                 Precision Card is the sellable front door. Research Center is the premium support layer that explains the
                 sharpness without overpowering the main picks.
               </p>
             </div>
             <div className="editorial-card">
               <p className="text-sm font-semibold text-white">Operator note</p>
-              <p className="mt-2 text-sm leading-6 text-slate-200">
+              <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
                 {activeData.precisionSystem?.note ?? "Load the board to view the latest precision note for this slate."}
               </p>
             </div>
@@ -2821,18 +2821,18 @@ export function SnapshotDashboard({
                         {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
                       </p>
                     </div>
-                    <div className="rounded-[16px] border border-white/10 bg-black/15 px-4 py-3 text-right">
+                    <div className="rounded-[16px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-3 text-right">
                       <p className="mt-2 text-lg font-semibold text-white">{formatChanceValue(hitChance.value)}</p>
                     </div>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
                     {candidate.reasons[0] ?? candidate.supportText}
                   </p>
                 </button>
               );
             })
           ) : (
-            <div className="rounded-[18px] border border-white/10 bg-black/15 px-4 py-4 text-sm leading-6 text-slate-300">
+            <div className="rounded-[18px] border border-white/10 bg-[var(--surface-subtle)] px-4 py-4 text-sm leading-6 text-[var(--text-tertiary)]">
               No broader feed items are available on this slate yet.
             </div>
           )}
@@ -2856,13 +2856,13 @@ export function SnapshotDashboard({
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/80">Scout Feed</p>
             <h2 className="mt-1 text-2xl font-semibold text-white">Broader Raw-Model Signals Across The Slate</h2>
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 text-sm text-[var(--text-tertiary)]">
               These are broader model signals outside the promoted {activeData.precisionSystem?.label ?? "Precision Card"}.
               Keep them for extra context only; they are no longer the homepage focus.
             </p>
           </div>
-          <div className="rounded-2xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-right text-xs text-cyan-50">
-              <p className="uppercase tracking-[0.14em] text-cyan-100/70">Signals On Page</p>
+          <div className="rounded-2xl border border-cyan-300/20 bg-[var(--brand-dim)] px-3 py-2 text-right text-xs text-cyan-50">
+              <p className="uppercase tracking-[0.14em] text-[var(--brand-primary)]/70">Signals On Page</p>
             <p className="mt-1 text-2xl font-semibold text-white">{allQualifiedCandidates.length}</p>
           </div>
         </div>
@@ -2871,7 +2871,7 @@ export function SnapshotDashboard({
             {allQualifiedMarketSummary.map((option) => (
               <span
                 key={`all-qualified-summary-${option.value}`}
-                className="rounded-full border border-cyan-300/20 bg-cyan-500/10 px-3 py-1 text-[11px] font-semibold text-cyan-100"
+                className="rounded-full border border-cyan-300/20 bg-[var(--brand-dim)] px-3 py-1 text-[11px] font-semibold text-[var(--brand-primary)]"
               >
                 {option.value}: {option.count}
               </span>
@@ -2879,7 +2879,7 @@ export function SnapshotDashboard({
           </div>
         ) : null}
         {allQualifiedCandidates.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-[var(--text-tertiary)]">
             No broader raw-model signals are showing across any market for the current filters yet.
           </div>
         ) : (
@@ -2896,25 +2896,25 @@ export function SnapshotDashboard({
                   }}
                   className={`rounded-[26px] border p-5 text-left transition hover:-translate-y-0.5 hover:shadow-[0_22px_48px_-32px_rgba(15,23,42,0.9)] ${
                     index === 0
-                      ? "border-cyan-300/30 bg-[linear-gradient(150deg,rgba(6,182,212,0.12)_0%,rgba(17,24,39,0.94)_48%,rgba(8,15,29,0.98)_100%)]"
+                      ? "border-[var(--brand-primary)]/30 bg-[linear-gradient(150deg,rgba(6,182,212,0.12)_0%,rgba(17,24,39,0.94)_48%,rgba(8,15,29,0.98)_100%)]"
                       : "border-white/10 bg-[#0b1527]/88 hover:bg-[#101c33]"
                   }`}
                 >
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-slate-300 font-semibold border border-white/5">
+                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-[var(--text-tertiary)] font-semibold border border-white/5">
                           {candidate.market}
                         </span>
                       </div>
                       <div>
                         <h3 className="text-xl font-bold tracking-tight text-white">{candidate.row.playerName}</h3>
-                        <p className="mt-1 text-sm font-medium text-slate-400">
+                        <p className="mt-1 text-sm font-medium text-[var(--text-muted)]">
                           {candidate.row.teamCode} vs {candidate.row.opponentCode} â€¢ {candidate.row.gameTimeEt}
                         </p>
                       </div>
                     </div>
-                    <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-slate-300'}`}>
+                    <div className={`mt-2 md:mt-0 flex flex-col items-center justify-center rounded-2xl border px-6 py-3 shadow-md ${side === 'OVER' ? 'bg-sky-500/10 border-sky-400/20 text-sky-300' : side === 'UNDER' ? 'bg-rose-500/10 border-rose-400/20 text-rose-300' : 'bg-slate-500/10 border-slate-400/20 text-[var(--text-tertiary)]'}`}>
                       <span className="text-[10px] uppercase tracking-widest font-bold opacity-70 mb-1">Recommendation</span>
                       <span className="text-xl font-black">
                         {side === "NEUTRAL" ? "WAIT" : `${side} ${formatAverage(candidate.currentLine)}`}
@@ -2922,7 +2922,7 @@ export function SnapshotDashboard({
                     </div>
                   </div>
                   <div className="mt-5 rounded-xl bg-black/20 p-4 border border-white/5">
-                    <p className="text-sm font-medium leading-relaxed text-slate-200">
+                    <p className="text-sm font-medium leading-relaxed text-[var(--text-soft)]">
                       {candidate.reasons[0] ?? candidate.supportText}
                     </p>
                   </div>
@@ -2941,7 +2941,7 @@ export function SnapshotDashboard({
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Today&apos;s Focus Board</p>
               <h2 className="mt-1 text-2xl font-semibold text-white">{currentMarketLabel}</h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-300">
+              <p className="mt-1 max-w-2xl text-sm text-[var(--text-tertiary)]">
                 Ranked for quick action using live qualification, confidence, hit chance, minutes risk, and data quality.
               </p>
             </div>
@@ -2951,7 +2951,7 @@ export function SnapshotDashboard({
             </div>
           </div>
           {topFocusCandidates.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+            <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-[var(--text-tertiary)]">
               No strong focus bets surfaced for the current filters yet. Try a different market or matchup.
             </div>
           ) : (
@@ -2972,7 +2972,7 @@ export function SnapshotDashboard({
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.16em] text-white/65">#{index + 1} {focusTierLabel(candidate.focusTier)}</p>
                       <h3 className="mt-1 text-lg font-semibold text-white">{candidate.row.playerName}</h3>
-                      <p className="mt-1 text-xs text-slate-200/80">
+                      <p className="mt-1 text-xs text-[var(--text-soft)]/80">
                         {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
                       </p>
                     </div>
@@ -2982,28 +2982,28 @@ export function SnapshotDashboard({
                           ? "WAIT"
                           : `${candidate.display?.side ?? candidate.modelLine.modelSide} ${candidate.market}`}
                       </span>
-                      <span className="rounded-full border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-semibold text-white/80">
+                      <span className="rounded-full border border-white/15 bg-[var(--surface-subtle)] px-2 py-1 text-[10px] font-semibold text-white/80">
                         Score {formatStat(candidate.focusScore)}
                       </span>
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                    <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
                       <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
                     </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                    <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                       <p className="mt-1 font-semibold">
                         {candidate.display?.confidence == null ? "-" : formatChanceValue(candidate.display.confidence)}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                    <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Final Projection</p>
                       <p className="mt-1 font-semibold">
                         {formatAverage(candidate.row.projectedTonight[candidate.market])}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-black/15 px-2 py-2">
+                    <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                       <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Minutes</p>
                       <p className="mt-1 font-semibold">
                         {formatAverage(candidate.row.playerContext.projectedMinutes)} proj
@@ -3014,7 +3014,7 @@ export function SnapshotDashboard({
                     {candidate.reasons.map((reason) => (
                       <p key={`${candidate.row.playerId}-${reason}`}>{reason}</p>
                     ))}
-                    <p className="text-slate-200/75">{candidate.supportText}</p>
+                    <p className="text-[var(--text-soft)]/75">{candidate.supportText}</p>
                   </div>
                 </button>
               ))}
@@ -3026,7 +3026,7 @@ export function SnapshotDashboard({
             <div>
               <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Games Today</p>
               <h2 className="mt-1 text-2xl font-semibold text-white">Slate at a Glance</h2>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-[var(--text-tertiary)]">
                 {isAllMarketsView
                   ? "Each matchup rolls up the strongest overall props first, so you can scan the whole slate before narrowing down."
                   : "Each matchup shows how many current-market bets are worth a closer look before the full board."}
@@ -3035,19 +3035,19 @@ export function SnapshotDashboard({
           </div>
           <div className="mt-4 grid gap-3">
             {matchupFocusCards.length === 0 ? (
-              <div className="rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+              <div className="rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-[var(--text-tertiary)]">
                 No games loaded for the current filters.
               </div>
             ) : (
               matchupFocusCards.map(({ item, totalFocus, qualifiedCount, topCandidates }) => (
-                <article key={`slate-${item.matchupKey}`} className="rounded-2xl border border-white/10 bg-black/15 px-4 py-4">
+                <article key={`slate-${item.matchupKey}`} className="rounded-2xl border border-white/10 bg-[var(--surface-subtle)] px-4 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-white">{item.awayTeam} at {item.homeTeam}</p>
-                      <p className="mt-1 text-xs text-slate-300">{item.gameTimeEt}</p>
+                      <p className="mt-1 text-xs text-[var(--text-tertiary)]">{item.gameTimeEt}</p>
                     </div>
                     <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.12em]">
-                      <span className="rounded-full border border-amber-300/20 bg-amber-500/10 px-2 py-1 text-amber-100">
+                      <span className="rounded-full border border-amber-300/20 bg-[var(--gold-dim)] px-2 py-1 text-[var(--gold-primary)]">
                         {totalFocus} focus
                       </span>
                       <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-2 py-1 text-emerald-100">
@@ -3056,7 +3056,7 @@ export function SnapshotDashboard({
                     </div>
                   </div>
                   {topCandidates.length === 0 ? (
-                    <p className="mt-3 text-xs text-slate-400">No standout current-market looks in this matchup yet.</p>
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">No standout current-market looks in this matchup yet.</p>
                   ) : (
                     <div className="mt-3 space-y-2">
                       {topCandidates.map((candidate) => (
@@ -3071,15 +3071,15 @@ export function SnapshotDashboard({
                         >
                           <div>
                             <p className="text-sm font-medium text-white">{candidate.row.playerName}</p>
-                            <p className="mt-1 text-[11px] text-slate-300">
+                            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                               {candidate.display?.statusText ?? "MODEL READ"} | {candidate.currentLineLabel}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className={`text-xs font-semibold ${(candidate.display?.side ?? candidate.modelLine.modelSide) === "OVER" ? "text-emerald-200" : (candidate.display?.side ?? candidate.modelLine.modelSide) === "UNDER" ? "text-amber-200" : "text-slate-200"}`}>
+                            <p className={`text-xs font-semibold ${(candidate.display?.side ?? candidate.modelLine.modelSide) === "OVER" ? "text-emerald-200" : (candidate.display?.side ?? candidate.modelLine.modelSide) === "UNDER" ? "text-amber-200" : "text-[var(--text-soft)]"}`}>
                               {candidate.display?.side ?? candidate.modelLine.modelSide}
                             </p>
-                            <p className="mt-1 text-[11px] text-slate-300">Score {formatStat(candidate.focusScore)}</p>
+                            <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">Score {formatStat(candidate.focusScore)}</p>
                           </div>
                         </button>
                       ))}
@@ -3097,17 +3097,17 @@ export function SnapshotDashboard({
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">Secondary Slice</p>
             <h2 className="mt-1 text-2xl font-semibold text-white">Raw-Model {currentMarketLabel} Signals</h2>
-            <p className="mt-1 text-sm text-slate-300">
+            <p className="mt-1 text-sm text-[var(--text-tertiary)]">
               This is the selected-market slice of the broader raw-model board, not the promoted {activeData.precisionSystem?.label ?? "Precision Card"}.
             </p>
           </div>
-          <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-right text-xs text-amber-50">
-            <p className="uppercase tracking-[0.14em] text-amber-100/70">Signals In {market}</p>
+          <div className="rounded-2xl border border-amber-300/20 bg-[var(--gold-dim)] px-3 py-2 text-right text-xs text-amber-50">
+            <p className="uppercase tracking-[0.14em] text-[var(--gold-primary)]/70">Signals In {market}</p>
             <p className="mt-1 text-2xl font-semibold text-white">{qualifiedCandidates.length}</p>
           </div>
         </div>
         {qualifiedCandidates.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-slate-300">
+          <div className="mt-4 rounded-2xl border border-slate-300/15 bg-[#0d162d] px-4 py-5 text-sm text-[var(--text-tertiary)]">
             No broader raw-model signals are showing for the current filters and market yet.
           </div>
         ) : (
@@ -3120,13 +3120,13 @@ export function SnapshotDashboard({
                   setPlayerLookupError(null);
                   openPlayerDetail(candidate.row, null, candidate.market);
                 }}
-                className="rounded-2xl border border-amber-300/30 bg-[#0d162d] p-4 text-left hover:bg-[#111e3c]"
+                className="rounded-2xl border border-[var(--gold-primary)]/30 bg-[#0d162d] p-4 text-left hover:bg-[#111e3c]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-[10px] uppercase tracking-[0.16em] text-amber-200/75">Signal #{index + 1}</p>
                     <h3 className="mt-1 text-lg font-semibold text-white">{candidate.row.playerName}</h3>
-                    <p className="mt-1 text-xs text-slate-300">
+                    <p className="mt-1 text-xs text-[var(--text-tertiary)]">
                       {candidate.row.teamCode} vs {candidate.row.opponentCode} | {candidate.row.gameTimeEt}
                     </p>
                   </div>
@@ -3140,29 +3140,29 @@ export function SnapshotDashboard({
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-100 sm:grid-cols-4">
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
+                  <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Status</p>
                     <p className="mt-1 font-semibold">{candidate.display?.statusText ?? "MODEL READ"}</p>
                   </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
+                  <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                     <p className="mt-1 font-semibold">
                       {candidate.display?.confidence == null ? "-" : formatChanceValue(candidate.display.confidence)}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
+                  <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Final Projection</p>
                     <p className="mt-1 font-semibold">
                       {formatAverage(candidate.row.projectedTonight[candidate.market])}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-black/15 px-2 py-2">
+                  <div className="rounded-xl bg-[var(--surface-subtle)] px-2 py-2">
                     <p className="text-[10px] uppercase tracking-[0.12em] text-white/55">Risk</p>
                     <p className="mt-1 font-semibold">
                       {candidate.display?.minutesRisk == null ? "-" : formatStat(candidate.display.minutesRisk)}
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 space-y-1 text-xs text-slate-200/85">
+                <div className="mt-3 space-y-1 text-xs text-[var(--text-soft)]/85">
                   {candidate.reasons.map((reason) => (
                     <p key={`${candidate.row.playerId}-qualified-${reason}`}>{reason}</p>
                   ))}
@@ -3176,15 +3176,15 @@ export function SnapshotDashboard({
       <section className="mt-6">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Team Matchup Stats</h2>
         {isAllMarketsView ? (
-          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-[var(--text-tertiary)]">
             Pick a specific market when you want team offense vs defense matchup stats. The default all-markets view stays focused on the best overall prop selection.
           </div>
         ) : isBoardLoading && filteredTeamMatchups.length === 0 ? (
-          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-[var(--text-tertiary)]">
             Loading matchup stats...
           </div>
         ) : filteredTeamMatchups.length === 0 ? (
-          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-slate-300">No matchup stats available.</div>
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-5 text-sm text-[var(--text-tertiary)]">No matchup stats available.</div>
         ) : (
           <div className="grid gap-3 lg:grid-cols-2">
             {filteredTeamMatchups.map((item) => {
@@ -3194,35 +3194,35 @@ export function SnapshotDashboard({
               return (
                 <article key={item.matchupKey} className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-4 shadow-[0_16px_40px_-30px_rgba(245,158,11,0.45)]">
                   <p className="text-xs uppercase tracking-[0.12em] text-amber-200">{item.matchupKey}</p>
-                  <p className="text-xs text-slate-400">{item.gameTimeEt}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{item.gameTimeEt}</p>
                   <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
+                    <div className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.awayTeam}</p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Record: {item.awaySeasonRecord.wins}-{item.awaySeasonRecord.losses} (L10 {item.awayLast10Record.wins}-{item.awayLast10Record.losses})
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         For ({matchupMarket}): {formatAverage(item.awaySeasonFor[matchupMarket])} | L10 {formatAverage(item.awayLast10For[matchupMarket])}
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Allowed ({matchupMarket}): {formatAverage(item.awaySeasonAllowed[matchupMarket])} | L10 {formatAverage(item.awayLast10Allowed[matchupMarket])}
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Attack vs Opp D: {formatAverage(awayEdge, true)}
                       </p>
                     </div>
-                    <div className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3">
+                    <div className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3">
                       <p className="font-semibold text-white">{item.homeTeam}</p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Record: {item.homeSeasonRecord.wins}-{item.homeSeasonRecord.losses} (L10 {item.homeLast10Record.wins}-{item.homeLast10Record.losses})
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         For ({matchupMarket}): {formatAverage(item.homeSeasonFor[matchupMarket])} | L10 {formatAverage(item.homeLast10For[matchupMarket])}
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Allowed ({matchupMarket}): {formatAverage(item.homeSeasonAllowed[matchupMarket])} | L10 {formatAverage(item.homeLast10Allowed[matchupMarket])}
                       </p>
-                      <p className="text-slate-300">
+                      <p className="text-[var(--text-tertiary)]">
                         Attack vs Opp D: {formatAverage(homeEdge, true)}
                       </p>
                     </div>
@@ -3237,7 +3237,7 @@ export function SnapshotDashboard({
         <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-200">Deep Board</h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               {showQualifiedOnly && qualifiedCandidates.length > 0
                 ? `Showing only precision-ready ${currentMarketLabel} signals. Switch to all raw player rows any time.`
                 : `Full slate raw data sorted by focus score for ${currentMarketLabel}. Open any player for the full read.`}
@@ -3249,8 +3249,8 @@ export function SnapshotDashboard({
               onClick={() => setShowQualifiedOnly(true)}
               className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
                 showQualifiedOnly
-                  ? "border border-amber-300/45 bg-amber-500/20 text-amber-100"
-                  : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+                  ? "border border-amber-300/45 bg-amber-500/20 text-[var(--gold-primary)]"
+                  : "border border-[var(--border)] bg-[#0d162d] text-[var(--text-tertiary)]"
               }`}
             >
               Precision Ready
@@ -3260,8 +3260,8 @@ export function SnapshotDashboard({
               onClick={() => setShowQualifiedOnly(false)}
               className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
                 !showQualifiedOnly
-                  ? "border border-cyan-300/45 bg-cyan-500/20 text-cyan-100"
-                  : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+                  ? "border border-cyan-300/45 bg-cyan-500/20 text-[var(--brand-primary)]"
+                  : "border border-[var(--border)] bg-[#0d162d] text-[var(--text-tertiary)]"
               }`}
             >
               All Raw Data
@@ -3272,7 +3272,7 @@ export function SnapshotDashboard({
               className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
                 showAdvancedView
                   ? "border border-purple-300/45 bg-purple-500/20 text-purple-100"
-                  : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+                  : "border border-[var(--border)] bg-[#0d162d] text-[var(--text-tertiary)]"
               }`}
             >
               Advanced Data
@@ -3280,11 +3280,11 @@ export function SnapshotDashboard({
           </div>
         </div>
         {isBoardLoading && displayedCandidates.length === 0 ? (
-          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-slate-300">
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-[var(--text-tertiary)]">
             Loading player snapshot...
           </div>
         ) : displayedCandidates.length === 0 ? (
-          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-slate-300">
+          <div className="rounded-2xl border border-slate-300/15 bg-[#0e1932] p-6 text-sm text-[var(--text-tertiary)]">
             {showQualifiedOnly
               ? "No precision-ready signals found for the current filters. Switch to All Raw Data to inspect the full board."
               : "No players found for selected filters."}
@@ -3293,7 +3293,7 @@ export function SnapshotDashboard({
           <div className="overflow-hidden rounded-2xl border border-slate-300/15 bg-[#0d162d] shadow-[0_16px_60px_-35px_rgba(245,158,11,0.55)]">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[2350px] text-left text-sm">
-                <thead className="bg-[#1a2a51] text-xs uppercase tracking-[0.12em] text-slate-200/80">
+                <thead className="bg-[#1a2a51] text-xs uppercase tracking-[0.12em] text-[var(--text-soft)]/80">
                   <tr>
                     <th className="px-4 py-3">Player</th>
                     {isAllMarketsView ? <th className="px-4 py-3">Market</th> : null}
@@ -3458,10 +3458,10 @@ export function SnapshotDashboard({
                       >
                         <td className="px-4 py-3 font-semibold">
                           <div>{row.playerName}</div>
-                          <div className="text-xs text-slate-400">{row.position ?? "N/A"}</div>
+                          <div className="text-xs text-[var(--text-muted)]">{row.position ?? "N/A"}</div>
                         </td>
                         {isAllMarketsView ? (
-                          <td className="px-4 py-3 text-xs font-semibold text-cyan-100">{signalLabelForMarket(candidateMarket)}</td>
+                          <td className="px-4 py-3 text-xs font-semibold text-[var(--brand-primary)]">{signalLabelForMarket(candidateMarket)}</td>
                         ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div className="flex flex-wrap items-center gap-1">
@@ -3474,20 +3474,20 @@ export function SnapshotDashboard({
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-1 text-slate-300">Score {formatStat(candidate.focusScore)}</div>
+                          <div className="mt-1 text-[var(--text-tertiary)]">Score {formatStat(candidate.focusScore)}</div>
                         </td>
                         <td className="px-4 py-3 text-xs">
                           <div>
                             {row.teamCode} vs {row.opponentCode} ({row.isHome ? "Home" : "Away"})
                           </div>
-                          <div className="text-slate-400">{row.gameTimeEt}</div>
+                          <div className="text-[var(--text-muted)]">{row.gameTimeEt}</div>
                         </td>
                         <td className="px-4 py-3 text-xs">{row.playerContext.archetype}</td>
                         {showAdvancedView ? (
                           <>
                             <td className="px-4 py-3 text-xs">
                               <div>{row.playerContext.projectedStarter}</div>
-                              <div className="text-slate-400">
+                              <div className="text-[var(--text-muted)]">
                                 Start L10 {row.playerContext.startsLast10}/10 ({formatPercentValue(
                                   row.playerContext.starterRateLast10 == null ? null : row.playerContext.starterRateLast10 * 100,
                                 )})
@@ -3508,7 +3508,7 @@ export function SnapshotDashboard({
                           <div>
                             {formatAverage(row.playerContext.minutesLast3Avg)} / {formatAverage(row.playerContext.minutesLast10Avg)}
                           </div>
-                          <div className="text-slate-400">
+                          <div className="text-[var(--text-muted)]">
                             Proj{" "}
                             {row.playerContext.projectedMinutesFloor == null ||
                             row.playerContext.projectedMinutesCeiling == null
@@ -3523,8 +3523,8 @@ export function SnapshotDashboard({
                         ) : null}
                         <td className="px-4 py-3 text-xs">
                           <div>{candidate.reasons[0]}</div>
-                          <div className="mt-1 text-slate-400">{candidate.currentLineLabel}</div>
-                          <div className="mt-1 text-slate-400">{candidate.supportText}</div>
+                          <div className="mt-1 text-[var(--text-muted)]">{candidate.currentLineLabel}</div>
+                          <div className="mt-1 text-[var(--text-muted)]">{candidate.supportText}</div>
                         </td>
                         <td className="px-4 py-3">{formatAverage(row.last10Average[candidateMarket])}</td>
                         <td className="px-4 py-3">{formatAverage(row.seasonAverage[candidateMarket])}</td>
@@ -3542,8 +3542,8 @@ export function SnapshotDashboard({
                         <td className="px-4 py-3 text-xs">
                           <div>{formatAverage(row.projectedTonight[candidateMarket])}</div>
                           <div className="mt-1 flex items-center gap-1">
-                            <span className="text-slate-400">Fair</span>
-                            <span className="font-semibold text-cyan-100">{formatAverage(modelLine.fairLine)}</span>
+                            <span className="text-[var(--text-muted)]">Fair</span>
+                            <span className="font-semibold text-[var(--brand-primary)]">{formatAverage(modelLine.fairLine)}</span>
                             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${modelSideClass(modelLine.modelSide)}`}>
                               {modelLine.modelSide}
                             </span>
@@ -3565,10 +3565,10 @@ export function SnapshotDashboard({
                                     : `${formatChanceValue(liveSignalDisplay.confidence ?? 0)} ${liveSignalDisplay.confidenceTier ?? ""}`.trim()}
                                 </span>
                               </div>
-                              <div className="text-slate-300">
+                              <div className="text-[var(--text-tertiary)]">
                                 {marketView.marketLineLabel} | Projection {formatAverage(row.projectedTonight[candidateMarket])}
                               </div>
-                              <div className="text-slate-400">
+                              <div className="text-[var(--text-muted)]">
                                 Risk {formatAverage(liveSignalDisplay.minutesRisk)} | Books {liveSignalDisplay.sportsbookCount || "-"}
                               </div>
                               {marketView.hitChance.value != null ? (
@@ -3578,10 +3578,10 @@ export function SnapshotDashboard({
                             </div>
                           </td>
                         ) : (
-                          <td className="px-4 py-3 text-xs text-slate-400">Awaiting confirmed {candidateMarket} market line</td>
+                          <td className="px-4 py-3 text-xs text-[var(--text-muted)]">Awaiting confirmed {candidateMarket} market line</td>
                         )}
                         <td className="px-4 py-3">
-                          <div className="mb-1 text-[10px] text-slate-400">
+                          <div className="mb-1 text-[10px] text-[var(--text-muted)]">
                             {modelLine.fairLine == null
                               ? "No model line"
                               : `O <= ${formatStat(modelLine.actionOverLine ?? modelLine.fairLine)} | U >= ${formatStat(
@@ -3599,7 +3599,7 @@ export function SnapshotDashboard({
                             }
                             inputMode="decimal"
                             placeholder={modelLine.fairLine == null ? "24.5" : formatStat(modelLine.fairLine)}
-                            className="w-20 rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-sm text-white outline-none focus:border-cyan-300/60"
+                            className="w-20 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
                         </td>
                         <td className="px-4 py-3 text-xs">
@@ -3609,12 +3609,12 @@ export function SnapshotDashboard({
                         </td>
                         <td className="px-4 py-3 text-xs">
                           {currentLine == null || !minuteFloorHit ? (
-                            <span className="text-slate-400">Set line</span>
+                            <span className="text-[var(--text-muted)]">Set line</span>
                           ) : minuteFloorValues.length === 0 ? (
-                            <span className="text-slate-400">No {formatStat(selectedMinutesFloor)}+ min sample</span>
+                            <span className="text-[var(--text-muted)]">No {formatStat(selectedMinutesFloor)}+ min sample</span>
                           ) : (
-                            <div className="inline-flex min-w-[175px] items-center justify-between rounded-lg border border-amber-300/35 bg-amber-500/10 px-2 py-1">
-                              <span className="font-semibold text-amber-100">
+                            <div className="inline-flex min-w-[175px] items-center justify-between rounded-lg border border-amber-300/35 bg-[var(--gold-dim)] px-2 py-1">
+                              <span className="font-semibold text-[var(--gold-primary)]">
                                 {formatStat(selectedMinutesFloor)}+m: {minuteFloorHit.over}/{minuteFloorValues.length}
                               </span>
                               <span className="text-amber-200">
@@ -3647,7 +3647,7 @@ export function SnapshotDashboard({
             className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200/20 bg-[#0e1932] p-5 shadow-[0_30px_90px_-40px_rgba(245,158,11,0.65)]"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/20 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200">Navigation Guide</p>
                 <h3 className="title-font mt-1 text-2xl uppercase text-white">How To Use The Snapshot</h3>
@@ -3661,9 +3661,9 @@ export function SnapshotDashboard({
               </button>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+              <article className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3 text-sm text-[var(--text-soft)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Quick Start</p>
-                <ol className="mt-2 space-y-1 text-xs text-slate-300">
+                <ol className="mt-2 space-y-1 text-xs text-[var(--text-tertiary)]">
                   <li>1. Check the <strong>{activeData.precisionSystem?.label ?? "Bettable Card"}</strong> for the strongest precision-ranked picks today.</li>
                   <li>2. Use <strong>Player Search</strong> to open the full raw-data panel for any player and inspect every market.</li>
                   <li>3. Open <strong>Lower-Priority Signals</strong> only if you want broader raw-model context beyond the promoted card.</li>
@@ -3671,27 +3671,27 @@ export function SnapshotDashboard({
                   <li>5. Use the player search bar to look up any player directly.</li>
                 </ol>
               </article>
-              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+              <article className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3 text-sm text-[var(--text-soft)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Understanding Recommendations</p>
-                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                <ul className="mt-2 space-y-1 text-xs text-[var(--text-tertiary)]">
                   <li>- <strong>OVER / UNDER</strong> tells you the model&apos;s directional pick.</li>
                   <li>- The <strong>number</strong> next to it is the line the model is reacting to.</li>
                   <li>- The <strong>reason text</strong> explains why in plain language.</li>
                   <li>- For custom scenarios, open the player detail and set your own line in any market card.</li>
                 </ul>
               </article>
-              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+              <article className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3 text-sm text-[var(--text-soft)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Player Detail Panel</p>
-                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                <ul className="mt-2 space-y-1 text-xs text-[var(--text-tertiary)]">
                   <li>- <strong>Player Context</strong>: role, starter status, projected minutes.</li>
                   <li>- <strong>All Markets Detail</strong>: averages, projections, and fair lines for every stat category.</li>
                   <li>- <strong>Game Logs</strong>: recent performance history and game-by-game results.</li>
                   <li>- Use the <strong>Jump to section</strong> dropdown to quickly navigate within the panel.</li>
                 </ul>
               </article>
-              <article className="rounded-xl border border-slate-300/20 bg-[#0b152a] p-3 text-sm text-slate-200">
+              <article className="rounded-xl border border-[var(--border)] bg-[#0b152a] p-3 text-sm text-[var(--text-soft)]">
                 <p className="text-xs uppercase tracking-[0.14em] text-amber-200">Controls</p>
-                <ul className="mt-2 space-y-1 text-xs text-slate-300">
+                <ul className="mt-2 space-y-1 text-xs text-[var(--text-tertiary)]">
                   <li>- Press <strong>Esc</strong> to close the guide or player panel.</li>
                   <li>- <strong>Refresh Data</strong> pulls the latest lineup and stat updates.</li>
                   <li>- Use the <strong>date picker</strong> and <strong>matchup filter</strong> to change the slate.</li>
@@ -3715,31 +3715,31 @@ export function SnapshotDashboard({
             className="glass max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-2xl"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="border-b border-slate-300/20 bg-[#0b122a]/95 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="border-b border-[var(--border)] bg-[#0b122a]/95 px-4 py-3 backdrop-blur sm:px-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="title-font text-2xl uppercase text-white">{selectedPlayer.playerName}</h2>
-                  <p className="text-sm text-slate-300">
+                  <p className="text-sm text-[var(--text-tertiary)]">
                     {selectedPlayer.teamCode} vs {selectedPlayer.opponentCode} ({selectedPlayer.isHome ? "Home" : "Away"})
                   </p>
-                  <p className="text-xs text-slate-400">{selectedPlayer.gameTimeEt}</p>
+                  <p className="text-xs text-[var(--text-muted)]">{selectedPlayer.gameTimeEt}</p>
                   {showPlayerLookupContext ? (
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                      <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-0.5 text-cyan-100">
+                      <span className="rounded-full border border-cyan-300/35 bg-cyan-400/10 px-2 py-0.5 text-[var(--brand-primary)]">
                         Requested {playerLookupMeta?.requestedDateEt}
                       </span>
-                      <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-slate-200">
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-0.5 text-[var(--text-soft)]">
                         Loaded {playerLookupMeta?.resolvedDateEt}
                       </span>
                     </div>
                   ) : null}
                   {showPlayerLookupContext && playerLookupMeta?.note ? (
-                    <p className="mt-2 max-w-2xl rounded-lg border border-amber-300/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+                    <p className="mt-2 max-w-2xl rounded-lg border border-amber-300/20 bg-[var(--gold-dim)] px-3 py-2 text-[11px] text-[var(--gold-primary)]">
                       {playerLookupMeta.note}
                     </p>
                   ) : null}
                   {isPlayerDetailLoading ? (
-                    <p className="mt-2 max-w-2xl rounded-lg border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
+                    <p className="mt-2 max-w-2xl rounded-lg border border-cyan-300/20 bg-[var(--brand-dim)] px-3 py-2 text-[11px] text-[var(--brand-primary)]">
                       Loading the full player detail now. The header is ready, and the deeper logs and intel will fill in next.
                     </p>
                   ) : null}
@@ -3774,11 +3774,11 @@ export function SnapshotDashboard({
                           className={`rounded-2xl border p-3 text-left transition ${
                             isFocused
                               ? "border-blue-300/45 bg-blue-500/12 shadow-[0_18px_30px_-24px_rgba(59,130,246,0.9)]"
-                              : "border-white/10 bg-black/15 hover:border-blue-300/25 hover:bg-white/[0.04]"
+                              : "border-white/10 bg-[var(--surface-subtle)] hover:border-blue-300/25 hover:bg-white/[0.04]"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="rounded-full border border-slate-300/20 bg-[#0d1630] px-2 py-0.5 text-[11px] font-semibold text-white">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-0.5 text-[11px] font-semibold text-white">
                               {signalLabelForMarket(signalMarket)}
                             </span>
                             <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${modelSideClass(marketView.finalSide)}`}>
@@ -3790,13 +3790,13 @@ export function SnapshotDashboard({
                               {summaryMeta.label}
                             </span>
                           </div>
-                          <p className="mt-2 text-[11px] text-slate-400">{summaryMeta.detail}</p>
-                          <p className="mt-3 text-xs font-medium text-slate-200">{marketView.marketLineLabel}</p>
+                          <p className="mt-2 text-[11px] text-[var(--text-muted)]">{summaryMeta.detail}</p>
+                          <p className="mt-3 text-xs font-medium text-[var(--text-soft)]">{marketView.marketLineLabel}</p>
                           {marketView.hitChance.value != null ? (
                             <p className="mt-2 text-sm font-semibold text-emerald-100">
                             </p>
                           ) : (
-                            <p className="mt-2 text-xs text-slate-400">
+                            <p className="mt-2 text-xs text-[var(--text-muted)]">
                               {customLine != null
                                 ? "Custom line active. Scroll for the updated read."
                                 : marketView.finalSide === "NEUTRAL" && marketView.marketLine != null
@@ -3806,7 +3806,7 @@ export function SnapshotDashboard({
                                   : "Hit chance unavailable for this market."}
                             </p>
                           )}
-                          <label className="mt-3 block text-[10px] uppercase tracking-[0.12em] text-slate-400">
+                          <label className="mt-3 block text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">
                             Use your line
                             <input
                               value={lineMap[key] ?? ""}
@@ -3822,11 +3822,11 @@ export function SnapshotDashboard({
                               }}
                               inputMode="decimal"
                               placeholder={marketView.marketLine != null ? formatStat(marketView.marketLine) : modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)}
-                              className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                             />
                           </label>
                           {showAdvancedView ? (
-                            <div className="mt-3 space-y-1 text-[10px] text-slate-300">
+                            <div className="mt-3 space-y-1 text-[10px] text-[var(--text-tertiary)]">
                               <p>Status: {display?.statusText ?? "No live signal"}</p>
                               <p>Gap: {formatAverage(display?.projectionGap ?? modelLine.projectionGap, true)}</p>
                               <p>Minutes Risk: {formatAverage(display?.minutesRisk ?? null)}</p>
@@ -3842,7 +3842,7 @@ export function SnapshotDashboard({
                   <button
                     type="button"
                     onClick={() => setCompactDetail((current) => !current)}
-                    className="rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-100 hover:bg-cyan-500/25"
+                    className="rounded-lg border border-cyan-300/35 bg-cyan-500/15 px-3 py-1 text-xs text-[var(--brand-primary)] hover:bg-cyan-500/25"
                   >
                     Compact: {compactDetail ? "On" : "Off"}
                   </button>
@@ -3855,7 +3855,7 @@ export function SnapshotDashboard({
                         event.currentTarget.value = "";
                       }
                     }}
-                    className="rounded-lg border border-slate-300/30 bg-[#0d1630] px-2 py-1 text-xs text-slate-100 outline-none focus:border-cyan-300/60"
+                    className="rounded-lg border border-slate-300/30 bg-[var(--bg-secondary)] px-2 py-1 text-xs text-slate-100 outline-none focus:border-cyan-300/60"
                   >
                     <option value="">Jump to section</option>
                     {DETAIL_SECTIONS.map((section) => (
@@ -3867,14 +3867,14 @@ export function SnapshotDashboard({
                   <button
                     type="button"
                     onClick={closePlayerDetail}
-                    className="rounded-lg border border-slate-300/30 px-3 py-1 text-xs text-slate-200 hover:bg-slate-800/40"
+                    className="rounded-lg border border-slate-300/30 px-3 py-1 text-xs text-[var(--text-soft)] hover:bg-slate-800/40"
                     title="Close details (Esc)"
                   >
                     Close
                   </button>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] text-slate-400">Tip: press Esc or click outside this panel to close.</p>
+              <p className="mt-2 text-[11px] text-[var(--text-muted)]">Tip: press Esc or click outside this panel to close.</p>
             </div>
             <div className="px-4 py-4 sm:px-6">
             <CollapsibleSection
@@ -3885,7 +3885,7 @@ export function SnapshotDashboard({
               onToggle={() => toggleSection("context")}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                <article className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-soft)]">
                   <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
                     <p className="inline-flex items-center gap-1">
                       Type
@@ -4020,19 +4020,19 @@ export function SnapshotDashboard({
                     <p className="text-right">{formatAverage(selectedPlayer.playerContext.minutesVolatility)}</p>
                   </div>
                   {selectedPlayer.dataCompleteness.issues.length > 0 ? (
-                    <div className="mt-2 rounded-lg bg-[#0d1630] p-2 text-[11px] text-amber-200">
+                    <div className="mt-2 rounded-lg bg-[var(--bg-secondary)] p-2 text-[11px] text-amber-200">
                       <p className="font-semibold">Data Gaps</p>
                       {selectedPlayer.dataCompleteness.issues.map((issue, index) => (
                         <p key={`${issue}-${index}`}>- {issue}</p>
                       ))}
                     </div>
                   ) : (
-                    <div className="mt-2 rounded-lg bg-[#0d1630] p-2 text-[11px] text-emerald-200">
+                    <div className="mt-2 rounded-lg bg-[var(--bg-secondary)] p-2 text-[11px] text-emerald-200">
                       All key data inputs are present for this player snapshot.
                     </div>
                   )}
                 </article>
-                <article className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                <article className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-soft)]">
                   <p className="inline-flex items-center gap-1 font-semibold text-white">
                     Expected Primary Defender
                     <InfoTip
@@ -4041,7 +4041,7 @@ export function SnapshotDashboard({
                     />
                   </p>
                   {selectedPlayer.playerContext.primaryDefender ? (
-                    <div className="mt-2 space-y-1 text-slate-300">
+                    <div className="mt-2 space-y-1 text-[var(--text-tertiary)]">
                       <p>
                         {selectedPlayer.playerContext.primaryDefender.playerName} (
                         {selectedPlayer.playerContext.primaryDefender.position ?? "N/A"})
@@ -4053,7 +4053,7 @@ export function SnapshotDashboard({
                       <p>{selectedPlayer.playerContext.primaryDefender.matchupReason}</p>
                     </div>
                   ) : (
-                    <p className="mt-2 text-slate-300">No defender projection available yet.</p>
+                    <p className="mt-2 text-[var(--text-tertiary)]">No defender projection available yet.</p>
                   )}
                   <p className="mt-3 inline-flex items-center gap-1 font-semibold text-white">
                     Top Teammates (By Minutes)
@@ -4063,9 +4063,9 @@ export function SnapshotDashboard({
                     />
                   </p>
                   {selectedPlayer.playerContext.teammateCore.length === 0 ? (
-                    <p className="mt-2 text-slate-300">No teammate context available.</p>
+                    <p className="mt-2 text-[var(--text-tertiary)]">No teammate context available.</p>
                   ) : (
-                    <div className="mt-2 space-y-1 text-slate-300">
+                    <div className="mt-2 space-y-1 text-[var(--text-tertiary)]">
                       {selectedPlayer.playerContext.teammateCore.map((mate) => (
                         <p key={mate.playerId}>
                           {mate.playerName} ({mate.position ?? "N/A"}) | Min L10 {formatAverage(mate.avgMinutesLast10)} | PRA{" "}
@@ -4086,18 +4086,18 @@ export function SnapshotDashboard({
             >
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {selectedPlayer.gameIntel.modules.map((module) => (
-                  <article key={module.id} className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
+                  <article key={module.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold text-white">{module.title}</p>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${intelStatusClass(module.status)}`}>
                         {module.status}
                       </span>
                     </div>
-                    <p className="mt-1 text-slate-400">{module.description}</p>
-                    <div className="mt-2 space-y-1 text-slate-200">
+                    <p className="mt-1 text-[var(--text-muted)]">{module.description}</p>
+                    <div className="mt-2 space-y-1 text-[var(--text-soft)]">
                       {module.items.map((item, index) => (
                         <p key={`${module.id}-${index}`}>
-                          <span className="text-slate-400">{item.label}:</span> {item.value}
+                          <span className="text-[var(--text-muted)]">{item.label}:</span> {item.value}
                         </p>
                       ))}
                     </div>
@@ -4113,7 +4113,7 @@ export function SnapshotDashboard({
               onToggle={() => toggleSection("backtest")}
             >
               {playerBacktestLoading ? (
-                <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-300">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-tertiary)]">
                   Loading saved player backtest...
                 </div>
               ) : playerBacktestError ? (
@@ -4128,41 +4128,41 @@ export function SnapshotDashboard({
                       { label: "Training", value: playerBacktest.trainingSample },
                       { label: "Holdout", value: playerBacktest.holdoutSample },
                     ].map((item) => (
-                      <article key={item.label} className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                      <article key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-soft)]">
                         <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-200">{item.label}</p>
                         <p className="mt-2 text-2xl font-semibold text-white">
                           {item.value.accuracyPct == null ? "-" : `${item.value.accuracyPct.toFixed(2)}%`}
                         </p>
-                        <p className="mt-1 text-slate-300">
+                        <p className="mt-1 text-[var(--text-tertiary)]">
                           {item.value.correct} correct / {item.value.wrong} wrong on {item.value.games} games
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-[var(--text-muted)]">
                           {item.value.from ?? "-"} to {item.value.to ?? "-"}
                         </p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-[var(--text-muted)]">
                           Avg line {formatAverage(item.value.averageLine)} | Avg proj {formatAverage(item.value.averageProjection)}
                         </p>
                       </article>
                     ))}
                   </div>
-                  <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-200">
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-soft)]">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-[11px] uppercase tracking-[0.16em] text-cyan-200">Game Sheet</p>
-                        <p className="mt-1 text-slate-400">
+                        <p className="mt-1 text-[var(--text-muted)]">
                           Holdout ratio {formatStat(playerBacktest.holdoutRatio * 100)}%. Saved report: {playerBacktest.reportPath.split("\\").slice(-1)[0]}
                         </p>
                       </div>
                       {playerBacktest.sheetPath ? (
-                        <p className="text-[11px] text-slate-400">Sheet: {playerBacktest.sheetPath.split("\\").slice(-1)[0]}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">Sheet: {playerBacktest.sheetPath.split("\\").slice(-1)[0]}</p>
                       ) : null}
                     </div>
                     {playerBacktest.games.length === 0 ? (
-                      <p className="mt-3 text-slate-300">No game sheet rows were saved with this report.</p>
+                      <p className="mt-3 text-[var(--text-tertiary)]">No game sheet rows were saved with this report.</p>
                     ) : (
                       <div className="mt-3 overflow-x-auto">
-                        <table className="min-w-full text-left text-[11px] text-slate-200">
-                          <thead className="text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                        <table className="min-w-full text-left text-[11px] text-[var(--text-soft)]">
+                          <thead className="text-[10px] uppercase tracking-[0.14em] text-[var(--text-muted)]">
                             <tr>
                               <th className="px-2 py-2">Date</th>
                               <th className="px-2 py-2">Matchup</th>
@@ -4197,7 +4197,7 @@ export function SnapshotDashboard({
                                         ? "bg-emerald-500/15 text-emerald-200"
                                         : game.correct === false
                                           ? "bg-rose-500/15 text-rose-200"
-                                          : "bg-slate-500/20 text-slate-200"
+                                          : "bg-slate-500/20 text-[var(--text-soft)]"
                                     }`}
                                   >
                                     {game.correct === true ? "Correct" : game.correct === false ? "Wrong" : "-"}
@@ -4216,7 +4216,7 @@ export function SnapshotDashboard({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs text-slate-300">
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs text-[var(--text-tertiary)]">
                   No saved player backtest report was found for this player.
                 </div>
               )}
@@ -4235,7 +4235,7 @@ export function SnapshotDashboard({
                   className={`rounded-xl px-3 py-1.5 text-xs font-semibold ${
                     showAdvancedView
                       ? "border border-purple-300/45 bg-purple-500/20 text-purple-100"
-                      : "border border-slate-300/20 bg-[#0d162d] text-slate-300"
+                      : "border border-[var(--border)] bg-[#0d162d] text-[var(--text-tertiary)]"
                   }`}
                 >
                   Advanced Data
@@ -4267,20 +4267,20 @@ export function SnapshotDashboard({
                       className={`cursor-pointer rounded-xl border p-3 text-xs transition ${
                         isFocused
                           ? "border-cyan-300/70 bg-cyan-400/10"
-                          : "border-slate-300/20 bg-[#101938] hover:border-cyan-200/40"
+                          : "border-[var(--border)] bg-[var(--bg-elevated)] hover:border-[var(--brand-primary)]/40"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-white">{option.label}</p>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] ${
-                            isFocused ? "bg-cyan-300/20 text-cyan-100" : "bg-slate-600/30 text-slate-300"
+                            isFocused ? "bg-cyan-300/20 text-[var(--brand-primary)]" : "bg-slate-600/30 text-[var(--text-tertiary)]"
                           }`}
                         >
                           {isFocused ? "Selected" : "View"}
                         </span>
                       </div>
-                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-300">
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-[var(--text-tertiary)]">
                         <p>L3 Avg</p>
                         <p className="text-right">{formatAverage(selectedPlayer.last3Average[m])}</p>
                         <p>L10 Avg</p>
@@ -4338,8 +4338,8 @@ export function SnapshotDashboard({
                         ) : null}
                       </div>
                       <div className="mt-2">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-slate-400">L5 Game Log</p>
-                        <p className="mt-1 rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1 font-mono text-[11px] text-slate-200">
+                        <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)]">L5 Game Log</p>
+                        <p className="mt-1 rounded-md border border-slate-300/15 bg-[var(--bg-secondary)] px-2 py-1 font-mono text-[11px] text-[var(--text-soft)]">
                           {l5.length ? l5.map((v) => formatStat(v)).join(", ") : "-"}
                         </p>
                       </div>
@@ -4355,19 +4355,19 @@ export function SnapshotDashboard({
                         }
                         inputMode="decimal"
                         placeholder={referenceLine == null ? "Set line" : formatStat(referenceLine)}
-                        className="mt-2 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
+                        className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1 text-xs text-white outline-none focus:border-cyan-300/60"
                       />
                       <div className="mt-2 space-y-2 text-[11px]">
                         {selectedLine == null || !l5Hit || !l10Hit ? (
-                          <p className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5 text-slate-300">
+                          <p className="rounded-md border border-slate-300/15 bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-tertiary)]">
                             No line available yet for this market.
                           </p>
                         ) : (
                           <>
-                            <div className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5">
-                              <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">
+                            <div className="rounded-md border border-slate-300/15 bg-[var(--bg-secondary)] px-2 py-1.5">
+                              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--brand-primary)]">
                                 Last 5 vs Line
-                                <span className="ml-2 text-slate-400 normal-case tracking-normal">
+                                <span className="ml-2 text-[var(--text-muted)] normal-case tracking-normal">
                                   {activeLineLabel}
                                 </span>
                               </p>
@@ -4378,19 +4378,19 @@ export function SnapshotDashboard({
                                 <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-center text-amber-200">
                                   U {l5Hit.under}/{l5.length}
                                 </span>
-                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-slate-200">
+                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-[var(--text-soft)]">
                                   P {l5Hit.push}/{l5.length}
                                 </span>
                               </div>
-                              <p className="mt-1 text-[10px] text-slate-300">
+                              <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
                                 O {formatPercent(l5Hit.over, l5.length)} | U {formatPercent(l5Hit.under, l5.length)} | P{" "}
                                 {formatPercent(l5Hit.push, l5.length)}
                               </p>
                             </div>
-                            <div className="rounded-md border border-slate-300/15 bg-[#0d1630] px-2 py-1.5">
-                              <p className="text-[10px] uppercase tracking-[0.12em] text-cyan-100">
+                            <div className="rounded-md border border-slate-300/15 bg-[var(--bg-secondary)] px-2 py-1.5">
+                              <p className="text-[10px] uppercase tracking-[0.12em] text-[var(--brand-primary)]">
                                 Last 10 vs Line
-                                <span className="ml-2 text-slate-400 normal-case tracking-normal">
+                                <span className="ml-2 text-[var(--text-muted)] normal-case tracking-normal">
                                   {activeLineLabel}
                                 </span>
                               </p>
@@ -4401,11 +4401,11 @@ export function SnapshotDashboard({
                                 <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-center text-amber-200">
                                   U {l10Hit.under}/{l10.length}
                                 </span>
-                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-slate-200">
+                                <span className="rounded bg-slate-500/25 px-1.5 py-0.5 text-center text-[var(--text-soft)]">
                                   P {l10Hit.push}/{l10.length}
                                 </span>
                               </div>
-                              <p className="mt-1 text-[10px] text-slate-300">
+                              <p className="mt-1 text-[10px] text-[var(--text-tertiary)]">
                                 O {formatPercent(l10Hit.over, l10.length)} | U {formatPercent(l10Hit.under, l10.length)} | P{" "}
                                 {formatPercent(l10Hit.push, l10.length)}
                               </p>
@@ -4476,14 +4476,14 @@ export function SnapshotDashboard({
                     : `${analysisLogs[analysisLogs.length - 1]?.gameDateEt ?? "-"} to ${analysisLogs[0]?.gameDateEt ?? "-"}`;
                 const hitChance = marketView.hitChance;
                 return (
-                  <article className="mt-4 rounded-xl border border-cyan-300/30 bg-[#0c1533] p-4">
+                  <article className="mt-4 rounded-xl border border-[var(--brand-primary)]/30 bg-[#0c1533] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-cyan-100">{focusedLabel} Analyzer</h4>
-                      <p className="text-[11px] text-slate-400">Final projection result for the selected market. Turn on Advanced Data only if you want the deeper model context.</p>
+                      <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-[var(--brand-primary)]">{focusedLabel} Analyzer</h4>
+                      <p className="text-[11px] text-[var(--text-muted)]">Final projection result for the selected market. Turn on Advanced Data only if you want the deeper model context.</p>
                     </div>
                     <div className="mt-3 grid gap-3 lg:grid-cols-[280px_1fr]">
-                      <div className="rounded-lg border border-slate-300/20 bg-[#101938] p-3">
-                        <label className="text-[11px] uppercase tracking-[0.12em] text-slate-300">
+                      <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
+                        <label className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
                           Active line
                           <input
                             value={lineMap[key] ?? ""}
@@ -4495,12 +4495,12 @@ export function SnapshotDashboard({
                             }
                             inputMode="decimal"
                             placeholder={referenceLine == null ? (modelLine.fairLine == null ? "Set line" : formatStat(modelLine.fairLine)) : formatStat(referenceLine)}
-                            className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#0d1630] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                           />
                           </label>
-                        <div className="mt-2 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
+                        <div className="mt-2 rounded-lg border border-slate-300/15 bg-[var(--bg-secondary)] p-2 text-xs text-[var(--text-soft)]">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Final Result</p>
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--brand-primary)]">Final Result</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${modelSideClass(finalSide)}`}>
                               {finalSide}
                             </span>
@@ -4539,18 +4539,18 @@ export function SnapshotDashboard({
                         </div>
                         {showAdvancedView ? (
                           <>
-                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2 text-xs text-slate-200">
+                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[var(--bg-secondary)] p-2 text-xs text-[var(--text-soft)]">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-cyan-100">
+                            <p className="inline-flex items-center gap-1 text-[11px] uppercase tracking-[0.12em] text-[var(--brand-primary)]">
                               Minutes Scenario
                               <InfoTip
                                 label="Minutes Scenario"
                                 definition="Filters game history by minimum minutes played so you can test role-based assumptions like 22+ minutes."
                               />
                             </p>
-                            <p className="text-[10px] text-slate-400">Window: {analysisWindowLabel}</p>
+                            <p className="text-[10px] text-[var(--text-muted)]">Window: {analysisWindowLabel}</p>
                           </div>
-                          <label className="mt-2 block text-[10px] uppercase tracking-[0.1em] text-slate-400">
+                          <label className="mt-2 block text-[10px] uppercase tracking-[0.1em] text-[var(--text-muted)]">
                             Min minutes (&gt;=)
                             <input
                               value={minutesFloorMap[minutesKey] ?? ""}
@@ -4562,7 +4562,7 @@ export function SnapshotDashboard({
                               }
                               inputMode="decimal"
                               placeholder={String(projectedFloorDefault)}
-                              className="mt-1 w-full rounded-lg border border-slate-300/20 bg-[#101938] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
+                              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5 text-sm text-white outline-none focus:border-cyan-300/60"
                             />
                           </label>
                           <div className="mt-2 flex flex-wrap gap-1">
@@ -4578,8 +4578,8 @@ export function SnapshotDashboard({
                                 }
                                 className={`rounded px-2 py-0.5 text-[10px] ${
                                   minutesFloor === value
-                                    ? "border border-cyan-300/70 bg-cyan-400/20 text-cyan-100"
-                                    : "border border-slate-400/30 bg-[#101938] text-slate-300"
+                                    ? "border border-cyan-300/70 bg-cyan-400/20 text-[var(--brand-primary)]"
+                                    : "border border-slate-400/30 bg-[var(--bg-elevated)] text-[var(--text-tertiary)]"
                                 }`}
                               >
                                 {value}+
@@ -4595,9 +4595,9 @@ export function SnapshotDashboard({
                               IQR: {formatAverage(minuteFilteredP25)} to {formatAverage(minuteFilteredP75)}
                             </p>
                             {selectedLine == null || !minuteFilteredHit ? (
-                              <p className="text-slate-400">No active line available for this market yet.</p>
+                              <p className="text-[var(--text-muted)]">No active line available for this market yet.</p>
                             ) : (
-                              <p className="text-cyan-100">
+                              <p className="text-[var(--brand-primary)]">
                                 Vs {formatStat(selectedLine)} at {formatStat(minutesFloor)}+ min: OVER {minuteFilteredHit.over}/
                                 {minuteFilteredValues.length} ({formatPercent(minuteFilteredHit.over, minuteFilteredValues.length)}) |
                                 UNDER {minuteFilteredHit.under}/{minuteFilteredValues.length} (
@@ -4606,7 +4606,7 @@ export function SnapshotDashboard({
                             )}
                           </div>
                         </div>
-                        <div className="mt-3 space-y-1 text-xs text-slate-300">
+                        <div className="mt-3 space-y-1 text-xs text-[var(--text-tertiary)]">
                           <p className="flex items-center justify-between">
                             <span>L3 Avg</span>
                             <span>{formatAverage(selectedPlayer.last3Average[m])}</span>
@@ -4649,9 +4649,9 @@ export function SnapshotDashboard({
                             </span>
                           </p>
                         </div>
-                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[#0d1630] p-2">
-                          <p className="text-[11px] uppercase tracking-[0.12em] text-cyan-100">Advanced Metrics</p>
-                          <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs text-slate-300">
+                        <div className="mt-3 rounded-lg border border-slate-300/15 bg-[var(--bg-secondary)] p-2">
+                          <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--brand-primary)]">Advanced Metrics</p>
+                          <div className="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-xs text-[var(--text-tertiary)]">
                             <p className="inline-flex items-center gap-1">
                               Median L10
                               <InfoTip
@@ -4699,11 +4699,11 @@ export function SnapshotDashboard({
                           </div>
                         </div>
                         {selectedLine == null ? (
-                          <p className="mt-3 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-300">
+                          <p className="mt-3 rounded-lg bg-[var(--bg-secondary)] px-2 py-2 text-xs text-[var(--text-tertiary)]">
                             No active line is available for this market yet.
                           </p>
                         ) : (
-                          <div className="mt-3 space-y-1 rounded-lg bg-[#0d1630] px-2 py-2 text-xs text-slate-200">
+                          <div className="mt-3 space-y-1 rounded-lg bg-[var(--bg-secondary)] px-2 py-2 text-xs text-[var(--text-soft)]">
                             <p>Line source: {activeLineLabel}</p>
                             <p>
                               L5: {l5Hit?.over ?? 0}/{l5.length} OVER ({formatPercent(l5Hit?.over ?? 0, l5.length)}) |{" "}
@@ -4732,9 +4732,9 @@ export function SnapshotDashboard({
                           </>
                         ) : null}
                       </div>
-                      <div className="overflow-hidden rounded-lg border border-slate-300/20">
+                      <div className="overflow-hidden rounded-lg border border-[var(--border)]">
                         <table className="w-full text-xs">
-                          <thead className="bg-[#162249] text-slate-200/80">
+                          <thead className="bg-[#162249] text-[var(--text-soft)]/80">
                             <tr>
                               <th className="px-2 py-2 text-left">Date</th>
                               <th className="px-2 py-2 text-left">Opp</th>
@@ -4749,13 +4749,13 @@ export function SnapshotDashboard({
                           <tbody>
                             {recentLogsPending ? (
                               <tr className="border-t border-slate-300/10">
-                                <td colSpan={8} className="px-2 py-3 text-cyan-100">
+                                <td colSpan={8} className="px-2 py-3 text-[var(--brand-primary)]">
                                   Loading the last 10 completed-game logs...
                                 </td>
                               </tr>
                             ) : selectedPlayer.recentLogs.length === 0 ? (
                               <tr className="border-t border-slate-300/10">
-                                <td colSpan={8} className="px-2 py-3 text-slate-300">
+                                <td colSpan={8} className="px-2 py-3 text-[var(--text-tertiary)]">
                                   No completed-game logs available yet.
                                 </td>
                               </tr>
@@ -4781,7 +4781,7 @@ export function SnapshotDashboard({
                                             ? "text-amber-300"
                                             : result === "PUSH"
                                               ? "text-cyan-200"
-                                              : "text-slate-300"
+                                              : "text-[var(--text-tertiary)]"
                                       }`}
                                     >
                                       {result ?? "-"}
@@ -4805,13 +4805,13 @@ export function SnapshotDashboard({
               onToggle={() => toggleSection("logs")}
             >
               {recentLogsPending ? (
-                <p className="mt-3 text-sm text-cyan-100">Loading the last 10 completed-game logs...</p>
+                <p className="mt-3 text-sm text-[var(--brand-primary)]">Loading the last 10 completed-game logs...</p>
               ) : selectedPlayer.recentLogs.length === 0 ? (
-                <p className="mt-3 text-sm text-slate-300">No completed-game logs available yet.</p>
+                <p className="mt-3 text-sm text-[var(--text-tertiary)]">No completed-game logs available yet.</p>
               ) : (
                 <div className="mt-2 overflow-hidden rounded-xl border border-slate-300/15">
                   <table className="w-full text-xs">
-                    <thead className="bg-[#162249] text-slate-200/80">
+                    <thead className="bg-[#162249] text-[var(--text-soft)]/80">
                       <tr>
                         <th className="px-2 py-2 text-left">Date</th>
                         <th className="px-2 py-2 text-left">Opp</th>
@@ -4867,7 +4867,7 @@ export function SnapshotDashboard({
               collapsed={collapsedSections.summary}
               onToggle={() => toggleSection("summary")}
             >
-              <section className="text-xs text-slate-300">
+              <section className="text-xs text-[var(--text-tertiary)]">
                 {(() => {
                   const key = scopedLineKey(selectedPlayer.playerId, focusedMarket);
                   const customLine = parseLine(lineMap[key] ?? "");
@@ -4893,14 +4893,14 @@ export function SnapshotDashboard({
                 collapsed={collapsedSections.team}
                 onToggle={() => toggleSection("team")}
               >
-              <section className="rounded-xl border border-slate-300/20 bg-[#101938] p-3 text-xs">
+              <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-3 text-xs">
                 {(() => {
                   const item = matchupStatsByKey.get(selectedPlayer.matchupKey)!;
                   const teamIsAway = selectedPlayer.teamCode === item.awayTeam;
                   const teamFor = teamIsAway ? item.awayLast10For[focusedMarket] : item.homeLast10For[focusedMarket];
                   const oppAllowed = teamIsAway ? item.homeLast10Allowed[focusedMarket] : item.awayLast10Allowed[focusedMarket];
                   return (
-                    <p className="text-slate-300">
+                    <p className="text-[var(--text-tertiary)]">
                       Team context ({selectedPlayer.teamCode} {focusedMarket}): L10 offense {formatAverage(teamFor)} vs opponent L10 allowed {formatAverage(oppAllowed)} | edge{" "}
                       {formatAverage(edge(teamFor, oppAllowed), true)}
                     </p>
@@ -4918,7 +4918,7 @@ export function SnapshotDashboard({
           <div>
             <p className="text-[11px] uppercase tracking-[0.22em] text-violet-200/80">Community</p>
             <h2 className="mt-1 text-2xl font-semibold text-white">Suggestions & Feedback</h2>
-            <p className="mt-1 max-w-3xl text-sm text-slate-300">
+            <p className="mt-1 max-w-3xl text-sm text-[var(--text-tertiary)]">
               The homepage stays focused on the board now. Use the separate page for site comments, bug reports,
               feature ideas, and general suggestions.
             </p>
@@ -4931,7 +4931,7 @@ export function SnapshotDashboard({
             Open Suggestions Page
           </button>
         </div>
-        <div className="mt-5 rounded-2xl border border-white/10 bg-black/15 px-4 py-4 text-sm text-slate-300">
+        <div className="mt-5 rounded-2xl border border-white/10 bg-[var(--surface-subtle)] px-4 py-4 text-sm text-[var(--text-tertiary)]">
           Leave public comments and suggestions on a dedicated page without crowding the homepage. That page keeps the
           full message list together so people can review older ideas and ongoing feedback in one place.
         </div>

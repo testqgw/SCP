@@ -1,22 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, Oswald } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 
 const bodyFont = Inter({
   subsets: ["latin"],
   variable: "--font-body",
+  display: "swap",
 });
 
-const displayFont = Oswald({
-  weight: ["500", "600", "700"],
+const displayFont = Outfit({
+  weight: ["600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-display",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ULTOPS NBA | Player Prop Intelligence",
+  title: "ULTOPS | NBA Player Prop Intelligence",
   description:
-    "Professional NBA player prop intelligence with ranked precision picks, live line context, and full player-by-player research tools.",
+    "Professional NBA player prop intelligence with precision picks, live odds, and matchup research.",
   robots: {
     index: false,
     follow: false,
@@ -29,8 +31,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>): React.ReactElement {
   return (
-    <html lang="en">
-      <body className={`${bodyFont.variable} ${displayFont.variable}`}>{children}</body>
+    <html lang="en" className="dark">
+      <body className={`${bodyFont.variable} ${displayFont.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
