@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
-import { fetchRotowireLineups } from "@/lib/lineups/rotowire";
+import { fetchRotowireLineups, parseStoredRotowireLineupSnapshot } from "@/lib/lineups/rotowire";
 import { etDateShift, getTodayEtDateString } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
 import { NbaDataClient } from "@/lib/nba/client";
@@ -36,8 +36,17 @@ const UPSERT_TEAM_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_TEAM_BATC
 const UPSERT_PLAYER_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_PLAYER_BATCH, 25, 100);
 const UPSERT_GAME_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_GAME_BATCH, 20, 100);
 const UPSERT_LOG_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_LOG_BATCH, 50, 200);
-const SYNC_TEAM_BATCH = parsePositiveInt(process.env.SNAPSHOT_SYNC_TEAM_BATCH, 50, 200);
 const VISIT_REFRESH_COOLDOWN_MS = 15 * 60 * 1000;
+const FAST_REFRESH_LINEUP_REUSE_TTL_MS = parsePositiveInt(
+  process.env.SNAPSHOT_FAST_REFRESH_LINEUP_REUSE_TTL_MS,
+  60_000,
+  10 * 60_000,
+);
+const DELTA_HISTORICAL_BOX_SCORE_REUSE_ENABLED = process.env.SNAPSHOT_DELTA_HISTORICAL_BOX_SCORE_REUSE !== "false";
+
+type StoreLineupsSnapshotOptions = {
+  allowFreshReuse?: boolean;
+};
 
 async function runInBatches<T>(
   items: T[],
@@ -76,24 +85,50 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-async function storeLineupsSnapshot(dateEt: string): Promise<{ teamCount: number; source: string }> {
-  const snapshot = await fetchRotowireLineups();
-  await prisma.systemSetting.upsert({
+async function storeLineupsSnapshot(
+  dateEt: string,
+  options?: StoreLineupsSnapshotOptions,
+): Promise<{ teamCount: number; source: string }> {
+  const existing = await prisma.systemSetting.findUnique({
     where: { key: "snapshot_lineups_today" },
-    update: {
-      value: {
-        dateEt,
-        ...snapshot,
-      },
-    },
-    create: {
-      key: "snapshot_lineups_today",
-      value: {
-        dateEt,
-        ...snapshot,
-      },
-    },
+    select: { value: true, updatedAt: true },
   });
+
+  const canReuseFreshSnapshot =
+    options?.allowFreshReuse === true &&
+    dateEt === getTodayEtDateString() &&
+    existing?.updatedAt != null &&
+    Date.now() - existing.updatedAt.getTime() <= FAST_REFRESH_LINEUP_REUSE_TTL_MS;
+
+  if (canReuseFreshSnapshot) {
+    const parsedSnapshot = parseStoredRotowireLineupSnapshot(existing?.value ?? null, dateEt);
+    if (parsedSnapshot) {
+      return {
+        teamCount: parsedSnapshot.teams.length,
+        source: parsedSnapshot.sourceUrl,
+      };
+    }
+  }
+
+  const snapshot = await fetchRotowireLineups();
+  const nextValue = {
+    dateEt,
+    ...snapshot,
+  };
+
+  if (JSON.stringify(existing?.value ?? null) !== JSON.stringify(nextValue)) {
+    await prisma.systemSetting.upsert({
+      where: { key: "snapshot_lineups_today" },
+      update: {
+        value: nextValue,
+      },
+      create: {
+        key: "snapshot_lineups_today",
+        value: nextValue,
+      },
+    });
+  }
+
   return {
     teamCount: snapshot.teams.length,
     source: snapshot.sourceUrl,
@@ -179,91 +214,208 @@ async function upsertTeams(
   logs: NormalizedPlayerGameStat[],
 ): Promise<Map<string, string>> {
   const teams = new Map<string, { abbreviation: string; name: string }>();
+  const rememberTeam = (abbreviation: string | null | undefined, preferredName?: string | null) => {
+    if (!abbreviation) return;
+
+    const normalizedAbbreviation = abbreviation.toUpperCase();
+    const fallbackName = teamNameFromAbbr(normalizedAbbreviation);
+    const nextName = preferredName?.trim() ? preferredName.trim() : fallbackName;
+    const existing = teams.get(normalizedAbbreviation);
+
+    if (!existing) {
+      teams.set(normalizedAbbreviation, {
+        abbreviation: normalizedAbbreviation,
+        name: nextName,
+      });
+      return;
+    }
+
+    const existingIsFallback = existing.name === fallbackName;
+    const nextIsFallback = nextName === fallbackName;
+    if ((existingIsFallback && !nextIsFallback) || (!existingIsFallback && !nextIsFallback && existing.name !== nextName)) {
+      existing.name = nextName;
+    }
+  };
 
   games.forEach((game) => {
-    teams.set(game.homeTeamAbbr, {
-      abbreviation: game.homeTeamAbbr,
-      name: game.homeTeamName ?? teamNameFromAbbr(game.homeTeamAbbr),
-    });
-    teams.set(game.awayTeamAbbr, {
-      abbreviation: game.awayTeamAbbr,
-      name: game.awayTeamName ?? teamNameFromAbbr(game.awayTeamAbbr),
-    });
+    rememberTeam(game.homeTeamAbbr, game.homeTeamName);
+    rememberTeam(game.awayTeamAbbr, game.awayTeamName);
   });
 
   players.forEach((player) => {
-    if (player.teamAbbr) {
-      teams.set(player.teamAbbr, {
-        abbreviation: player.teamAbbr,
-        name: teamNameFromAbbr(player.teamAbbr),
-      });
-    }
+    rememberTeam(player.teamAbbr);
   });
 
   logs.forEach((log) => {
-    if (log.teamAbbr) {
-      teams.set(log.teamAbbr, { abbreviation: log.teamAbbr, name: teamNameFromAbbr(log.teamAbbr) });
-    }
-    if (log.opponentAbbr) {
-      teams.set(log.opponentAbbr, { abbreviation: log.opponentAbbr, name: teamNameFromAbbr(log.opponentAbbr) });
-    }
+    rememberTeam(log.teamAbbr);
+    rememberTeam(log.opponentAbbr);
   });
 
-  const map = new Map<string, string>();
   const uniqueTeams = Array.from(teams.values());
-  await runInBatches(uniqueTeams, UPSERT_TEAM_BATCH, async (team) => {
-    const saved = await prisma.team.upsert({
-      where: { abbreviation: team.abbreviation },
-      update: { name: team.name },
-      create: {
+  if (uniqueTeams.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const abbreviations = uniqueTeams.map((team) => team.abbreviation);
+  const existingTeams = await prisma.team.findMany({
+    where: { abbreviation: { in: abbreviations } },
+    select: { id: true, abbreviation: true, name: true },
+  });
+  const existingByAbbreviation = new Map(existingTeams.map((team) => [team.abbreviation, team]));
+
+  const missingTeams = uniqueTeams.filter((team) => !existingByAbbreviation.has(team.abbreviation));
+  const teamsNeedingUpdate = uniqueTeams.filter((team) => {
+    const existing = existingByAbbreviation.get(team.abbreviation);
+    return existing != null && existing.name !== team.name;
+  });
+
+  if (missingTeams.length === 0 && teamsNeedingUpdate.length === 0) {
+    return new Map(existingTeams.map((team) => [team.abbreviation, team.id]));
+  }
+
+  if (missingTeams.length > 0) {
+    await prisma.team.createMany({
+      data: missingTeams.map((team) => ({
         abbreviation: team.abbreviation,
         name: team.name,
-      },
-      select: { id: true, abbreviation: true },
+      })),
+      skipDuplicates: true,
     });
-    map.set(saved.abbreviation, saved.id);
+  }
+
+  await runInBatches(teamsNeedingUpdate, UPSERT_TEAM_BATCH, async (team) => {
+    await prisma.team.update({
+      where: { abbreviation: team.abbreviation },
+      data: { name: team.name },
+    });
   });
 
-  return map;
+  if (missingTeams.length === 0) {
+    return new Map(existingTeams.map((team) => [team.abbreviation, team.id]));
+  }
+
+  const savedTeams = await prisma.team.findMany({
+    where: { abbreviation: { in: abbreviations } },
+    select: { id: true, abbreviation: true },
+  });
+
+  return new Map(savedTeams.map((team) => [team.abbreviation, team.id]));
 }
 
 async function upsertPlayers(players: NormalizedPlayerSeason[], teamMap: Map<string, string>): Promise<Map<string, string>> {
-  const playerMap = new Map<string, string>();
+  if (players.length === 0) {
+    return new Map<string, string>();
+  }
 
-  await runInBatches(players, UPSERT_PLAYER_BATCH, async (player) => {
-    const teamId = player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null;
-    const saved = await prisma.player.upsert({
-      where: { externalId: player.externalPlayerId },
-      update: {
-        fullName: player.fullName,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        position: player.position,
-        usageRate: player.usageRate,
-        isActive: player.isActive,
-        teamId,
-      },
-      create: {
-        externalId: player.externalPlayerId,
-        fullName: player.fullName,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        position: player.position,
-        usageRate: player.usageRate,
-        isActive: player.isActive,
-        teamId,
-      },
-      select: { id: true, externalId: true },
-    });
-    if (saved.externalId) {
-      playerMap.set(saved.externalId, saved.id);
+  const uniquePlayers = Array.from(new Map(players.map((player) => [player.externalPlayerId, player])).values());
+  const externalIds = uniquePlayers.map((player) => player.externalPlayerId);
+  const existingPlayers = await prisma.player.findMany({
+    where: { externalId: { in: externalIds } },
+    select: {
+      id: true,
+      externalId: true,
+      fullName: true,
+      firstName: true,
+      lastName: true,
+      position: true,
+      usageRate: true,
+      isActive: true,
+      teamId: true,
+    },
+  });
+  const existingByExternalId = new Map(
+    existingPlayers
+      .filter((player): player is typeof player & { externalId: string } => player.externalId != null)
+      .map((player) => [player.externalId, player]),
+  );
+
+  const missingPlayers = uniquePlayers.filter((player) => !existingByExternalId.has(player.externalPlayerId));
+  const playersNeedingUpdate = uniquePlayers.filter((player) => {
+    const existing = existingByExternalId.get(player.externalPlayerId);
+    if (!existing) {
+      return false;
     }
+
+    const teamId = player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null;
+    return (
+      existing.fullName !== player.fullName ||
+      existing.firstName !== player.firstName ||
+      existing.lastName !== player.lastName ||
+      existing.position !== player.position ||
+      existing.usageRate !== player.usageRate ||
+      existing.isActive !== player.isActive ||
+      existing.teamId !== teamId
+    );
   });
 
-  return playerMap;
+  if (missingPlayers.length > 0) {
+    for (let index = 0; index < missingPlayers.length; index += UPSERT_PLAYER_BATCH) {
+      const batch = missingPlayers.slice(index, index + UPSERT_PLAYER_BATCH);
+      await prisma.player.createMany({
+        data: batch.map((player) => ({
+          externalId: player.externalPlayerId,
+          fullName: player.fullName,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          position: player.position,
+          usageRate: player.usageRate,
+          isActive: player.isActive,
+          teamId: player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  await runInBatches(playersNeedingUpdate, UPSERT_PLAYER_BATCH, async (player) => {
+    await prisma.player.update({
+      where: { externalId: player.externalPlayerId },
+      data: {
+        fullName: player.fullName,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        usageRate: player.usageRate,
+        isActive: player.isActive,
+        teamId: player.teamAbbr ? teamMap.get(player.teamAbbr) ?? null : null,
+      },
+    });
+  });
+
+  const savedPlayers =
+    missingPlayers.length === 0
+      ? existingPlayers
+      : await prisma.player.findMany({
+          where: { externalId: { in: externalIds } },
+          select: { id: true, externalId: true },
+        });
+
+  return new Map(
+    savedPlayers
+      .filter((player): player is typeof player & { externalId: string } => player.externalId != null)
+      .map((player) => [player.externalId, player.id]),
+  );
 }
 
 async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>): Promise<void> {
+  if (games.length === 0) {
+    return;
+  }
+
+  const existingGames = await prisma.game.findMany({
+    where: { externalId: { in: games.map((game) => game.externalGameId) } },
+    select: {
+      externalId: true,
+      gameDateEt: true,
+      season: true,
+      status: true,
+      commenceTimeUtc: true,
+      homeTeamId: true,
+      awayTeamId: true,
+    },
+  });
+  const existingByExternalId = new Map(existingGames.map((game) => [game.externalId, game]));
+
   await runInBatches(games, UPSERT_GAME_BATCH, async (game) => {
     const homeTeamId = teamMap.get(game.homeTeamAbbr);
     const awayTeamId = teamMap.get(game.awayTeamAbbr);
@@ -271,17 +423,39 @@ async function upsertGames(games: NormalizedGame[], teamMap: Map<string, string>
       return;
     }
 
-    await prisma.game.upsert({
-      where: { externalId: game.externalGameId },
-      update: {
-        gameDateEt: game.gameDateEt,
-        season: game.season,
-        status: game.status,
-        commenceTimeUtc: game.commenceTimeUtc,
-        homeTeamId,
-        awayTeamId,
-      },
-      create: {
+    const existing = existingByExternalId.get(game.externalGameId);
+    const nextCommenceTimeMs = game.commenceTimeUtc?.getTime() ?? null;
+
+    if (existing) {
+      const existingCommenceTimeMs = existing.commenceTimeUtc?.getTime() ?? null;
+      const isUnchanged =
+        existing.gameDateEt === game.gameDateEt &&
+        existing.season === game.season &&
+        existing.status === game.status &&
+        existingCommenceTimeMs === nextCommenceTimeMs &&
+        existing.homeTeamId === homeTeamId &&
+        existing.awayTeamId === awayTeamId;
+
+      if (isUnchanged) {
+        return;
+      }
+
+      await prisma.game.update({
+        where: { externalId: game.externalGameId },
+        data: {
+          gameDateEt: game.gameDateEt,
+          season: game.season,
+          status: game.status,
+          commenceTimeUtc: game.commenceTimeUtc,
+          homeTeamId,
+          awayTeamId,
+        },
+      });
+      return;
+    }
+
+    await prisma.game.create({
+      data: {
         externalId: game.externalGameId,
         gameDateEt: game.gameDateEt,
         season: game.season,
@@ -299,49 +473,143 @@ async function upsertPlayerLogs(
   playerMap: Map<string, string>,
   teamMap: Map<string, string>,
 ): Promise<number> {
-  let inserted = 0;
+  if (logs.length === 0 || playerMap.size === 0) {
+    return 0;
+  }
 
-  await runInBatches(logs, UPSERT_LOG_BATCH, async (log) => {
+  const preparedLogs = logs.flatMap((log) => {
     const playerId = playerMap.get(log.externalPlayerId);
     if (!playerId) {
-      return;
+      return [];
     }
 
     const externalGameId = log.externalGameId ?? `${log.gameDateEt}:${log.externalPlayerId}:${log.opponentAbbr ?? "UNK"}`;
-    const teamId = log.teamAbbr ? teamMap.get(log.teamAbbr) ?? null : null;
-    const opponentTeamId = log.opponentAbbr ? teamMap.get(log.opponentAbbr) ?? null : null;
-
-    await prisma.playerGameLog.upsert({
-      where: {
-        playerId_externalGameId: {
-          playerId,
-          externalGameId,
-        },
-      },
-      update: {
-        gameDateEt: log.gameDateEt,
-        teamId,
-        opponentTeamId,
-        isHome: log.isHome,
-        starter: log.starter,
-        played: log.played,
-        minutes: log.minutes,
-        points: log.points,
-        rebounds: log.rebounds,
-        assists: log.assists,
-        threes: log.threes,
-        steals: log.steals,
-        blocks: log.blocks,
-        turnovers: log.turnovers,
-        pace: log.pace,
-        total: log.total,
-      },
-      create: {
+    return [
+      {
+        key: `${playerId}:${externalGameId}`,
         playerId,
         externalGameId,
         gameDateEt: log.gameDateEt,
-        teamId,
-        opponentTeamId,
+        teamId: log.teamAbbr ? teamMap.get(log.teamAbbr) ?? null : null,
+        opponentTeamId: log.opponentAbbr ? teamMap.get(log.opponentAbbr) ?? null : null,
+        isHome: log.isHome,
+        starter: log.starter,
+        played: log.played,
+        minutes: log.minutes,
+        points: log.points,
+        rebounds: log.rebounds,
+        assists: log.assists,
+        threes: log.threes,
+        steals: log.steals,
+        blocks: log.blocks,
+        turnovers: log.turnovers,
+        pace: log.pace,
+        total: log.total,
+      },
+    ];
+  });
+
+  if (preparedLogs.length === 0) {
+    return 0;
+  }
+
+  const playerIds = Array.from(new Set(preparedLogs.map((log) => log.playerId)));
+  const externalGameIds = Array.from(new Set(preparedLogs.map((log) => log.externalGameId)));
+  const existingLogs = await prisma.playerGameLog.findMany({
+    where: {
+      playerId: { in: playerIds },
+      externalGameId: { in: externalGameIds },
+    },
+    select: {
+      id: true,
+      playerId: true,
+      externalGameId: true,
+      gameDateEt: true,
+      teamId: true,
+      opponentTeamId: true,
+      isHome: true,
+      starter: true,
+      played: true,
+      minutes: true,
+      points: true,
+      rebounds: true,
+      assists: true,
+      threes: true,
+      steals: true,
+      blocks: true,
+      turnovers: true,
+      pace: true,
+      total: true,
+    },
+  });
+  const existingByKey = new Map(existingLogs.map((log) => [`${log.playerId}:${log.externalGameId}`, log]));
+
+  const missingLogs = preparedLogs.filter((log) => !existingByKey.has(log.key));
+  const logsNeedingUpdate = preparedLogs.filter((log) => {
+    const existing = existingByKey.get(log.key);
+    if (!existing) {
+      return false;
+    }
+    return (
+      existing.gameDateEt !== log.gameDateEt ||
+      existing.teamId !== log.teamId ||
+      existing.opponentTeamId !== log.opponentTeamId ||
+      existing.isHome !== log.isHome ||
+      existing.starter !== log.starter ||
+      existing.played !== log.played ||
+      existing.minutes !== log.minutes ||
+      existing.points !== log.points ||
+      existing.rebounds !== log.rebounds ||
+      existing.assists !== log.assists ||
+      existing.threes !== log.threes ||
+      existing.steals !== log.steals ||
+      existing.blocks !== log.blocks ||
+      existing.turnovers !== log.turnovers ||
+      existing.pace !== log.pace ||
+      existing.total !== log.total
+    );
+  });
+
+  if (missingLogs.length > 0) {
+    for (let index = 0; index < missingLogs.length; index += UPSERT_LOG_BATCH) {
+      const batch = missingLogs.slice(index, index + UPSERT_LOG_BATCH);
+      await prisma.playerGameLog.createMany({
+        data: batch.map((log) => ({
+          playerId: log.playerId,
+          externalGameId: log.externalGameId,
+          gameDateEt: log.gameDateEt,
+          teamId: log.teamId,
+          opponentTeamId: log.opponentTeamId,
+          isHome: log.isHome,
+          starter: log.starter,
+          played: log.played,
+          minutes: log.minutes,
+          points: log.points,
+          rebounds: log.rebounds,
+          assists: log.assists,
+          threes: log.threes,
+          steals: log.steals,
+          blocks: log.blocks,
+          turnovers: log.turnovers,
+          pace: log.pace,
+          total: log.total,
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  await runInBatches(logsNeedingUpdate, UPSERT_LOG_BATCH, async (log) => {
+    const existing = existingByKey.get(log.key);
+    if (!existing) {
+      return;
+    }
+    await prisma.playerGameLog.update({
+      where: { id: existing.id },
+      data: {
+        gameDateEt: log.gameDateEt,
+        teamId: log.teamId,
+        opponentTeamId: log.opponentTeamId,
         isHome: log.isHome,
         starter: log.starter,
         played: log.played,
@@ -357,27 +625,9 @@ async function upsertPlayerLogs(
         total: log.total,
       },
     });
-    inserted += 1;
   });
 
-  return inserted;
-}
-
-async function syncPlayerCurrentTeams(): Promise<void> {
-  const latestLogs = await prisma.playerGameLog.findMany({
-    where: { teamId: { not: null } },
-    distinct: ["playerId"],
-    orderBy: [{ playerId: "asc" }, { gameDateEt: "desc" }],
-    select: { playerId: true, teamId: true },
-  });
-
-  await runInBatches(latestLogs, SYNC_TEAM_BATCH, async (log) => {
-    if (!log.teamId) return;
-    await prisma.player.update({
-      where: { id: log.playerId },
-      data: { teamId: log.teamId },
-    });
-  });
+  return missingLogs.length + logsNeedingUpdate.length;
 }
 
 type FetchDataResult = {
@@ -417,11 +667,126 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
   const { from, to } = collectDateWindow(mode, dateEt);
   const windowGames = schedule.filter((game) => game.gameDateEt >= from && game.gameDateEt <= to);
   const finalWindowGames = windowGames.filter((game) => game.statusNumber >= 3);
+  const historicalCompletedGameIds = new Set(
+    finalWindowGames.filter((game) => game.gameDateEt < dateEt).map((game) => game.externalGameId),
+  );
+  let reusableHistoricalGameIds = new Set<string>();
+
+  if (mode === "DELTA" && DELTA_HISTORICAL_BOX_SCORE_REUSE_ENABLED && historicalCompletedGameIds.size > 0) {
+    const historicalLoggedGames = await prisma.playerGameLog.findMany({
+      where: {
+        gameDateEt: { gte: from, lt: dateEt },
+      },
+      distinct: ["externalGameId"],
+      select: { externalGameId: true },
+    });
+
+    reusableHistoricalGameIds = new Set(
+      historicalLoggedGames
+        .map((log) => log.externalGameId)
+        .filter((externalGameId): externalGameId is string => historicalCompletedGameIds.has(externalGameId)),
+    );
+  }
+
+  const boxScoreGames = finalWindowGames.filter(
+    (game) => game.gameDateEt === dateEt || !reusableHistoricalGameIds.has(game.externalGameId),
+  );
+  const reusedHistoricalLogsFromDb =
+    reusableHistoricalGameIds.size > 0
+      ? await prisma.playerGameLog.findMany({
+          where: { externalGameId: { in: Array.from(reusableHistoricalGameIds) } },
+          select: {
+            externalGameId: true,
+            gameDateEt: true,
+            isHome: true,
+            starter: true,
+            played: true,
+            minutes: true,
+            points: true,
+            rebounds: true,
+            assists: true,
+            threes: true,
+            steals: true,
+            blocks: true,
+            turnovers: true,
+            pace: true,
+            total: true,
+            player: {
+              select: {
+                externalId: true,
+                fullName: true,
+                firstName: true,
+                lastName: true,
+                position: true,
+                usageRate: true,
+                isActive: true,
+                team: {
+                  select: {
+                    abbreviation: true,
+                  },
+                },
+              },
+            },
+            team: {
+              select: {
+                abbreviation: true,
+              },
+            },
+            opponentTeam: {
+              select: {
+                abbreviation: true,
+              },
+            },
+          },
+        })
+      : [];
 
   const players: NormalizedPlayerSeason[] = [];
   const logs: NormalizedPlayerGameStat[] = [];
 
-  const boxScores = await mapWithConcurrency(finalWindowGames, BOX_SCORE_CONCURRENCY, async (game) => {
+  reusedHistoricalLogsFromDb.forEach((log) => {
+    if (!log.player.externalId) {
+      return;
+    }
+
+    players.push({
+      externalPlayerId: log.player.externalId,
+      fullName: log.player.fullName,
+      firstName: log.player.firstName,
+      lastName: log.player.lastName,
+      teamAbbr: log.player.team?.abbreviation ?? log.team?.abbreviation ?? null,
+      position: log.player.position,
+      usageRate: log.player.usageRate,
+      isActive: log.player.isActive,
+    });
+
+    logs.push({
+      externalPlayerId: log.player.externalId,
+      externalGameId: log.externalGameId,
+      gameDateEt: log.gameDateEt,
+      fullName: log.player.fullName,
+      firstName: log.player.firstName,
+      lastName: log.player.lastName,
+      position: log.player.position,
+      teamAbbr: log.team?.abbreviation ?? null,
+      opponentAbbr: log.opponentTeam?.abbreviation ?? null,
+      isHome: log.isHome,
+      starter: log.starter,
+      played: log.played,
+      minutes: log.minutes,
+      points: log.points,
+      rebounds: log.rebounds,
+      assists: log.assists,
+      threes: log.threes,
+      steals: log.steals,
+      blocks: log.blocks,
+      turnovers: log.turnovers,
+      pace: log.pace,
+      total: log.total,
+    });
+  });
+
+  const boxScores = await mapWithConcurrency(boxScoreGames, BOX_SCORE_CONCURRENCY, async (game) => {
     try {
       const payload = await client.fetchGameBoxScore(game);
       return { game, payload, error: null as string | null };
@@ -452,6 +817,8 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     todaysGames: todaysGames.length,
     windowGames: windowGames.length,
     finalWindowGames: finalWindowGames.length,
+    fetchedBoxScoreGames: boxScoreGames.length,
+    reusedHistoricalFinalGames: reusableHistoricalGameIds.size,
     players: mergedPlayers.length,
     logs: logs.length,
   });
@@ -585,7 +952,10 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
 
   try {
     let lineupMeta: { teamCount: number; source: string } | null = null;
-    const [fetchedResult, lineupResult] = await Promise.allSettled([fetchData(mode, dateEt), storeLineupsSnapshot(dateEt)]);
+    const [fetchedResult, lineupResult] = await Promise.allSettled([
+      fetchData(mode, dateEt),
+      storeLineupsSnapshot(dateEt, { allowFreshReuse: isLightweightRefresh }),
+    ]);
     if (fetchedResult.status === "rejected") {
       throw fetchedResult.reason;
     }
@@ -607,7 +977,6 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
     ]);
     if (fetched.logs.length > 0) {
       await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
-      await syncPlayerCurrentTeams();
     }
 
     const qualityIssues = isLightweightRefresh

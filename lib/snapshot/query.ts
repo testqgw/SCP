@@ -85,6 +85,7 @@ import type {
   SnapshotIntelModule,
   SnapshotMarket,
   SnapshotMatchupOption,
+  SnapshotPrecisionCardEntry,
   SnapshotModelSide,
   SnapshotMetricRecord,
   SnapshotPlayerLookupData,
@@ -308,6 +309,8 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
 
 function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
   if (dateEt !== getTodayEtDateString()) return false;
+  const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
+  if (!hasSlateGames) return false;
   const targetCardCount = PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6;
   if (targetCardCount <= 0) return false;
   const selectedCount = data.precisionCardSummary?.selectedCount ?? data.precisionCard?.length ?? 0;
@@ -318,14 +321,15 @@ function getSnapshotBoardRowKey(row: Pick<SnapshotRow, "matchupKey" | "playerId"
   return `${row.matchupKey}|${row.playerId}`;
 }
 
+function getSnapshotPrecisionCardEntryKey(entry: Pick<SnapshotPrecisionCardEntry, "playerId" | "market">): string {
+  return `${entry.playerId}|${entry.market}`;
+}
+
 function buildPersistedSnapshotRowMap(
   persistedBoard: PersistedSnapshotBoardSetting | null,
 ): Map<string, SnapshotRow> {
   const map = new Map<string, SnapshotRow>();
   if (!persistedBoard) return map;
-  if (persistedBoard.data.rows.some((row) => row.detailLevel !== "FULL")) {
-    return map;
-  }
 
   persistedBoard.data.rows.forEach((row) => {
     map.set(getSnapshotBoardRowKey(row), row);
@@ -336,6 +340,58 @@ function buildPersistedSnapshotRowMap(
 
 function hasGameStarted(commenceTimeUtc: Date | null, referenceMs: number): boolean {
   return commenceTimeUtc != null && commenceTimeUtc.getTime() <= referenceMs;
+}
+
+function isPrecisionCardRowStillEligible(row: SnapshotRow | null | undefined): boolean {
+  if (!row) return false;
+  const availabilityStatus = row.playerContext.availabilityStatus;
+  if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") return false;
+  if (availabilityStatus === "QUESTIONABLE" && (row.playerContext.availabilityPercentPlay ?? 100) <= 55) return false;
+  return true;
+}
+
+function stabilizePrecisionCardForToday(
+  persistedBoard: PersistedSnapshotBoardSetting | null,
+  currentRows: SnapshotRow[],
+  nextPrecisionCard: SnapshotPrecisionCardEntry[],
+  targetCardCount: number,
+): SnapshotPrecisionCardEntry[] {
+  const persistedPrecisionCard = persistedBoard?.data.precisionCard ?? [];
+  if (persistedPrecisionCard.length === 0 || targetCardCount <= 0) {
+    return nextPrecisionCard;
+  }
+
+  const rowByPlayerId = new Map(currentRows.map((row) => [row.playerId, row] as const));
+  const seenEntryKeys = new Set<string>();
+  const stabilizedEntries: SnapshotPrecisionCardEntry[] = [];
+
+  const pushEntry = (entry: SnapshotPrecisionCardEntry): void => {
+    if (stabilizedEntries.length >= targetCardCount) return;
+    const entryKey = getSnapshotPrecisionCardEntryKey(entry);
+    if (seenEntryKeys.has(entryKey)) return;
+    seenEntryKeys.add(entryKey);
+    stabilizedEntries.push({
+      ...entry,
+      rank: stabilizedEntries.length + 1,
+    });
+  };
+
+  persistedPrecisionCard.forEach((entry) => {
+    const currentRow = rowByPlayerId.get(entry.playerId);
+    if (!isPrecisionCardRowStillEligible(currentRow)) return;
+    pushEntry({
+      ...entry,
+      precisionSignal: entry.precisionSignal ?? currentRow?.precisionSignals?.[entry.market] ?? null,
+    });
+  });
+
+  nextPrecisionCard.forEach((entry) => {
+    const currentRow = rowByPlayerId.get(entry.playerId);
+    if (!isPrecisionCardRowStillEligible(currentRow)) return;
+    pushEntry(entry);
+  });
+
+  return stabilizedEntries.length > 0 ? stabilizedEntries : nextPrecisionCard;
 }
 
 function normalizeSearchText(value: string): string {
@@ -441,10 +497,15 @@ function toBoardPrecisionSignals(
 function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
   return {
     ...row,
-    detailLevel: "FULL",
+    detailLevel: "BOARD",
     precisionSignals: toBoardPrecisionSignals(row.precisionSignals),
-    // Keep the board modal-ready without shipping the full season log history for every player row.
+    recentLogs: [],
+    // Keep the board fast by lazy-loading deeper player detail only when a card is opened.
     analysisLogs: [],
+    gameIntel: {
+      generatedAt: row.gameIntel.generatedAt,
+      modules: [],
+    },
   };
 }
 
@@ -2363,7 +2424,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const parsedLineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
     const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
     const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
-    const refreshUpdatedAtIso = latestRefreshUpdatedAt?.toISOString() ?? null;
     const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
     const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
     const sourceSignal = [
@@ -2371,7 +2431,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       gameUpdatedAtIso ?? "none",
       latestDataWrite._max.updatedAt?.toISOString() ?? "none",
       lineupUpdatedAtIso ?? "none",
-    refreshUpdatedAtIso ?? "none",
       SNAPSHOT_BOARD_PAYLOAD_VERSION,
       UNIVERSAL_SYSTEM_SUMMARY_VERSION,
       PRECISION_80_SYSTEM_SUMMARY_VERSION,
@@ -4273,8 +4332,18 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           },
         )
       : precisionCard;
-  const finalPrecisionCard =
+  const computedPrecisionCard =
     recoveredPrecisionCard.length > precisionCard.length ? recoveredPrecisionCard : precisionCard;
+  const boardRows = rowsWithSortKeys.map((item) => item.row);
+  const finalPrecisionCard =
+    isTodayEt
+      ? stabilizePrecisionCardForToday(
+          persistedBoard,
+          boardRows,
+          computedPrecisionCard,
+          PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+        )
+      : computedPrecisionCard;
   const precisionCardSummary = {
     targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
     truePickCount: Math.max(
@@ -4290,7 +4359,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     lastUpdatedAt: sourceUpdatedAtIso,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
-    rows: rowsWithSortKeys.map((item) => item.row),
+    rows: boardRows,
     precisionCard: finalPrecisionCard,
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
