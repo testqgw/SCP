@@ -127,7 +127,7 @@ function FeaturedPickCard({ data }: { data?: SnapshotPrecisionCardEntry & { row?
         </div>
 
         <div className="flex items-center justify-between pt-4 border-t border-[var(--border-subtle)]">
-          <div className="text-xs text-[var(--text-muted)]">Updated {row.lastUpdatedAt ? formatIsoToEtTime(row.lastUpdatedAt) : "--"}</div>
+          <div className="text-xs text-[var(--text-muted)]">Updated {updatedAt ? formatIsoToEtTime(updatedAt) : "--"}</div>
           <button onClick={() => router.push(`/?player=${row.playerId}`)} className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-2)] transition">Deep Dive &rarr;</button>
         </div>
       </div>
@@ -196,7 +196,7 @@ export default function NewDashboard({ data, initialMarket = "ALL" }: NewDashboa
               </div>
             </div>
             <div ref={featuredPickRef}>
-              <FeaturedPickCard data={leadDailyCardCandidate} />
+              <FeaturedPickCard data={leadDailyCardCandidate} updatedAt={heroStats.updatedAt} />
             </div>
           </div>
         </div>
