@@ -21,7 +21,7 @@ function formatPercent(value: number): string {
 function StatItem({ value, label, isTime }: { value: string; label: string; isTime?: boolean }) {
   return (
     <div className="flex flex-col">
-      <span className={\`text-lg font-bold \${isTime ? "text-[var(--text-tertiary)]" : "text-white"}\`}>
+      <span className={`text-lg font-bold ${isTime ? "text-[var(--text-tertiary)]" : "text-white"}`}>
         {value}
       </span>
       <span className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{label}</span>
@@ -70,11 +70,11 @@ function MetricCard({
 
   return (
     <div
-      className={\`surface p-4 relative overflow-hidden hover:border-[var(--border-medium)] transition border \${overlayClasses[color]}\`}
+      className={`surface p-4 relative overflow-hidden hover:border-[var(--border-medium)] transition border ${overlayClasses[color]}`}
     >
-      <div className={\`absolute inset-0 bg-gradient-to-br \${overlayClasses[color]} opacity-50\`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${overlayClasses[color]} opacity-50`} />
       <div className="relative">
-        <div className={\`text-3xl font-bold \${textClasses[color]}\`}>
+        <div className={`text-3xl font-bold ${textClasses[color]}`}>
           {displayValue}
           {suffix}
         </div>
@@ -99,20 +99,20 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={\`relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition \${
+      className={`relative px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition ${
         active
           ? "bg-[var(--surface-strong)] text-white"
           : "text-[var(--text-tertiary)] hover:text-white hover:bg-[var(--surface-soft)]"
-      }\`}
+      }`}
     >
       {label}
       {badge !== undefined && badge > 0 && (
         <span
-          className={\`ml-2 px-1.5 py-0.5 text-xs rounded-full \${
+          className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
             active
               ? "bg-[var(--brand)] text-black"
               : "bg-[var(--surface-strong)] text-[var(--text-secondary)]"
-          }\`}
+          }`}
         >
           {badge}
         </span>
@@ -206,7 +206,7 @@ function FeaturedPickCard({ data }: { data?: SnapshotPrecisionCardEntry & { row?
           </div>
           <div>
             <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Edge</div>
-            <div className={\`text-lg font-semibold \${edgeColorClass}\`}>
+            <div className={`text-lg font-semibold ${edgeColorClass}`}>
               {edge > 0 ? "+" : ""}
               {edge.toFixed(1)}
             </div>
@@ -323,7 +323,7 @@ export default function NewDashboard({ data, initialMarket = "ALL" }: NewDashboa
               {/* Stat Strip */}
               <div className="flex flex-wrap gap-6 pt-4 border-t border-[var(--border-subtle)]">
                 <StatItem
-                  value={\`\${formatPercent(heroStats.winRate)}%\`}
+                  value={`${formatPercent(heroStats.winRate)}%`}
                   label="Backtest Win Rate"
                 />
                 <StatItem value={heroStats.propsTracked.toString()} label="Props Tracked" />
