@@ -10,6 +10,35 @@ const NBA_HTTP_TIMEOUT_MS = (() => {
   if (!Number.isFinite(parsed) || parsed <= 0) return 12000;
   return Math.min(Math.max(3000, Math.floor(parsed)), 60000);
 })();
+const NBA_SCHEDULE_CACHE_TTL_MS = (() => {
+  const parsed = Number(process.env.NBA_SCHEDULE_CACHE_TTL_MS);
+  if (!Number.isFinite(parsed) || parsed < 0) return 60_000;
+  return Math.min(Math.max(0, Math.floor(parsed)), 10 * 60_000);
+})();
+const NBA_CURRENT_DAY_FINAL_BOXSCORE_CACHE_TTL_MS = (() => {
+  const parsed = Number(process.env.NBA_CURRENT_DAY_FINAL_BOXSCORE_CACHE_TTL_MS);
+  if (!Number.isFinite(parsed) || parsed < 0) return 5 * 60_000;
+  return Math.min(Math.max(0, Math.floor(parsed)), 60 * 60_000);
+})();
+const NBA_HISTORICAL_BOXSCORE_CACHE_TTL_MS = (() => {
+  const parsed = Number(process.env.NBA_HISTORICAL_BOXSCORE_CACHE_TTL_MS);
+  if (!Number.isFinite(parsed) || parsed < 0) return 60 * 60_000;
+  return Math.min(Math.max(0, Math.floor(parsed)), 24 * 60 * 60_000);
+})();
+
+let cachedSchedule:
+  | {
+      expiresAt: number;
+      data: NormalizedNbaScheduleGame[];
+    }
+  | null = null;
+let inFlightSchedule: Promise<NormalizedNbaScheduleGame[]> | null = null;
+type NormalizedNbaBoxScorePayload = {
+  players: NormalizedPlayerSeason[];
+  logs: NormalizedPlayerGameStat[];
+};
+const cachedBoxScores = new Map<string, { expiresAt: number; data: NormalizedNbaBoxScorePayload }>();
+const inFlightBoxScores = new Map<string, Promise<NormalizedNbaBoxScorePayload>>();
 
 export type NormalizedNbaScheduleGame = NormalizedGame & {
   statusNumber: number;
@@ -77,6 +106,17 @@ function formatEtDate(reference: Date): string {
   const month = parts.find((part) => part.type === "month")?.value ?? "01";
   const day = parts.find((part) => part.type === "day")?.value ?? "01";
   return `${year}-${month}-${day}`;
+}
+
+function boxScoreCacheTtlMs(game: NormalizedNbaScheduleGame): number {
+  if (game.statusNumber < 3) {
+    return 0;
+  }
+
+  const todayEt = formatEtDate(new Date());
+  return game.gameDateEt < todayEt
+    ? NBA_HISTORICAL_BOXSCORE_CACHE_TTL_MS
+    : NBA_CURRENT_DAY_FINAL_BOXSCORE_CACHE_TTL_MS;
 }
 
 function parseScheduleDateToEt(input: string | null): string | null {
@@ -214,130 +254,197 @@ export class NbaDataClient {
   }
 
   async fetchSchedule(): Promise<NormalizedNbaScheduleGame[]> {
-    const payload = await this.fetchJson(NBA_SCHEDULE_URL);
-    const root = asRecord(payload);
-    const leagueSchedule = asRecord(root?.leagueSchedule);
-    const gameDates = asArray(leagueSchedule?.gameDates);
-    const results: NormalizedNbaScheduleGame[] = [];
+    const now = Date.now();
+    if (cachedSchedule && cachedSchedule.expiresAt > now) {
+      return cachedSchedule.data;
+    }
+    if (inFlightSchedule) {
+      return inFlightSchedule;
+    }
 
-    gameDates.forEach((dateEntry) => {
-      const dateRecord = asRecord(dateEntry);
-      if (!dateRecord) {
-        return;
-      }
-      const dateEt = parseScheduleDateToEt(toStringOrNull(dateRecord.gameDate));
-      if (!dateEt) {
-        return;
-      }
+    const task = (async (): Promise<NormalizedNbaScheduleGame[]> => {
+      const payload = await this.fetchJson(NBA_SCHEDULE_URL);
+      const root = asRecord(payload);
+      const leagueSchedule = asRecord(root?.leagueSchedule);
+      const gameDates = asArray(leagueSchedule?.gameDates);
+      const results: NormalizedNbaScheduleGame[] = [];
 
-      const games = asArray(dateRecord.games);
-      games.forEach((gameEntry) => {
-        const game = asRecord(gameEntry);
-        if (!game) {
+      gameDates.forEach((dateEntry) => {
+        const dateRecord = asRecord(dateEntry);
+        if (!dateRecord) {
+          return;
+        }
+        const dateEt = parseScheduleDateToEt(toStringOrNull(dateRecord.gameDate));
+        if (!dateEt) {
           return;
         }
 
-        const homeTeam = asRecord(game.homeTeam);
-        const awayTeam = asRecord(game.awayTeam);
-        const homeTricode = toStringOrNull(homeTeam?.teamTricode);
-        const awayTricode = toStringOrNull(awayTeam?.teamTricode);
-        const gameId = toStringOrNull(game.gameId);
-        if (!homeTricode || !awayTricode || !gameId) {
-          return;
-        }
+        const games = asArray(dateRecord.games);
+        games.forEach((gameEntry) => {
+          const game = asRecord(gameEntry);
+          if (!game) {
+            return;
+          }
 
-        const commenceTimeUtc =
-          toDate(toStringOrNull(game.gameDateTimeUTC)) ??
-          toDate(toStringOrNull(game.gameDateTimeEst)) ??
-          null;
+          const homeTeam = asRecord(game.homeTeam);
+          const awayTeam = asRecord(game.awayTeam);
+          const homeTricode = toStringOrNull(homeTeam?.teamTricode);
+          const awayTricode = toStringOrNull(awayTeam?.teamTricode);
+          const gameId = toStringOrNull(game.gameId);
+          if (!homeTricode || !awayTricode || !gameId) {
+            return;
+          }
 
-        results.push({
-          externalGameId: gameId,
-          gameDateEt: dateEt,
-          commenceTimeUtc,
-          status: toStringOrNull(game.gameStatusText),
-          statusNumber: toNumber(game.gameStatus) ?? 0,
-          homeTeamAbbr: homeTricode.toUpperCase(),
-          awayTeamAbbr: awayTricode.toUpperCase(),
-          homeTeamName: [toStringOrNull(homeTeam?.teamCity), toStringOrNull(homeTeam?.teamName)]
-            .filter((part): part is string => Boolean(part))
-            .join(" "),
-          awayTeamName: [toStringOrNull(awayTeam?.teamCity), toStringOrNull(awayTeam?.teamName)]
-            .filter((part): part is string => Boolean(part))
-            .join(" "),
-          season: inferSeasonFromEtDate(dateEt),
+          const commenceTimeUtc =
+            toDate(toStringOrNull(game.gameDateTimeUTC)) ??
+            toDate(toStringOrNull(game.gameDateTimeEst)) ??
+            null;
+
+          results.push({
+            externalGameId: gameId,
+            gameDateEt: dateEt,
+            commenceTimeUtc,
+            status: toStringOrNull(game.gameStatusText),
+            statusNumber: toNumber(game.gameStatus) ?? 0,
+            homeTeamAbbr: homeTricode.toUpperCase(),
+            awayTeamAbbr: awayTricode.toUpperCase(),
+            homeTeamName: [toStringOrNull(homeTeam?.teamCity), toStringOrNull(homeTeam?.teamName)]
+              .filter((part): part is string => Boolean(part))
+              .join(" "),
+            awayTeamName: [toStringOrNull(awayTeam?.teamCity), toStringOrNull(awayTeam?.teamName)]
+              .filter((part): part is string => Boolean(part))
+              .join(" "),
+            season: inferSeasonFromEtDate(dateEt),
+          });
         });
       });
-    });
 
-    return results;
+      if (NBA_SCHEDULE_CACHE_TTL_MS > 0) {
+        cachedSchedule = {
+          expiresAt: Date.now() + NBA_SCHEDULE_CACHE_TTL_MS,
+          data: results,
+        };
+      }
+
+      return results;
+    })();
+
+    inFlightSchedule = task;
+    try {
+      return await task;
+    } finally {
+      if (inFlightSchedule === task) {
+        inFlightSchedule = null;
+      }
+    }
   }
 
   async fetchGameBoxScore(
     game: NormalizedNbaScheduleGame,
-  ): Promise<{ players: NormalizedPlayerSeason[]; logs: NormalizedPlayerGameStat[] }> {
-    const url = NBA_BOXSCORE_URL.replace("{gameId}", game.externalGameId);
-    const payload = await this.fetchJson(url);
-    const root = asRecord(payload);
-    const gameData = asRecord(root?.game);
+  ): Promise<NormalizedNbaBoxScorePayload> {
+    const cacheKey = game.externalGameId;
+    const cacheTtlMs = boxScoreCacheTtlMs(game);
+    const now = Date.now();
 
-    const gameDate =
-      toDate(toStringOrNull(gameData?.gameEt)) ??
-      toDate(toStringOrNull(gameData?.gameDateUTC)) ??
-      toDate(toStringOrNull(gameData?.gameTimeUTC));
-    const gameDateEt = gameDate ? formatEtDate(gameDate) : game.gameDateEt;
+    if (cacheTtlMs > 0) {
+      const cached = cachedBoxScores.get(cacheKey);
+      if (cached && cached.expiresAt > now) {
+        return cached.data;
+      }
+      if (cached) {
+        cachedBoxScores.delete(cacheKey);
+      }
 
-    const home = asRecord(gameData?.homeTeam) ?? {};
-    const away = asRecord(gameData?.awayTeam) ?? {};
-    const homeTricode = toStringOrNull(home.teamTricode)?.toUpperCase() ?? game.homeTeamAbbr;
-    const awayTricode = toStringOrNull(away.teamTricode)?.toUpperCase() ?? game.awayTeamAbbr;
+      const inFlight = inFlightBoxScores.get(cacheKey);
+      if (inFlight) {
+        return inFlight;
+      }
+    }
 
-    const players: NormalizedPlayerSeason[] = [];
-    const logs: NormalizedPlayerGameStat[] = [];
+    const task = (async (): Promise<NormalizedNbaBoxScorePayload> => {
+      const url = NBA_BOXSCORE_URL.replace("{gameId}", game.externalGameId);
+      const payload = await this.fetchJson(url);
+      const root = asRecord(payload);
+      const gameData = asRecord(root?.game);
 
-    const ingestSide = (teamRecord: UnknownRecord, teamAbbr: string, opponentAbbr: string, isHome: boolean): void => {
-      const sidePlayers = asArray(teamRecord.players);
-      sidePlayers.forEach((rawPlayer) => {
-        const player = asRecord(rawPlayer);
-        if (!player) {
-          return;
-        }
-        const parsed = playerFromBoxScore(player, teamAbbr, opponentAbbr);
-        if (!parsed) {
-          return;
-        }
+      const gameDate =
+        toDate(toStringOrNull(gameData?.gameEt)) ??
+        toDate(toStringOrNull(gameData?.gameDateUTC)) ??
+        toDate(toStringOrNull(gameData?.gameTimeUTC));
+      const gameDateEt = gameDate ? formatEtDate(gameDate) : game.gameDateEt;
 
-        players.push(parsed.season);
-        logs.push({
-          externalPlayerId: parsed.stats.externalPlayerId as string,
-          externalGameId: game.externalGameId,
-          gameDateEt,
-          fullName: parsed.stats.fullName ?? null,
-          firstName: parsed.stats.firstName ?? null,
-          lastName: parsed.stats.lastName ?? null,
-          position: parsed.stats.position ?? null,
-          teamAbbr,
-          opponentAbbr,
-          isHome,
-          starter: parsed.stats.starter ?? null,
-          played: parsed.stats.played ?? null,
-          minutes: parsed.stats.minutes ?? null,
-          points: parsed.stats.points ?? null,
-          rebounds: parsed.stats.rebounds ?? null,
-          assists: parsed.stats.assists ?? null,
-          threes: parsed.stats.threes ?? null,
-          steals: parsed.stats.steals ?? null,
-          blocks: parsed.stats.blocks ?? null,
-          turnovers: parsed.stats.turnovers ?? null,
-          pace: null,
-          total: null,
+      const home = asRecord(gameData?.homeTeam) ?? {};
+      const away = asRecord(gameData?.awayTeam) ?? {};
+      const homeTricode = toStringOrNull(home.teamTricode)?.toUpperCase() ?? game.homeTeamAbbr;
+      const awayTricode = toStringOrNull(away.teamTricode)?.toUpperCase() ?? game.awayTeamAbbr;
+
+      const players: NormalizedPlayerSeason[] = [];
+      const logs: NormalizedPlayerGameStat[] = [];
+
+      const ingestSide = (teamRecord: UnknownRecord, teamAbbr: string, opponentAbbr: string, isHome: boolean): void => {
+        const sidePlayers = asArray(teamRecord.players);
+        sidePlayers.forEach((rawPlayer) => {
+          const player = asRecord(rawPlayer);
+          if (!player) {
+            return;
+          }
+          const parsed = playerFromBoxScore(player, teamAbbr, opponentAbbr);
+          if (!parsed) {
+            return;
+          }
+
+          players.push(parsed.season);
+          logs.push({
+            externalPlayerId: parsed.stats.externalPlayerId as string,
+            externalGameId: game.externalGameId,
+            gameDateEt,
+            fullName: parsed.stats.fullName ?? null,
+            firstName: parsed.stats.firstName ?? null,
+            lastName: parsed.stats.lastName ?? null,
+            position: parsed.stats.position ?? null,
+            teamAbbr,
+            opponentAbbr,
+            isHome,
+            starter: parsed.stats.starter ?? null,
+            played: parsed.stats.played ?? null,
+            minutes: parsed.stats.minutes ?? null,
+            points: parsed.stats.points ?? null,
+            rebounds: parsed.stats.rebounds ?? null,
+            assists: parsed.stats.assists ?? null,
+            threes: parsed.stats.threes ?? null,
+            steals: parsed.stats.steals ?? null,
+            blocks: parsed.stats.blocks ?? null,
+            turnovers: parsed.stats.turnovers ?? null,
+            pace: null,
+            total: null,
+          });
         });
-      });
-    };
+      };
 
-    ingestSide(home, homeTricode, awayTricode, true);
-    ingestSide(away, awayTricode, homeTricode, false);
+      ingestSide(home, homeTricode, awayTricode, true);
+      ingestSide(away, awayTricode, homeTricode, false);
 
-    return { players, logs };
+      const result = { players, logs };
+      if (cacheTtlMs > 0) {
+        cachedBoxScores.set(cacheKey, {
+          expiresAt: Date.now() + cacheTtlMs,
+          data: result,
+        });
+      }
+      return result;
+    })();
+
+    if (cacheTtlMs <= 0) {
+      return task;
+    }
+
+    inFlightBoxScores.set(cacheKey, task);
+    try {
+      return await task;
+    } finally {
+      if (inFlightBoxScores.get(cacheKey) === task) {
+        inFlightBoxScores.delete(cacheKey);
+      }
+    }
   }
 }

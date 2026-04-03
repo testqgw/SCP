@@ -40,6 +40,13 @@ type BoardLoadOptions = {
   background?: boolean;
 };
 
+type VisitRefreshOptions = {
+  lastUpdatedAt?: string | null;
+  minIntervalMs?: number;
+};
+
+type RefreshBoardForVisit = (targetDate: string, options?: VisitRefreshOptions) => void;
+
 const AUTO_REFRESH_STALE_AFTER_MS = 900_000; // 15 minutes
 const AUTO_REFRESH_ATTEMPT_COOLDOWN_MS = 30_000;
 const VISIT_REFRESH_FOLLOW_UP_LOAD_MS = 5_000;
@@ -174,26 +181,46 @@ function precisionSignalForMarket(row: SnapshotRow, market: SnapshotMarket): Sna
   return row.precisionSignals?.[market] ?? null;
 }
 
+type HitChanceMetric = "HIT_CHANCE" | "CONFIDENCE_SCORE";
+
 type HitChanceDisplay = {
   value: number | null;
   subtitle: string | null;
+  label: string;
+  metric: HitChanceMetric;
 };
+
+const EMPTY_HIT_CHANCE: HitChanceDisplay = {
+  value: null,
+  subtitle: null,
+  label: "Hit Chance",
+  metric: "HIT_CHANCE",
+};
+
+function formatHitChanceDisplay(display: HitChanceDisplay): string {
+  if (display.value == null) return "-";
+  return display.metric === "CONFIDENCE_SCORE" ? formatStat(display.value) : formatChanceValue(display.value);
+}
 
 function resolvePrecisionHitChance(signal: SnapshotPrecisionPickSignal | null | undefined): HitChanceDisplay {
   if (!signal) {
-    return { value: null, subtitle: null };
+    return EMPTY_HIT_CHANCE;
   }
 
   if (signal.projectionWinProbability != null) {
     return {
       value: roundNumber(signal.projectionWinProbability * 100, 1),
       subtitle: "Best available game hit chance for tonight's line.",
+      label: "Hit Chance",
+      metric: "HIT_CHANCE",
     };
   }
 
   return {
     value: signal.historicalAccuracy,
     subtitle: "Best available hit estimate from the precision replay.",
+    label: "Hit Chance",
+    metric: "HIT_CHANCE",
   };
 }
 
@@ -208,7 +235,7 @@ function resolveMarketHitChance(
     precisionSignal.side !== "NEUTRAL" &&
     display?.lineOrigin === "LIVE" &&
     display.line != null;
-  const precisionChance = canUsePrecisionChance ? resolvePrecisionHitChance(precisionSignal) : { value: null, subtitle: null };
+  const precisionChance = canUsePrecisionChance ? resolvePrecisionHitChance(precisionSignal) : EMPTY_HIT_CHANCE;
   if (precisionChance.value != null) {
     return precisionChance;
   }
@@ -216,11 +243,13 @@ function resolveMarketHitChance(
   if (display?.confidence != null && display.lineOrigin === "LIVE" && display.line != null) {
     return {
       value: display.confidence,
-      subtitle: "Final live hit chance for the current game line.",
+      subtitle: "Live model confidence score for the current sportsbook line.",
+      label: "Live Score",
+      metric: "CONFIDENCE_SCORE",
     };
   }
 
-  return { value: null, subtitle: null };
+  return EMPTY_HIT_CHANCE;
 }
 
 function isUnavailableForDailyCard(row: SnapshotRow): boolean {
@@ -241,6 +270,8 @@ function hasBoardSnapshotData(data: SnapshotBoardData): boolean {
 }
 
 function isPrecisionCardUnderfilled(data: SnapshotBoardData): boolean {
+  const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
+  if (!hasSlateGames) return false;
   const targetCardCount = data.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
   if (targetCardCount <= 0) return false;
   const selectedCount = data.precisionCardSummary?.selectedCount ?? data.precisionCard?.length ?? 0;
@@ -414,7 +445,7 @@ function resolveMarketRecommendationView(
     hitChance:
       displayedLine.line != null && customLine == null && !hasDisplayConflict
         ? resolveMarketHitChance(row, market, display)
-        : { value: null, subtitle: null },
+        : EMPTY_HIT_CHANCE,
     note,
   };
 }
@@ -863,6 +894,7 @@ export function SnapshotDashboard({
   const playerDetailRequestRef = useRef(0);
   const lastVisitRefreshRef = useRef<{ key: string | null; at: number }>({ key: null, at: 0 });
   const refreshInFlightRef = useRef(false);
+  const refreshBoardForVisitRef = useRef<RefreshBoardForVisit | null>(null);
   const pendingBoardReloadTimeoutRef = useRef<number | null>(null);
   const underfilledSlateReloadRef = useRef<string | null>(null);
   const [boardData, setBoardData] = useState<SnapshotBoardData>(initialData);
@@ -908,11 +940,8 @@ export function SnapshotDashboard({
   const isAllMarketsView = market === "ALL";
   const hasActiveBoardSnapshot = hasBoardSnapshotData(activeData);
   const precisionCardTargetCount = activeData.precisionSystem?.targetCardCount ?? DAILY_CARD_TARGET_COUNT;
-  const precisionCardSelectedCount = activeData.precisionCardSummary?.selectedCount ?? activeData.precisionCard?.length ?? 0;
   const activePrecisionCardUnderfilled =
-    activeData.dateEt === getTodayEtDateString(new Date()) &&
-    precisionCardTargetCount > 0 &&
-    precisionCardSelectedCount < precisionCardTargetCount;
+    activeData.dateEt === getTodayEtDateString(new Date()) && isPrecisionCardUnderfilled(activeData);
   const resolveManualRefreshMode = useCallback(
     (targetDate: string): "FAST" | "DELTA" => {
       const isTodaySlate = targetDate === getTodayEtDateString(new Date());
@@ -1063,7 +1092,7 @@ export function SnapshotDashboard({
 
     try {
       if (source === "visit") {
-        await loadBoardData(targetDate, { bustCache: true, background: true });
+        await loadBoardData(targetDate, { background: true });
         setRefreshMessage("Live board updated for this visit.");
         return;
       }
@@ -1096,7 +1125,7 @@ export function SnapshotDashboard({
             ? "This slate was refreshed recently. Loading the latest live board."
             : "This slate was refreshed recently. Loading the latest board.",
         );
-        await loadBoardData(targetDate, { bustCache: true, background: true });
+        await loadBoardData(targetDate, { background: true });
         return;
       }
 
@@ -1105,12 +1134,12 @@ export function SnapshotDashboard({
           ? `Fast refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest live board...`
           : `Refresh complete (${payload.result?.status ?? "SUCCESS"}). Loading the latest board...`,
       );
-      await loadBoardData(targetDate, { bustCache: true, background: true });
+      await loadBoardData(targetDate, { background: true });
     } catch (error) {
       if (source === "visit") {
         const message = error instanceof Error ? error.message : "Auto refresh failed.";
         setRefreshError(`Auto refresh failed: ${message}`);
-        await loadBoardData(targetDate, { bustCache: true, background: true });
+        await loadBoardData(targetDate, { background: true });
         return;
       }
 
@@ -1122,7 +1151,7 @@ export function SnapshotDashboard({
   }, [loadBoardData, resolveManualRefreshMode, scheduleBoardReload]);
 
   const refreshBoardForVisit = useCallback(
-    (targetDate: string, options?: { lastUpdatedAt?: string | null; minIntervalMs?: number }): void => {
+    (targetDate: string, options?: VisitRefreshOptions): void => {
       if (!shouldAutoRefreshBoard(targetDate, options?.lastUpdatedAt ?? null)) {
         return;
       }
@@ -1139,6 +1168,10 @@ export function SnapshotDashboard({
     },
     [runBoardRefresh],
   );
+
+  useEffect(() => {
+    refreshBoardForVisitRef.current = refreshBoardForVisit;
+  }, [refreshBoardForVisit]);
 
   useEffect(() => {
     return () => {
@@ -1175,8 +1208,9 @@ export function SnapshotDashboard({
       void loadBoardData(initialData.dateEt);
       return;
     }
-    refreshBoardForVisit(initialData.dateEt, { lastUpdatedAt: initialData.lastUpdatedAt });
-  }, [initialData, loadBoardData, refreshBoardForVisit]);
+    setIsBoardLoading(false);
+    refreshBoardForVisitRef.current?.(initialData.dateEt, { lastUpdatedAt: initialData.lastUpdatedAt });
+  }, [initialData, loadBoardData]);
 
   useEffect(() => {
     if (!hasActiveBoardSnapshot) return;
@@ -3551,7 +3585,7 @@ export function SnapshotDashboard({
                               </div>
                               {marketView.hitChance.value != null ? (
                                 <div className="max-w-[240px] text-[10px] text-emerald-200">
-                                  Hit chance {formatChanceValue(marketView.hitChance.value)}
+                                  {marketView.hitChance.label} {formatHitChanceDisplay(marketView.hitChance)}
                                 </div>
                               ) : null}
                             </div>
@@ -3780,7 +3814,7 @@ export function SnapshotDashboard({
                           <p className="mt-3 text-xs font-medium text-slate-200">{marketView.marketLineLabel}</p>
                           {marketView.hitChance.value != null ? (
                             <p className="mt-2 text-sm font-semibold text-emerald-100">
-                              Hit {formatChanceValue(marketView.hitChance.value)}
+                              {marketView.hitChance.label} {formatHitChanceDisplay(marketView.hitChance)}
                             </p>
                           ) : (
                             <p className="mt-2 text-xs text-slate-400">
@@ -3790,7 +3824,7 @@ export function SnapshotDashboard({
                                   ? marketView.note
                                 : display?.lineOrigin === "MODEL"
                                   ? "Waiting on a confirmed game line."
-                                  : "No confirmed game hit chance yet."}
+                                  : "No live model score yet."}
                             </p>
                           )}
 
@@ -4325,8 +4359,8 @@ export function SnapshotDashboard({
                         ) : null}
                         {hitChance.value != null ? (
                           <>
-                            <p>Hit Chance</p>
-                            <p className="text-right">{formatChanceValue(hitChance.value)}</p>
+                            <p>{hitChance.label}</p>
+                            <p className="text-right">{formatHitChanceDisplay(hitChance)}</p>
                           </>
                         ) : null}
                         {showAdvancedView ? (
@@ -4526,8 +4560,8 @@ export function SnapshotDashboard({
                             <p className="text-right">{formatAverage(referenceLine)}</p>
                             <p>Line source</p>
                             <p className="text-right">{activeLineLabel}</p>
-                            <p>Hit chance</p>
-                            <p className="text-right">{formatChanceValue(hitChance.value)}</p>
+                            <p>{hitChance.label}</p>
+                            <p className="text-right">{formatHitChanceDisplay(hitChance)}</p>
                             <p>Status</p>
                             <p className="text-right">{display?.statusText ?? "No live signal"}</p>
                             <p>Projection gap</p>
@@ -4649,8 +4683,8 @@ export function SnapshotDashboard({
                             <span>{formatAverage(referenceLine)}</span>
                           </p>
                           <p className="flex items-center justify-between">
-                            <span>Hit Chance</span>
-                            <span>{formatChanceValue(hitChance.value)}</span>
+                            <span>{hitChance.label}</span>
+                            <span>{formatHitChanceDisplay(hitChance)}</span>
                           </p>
                           <p className="flex items-center justify-between">
                             <span>Final Side</span>
