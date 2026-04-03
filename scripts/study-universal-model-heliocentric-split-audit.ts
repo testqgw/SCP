@@ -191,33 +191,6 @@ function emptyBucket(): AggregateBucket {
   };
 }
 
-function cloneBucket(bucket?: AggregateBucket | null): AggregateBucket {
-  return {
-    samples: bucket?.samples ?? 0,
-    rawCorrect: bucket?.rawCorrect ?? 0,
-    baselineCorrect: bucket?.baselineCorrect ?? 0,
-    blendedCorrect: bucket?.blendedCorrect ?? 0,
-    qualifiedPicks: bucket?.qualifiedPicks ?? 0,
-    qualifiedCorrect: bucket?.qualifiedCorrect ?? 0,
-    disagreements: bucket?.disagreements ?? 0,
-    qualifiedDisagreementWins: bucket?.qualifiedDisagreementWins ?? 0,
-    qualifiedDisagreementLosses: bucket?.qualifiedDisagreementLosses ?? 0,
-  };
-}
-
-function mergeBucket(into: AggregateBucket, addition: AggregateBucket): AggregateBucket {
-  into.samples += addition.samples;
-  into.rawCorrect += addition.rawCorrect;
-  into.baselineCorrect += addition.baselineCorrect;
-  into.blendedCorrect += addition.blendedCorrect;
-  into.qualifiedPicks += addition.qualifiedPicks;
-  into.qualifiedCorrect += addition.qualifiedCorrect;
-  into.disagreements += addition.disagreements;
-  into.qualifiedDisagreementWins += addition.qualifiedDisagreementWins;
-  into.qualifiedDisagreementLosses += addition.qualifiedDisagreementLosses;
-  return into;
-}
-
 function ratioPercent(numerator: number, denominator: number): number | null {
   if (!denominator) return null;
   return round((numerator / denominator) * 100, 2);
@@ -462,7 +435,7 @@ async function main(): Promise<void> {
   >;
 
   let heliocentricRows = 0;
-  let heliocentricPlayers = new Set<string>();
+  const heliocentricPlayers = new Set<string>();
 
   rows.forEach((row) => {
     const summary = summaries.get(row.playerId);

@@ -472,10 +472,6 @@ function summarizeRowsByMarket(rows: AnalyzedRow[]) {
   ) as Partial<Record<Market, BucketSummary>>;
 }
 
-function positionStatus(value: string | null): "missing_position" | "known_position" {
-  return value ? "known_position" : "missing_position";
-}
-
 function summarizePositionSplit(rows: AnalyzedRow[]) {
   const groups = {
     missing_position: rows.filter((row) => !row.summary.position),

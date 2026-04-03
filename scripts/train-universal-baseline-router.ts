@@ -97,8 +97,9 @@ function parseArgs(): Args {
   return { input, out, maxDepth, minLeaf, featureMode, bucketKeys: [...bucketKeys] };
 }
 
+import fs from "node:fs";
+
 function readJsonl<T>(filePath: string): T[] {
-  const fs = require("node:fs") as typeof import("node:fs");
   const content = fs.readFileSync(path.resolve(filePath), "utf8").trim();
   if (!content) return [];
   return content.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as T);
