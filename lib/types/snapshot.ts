@@ -58,14 +58,6 @@ export type SnapshotPtsSignal = {
   rule: SnapshotPtsQualifiedRule;
 };
 
-export type SnapshotRebSignal = SnapshotPtsSignal;
-export type SnapshotAstSignal = SnapshotPtsSignal;
-export type SnapshotThreesSignal = SnapshotPtsSignal;
-export type SnapshotPraSignal = SnapshotPtsSignal;
-export type SnapshotPaSignal = SnapshotPtsSignal;
-export type SnapshotPrSignal = SnapshotPtsSignal;
-export type SnapshotRaSignal = SnapshotPtsSignal;
-
 export type SnapshotPrecisionPickSignal = {
   side: SnapshotModelSide;
   qualified?: boolean;
@@ -91,6 +83,7 @@ export type SnapshotPrecisionCardEntry = {
   source: SnapshotPrecisionCardSource;
   rank: number;
   selectionScore: number | null;
+  lockedLine?: number | null;
   precisionSignal?: SnapshotPrecisionPickSignal | null;
 };
 
@@ -227,13 +220,13 @@ export type SnapshotRow = {
   projectedTonight: SnapshotMetricRecord;
   modelLines: SnapshotModelLineRecord;
   ptsSignal: SnapshotPtsSignal | null;
-  rebSignal: SnapshotRebSignal | null;
-  astSignal: SnapshotAstSignal | null;
-  threesSignal: SnapshotThreesSignal | null;
-  praSignal: SnapshotPraSignal | null;
-  paSignal: SnapshotPaSignal | null;
-  prSignal: SnapshotPrSignal | null;
-  raSignal: SnapshotRaSignal | null;
+  rebSignal: SnapshotPtsSignal | null;
+  astSignal: SnapshotPtsSignal | null;
+  threesSignal: SnapshotPtsSignal | null;
+  praSignal: SnapshotPtsSignal | null;
+  paSignal: SnapshotPtsSignal | null;
+  prSignal: SnapshotPtsSignal | null;
+  raSignal: SnapshotPtsSignal | null;
   precisionSignals?: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>>;
   recentLogs: SnapshotStatLog[];
   analysisLogs: SnapshotStatLog[];
