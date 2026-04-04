@@ -1,8 +1,9 @@
-'use client';
-import React, { useState } from 'react';
-import type { SNAPSHOT v2 - RedesignedBoardData } from '@/lib/types/SNAPSHOT v2 - Redesigned';
+﻿'use client';
 
-export default function NewDashboard({ data }: { data: SNAPSHOT v2 - RedesignedBoardData }) {
+import React, { useState } from 'react';
+import type { SnapshotBoardData } from '@/lib/types/snapshot';
+
+export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
   const [activeTab, setActiveTab] = useState<'precision' | 'research' | 'scout' | 'tracking'>('precision');
   const featured = data.rows[0] || null;
   const tabs = [
@@ -16,7 +17,7 @@ export default function NewDashboard({ data }: { data: SNAPSHOT v2 - RedesignedB
       <header className="bg-black border-b border-zinc-800 px-12 py-16">
         <div className="max-w-6xl mx-auto">
           <div className="text-cyan-400 uppercase tracking-widest text-sm mb-2">LIVE</div>
-          <h1 className="text-6xl font-bold tracking-tighter">SNAPSHOT v2 - Redesigned</h1>
+          <h1 className="text-6xl font-bold tracking-tighter">SNAPSHOT</h1>
           <p className="text-xl text-zinc-400 mt-3">Premium NBA Player Prop Intelligence</p>
           <div className="flex gap-4 mt-10">
             <button className="bg-white text-black px-10 py-4 rounded-2xl font-semibold">Open the Board</button>
@@ -69,5 +70,3 @@ export default function NewDashboard({ data }: { data: SNAPSHOT v2 - RedesignedB
     </div>
   );
 }
-
-
