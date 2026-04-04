@@ -15,12 +15,9 @@ const statusSteps = [
   },
 ];
 
-const loadingTiles = [
-  "Matchups",
-  "Live lines",
-  "Precision card",
-  "Research tabs",
-];
+const loadingTiles = ["Matchups", "Live lines", "Precision card", "Research tabs"];
+const topNav = ["Board", "Research", "Scout Feed", "Methodology"];
+const loadingTabs = ["Precision Card", "Research Center", "Scout Feed", "Line Tracking"];
 
 export default function Loading(): React.ReactElement {
   return (
@@ -28,239 +25,350 @@ export default function Loading(): React.ReactElement {
       <style>{`
         @keyframes ultops-spin { to { transform: rotate(360deg); } }
         @keyframes ultops-pulse {
-          0%, 100% { opacity: 0.45; transform: scale(0.98); }
+          0%, 100% { opacity: 0.48; transform: scale(0.985); }
           50% { opacity: 1; transform: scale(1); }
         }
-      `}</style>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          padding: "32px 20px",
+
+        .snapshot-loading-shell {
+          min-height: 100vh;
+          padding: 32px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           background:
-            "radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 28%), radial-gradient(circle at 82% 18%, rgba(245, 158, 11, 0.12), transparent 24%), linear-gradient(180deg, #050b14 0%, #07111c 45%, #09131b 100%)",
-          color: "#f5f7fb",
-          fontFamily: '"Segoe UI", sans-serif',
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: 1120,
-            display: "grid",
-            gap: 24,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "grid", gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.16em",
-                  textTransform: "uppercase",
-                  color: "#67e8f9",
-                }}
-              >
-                ULTOPS / Snapshot
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div
-                  style={{
-                    width: 42,
-                    height: 42,
-                    border: "3px solid rgba(103, 232, 249, 0.18)",
-                    borderTop: "3px solid #67e8f9",
-                    borderRadius: "50%",
-                    animation: "ultops-spin 0.8s linear infinite",
-                  }}
-                />
+            radial-gradient(circle at top, rgba(34, 211, 238, 0.14), transparent 28%),
+            radial-gradient(circle at 82% 18%, rgba(245, 158, 11, 0.12), transparent 24%),
+            linear-gradient(180deg, #050b14 0%, #07111c 45%, #09131b 100%);
+          color: #f5f7fb;
+          font-family: "Segoe UI", sans-serif;
+        }
+
+        .snapshot-loading-wrap {
+          width: 100%;
+          max-width: 1120px;
+          display: grid;
+          gap: 18px;
+        }
+
+        .snapshot-loading-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .snapshot-loading-brand {
+          display: grid;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .snapshot-loading-eyebrow {
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: #67e8f9;
+        }
+
+        .snapshot-loading-heading {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .snapshot-loading-spinner {
+          width: 42px;
+          height: 42px;
+          border: 3px solid rgba(103, 232, 249, 0.18);
+          border-top: 3px solid #67e8f9;
+          border-radius: 50%;
+          animation: ultops-spin 0.8s linear infinite;
+          flex: 0 0 auto;
+        }
+
+        .snapshot-loading-title {
+          margin: 0;
+          font-size: clamp(1.9rem, 3vw, 2.8rem);
+          font-weight: 800;
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+        }
+
+        .snapshot-loading-copy {
+          margin: 0;
+          max-width: 720px;
+          font-size: 15px;
+          line-height: 1.65;
+          color: #bfd0e5;
+        }
+
+        .snapshot-loading-live {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          border: 1px solid rgba(103, 232, 249, 0.2);
+          background: rgba(9, 21, 36, 0.82);
+          color: #d9f6fb;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+
+        .snapshot-loading-live-dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: #22c55e;
+          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
+          animation: ultops-pulse 1.6s ease-in-out infinite;
+        }
+
+        .snapshot-loading-nav {
+          display: flex;
+          gap: 10px;
+          overflow-x: auto;
+          padding: 0 2px 4px;
+          scrollbar-width: none;
+        }
+
+        .snapshot-loading-nav::-webkit-scrollbar {
+          display: none;
+        }
+
+        .snapshot-loading-nav-pill,
+        .snapshot-loading-chip {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(148, 163, 184, 0.16);
+          background: rgba(9, 16, 29, 0.82);
+          color: #d5e3f1;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        .snapshot-loading-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.9fr);
+          gap: 20px;
+        }
+
+        .snapshot-loading-panel {
+          border-radius: 28px;
+          border: 1px solid rgba(148, 163, 184, 0.12);
+          background: linear-gradient(180deg, rgba(9, 16, 29, 0.94), rgba(8, 17, 29, 0.86));
+          padding: 24px;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+          display: grid;
+          gap: 18px;
+        }
+
+        .snapshot-loading-feature {
+          display: grid;
+          gap: 12px;
+          padding: 18px;
+          border-radius: 22px;
+          background: linear-gradient(180deg, rgba(12, 23, 38, 0.96), rgba(10, 19, 31, 0.9));
+          border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .snapshot-loading-status {
+          display: grid;
+          gap: 12px;
+        }
+
+        .snapshot-loading-status-row {
+          display: grid;
+          grid-template-columns: 12px minmax(0, 1fr);
+          gap: 12px;
+          align-items: start;
+        }
+
+        .snapshot-loading-status-dot {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          margin-top: 5px;
+          background: linear-gradient(135deg, #67e8f9, rgba(245, 158, 11, 0.9));
+          animation: ultops-pulse 1.6s ease-in-out infinite;
+        }
+
+        .snapshot-loading-line {
+          border-radius: 999px;
+          animation: ultops-pulse 1.5s ease-in-out infinite;
+        }
+
+        .snapshot-loading-line-strong {
+          height: 14px;
+          width: 72%;
+          background: linear-gradient(90deg, rgba(103, 232, 249, 0.2), rgba(245, 158, 11, 0.16));
+        }
+
+        .snapshot-loading-line-soft {
+          height: 10px;
+          width: 54%;
+          background: rgba(148, 163, 184, 0.14);
+        }
+
+        .snapshot-loading-line-wide {
+          height: 12px;
+          width: 100%;
+          background: rgba(148, 163, 184, 0.12);
+        }
+
+        .snapshot-loading-tile-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+          gap: 14px;
+        }
+
+        .snapshot-loading-tile {
+          border-radius: 20px;
+          border: 1px solid rgba(148, 163, 184, 0.1);
+          background: rgba(10, 19, 31, 0.9);
+          padding: 16px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .snapshot-loading-tab-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .snapshot-loading-tab {
+          border-radius: 20px;
+          border: 1px solid rgba(148, 163, 184, 0.1);
+          background: rgba(10, 19, 31, 0.9);
+          padding: 16px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .snapshot-loading-aside-block {
+          display: grid;
+          gap: 8px;
+        }
+
+        .snapshot-loading-note {
+          display: grid;
+          gap: 12px;
+          padding: 18px;
+          border-radius: 22px;
+          border: 1px solid rgba(103, 232, 249, 0.12);
+          background: rgba(8, 23, 38, 0.86);
+        }
+
+        .snapshot-loading-foot {
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.6;
+          color: #8ea4be;
+        }
+
+        @media (max-width: 960px) {
+          .snapshot-loading-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .snapshot-loading-shell {
+            padding: 24px 14px;
+          }
+
+          .snapshot-loading-panel {
+            padding: 20px;
+            border-radius: 24px;
+          }
+
+          .snapshot-loading-heading {
+            align-items: flex-start;
+          }
+
+          .snapshot-loading-live {
+            width: 100%;
+          }
+
+          .snapshot-loading-tab-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="snapshot-loading-shell">
+        <div className="snapshot-loading-wrap">
+          <div className="snapshot-loading-top">
+            <div className="snapshot-loading-brand">
+              <span className="snapshot-loading-eyebrow">ULTOPS / Snapshot</span>
+              <div className="snapshot-loading-heading">
+                <div className="snapshot-loading-spinner" />
                 <div style={{ display: "grid", gap: 6 }}>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "clamp(1.9rem, 3vw, 2.8rem)",
-                      fontWeight: 800,
-                      lineHeight: 1.05,
-                      letterSpacing: "-0.04em",
-                    }}
-                  >
-                    Loading the live NBA prop board
-                  </h1>
-                  <p
-                    style={{
-                      margin: 0,
-                      maxWidth: 720,
-                      fontSize: 15,
-                      lineHeight: 1.6,
-                      color: "#bfd0e5",
-                    }}
-                  >
-                    Streaming the current slate, featured precision card, and
-                    research context from the live snapshot payload.
+                  <h1 className="snapshot-loading-title">Loading the live NBA prop board</h1>
+                  <p className="snapshot-loading-copy">
+                    Streaming the featured pick, board summary, and research tabs from the current snapshot payload.
                   </p>
                 </div>
               </div>
             </div>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 14px",
-                borderRadius: 999,
-                border: "1px solid rgba(103, 232, 249, 0.2)",
-                background: "rgba(9, 21, 36, 0.82)",
-                color: "#d9f6fb",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-              }}
-            >
-              <span
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: "50%",
-                  background: "#22c55e",
-                  boxShadow: "0 0 0 6px rgba(34, 197, 94, 0.12)",
-                  animation: "ultops-pulse 1.6s ease-in-out infinite",
-                }}
-              />
+            <div className="snapshot-loading-live">
+              <span className="snapshot-loading-live-dot" />
               Live snapshot streaming
             </div>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.3fr) minmax(320px, 0.9fr)",
-              gap: 20,
-            }}
-          >
-            <div
-              style={{
-                borderRadius: 28,
-                border: "1px solid rgba(148, 163, 184, 0.12)",
-                background:
-                  "linear-gradient(180deg, rgba(9, 16, 29, 0.94), rgba(8, 17, 29, 0.86))",
-                padding: 24,
-                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.35)",
-                display: "grid",
-                gap: 18,
-              }}
-            >
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {["Board loading", "Featured pick", "Research tabs"].map(
-                  (label) => (
-                    <span
-                      key={label}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        padding: "8px 12px",
-                        borderRadius: 999,
-                        background: "rgba(8, 23, 38, 0.9)",
-                        border: "1px solid rgba(103, 232, 249, 0.12)",
-                        color: "#cfeaf1",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {label}
-                    </span>
-                  ),
-                )}
-              </div>
+          <div className="snapshot-loading-nav">
+            {topNav.map((label) => (
+              <span key={label} className="snapshot-loading-nav-pill">
+                {label}
+              </span>
+            ))}
+          </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  padding: "18px 18px 16px",
-                  borderRadius: 22,
-                  background:
-                    "linear-gradient(180deg, rgba(12, 23, 38, 0.96), rgba(10, 19, 31, 0.9))",
-                  border: "1px solid rgba(148, 163, 184, 0.1)",
-                }}
-              >
-                {statusSteps.map((step) => (
-                  <div
-                    key={step.title}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "12px minmax(0, 1fr)",
-                      gap: 12,
-                      alignItems: "start",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: "50%",
-                        marginTop: 5,
-                        background:
-                          "linear-gradient(135deg, #67e8f9, rgba(245, 158, 11, 0.9))",
-                        animation: "ultops-pulse 1.6s ease-in-out infinite",
-                      }}
-                    />
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <strong
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: "#f6fafc",
-                        }}
-                      >
-                        {step.title}
-                      </strong>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                          color: "#9fb4cc",
-                        }}
-                      >
-                        {step.detail}
-                      </span>
-                    </div>
-                  </div>
+          <div className="snapshot-loading-grid">
+            <div className="snapshot-loading-panel">
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {["Board loading", "Featured pick", "Research tabs"].map((label) => (
+                  <span key={label} className="snapshot-loading-chip">
+                    {label}
+                  </span>
                 ))}
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-                  gap: 14,
-                }}
-              >
+              <div className="snapshot-loading-feature">
+                <div className="snapshot-loading-status">
+                  {statusSteps.map((step) => (
+                    <div key={step.title} className="snapshot-loading-status-row">
+                      <span className="snapshot-loading-status-dot" />
+                      <div style={{ display: "grid", gap: 4 }}>
+                        <strong style={{ fontSize: 14, fontWeight: 700, color: "#f6fafc" }}>{step.title}</strong>
+                        <span style={{ fontSize: 13, lineHeight: 1.55, color: "#9fb4cc" }}>{step.detail}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div className="snapshot-loading-line snapshot-loading-line-strong" />
+                  <div className="snapshot-loading-line snapshot-loading-line-wide" />
+                  <div className="snapshot-loading-line snapshot-loading-line-wide" style={{ width: "88%" }} />
+                </div>
+              </div>
+
+              <div className="snapshot-loading-tile-grid">
                 {loadingTiles.map((tile) => (
-                  <div
-                    key={tile}
-                    style={{
-                      borderRadius: 20,
-                      border: "1px solid rgba(148, 163, 184, 0.1)",
-                      background: "rgba(10, 19, 31, 0.9)",
-                      padding: 16,
-                      display: "grid",
-                      gap: 10,
-                    }}
-                  >
+                  <div key={tile} className="snapshot-loading-tile">
                     <span
                       style={{
                         fontSize: 11,
@@ -272,43 +380,35 @@ export default function Loading(): React.ReactElement {
                     >
                       {tile}
                     </span>
+                    <div className="snapshot-loading-line snapshot-loading-line-strong" />
+                    <div className="snapshot-loading-line snapshot-loading-line-soft" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="snapshot-loading-tab-grid">
+                {loadingTabs.map((label) => (
+                  <div key={label} className="snapshot-loading-tab">
                     <div
                       style={{
-                        height: 14,
-                        width: "72%",
-                        borderRadius: 999,
-                        background:
-                          "linear-gradient(90deg, rgba(103, 232, 249, 0.18), rgba(245, 158, 11, 0.16))",
-                        animation: "ultops-pulse 1.4s ease-in-out infinite",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: "#dbe8f3",
                       }}
-                    />
-                    <div
-                      style={{
-                        height: 10,
-                        width: "54%",
-                        borderRadius: 999,
-                        background: "rgba(148, 163, 184, 0.14)",
-                        animation: "ultops-pulse 1.8s ease-in-out infinite",
-                      }}
-                    />
+                    >
+                      {label}
+                    </div>
+                    <div className="snapshot-loading-line snapshot-loading-line-soft" style={{ width: "66%" }} />
+                    <div className="snapshot-loading-line snapshot-loading-line-wide" />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div
-              style={{
-                borderRadius: 28,
-                border: "1px solid rgba(148, 163, 184, 0.12)",
-                background:
-                  "linear-gradient(180deg, rgba(9, 16, 29, 0.94), rgba(8, 17, 29, 0.86))",
-                padding: 24,
-                boxShadow: "0 24px 60px rgba(0, 0, 0, 0.32)",
-                display: "grid",
-                gap: 16,
-              }}
-            >
-              <div style={{ display: "grid", gap: 8 }}>
+            <div className="snapshot-loading-panel">
+              <div className="snapshot-loading-aside-block">
                 <span
                   style={{
                     fontSize: 11,
@@ -320,30 +420,13 @@ export default function Loading(): React.ReactElement {
                 >
                   Why this screen exists
                 </span>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    color: "#cfdbeb",
-                  }}
-                >
-                  This is the intentional streaming state for the live board.
-                  If you see it briefly, the route is still building current
-                  data from the snapshot payload.
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: "#cfdbeb" }}>
+                  This is the intentional streaming state for the live board. It mirrors the real product shell so mobile,
+                  browser, and server checks do not look like a broken fallback.
                 </p>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  padding: 18,
-                  borderRadius: 22,
-                  border: "1px solid rgba(103, 232, 249, 0.12)",
-                  background: "rgba(8, 23, 38, 0.86)",
-                }}
-              >
+              <div className="snapshot-loading-note">
                 <div
                   style={{
                     fontSize: 12,
@@ -355,31 +438,16 @@ export default function Loading(): React.ReactElement {
                 >
                   Expected next
                 </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    color: "#d9e7f4",
-                    fontSize: 13,
-                    lineHeight: 1.55,
-                  }}
-                >
-                  <div>Featured precision card and ranked edge list</div>
+                <div style={{ display: "grid", gap: 10, color: "#d9e7f4", fontSize: 13, lineHeight: 1.55 }}>
+                  <div>Featured precision card and ranked edge stack</div>
                   <div>Research Center, Scout Feed, and Line Tracking tabs</div>
-                  <div>Live and derived value labels carried into the board</div>
+                  <div>Live, derived, and placeholder labels carried into the board</div>
                 </div>
               </div>
 
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  lineHeight: 1.6,
-                  color: "#8ea4be",
-                }}
-              >
-                If this screen persists unusually long, the board query is
-                stalled. If it clears quickly, the route is behaving normally.
+              <p className="snapshot-loading-foot">
+                If this screen clears quickly, the route is behaving normally. If it persists unusually long, the board
+                query is stalled rather than the UI shell being broken.
               </p>
             </div>
           </div>

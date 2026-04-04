@@ -37,7 +37,7 @@ const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
   { label: 'Board', tab: 'precision' },
   { label: 'Research', tab: 'research' },
   { label: 'Scout Feed', tab: 'scout' },
-  { label: 'Methodology / Support', action: 'help' },
+  { label: 'Methodology', action: 'help' },
 ];
 
 const KIND_CLASS: Record<Kind, string> = {
@@ -57,6 +57,11 @@ const SIDE_CLASS: Record<SnapshotModelSide, string> = {
   UNDER: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
   NEUTRAL: 'border-slate-400/20 bg-slate-500/10 text-slate-200',
 };
+
+const ACTION_CLASS =
+  'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950';
+
+const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-cyan-400/25 hover:bg-zinc-900/90`;
 
 function n(v: number | null | undefined, d = 1) {
   if (v == null || Number.isNaN(v)) return '-';
@@ -143,10 +148,51 @@ function Stat({
   );
 }
 
+function EmptyState({
+  eyebrow,
+  title,
+  detail,
+  kind = 'PLACEHOLDER',
+  actionLabel,
+  onAction,
+}: {
+  eyebrow: string;
+  title: string;
+  detail: string;
+  kind?: Kind;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="rounded-[28px] border border-dashed border-white/15 bg-black/25 p-5 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</div>
+          <div className="mt-2 text-base font-semibold text-white sm:text-lg">{title}</div>
+        </div>
+        <Badge label={kind} kind={kind} />
+      </div>
+      <div className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{detail}</div>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className={`${ACTION_CLASS} mt-4 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/10`}
+        >
+          {actionLabel}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function MatchupsCard({ matchups }: { matchups: SnapshotBoardData['matchups'] }) {
   return (
     <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
+        <Badge label={matchups.length ? 'LIVE' : 'PLACEHOLDER'} kind={matchups.length ? 'LIVE' : 'PLACEHOLDER'} />
+      </div>
       {matchups.length ? (
         <div className="mt-4 space-y-3">
           {matchups.slice(0, 4).map((m) => (
@@ -158,7 +204,8 @@ function MatchupsCard({ matchups }: { matchups: SnapshotBoardData['matchups'] })
         </div>
       ) : (
         <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/25 px-4 py-4 text-sm text-zinc-400">
-          Matchup windows will appear here as soon as the slate loads.
+          Matchup windows will appear here as soon as the slate loads. Until then, the board stays usable through the
+          featured card and research tabs.
         </div>
       )}
     </div>
@@ -399,6 +446,24 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       ? `${gap} slot${gap === 1 ? '' : 's'} open`
       : 'Filled to target'
     : 'Awaiting card target';
+  const tabSummary: Record<Tab, { detail: string; kind: Kind }> = {
+    precision: {
+      detail: precision.length ? `${n(precision.length, 0)} card item${precision.length === 1 ? '' : 's'}` : 'No card items yet',
+      kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
+    },
+    research: {
+      detail: slatePlayers.length ? `${n(slatePlayers.length, 0)} slate players` : 'Slate not loaded',
+      kind: slatePlayers.length ? 'LIVE' : 'PLACEHOLDER',
+    },
+    scout: {
+      detail: scoutViews.length ? `${n(scoutViews.length, 0)} signal rows` : 'Waiting for signals',
+      kind: scoutViews.length ? 'DERIVED' : 'PLACEHOLDER',
+    },
+    tracking: {
+      detail: trackViews.length ? `${n(trackViews.length, 0)} tracked views` : 'No tracked views yet',
+      kind: trackViews.length ? 'DERIVED' : 'PLACEHOLDER',
+    },
+  };
   const openHelp = () => helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const openResearchSearch = () => {
     setTab('research');
@@ -474,22 +539,42 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(251,191,36,0.10),transparent_24%),linear-gradient(180deg,rgba(2,6,23,1)_0%,rgba(9,9,11,1)_42%,rgba(3,7,18,1)_100%)]" />
       <div className="relative">
         <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3 md:gap-4">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-300/80">ULTOPS / Snapshot</div>
-                <div className="mt-1 text-sm text-zinc-400">NBA prop intelligence board</div>
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex items-start justify-between gap-4 xl:flex-1">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-300/80">ULTOPS / Snapshot</div>
+                  <div className="mt-1 text-sm text-zinc-400">NBA prop intelligence board</div>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={refreshSlate}
+                    disabled={isRefreshing}
+                    className={`${ACTION_CLASS} rounded-full border px-4 py-2 text-sm font-semibold ${
+                      isRefreshing
+                        ? 'cursor-wait border-amber-400/20 bg-amber-400/10 text-amber-100'
+                        : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15'
+                    }`}
+                  >
+                    {isRefreshing ? 'Refreshing slate...' : 'Refresh slate'}
+                  </button>
+                  <Badge label={isRefreshing ? 'Refreshing' : 'LIVE'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
+                    <div className="text-sm font-medium text-white">{data.dateEt}</div>
+                  </div>
+                </div>
               </div>
-              <div className="hidden h-10 w-px bg-white/10 md:block" />
-              <nav className="flex flex-wrap items-center gap-2">
+              <nav className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 xl:mx-0 xl:px-0 xl:pb-0">
                 {TOP_NAV.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => (item.action === 'help' ? openHelp() : setTab(item.tab!))}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                    className={`${ACTION_CLASS} shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] ${
                       item.tab && tab === item.tab
-                        ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100'
+                        ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]'
                         : 'border-white/10 bg-white/5 text-zinc-300 hover:border-white/20 hover:bg-white/10'
                     }`}
                   >
@@ -498,64 +583,45 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 ))}
               </nav>
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={refreshSlate}
-                disabled={isRefreshing}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold ${
-                  isRefreshing
-                    ? 'cursor-wait border-amber-400/20 bg-amber-400/10 text-amber-100'
-                    : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15'
-                }`}
-              >
-                {isRefreshing ? 'Refreshing slate...' : 'Refresh slate'}
-              </button>
-              <Badge label={isRefreshing ? 'Refreshing' : 'LIVE'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
-              <div className="text-right">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
-                <div className="text-sm font-medium text-white">{data.dateEt}</div>
-              </div>
-            </div>
           </div>
         </header>
 
         <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
           <section className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
-            <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(9,9,11,0.94),rgba(15,23,42,0.88))] p-6 shadow-2xl shadow-black/25">
+            <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(9,9,11,0.94),rgba(15,23,42,0.88))] p-5 shadow-2xl shadow-black/25 sm:p-6">
               <div className="flex flex-wrap gap-2">
                 <Pill label="Live NBA prop board" tone="cyan" />
                 <Pill label="Featured precision card" tone="amber" />
                 <Pill label="Research + line context" />
               </div>
-              <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-                The live NBA prop board that shows the best edges first.
+              <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:mt-5 sm:text-5xl">
+                Track the live NBA prop slate without leaving the board.
               </h1>
               <p className="mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
-                Start with the featured pick, search any player on the current slate, and refresh the board when new
-                lineups or prices land without leaving the dashboard.
+                Start with the featured pick, search any active player, and refresh the board when new lineups or prices
+                land. The live, derived, and placeholder labels stay visible all the way through the dashboard.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => setTab('precision')}
-                  className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15"
+                  className={`${ACTION_CLASS} rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15`}
                 >
-                  Focus the Board
+                  Open Precision Card
                 </button>
                 <button
                   type="button"
                   onClick={openResearchSearch}
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/10"
+                  className={`${ACTION_CLASS} rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/10`}
                 >
-                  Search Slate Players
+                  Search Active Players
                 </button>
                 <button
                   type="button"
                   onClick={openHelp}
-                  className="rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-400/15"
+                  className={`${ACTION_CLASS} rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-400/15`}
                 >
-                  Methodology / Support
+                  Methodology
                 </button>
               </div>
               {refreshNotice ? (
@@ -581,20 +647,20 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <span className="rounded-full border border-slate-400/15 bg-slate-500/8 px-3 py-1.5">Placeholders only show when data is missing</span>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 transition-colors duration-200 hover:border-white/15 hover:bg-black/30">
                   <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-300/80">Board</div>
-                  <div className="mt-2 text-sm text-zinc-300">Curated edge ranking for the current slate with a featured lead pick.</div>
+                  <div className="mt-2 text-sm leading-6 text-zinc-300">Curated edge ranking for the current slate with a clear featured lead pick.</div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 transition-colors duration-200 hover:border-white/15 hover:bg-black/30">
                   <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-300/80">Research</div>
-                  <div className="mt-2 text-sm text-zinc-300">Player dossier, matchup context, and all-market matrix in one view.</div>
+                  <div className="mt-2 text-sm leading-6 text-zinc-300">Player dossier, matchup context, and the all-market matrix stay in one dossier view.</div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 transition-colors duration-200 hover:border-white/15 hover:bg-black/30">
                   <div className="text-[10px] uppercase tracking-[0.18em] text-cyan-300/80">Scout + Tracking</div>
-                  <div className="mt-2 text-sm text-zinc-300">Signal stream and current line versus fair snapshots without inventing book history.</div>
+                  <div className="mt-2 text-sm leading-6 text-zinc-300">Signal stream and current line snapshots stay readable without inventing book history.</div>
                 </div>
               </div>
-              <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Stat label="Matchups" value={n(data.matchups.length, 0)} kind="LIVE" note="Game windows loaded" />
                 <Stat label="Live lines" value={n(liveCount, 0)} kind="LIVE" note="Markets with consensus data" />
                 <Stat
@@ -618,32 +684,35 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 />
               </div>
               {featured ? (
-                <div className="rounded-[28px] border border-white/10 bg-black/30 p-4">
+                <div className="rounded-[28px] border border-white/10 bg-black/30 p-4 sm:p-5">
                   <div className="flex flex-wrap gap-2">
                     {featured.rank ? <Badge label={featured.rank} kind="DERIVED" /> : null}
                     <Pill label={featured.source} tone={featured.source === 'Live signal' ? 'cyan' : 'default'} />
                     <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                     <Badge label={featured.live != null ? 'Live candidate' : 'Derived candidate'} kind={featured.live != null ? 'LIVE' : 'DERIVED'} />
                   </div>
-                  <div className="mt-4 grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+                  <div className="mt-4 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
                     <div>
-                      <h3 className="text-2xl font-semibold tracking-tight text-white">{featured.row.playerName}</h3>
-                      <p className="mt-1 text-sm text-zinc-400">
+                      <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{featured.row.playerName}</h3>
+                      <p className="mt-1 text-sm leading-6 text-zinc-400">
                         {matchup(featured.row)} - {MARKET_LABELS[featured.market]}
                       </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Side side={featured.side} kind={featured.sideKind} />
                         <Badge label={featured.sideKind} kind={featured.sideKind} />
                         {featured.precision?.selectorFamily ? <Pill label={featured.precision.selectorFamily} tone="cyan" /> : null}
                         {featured.precision?.selectorTier ? <Pill label={featured.precision.selectorTier} tone="amber" /> : null}
                       </div>
-                      <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-300">
-                        {featured.precision?.reasons?.length
-                          ? featured.precision.reasons.slice(0, 2).join(' • ')
-                          : featured.reasons.length
-                            ? featured.reasons.slice(0, 2).join(' • ')
-                            : 'No extra reasons surfaced by the current payload.'}
-                      </p>
+                      <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why it leads the slate</div>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
+                          {featured.precision?.reasons?.length
+                            ? featured.precision.reasons.slice(0, 2).join(' • ')
+                            : featured.reasons.length
+                              ? featured.reasons.slice(0, 2).join(' • ')
+                              : 'No extra reasons surfaced by the current payload.'}
+                        </p>
+                      </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Stat dense label="Live line" value={featured.live == null ? '-' : n(featured.live)} kind={featured.liveKind} note="Consensus market line" />
@@ -654,20 +723,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <Stat dense label="Updated" value={ts(featuredUpdatedAt)} kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'} note="Most recent board or dossier timestamp" />
                     </div>
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Pill label={featured.note} tone={featured.live != null ? 'cyan' : 'default'} />
                     <Badge label={`Books ${featured.books == null ? '-' : n(featured.books, 0)}`} kind={featured.booksKind} />
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[28px] border border-dashed border-white/15 bg-black/25 p-5">
-                  <div className="text-sm font-semibold text-white">{hasBoardRows ? 'No valid featured pick is available yet.' : 'Waiting for board data to load a featured pick.'}</div>
-                  <div className="mt-2 text-sm text-zinc-400">
-                    {hasBoardRows
-                      ? 'Once the board has a precision card entry or a live market-led candidate, the featured anchor will render here.'
-                      : 'As soon as SnapshotBoardData returns rows for the slate, this card will promote the best available featured pick.'}
-                  </div>
-                </div>
+                <EmptyState
+                  eyebrow="Featured pick"
+                  title={hasBoardRows ? 'No valid featured pick is available yet.' : 'Waiting for board data to load a featured pick.'}
+                  detail={
+                    hasBoardRows
+                      ? 'Once the board has a precision-card entry or a live market-led candidate, the featured anchor will render here.'
+                      : 'As soon as SnapshotBoardData returns rows for the slate, this card will promote the best available featured pick.'
+                  }
+                  actionLabel={hasBoardRows ? 'Open Precision Card' : 'Refresh slate'}
+                  onAction={hasBoardRows ? () => setTab('precision') : refreshSlate}
+                />
               )}
               <div className="grid grid-cols-2 gap-3">
                 <Stat
@@ -690,20 +762,24 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
           <section className="mt-6 rounded-[28px] border border-white/10 bg-black/50 p-2 backdrop-blur-xl">
-            <div className="grid gap-2 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
               {TABS.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setTab(item.id)}
-                  className={`rounded-2xl border px-4 py-3 text-left ${
+                  className={`${ACTION_CLASS} rounded-2xl border px-4 py-3 text-left ${
                     tab === item.id
                       ? 'border-cyan-400/30 bg-cyan-400/10 text-white'
                       : 'border-transparent bg-white/0 text-zinc-400 hover:border-white/10 hover:bg-white/5 hover:text-white'
                   }`}
                 >
-                  <div className="text-[10px] uppercase tracking-[0.18em]">{item.label}</div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-[10px] uppercase tracking-[0.18em]">{item.label}</div>
+                    <Badge label={tabSummary[item.id].kind} kind={tabSummary[item.id].kind} />
+                  </div>
                   <div className="mt-1 text-xs text-current/70">{item.hint}</div>
+                  <div className="mt-2 text-[11px] font-medium text-current/80">{tabSummary[item.id].detail}</div>
                 </button>
               ))}
             </div>
@@ -713,19 +789,20 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-4">
                 {precision.length === 0 ? (
-                  <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-6">
-                    <div className="text-lg font-semibold text-white">No precision-card entries are loaded on this slate.</div>
-                    <div className="mt-2 text-sm text-zinc-400">
-                      The board still works, but the featured anchor remains in fallback mode until a valid card is present.
-                    </div>
-                  </div>
+                  <EmptyState
+                    eyebrow="Precision card"
+                    title="No precision-card entries are loaded on this slate."
+                    detail="The board still works, but the featured anchor stays in fallback mode until a valid precision card is present."
+                    actionLabel="Refresh slate"
+                    onAction={refreshSlate}
+                  />
                 ) : (
                   precision.map(({ entry, row, view }, idx) => (
                     <button
                       key={`${entry.playerId}:${entry.market}`}
                       type="button"
                       onClick={() => setResearch(row.playerId)}
-                      className={`w-full rounded-[28px] border p-5 text-left transition hover:-translate-y-0.5 hover:border-cyan-400/25 hover:bg-zinc-900/90 ${
+                      className={`w-full rounded-[28px] border p-5 text-left ${CARD_BUTTON_CLASS} ${
                         idx === 0
                           ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
                           : 'border-white/10 bg-zinc-900/75'
@@ -845,7 +922,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         key={row.playerId}
                         type="button"
                         onClick={() => setPickedPlayer(row.playerId)}
-                        className={`w-full rounded-[24px] border p-4 text-left ${
+                        className={`w-full rounded-[24px] border p-4 text-left ${CARD_BUTTON_CLASS} ${
                           picked
                             ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
                             : 'border-white/10 bg-zinc-900/75'
@@ -875,9 +952,17 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     );
                   })
                 ) : (
-                  <div className="rounded-[24px] border border-dashed border-white/15 bg-black/25 p-4 text-sm text-zinc-400">
-                    Search results will populate here for players on the active slate.
-                  </div>
+                  <EmptyState
+                    eyebrow="Slate player search"
+                    title={deferredSearchQuery ? 'No players on the current slate matched that search.' : 'Active-slate players will appear here as soon as the board loads.'}
+                    detail={
+                      deferredSearchQuery
+                        ? 'Try a team code, opponent, matchup, or clear the search to fall back to the featured research queue.'
+                        : 'Once the slate rows are available, this rail will stay anchored to the featured queue until you search.'
+                    }
+                    actionLabel={searchQuery ? 'Clear search' : undefined}
+                    onAction={searchQuery ? () => setSearchQuery('') : undefined}
+                  />
                 )}
               </div>
 
@@ -990,9 +1075,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-[28px] border border-dashed border-white/15 bg-black/25 p-5 text-sm text-zinc-400">
-                          No team matchup summary is available for this player yet.
-                        </div>
+                        <EmptyState
+                          eyebrow="Team matchup"
+                          title="No team matchup summary is available for this player yet."
+                          detail="Player context is still usable, but the team-vs-team summary will appear only when the slate payload carries matchup stats."
+                        />
                       )}
                     </div>
 
@@ -1008,10 +1095,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     ) : null}
                   </>
                 ) : (
-                  <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-6">
-                    <div className="text-lg font-semibold text-white">No research row is selected.</div>
-                    <div className="mt-2 text-sm text-zinc-400">Pick a player from the left rail to open a full dossier.</div>
-                  </div>
+                  <EmptyState
+                    eyebrow="Research dossier"
+                    title="No research row is selected."
+                    detail="Pick a player from the left rail or use the active-slate search to open a full dossier."
+                    actionLabel="Search Active Players"
+                    onAction={openResearchSearch}
+                  />
                 )}
               </div>
             </section>
@@ -1020,19 +1110,20 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-3">
                 {scoutViews.length === 0 ? (
-                  <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-6">
-                    <div className="text-lg font-semibold text-white">No scout feed items are available yet.</div>
-                    <div className="mt-2 text-sm text-zinc-400">
-                      Once live line or precision data lands, the feed will populate with actionable signal rows.
-                    </div>
-                  </div>
+                  <EmptyState
+                    eyebrow="Scout feed"
+                    title="No scout feed items are available yet."
+                    detail="Once live line or precision data lands, the feed will populate with actionable signal rows."
+                    actionLabel="Refresh slate"
+                    onAction={refreshSlate}
+                  />
                 ) : (
                   scoutViews.map((v, i) => (
                     <button
                       key={`${v.row.playerId}:${v.market}`}
                       type="button"
                       onClick={() => setResearch(v.row.playerId)}
-                      className="w-full rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 text-left hover:-translate-y-0.5 hover:border-cyan-400/25 hover:bg-zinc-900/90"
+                      className={`w-full rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 text-left ${CARD_BUTTON_CLASS}`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -1121,7 +1212,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <tbody>
                       {trackViews.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-6 text-zinc-400">No line tracking rows are available yet.</td>
+                          <td colSpan={8} className="px-4 py-6 text-sm text-zinc-400">
+                            No line-tracking rows are available yet. Refresh the slate or return to the precision card while live lines load.
+                          </td>
                         </tr>
                       ) : (
                         trackViews.map((v, i) => (
