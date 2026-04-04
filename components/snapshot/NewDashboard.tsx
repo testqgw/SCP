@@ -404,11 +404,21 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     if (!deferredSearchQuery) return [];
     return slatePlayers.filter((row) => playerSearchKey(row).includes(deferredSearchQuery));
   }, [deferredSearchQuery, slatePlayers]);
+  const hasActiveSearch = deferredSearchQuery.length > 0;
   const researchListRows = deferredSearchQuery ? searchResults : researchRows;
   const searchLeadRow = deferredSearchQuery ? searchResults[0] ?? null : null;
+  const searchPickedRow = useMemo(
+    () => (hasActiveSearch && pickedPlayer ? searchResults.find((row) => row.playerId === pickedPlayer) ?? null : null),
+    [hasActiveSearch, pickedPlayer, searchResults],
+  );
   const researchRow = useMemo(
-    () => (pickedPlayer ? rowById.get(pickedPlayer) ?? null : searchLeadRow ?? featured?.row ?? researchRows[0] ?? null),
-    [featured?.row, pickedPlayer, researchRows, rowById, searchLeadRow],
+    () =>
+      hasActiveSearch
+        ? searchPickedRow ?? searchLeadRow ?? null
+        : pickedPlayer
+          ? rowById.get(pickedPlayer) ?? null
+          : featured?.row ?? researchRows[0] ?? null,
+    [featured?.row, hasActiveSearch, pickedPlayer, researchRows, rowById, searchLeadRow, searchPickedRow],
   );
   const researchViews = useMemo(
     () => (researchRow ? MARKETS.map((market) => viewFor(researchRow, market)).sort((a, b) => b.score - a.score || a.market.localeCompare(b.market)) : []),
@@ -1097,10 +1107,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 ) : (
                   <EmptyState
                     eyebrow="Research dossier"
-                    title="No research row is selected."
-                    detail="Pick a player from the left rail or use the active-slate search to open a full dossier."
-                    actionLabel="Search Active Players"
-                    onAction={openResearchSearch}
+                    title={hasActiveSearch ? 'No player on the current slate matched that search.' : 'No research row is selected.'}
+                    detail={
+                      hasActiveSearch
+                        ? 'Try another player, team code, or matchup, or clear the search to restore the featured research queue.'
+                        : 'Pick a player from the left rail or use the active-slate search to open a full dossier.'
+                    }
+                    actionLabel={hasActiveSearch ? 'Clear search' : 'Search Active Players'}
+                    onAction={hasActiveSearch ? () => setSearchQuery('') : openResearchSearch}
                   />
                 )}
               </div>
