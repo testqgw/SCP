@@ -8,6 +8,13 @@ Private NBA betting intelligence dashboard with:
 - ranked edge scoring (A/B/C confidence)
 - 5-minute delta refresh + daily full refresh + retention cleanup
 
+## Current Product State
+- The redesigned Snapshot dashboard is the canonical root experience at `/`.
+- `/new` is retired as a product surface and now returns a permanent `308`
+  redirect to `/`.
+- Legacy `SnapshotDashboard` code has been removed. The live board now runs
+  through `app/_snapshot-page.tsx` and `components/snapshot/NewDashboard.tsx`.
+
 ## Stack
 - Next.js 14 App Router
 - Prisma + PostgreSQL

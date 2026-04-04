@@ -1,32 +1,34 @@
 # Ultops Redesign Handoff Brief
 
-> **Status: `/new` validated live - redesigned dashboard rendering in production**
-> **Current state: `/` and `/new` both point at the redesigned `NewDashboard` implementation**
-> **Next decision: keep `/new` as a staging alias or retire it now that the root route is mirrored**
+> **Status: redesign migration complete**
+> **Canonical route: `/` renders the redesigned Snapshot dashboard in production**
+> **Retired route: `/new` now returns a permanent `308` redirect to `/`**
 
 This in-repo brief supersedes the older workspace-level redesign notes that were
-written during the product-completion phase.
+written during the product-completion and alias-soak phases.
 
 ## Confirmed state
 
-- `https://ultops.com/new` is live and renders the completed redesigned dashboard.
+- `https://ultops.com/` is the live canonical dashboard route.
+- `https://ultops.com/new` now redirects permanently to `https://ultops.com/`.
 - The featured pick card, product nav, density upgrades, and tab switching are live.
 - The earlier "loading shell" confusion came from the global `app/loading.tsx`
-  streaming fallback, not a broken `/new` route.
-- `/` now uses the same route implementation as `/new`, so the redesign is no
-  longer isolated to a staging-only path.
+  streaming fallback, not a broken board route.
+- Legacy `SnapshotDashboard` code has been removed from the app.
 
 ## What changed
 
 - The redesigned board is the active experience, not a local-only prototype.
-- Root and staging routes share one implementation, which removes route drift.
+- Root is now the only live dashboard surface.
+- `/new` remains only as a compatibility redirect, which removes duplicate-route drift.
 - The loading state has been reframed to read like an intentional live-board
   stream instead of a suspicious blank shell.
+- Legacy dashboard code and stale Sonar references tied to it have been removed.
 
-## Remaining product decisions
+## Remaining work
 
-- Decide whether `/new` remains useful as a staging alias or should be retired.
-- Keep future work inside product polish and data quality, not route wiring.
+- Keep future work inside product polish, data quality, and feature iteration.
+- Treat the redesign migration as closed unless a real regression reopens it.
 - Only claim live completion after verifying the rendered browser state, not
   just raw HTML or server-stream fallbacks.
 
@@ -34,15 +36,15 @@ written during the product-completion phase.
 
 | File | Role |
 |------|------|
-| `app/_snapshot-page.tsx` | Shared server-rendered board entry used by `/` and `/new` |
-| `app/page.tsx` | Root route re-export |
-| `app/new/page.tsx` | Staging route re-export |
+| `app/_snapshot-page.tsx` | Shared server-rendered board entry for the live root dashboard |
+| `app/page.tsx` | Canonical root route |
+| `next.config.js` | Permanent redirect from `/new` to `/` |
 | `app/loading.tsx` | Global streaming/loading experience |
 | `components/snapshot/NewDashboard.tsx` | Main redesigned product surface |
 
 ## Guardrails
 
-- Stay out of routing/debugging loops unless production verification proves a
+- Stay out of migration/routing loops unless production verification proves a
   real regression.
 - Keep live vs derived vs placeholder labeling honest.
 - Do not re-theme from scratch; refine the current product layer.
