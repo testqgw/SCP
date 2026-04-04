@@ -95,6 +95,21 @@ function matchup(row: SnapshotRow) {
   return `${row.matchupKey.replace('@', ' @ ')} - ${row.gameTimeEt}`;
 }
 
+function relativeTime(v: string | null, now: number) {
+  if (!v) return 'Waiting for the first board refresh';
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return 'Timestamp unavailable';
+  const deltaMinutes = Math.max(0, Math.floor((now - d.getTime()) / 60_000));
+  if (deltaMinutes < 1) return 'moments ago';
+  if (deltaMinutes < 60) return `${deltaMinutes}m ago`;
+  const hours = Math.floor(deltaMinutes / 60);
+  const minutes = deltaMinutes % 60;
+  if (hours < 24) return minutes ? `${hours}h ${minutes}m ago` : `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  const remainingHours = hours % 24;
+  return remainingHours ? `${days}d ${remainingHours}h ago` : `${days}d ago`;
+}
+
 function hasValue<T>(value: T | null | undefined): value is T {
   return value != null;
 }
@@ -186,7 +201,15 @@ function EmptyState({
   );
 }
 
-function MatchupsCard({ matchups }: { matchups: SnapshotBoardData['matchups'] }) {
+function MatchupsCard({
+  matchups,
+  selectedKey,
+  onSelect,
+}: {
+  matchups: SnapshotBoardData['matchups'];
+  selectedKey?: string | null;
+  onSelect?: (matchupKey: string) => void;
+}) {
   return (
     <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
       <div className="flex items-center justify-between gap-3">
@@ -196,10 +219,28 @@ function MatchupsCard({ matchups }: { matchups: SnapshotBoardData['matchups'] })
       {matchups.length ? (
         <div className="mt-4 space-y-3">
           {matchups.slice(0, 4).map((m) => (
-            <div key={m.key} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-              <div className="text-sm font-semibold text-white">{m.label}</div>
-              <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
-            </div>
+            <button
+              key={m.key}
+              type="button"
+              onClick={onSelect ? () => onSelect(m.key) : undefined}
+              className={`w-full rounded-2xl border px-4 py-3 text-left ${
+                onSelect ? ACTION_CLASS : ''
+              } ${
+                selectedKey === m.key
+                  ? 'border-cyan-400/25 bg-cyan-400/10'
+                  : onSelect
+                    ? 'border-white/8 bg-black/20 hover:border-white/15 hover:bg-black/30'
+                    : 'border-white/8 bg-black/20'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">{m.label}</div>
+                  <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
+                </div>
+                {selectedKey === m.key ? <Badge label="Selected" kind="DERIVED" /> : null}
+              </div>
+            </button>
           ))}
         </div>
       ) : (
@@ -262,6 +303,10 @@ type RefreshNotice = {
   title: string;
   detail: string;
 };
+
+function isActionableView(v: View) {
+  return v.live != null || v.precision?.qualified || v.conf != null || v.edge != null || v.reasons.length > 0;
+}
 
 function viewFor(row: SnapshotRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
   const liveSignal = signal(row, market);
@@ -346,9 +391,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>('precision');
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
+  const [selectedMatchupKey, setSelectedMatchupKey] = useState<string | null>(initialData.matchups[0]?.key ?? null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const helpRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
@@ -356,6 +403,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   useEffect(() => {
     setData(initialData);
   }, [initialData]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const rowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
   const precision = useMemo(
@@ -433,13 +485,45 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     [data.teamMatchups, researchRow],
   );
   const scoutViews = useMemo(
-    () => allViews.filter((v) => v.live != null || v.precision?.qualified || v.conf != null || v.reasons.length > 0).sort((a, b) => b.score - a.score).slice(0, 8),
+    () => allViews.filter((v) => isActionableView(v)).sort((a, b) => b.score - a.score).slice(0, 8),
     [allViews],
   );
   const trackViews = useMemo(
     () => allViews.filter((v) => v.live != null || v.fair != null || v.edge != null).sort((a, b) => Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score).slice(0, 8),
     [allViews],
   );
+  const selectedMatchup = useMemo(
+    () => (selectedMatchupKey ? data.matchups.find((m) => m.key === selectedMatchupKey) ?? null : null),
+    [data.matchups, selectedMatchupKey],
+  );
+  const selectedMatchupRows = useMemo(
+    () => (selectedMatchupKey ? data.rows.filter((row) => row.matchupKey === selectedMatchupKey) : []),
+    [data.rows, selectedMatchupKey],
+  );
+  const selectedMatchupTeamStats = useMemo(
+    () => (selectedMatchupKey ? data.teamMatchups.find((m) => m.matchupKey === selectedMatchupKey) ?? null : null),
+    [data.teamMatchups, selectedMatchupKey],
+  );
+  const selectedMatchupViews = useMemo(
+    () =>
+      allViews
+        .filter((v) => v.row.matchupKey === selectedMatchupKey && isActionableView(v))
+        .sort((a, b) => b.score - a.score || (b.conf ?? 0) - (a.conf ?? 0) || a.row.playerName.localeCompare(b.row.playerName)),
+    [allViews, selectedMatchupKey],
+  );
+  const matchupBestSpots = useMemo(() => {
+    const seenPlayers = new Set<string>();
+    const spots: View[] = [];
+    for (const view of selectedMatchupViews) {
+      if (seenPlayers.has(view.row.playerId)) continue;
+      seenPlayers.add(view.row.playerId);
+      spots.push(view);
+      if (spots.length === 5) break;
+    }
+    return spots;
+  }, [selectedMatchupViews]);
+  const matchupLiveCount = selectedMatchupViews.filter((v) => v.live != null).length;
+  const matchupQualifiedCount = selectedMatchupViews.filter((v) => v.precision?.qualified).length;
   const liveCount = allViews.filter((v) => v.live != null).length;
   const qualifiedCount = allViews.filter((v) => v.precision?.qualified).length;
   const avgCompleteness = data.rows.length ? Math.round((data.rows.reduce((s, r) => s + r.dataCompleteness.score, 0) / data.rows.length) * 10) / 10 : null;
@@ -448,6 +532,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const gap = Math.max(target - selected, 0);
   const hasBoardRows = data.rows.length > 0;
   const featuredUpdatedAt = featured?.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
+  const boardRefreshRelative = relativeTime(data.lastUpdatedAt, now);
+  const featuredRefreshRelative = relativeTime(featuredUpdatedAt, now);
   const hasPrecisionTarget = target > 0;
   const precisionSlotsValue = hasPrecisionTarget ? `${n(selected, 0)} / ${n(target, 0)}` : '-';
   const precisionSlotsKind: Kind = hasPrecisionTarget ? 'DERIVED' : 'PLACEHOLDER';
@@ -480,6 +566,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     window.setTimeout(() => searchInputRef.current?.focus(), 0);
   };
   const setResearch = (playerId: string) => {
+    const row = rowById.get(playerId);
+    if (row?.matchupKey) {
+      setSelectedMatchupKey(row.matchupKey);
+    }
     setPickedPlayer(playerId);
     setTab('research');
   };
@@ -489,6 +579,22 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       setPickedPlayer(null);
     }
   }, [pickedPlayer, rowById]);
+
+  useEffect(() => {
+    if (data.matchups.length === 0) {
+      if (selectedMatchupKey != null) {
+        setSelectedMatchupKey(null);
+      }
+      return;
+    }
+    if (selectedMatchupKey && data.matchups.some((m) => m.key === selectedMatchupKey)) {
+      return;
+    }
+    const fallbackKey = data.matchups.find((m) => m.key === featured?.row.matchupKey)?.key ?? data.matchups[0]?.key ?? null;
+    if (fallbackKey !== selectedMatchupKey) {
+      setSelectedMatchupKey(fallbackKey);
+    }
+  }, [data.matchups, featured?.row.matchupKey, selectedMatchupKey]);
 
   const refreshSlate = async () => {
     if (isRefreshing) return;
@@ -570,9 +676,16 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     {isRefreshing ? 'Refreshing slate...' : 'Refresh slate'}
                   </button>
                   <Badge label={isRefreshing ? 'Refreshing' : 'LIVE'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
-                  <div className="text-right">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
-                    <div className="text-sm font-medium text-white">{data.dateEt}</div>
+                  <div className="grid gap-3 text-right sm:grid-cols-2">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
+                      <div className="text-sm font-medium text-white">{data.dateEt}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Last refresh</div>
+                      <div className="text-sm font-medium text-white">{ts(data.lastUpdatedAt)}</div>
+                      <div className="mt-1 text-[11px] text-zinc-500">{boardRefreshRelative}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -679,7 +792,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'}
                   note={data.precisionSystem ? `${n(data.precisionSystem.historicalPicks, 0)} picks tracked` : 'System summary unavailable'}
                 />
-                <Stat label="Updated" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note="ET timestamp" />
+                <Stat
+                  label="Last refresh"
+                  value={ts(data.lastUpdatedAt)}
+                  kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'}
+                  note={data.lastUpdatedAt ? `Board payload ${boardRefreshRelative}` : 'Waiting for board timestamp'}
+                />
               </div>
             </div>
             <div className="space-y-4 rounded-[32px] border border-white/10 bg-zinc-900/75 p-5 backdrop-blur">
@@ -730,7 +848,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection from payload" />
                       <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" />
                       <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 1)} kind={featured.confKind} note="Win probability or historical accuracy" />
-                      <Stat dense label="Updated" value={ts(featuredUpdatedAt)} kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'} note="Most recent board or dossier timestamp" />
+                      <Stat
+                        dense
+                        label="Updated"
+                        value={ts(featuredUpdatedAt)}
+                        kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'}
+                        note={hasValue(featuredUpdatedAt) ? `Most recent board or dossier timestamp, ${featuredRefreshRelative}` : 'Most recent board or dossier timestamp'}
+                      />
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -793,6 +917,196 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 </button>
               ))}
             </div>
+          </section>
+
+          <section className="mt-6 rounded-[28px] border border-white/10 bg-zinc-900/65 p-5 backdrop-blur">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Matchup lens</div>
+                <h2 className="mt-1 text-xl font-semibold text-white">Select a game and see what is best on that board</h2>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-300">
+                  Pick any live matchup to surface the strongest player spots for that game, along with the latest board refresh time and team context.
+                </p>
+              </div>
+              <Badge
+                label={selectedMatchup ? (matchupBestSpots.length ? 'LIVE' : 'DERIVED') : data.matchups.length ? 'DERIVED' : 'PLACEHOLDER'}
+                kind={selectedMatchup ? (matchupBestSpots.length ? 'LIVE' : 'DERIVED') : data.matchups.length ? 'DERIVED' : 'PLACEHOLDER'}
+              />
+            </div>
+
+            {data.matchups.length ? (
+              <>
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                  {data.matchups.map((m) => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setSelectedMatchupKey(m.key)}
+                      className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
+                        selectedMatchupKey === m.key
+                          ? 'border-cyan-400/30 bg-cyan-400/10 text-white'
+                          : 'border-white/10 bg-black/20 text-zinc-300 hover:border-white/20 hover:bg-black/30'
+                      }`}
+                    >
+                      <div className="text-sm font-semibold">{m.label}</div>
+                      <div className="mt-1 text-xs text-current/70">{m.gameTimeEt}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedMatchup ? (
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                    <div className="rounded-[24px] border border-white/10 bg-black/25 p-4 sm:p-5">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge label="Selected matchup" kind="LIVE" />
+                            <Pill label={selectedMatchup.gameTimeEt} />
+                          </div>
+                          <div className="mt-4 text-2xl font-semibold tracking-tight text-white">{selectedMatchup.label}</div>
+                          <div className="mt-1 text-sm text-zinc-400">
+                            Game-level view of the strongest player markets currently on the board.
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-right">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Lead spot</div>
+                          <div className="mt-2 text-sm font-semibold text-white">
+                            {matchupBestSpots[0] ? `${matchupBestSpots[0].row.playerName} ${matchupBestSpots[0].label}` : '-'}
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-400">
+                            {matchupBestSpots[0]
+                              ? `${matchupBestSpots[0].side} ${matchupBestSpots[0].edge == null ? 'No edge yet' : signed(matchupBestSpots[0].edge)}`
+                              : 'Waiting for actionable spots'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <Stat
+                          dense
+                          label="Players"
+                          value={n(selectedMatchupRows.length, 0)}
+                          kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'}
+                          note="Rows in this game"
+                        />
+                        <Stat
+                          dense
+                          label="Live lines"
+                          value={n(matchupLiveCount, 0)}
+                          kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'}
+                          note="Markets priced right now"
+                        />
+                        <Stat
+                          dense
+                          label="Qualified"
+                          value={n(matchupQualifiedCount, 0)}
+                          kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'}
+                          note="Precision-ready views"
+                        />
+                        <Stat
+                          dense
+                          label="Last refresh"
+                          value={ts(data.lastUpdatedAt)}
+                          kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'}
+                          note={boardRefreshRelative}
+                        />
+                      </div>
+
+                      {selectedMatchupTeamStats ? (
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <Stat dense label={`${selectedMatchupTeamStats.awayTeam} off L10`} value={n(selectedMatchupTeamStats.awayLast10For.PTS, 1)} kind="LIVE" note="PTS basis" />
+                          <Stat dense label={`${selectedMatchupTeamStats.homeTeam} off L10`} value={n(selectedMatchupTeamStats.homeLast10For.PTS, 1)} kind="LIVE" note="PTS basis" />
+                          <Stat dense label={`${selectedMatchupTeamStats.awayTeam} allowed L10`} value={n(selectedMatchupTeamStats.awayLast10Allowed.PTS, 1)} kind="LIVE" note="PTS basis" />
+                          <Stat dense label={`${selectedMatchupTeamStats.homeTeam} allowed L10`} value={n(selectedMatchupTeamStats.homeLast10Allowed.PTS, 1)} kind="LIVE" note="PTS basis" />
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-3 text-sm text-zinc-400">
+                          Team-vs-team context is not available for this matchup yet, but the player-level spots below are still live.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-[24px] border border-white/10 bg-black/25 p-4 sm:p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Best spots in this game</div>
+                          <div className="mt-1 text-lg font-semibold text-white">Tap any player to open the full dossier</div>
+                        </div>
+                        <Badge
+                          label={matchupBestSpots.length ? `${n(matchupBestSpots.length, 0)} spots` : '0 spots'}
+                          kind={matchupBestSpots.length ? 'DERIVED' : 'PLACEHOLDER'}
+                        />
+                      </div>
+
+                      {matchupBestSpots.length ? (
+                        <div className="mt-4 space-y-3">
+                          {matchupBestSpots.map((spot, index) => (
+                            <button
+                              key={`${spot.row.playerId}:${spot.market}:matchup-lens`}
+                              type="button"
+                              onClick={() => setResearch(spot.row.playerId)}
+                              className={`w-full rounded-[22px] border border-white/10 bg-zinc-900/75 p-4 text-left ${CARD_BUTTON_CLASS}`}
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Badge label={`#${index + 1}`} kind="DERIVED" />
+                                    <Pill label={spot.label} tone="amber" />
+                                    <Badge label={spot.liveKind} kind={spot.liveKind} />
+                                  </div>
+                                  <div className="mt-3 text-lg font-semibold text-white">{spot.row.playerName}</div>
+                                  <div className="mt-1 text-sm text-zinc-400">{matchup(spot.row)}</div>
+                                </div>
+                                <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[spot.side]}`}>
+                                  <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Recommendation</div>
+                                  <div className="mt-2 flex justify-end">
+                                    <Side side={spot.side} kind={spot.sideKind} />
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-300">
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Live {spot.live == null ? '-' : n(spot.live)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Edge {spot.edge == null ? '-' : signed(spot.edge)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Conf {spot.conf == null ? '-' : pct(spot.conf, 1)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{spot.note}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <EmptyState
+                          eyebrow="Matchup spots"
+                          title="No strong spots are available for this game yet."
+                          detail="Try another matchup or refresh the slate if you expect fresh line or lineup movement."
+                          actionLabel="Refresh slate"
+                          onAction={refreshSlate}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <EmptyState
+                    eyebrow="Matchup lens"
+                    title="Select a matchup to inspect the best spots for that game."
+                    detail="As soon as a matchup is selected, the board will narrow to the strongest players and markets for that slate window."
+                  />
+                )}
+              </>
+            ) : (
+              <EmptyState
+                eyebrow="Matchup lens"
+                title="No matchup windows are loaded yet."
+                detail="Once the slate payload is available, you will be able to select a game and inspect its strongest spots."
+                actionLabel="Refresh slate"
+                onAction={refreshSlate}
+              />
+            )}
           </section>
 
           {tab === 'precision' ? (
@@ -872,7 +1186,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   {gap > 0 ? <div className="mt-3 rounded-2xl border border-amber-400/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/90">Precision card is under target by {gap} slot{gap === 1 ? '' : 's'}.</div> : null}
                 </div>
 
-                <MatchupsCard matchups={data.matchups} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
               </div>
             </section>
           ) : null}
@@ -931,7 +1245,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <button
                         key={row.playerId}
                         type="button"
-                        onClick={() => setPickedPlayer(row.playerId)}
+                        onClick={() => setResearch(row.playerId)}
                         className={`w-full rounded-[24px] border p-4 text-left ${CARD_BUTTON_CLASS} ${
                           picked
                             ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
@@ -1195,7 +1509,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     present in SnapshotBoardData.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
               </div>
             </section>
           ) : null}
@@ -1302,7 +1616,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     movement history.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
               </div>
             </section>
           ) : null}
