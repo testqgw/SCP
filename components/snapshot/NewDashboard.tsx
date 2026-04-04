@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 import React, { useState } from 'react';
-import type { SnapshotBoardData, SnapshotRow } from '@/lib/types/snapshot';
+import type { SnapshotBoardData } from '@/lib/types/snapshot';
 
 export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
   const [activeTab, setActiveTab] = useState<'precision' | 'research' | 'scout' | 'tracking'>('precision');
@@ -69,3 +69,4 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
     </div>
   );
 }
+
