@@ -1,4 +1,4 @@
-import { SnapshotDashboard } from "@/components/snapshot/SnapshotDashboard";
+import NewDashboard from "@/components/snapshot/NewDashboard";
 import { getSnapshotBoardData } from "@/lib/snapshot/query";
 import { getTodayEtDateString } from "@/lib/snapshot/time";
 import type { SnapshotBoardData, SnapshotMarket } from "@/lib/types/snapshot";
@@ -66,11 +66,7 @@ export default async function HomePage({ searchParams }: HomePageProps): Promise
   const data = await getInitialBoardData(dateEt, hasExplicitBoardQuery);
 
   return (
-    <SnapshotDashboard
-      data={data}
-      initialMarket={getMarket(searchParams?.market)}
-      initialMatchup={searchParams?.matchup?.toUpperCase() ?? ""}
-      initialPlayerSearch={searchParams?.player ?? ""}
-    />
+    <NewDashboard data={data} />
   );
 }
+
