@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   SnapshotBoardData,
   SnapshotMarket,
@@ -191,6 +191,31 @@ type View = {
   precision: SnapshotPrecisionPickSignal | null;
 };
 
+type BoardResponse = { ok: true; result: SnapshotBoardData } | { ok: false; error: string };
+
+type RefreshResponse =
+  | {
+      ok: true;
+      result: {
+        runId: string;
+        status: 'SUCCESS' | 'PARTIAL';
+        warnings: string[];
+        isPublishable: boolean;
+        qualityIssues: string[];
+        totals: {
+          games: number;
+          players: number;
+        };
+      };
+    }
+  | { ok: false; error: string };
+
+type RefreshNotice = {
+  kind: Kind;
+  title: string;
+  detail: string;
+};
+
 function viewFor(row: SnapshotRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
   const liveSignal = signal(row, market);
   const precision = entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null;
@@ -255,10 +280,36 @@ function lineList(values: number[]) {
   return values.length ? values.map((v) => n(v, 0)).join('  | ') : '-';
 }
 
-export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
+function playerSearchKey(row: SnapshotRow) {
+  return [row.playerName, row.teamCode, row.opponentCode, row.matchupKey, row.position ?? '', row.gameTimeEt].join(' ').toLowerCase();
+}
+
+function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
+  const totals = `${n(result.totals.games, 0)} games | ${n(result.totals.players, 0)} players`;
+  const boardTime = refreshedAt ? `Board updated ${ts(refreshedAt)}` : null;
+  const detailParts = [totals, boardTime, result.warnings[0] ?? null].filter(Boolean);
+  return {
+    kind: result.status === 'SUCCESS' && result.isPublishable ? 'LIVE' : 'DERIVED',
+    title: result.status === 'SUCCESS' ? 'Slate refresh completed' : 'Slate refresh returned partial data',
+    detail: detailParts.join(' | '),
+  };
+}
+
+export default function NewDashboard({ data: initialData }: { data: SnapshotBoardData }) {
+  const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>('precision');
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const helpRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
+
   const rowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
   const precision = useMemo(
     () =>
@@ -281,7 +332,7 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
         .sort((a, b) => b.score - a.score || (b.conf ?? 0) - (a.conf ?? 0) || a.row.playerName.localeCompare(b.row.playerName))[0] ?? null
     );
   }, [allViews, precision]);
-  const researchRows = useMemo(() => {
+  const slatePlayers = useMemo(() => {
     const ids = new Set<string>();
     const out: SnapshotRow[] = [];
     precision.forEach(({ row }) => {
@@ -294,16 +345,23 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
       .slice()
       .sort((a, b) => b.dataCompleteness.score - a.dataCompleteness.score || a.playerName.localeCompare(b.playerName))
       .forEach((row) => {
-        if (out.length < 6 && !ids.has(row.playerId)) {
+        if (!ids.has(row.playerId)) {
           ids.add(row.playerId);
           out.push(row);
         }
       });
-    return out.slice(0, 6);
+    return out;
   }, [data.rows, precision]);
+  const researchRows = useMemo(() => slatePlayers.slice(0, 6), [slatePlayers]);
+  const searchResults = useMemo(() => {
+    if (!deferredSearchQuery) return [];
+    return slatePlayers.filter((row) => playerSearchKey(row).includes(deferredSearchQuery));
+  }, [deferredSearchQuery, slatePlayers]);
+  const researchListRows = deferredSearchQuery ? searchResults : researchRows;
+  const searchLeadRow = deferredSearchQuery ? searchResults[0] ?? null : null;
   const researchRow = useMemo(
-    () => (pickedPlayer ? rowById.get(pickedPlayer) ?? null : featured?.row ?? researchRows[0] ?? null),
-    [featured?.row, pickedPlayer, researchRows, rowById],
+    () => (pickedPlayer ? rowById.get(pickedPlayer) ?? null : searchLeadRow ?? featured?.row ?? researchRows[0] ?? null),
+    [featured?.row, pickedPlayer, researchRows, rowById, searchLeadRow],
   );
   const researchViews = useMemo(
     () => (researchRow ? MARKETS.map((market) => viewFor(researchRow, market)).sort((a, b) => b.score - a.score || a.market.localeCompare(b.market)) : []),
@@ -342,9 +400,73 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
       : 'Filled to target'
     : 'Awaiting card target';
   const openHelp = () => helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const openResearchSearch = () => {
+    setTab('research');
+    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
   const setResearch = (playerId: string) => {
     setPickedPlayer(playerId);
     setTab('research');
+  };
+
+  useEffect(() => {
+    if (pickedPlayer && !rowById.has(pickedPlayer)) {
+      setPickedPlayer(null);
+    }
+  }, [pickedPlayer, rowById]);
+
+  const refreshSlate = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshNotice({
+      kind: 'DERIVED',
+      title: 'Refreshing slate',
+      detail: 'Running the latest delta refresh and rebuilding the current board snapshot.',
+    });
+
+    let latestNotice: RefreshNotice | null = null;
+    try {
+      const refreshResponse = await fetch('/api/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'DELTA', source: 'manual' }),
+      });
+      const refreshPayload = (await refreshResponse.json().catch(() => null)) as RefreshResponse | null;
+      if (!refreshResponse.ok || refreshPayload == null || !refreshPayload.ok) {
+        throw new Error(refreshPayload && !refreshPayload.ok ? refreshPayload.error : 'Manual slate refresh failed.');
+      }
+
+      const boardResponse = await fetch(`/api/snapshot/board?date=${encodeURIComponent(data.dateEt)}&refresh=1&rebuild=1&t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      const boardPayload = (await boardResponse.json().catch(() => null)) as BoardResponse | null;
+      if (!boardResponse.ok || boardPayload == null || !boardPayload.ok) {
+        throw new Error(boardPayload && !boardPayload.ok ? boardPayload.error : 'Latest board snapshot failed to load.');
+      }
+
+      startTransition(() => {
+        setData(boardPayload.result);
+      });
+      latestNotice = buildRefreshNotice(refreshPayload.result, boardPayload.result.lastUpdatedAt);
+      setRefreshNotice(latestNotice);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Manual slate refresh failed.';
+      setRefreshNotice(
+        latestNotice
+          ? {
+              kind: 'PLACEHOLDER',
+              title: `${latestNotice.title}, but board reload failed`,
+              detail: message,
+            }
+          : {
+              kind: 'PLACEHOLDER',
+              title: 'Refresh failed',
+              detail: message,
+            },
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -376,8 +498,20 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                 ))}
               </nav>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge label="LIVE" kind="LIVE" />
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={refreshSlate}
+                disabled={isRefreshing}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold ${
+                  isRefreshing
+                    ? 'cursor-wait border-amber-400/20 bg-amber-400/10 text-amber-100'
+                    : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15'
+                }`}
+              >
+                {isRefreshing ? 'Refreshing slate...' : 'Refresh slate'}
+              </button>
+              <Badge label={isRefreshing ? 'Refreshing' : 'LIVE'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
                 <div className="text-sm font-medium text-white">{data.dateEt}</div>
@@ -398,8 +532,8 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                 The live NBA prop board that shows the best edges first.
               </h1>
               <p className="mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
-                Start with the featured pick and precision card, then move into player research, scout signals, and
-                current line context without leaving the slate.
+                Start with the featured pick, search any player on the current slate, and refresh the board when new
+                lineups or prices land without leaving the dashboard.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
@@ -411,10 +545,10 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTab('research')}
+                  onClick={openResearchSearch}
                   className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/10"
                 >
-                  Open Research Center
+                  Search Slate Players
                 </button>
                 <button
                   type="button"
@@ -424,6 +558,23 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                   Methodology / Support
                 </button>
               </div>
+              {refreshNotice ? (
+                <div
+                  className={`mt-4 rounded-2xl border p-4 ${
+                    refreshNotice.kind === 'LIVE'
+                      ? 'border-emerald-400/20 bg-emerald-400/8'
+                      : refreshNotice.kind === 'DERIVED'
+                        ? 'border-amber-400/20 bg-amber-400/8'
+                        : 'border-white/10 bg-white/5'
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge label={refreshNotice.kind} kind={refreshNotice.kind} />
+                    <div className="text-sm font-semibold text-white">{refreshNotice.title}</div>
+                  </div>
+                  <div className="mt-2 text-sm text-zinc-300">{refreshNotice.detail}</div>
+                </div>
+              ) : null}
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
                 <span className="rounded-full border border-emerald-400/15 bg-emerald-400/8 px-3 py-1.5">Live values come from SnapshotBoardData</span>
                 <span className="rounded-full border border-amber-400/15 bg-amber-400/8 px-3 py-1.5">Derived values are computed on the board</span>
@@ -641,42 +792,93 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
           {tab === 'research' ? (
             <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.55fr]">
               <div className="space-y-3">
-                {researchRows.map((row) => {
-                  const v = viewFor(row, 'PTS');
-                  const picked = row.playerId === researchRow?.playerId;
-                  return (
-                    <button
-                      key={row.playerId}
-                      type="button"
-                      onClick={() => setPickedPlayer(row.playerId)}
-                      className={`w-full rounded-[24px] border p-4 text-left ${
-                        picked
-                          ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
-                          : 'border-white/10 bg-zinc-900/75'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex flex-wrap gap-2">
-                            {picked ? <Badge label="Selected" kind="DERIVED" /> : <Pill label="Player" />}
-                            <Pill label={v.label} tone="amber" />
+                <div className="rounded-[24px] border border-white/10 bg-zinc-900/75 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Slate player search</div>
+                      <div className="mt-1 text-sm text-zinc-300">
+                        Search the current slate only, then open live and derived player stats in the dossier.
+                      </div>
+                    </div>
+                    <Badge
+                      label={
+                        deferredSearchQuery
+                          ? `${n(searchResults.length, 0)} match${searchResults.length === 1 ? '' : 'es'}`
+                          : `${n(slatePlayers.length, 0)} players`
+                      }
+                      kind={deferredSearchQuery ? (searchResults.length ? 'LIVE' : 'PLACEHOLDER') : 'LIVE'}
+                    />
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <input
+                      ref={searchInputRef}
+                      type="search"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                      placeholder="Search player, team, opponent, or matchup"
+                      className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-cyan-400/30 focus:bg-black/35"
+                    />
+                    {searchQuery ? (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-200 hover:border-white/20 hover:bg-white/10"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-3 text-xs text-zinc-400">
+                    {deferredSearchQuery
+                      ? searchResults.length
+                        ? 'Showing matching players from the active slate.'
+                        : 'No player on the current slate matched that search.'
+                      : 'Featured and highest-completeness players stay pinned below until you search.'}
+                  </div>
+                </div>
+                {researchListRows.length ? (
+                  researchListRows.map((row) => {
+                    const v = viewFor(row, 'PTS');
+                    const picked = row.playerId === researchRow?.playerId;
+                    return (
+                      <button
+                        key={row.playerId}
+                        type="button"
+                        onClick={() => setPickedPlayer(row.playerId)}
+                        className={`w-full rounded-[24px] border p-4 text-left ${
+                          picked
+                            ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
+                            : 'border-white/10 bg-zinc-900/75'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="flex flex-wrap gap-2">
+                              {picked ? <Badge label="Selected" kind="DERIVED" /> : <Pill label="Player" />}
+                              <Pill label={v.label} tone="amber" />
+                            </div>
+                            <div className="mt-3 text-xl font-semibold text-white">{row.playerName}</div>
+                            <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
                           </div>
-                          <div className="mt-3 text-xl font-semibold text-white">{row.playerName}</div>
-                          <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
+                          <div className="text-right">
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Completeness</div>
+                            <div className="mt-2 text-xl font-semibold text-white">{pct(row.dataCompleteness.score, 0)}</div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Completeness</div>
-                          <div className="mt-2 text-xl font-semibold text-white">{pct(row.dataCompleteness.score, 0)}</div>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Pill label={`${row.teamCode}${row.position ? ` ${row.position}` : ''}`} tone="cyan" />
+                          <Badge label={`L10 PTS ${n(row.last10Average.PTS, 1)}`} kind={row.last10Average.PTS == null ? 'PLACEHOLDER' : 'LIVE'} />
+                          <Badge label={`Trend ${signed(row.trendVsSeason.PTS, 1)}`} kind="DERIVED" />
+                          <Badge label={`Proj min ${n(row.playerContext.projectedMinutes, 1)}`} kind={row.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} />
                         </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Pill label={`${row.teamCode}${row.position ? ` ${row.position}` : ''}`} tone="cyan" />
-                        <Badge label={`Trend ${signed(row.trendVsSeason.PTS, 1)}`} kind="DERIVED" />
-                        <Badge label={`Proj min ${n(row.playerContext.projectedMinutes, 1)}`} kind={row.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} />
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-[24px] border border-dashed border-white/15 bg-black/25 p-4 text-sm text-zinc-400">
+                    Search results will populate here for players on the active slate.
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
