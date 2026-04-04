@@ -14,6 +14,8 @@ Private NBA betting intelligence dashboard with:
   redirect to `/`.
 - Legacy `SnapshotDashboard` code has been removed. The live board now runs
   through `app/_snapshot-page.tsx` and `components/snapshot/NewDashboard.tsx`.
+- Release marker: `snapshot-root-canonical-2026-04-04`
+- Operational follow-up lives in `SNAPSHOT-ROOT-CANONICAL-OPS.md`.
 
 ## Stack
 - Next.js 14 App Router
