@@ -143,6 +143,28 @@ function Stat({
   );
 }
 
+function MatchupsCard({ matchups }: { matchups: SnapshotBoardData['matchups'] }) {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
+      {matchups.length ? (
+        <div className="mt-4 space-y-3">
+          {matchups.slice(0, 4).map((m) => (
+            <div key={m.key} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+              <div className="text-sm font-semibold text-white">{m.label}</div>
+              <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/25 px-4 py-4 text-sm text-zinc-400">
+          Matchup windows will appear here as soon as the slate loads.
+        </div>
+      )}
+    </div>
+  );
+}
+
 type View = {
   row: SnapshotRow;
   market: SnapshotMarket;
@@ -311,6 +333,14 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
   const gap = Math.max(target - selected, 0);
   const hasBoardRows = data.rows.length > 0;
   const featuredUpdatedAt = featured?.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
+  const hasPrecisionTarget = target > 0;
+  const precisionSlotsValue = hasPrecisionTarget ? `${n(selected, 0)} / ${n(target, 0)}` : '-';
+  const precisionSlotsKind: Kind = hasPrecisionTarget ? 'DERIVED' : 'PLACEHOLDER';
+  const precisionSlotsNote = hasPrecisionTarget
+    ? gap > 0
+      ? `${gap} slot${gap === 1 ? '' : 's'} open`
+      : 'Filled to target'
+    : 'Awaiting card target';
   const openHelp = () => helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const setResearch = (playerId: string) => {
     setPickedPlayer(playerId);
@@ -499,9 +529,9 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                 <Stat
                   dense
                   label="Precision slots"
-                  value={`${n(selected, 0)} / ${n(target, 0)}`}
-                  kind={target > 0 ? 'DERIVED' : 'PLACEHOLDER'}
-                  note={gap > 0 ? `${gap} slot${gap === 1 ? '' : 's'} open` : 'Filled to target'}
+                  value={precisionSlotsValue}
+                  kind={precisionSlotsKind}
+                  note={precisionSlotsNote}
                 />
                 <Stat dense label="Scout items" value={n(scoutViews.length, 0)} kind="DERIVED" note="Top current signal rows" />
                 <Stat dense label="Tracking rows" value={n(trackViews.length, 0)} kind="DERIVED" note="Current line vs fair" />
@@ -604,17 +634,7 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                   {gap > 0 ? <div className="mt-3 rounded-2xl border border-amber-400/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/90">Precision card is under target by {gap} slot{gap === 1 ? '' : 's'}.</div> : null}
                 </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
-                  <div className="mt-4 space-y-3">
-                    {data.matchups.slice(0, 4).map((m) => (
-                      <div key={m.key} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                        <div className="text-sm font-semibold text-white">{m.label}</div>
-                        <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <MatchupsCard matchups={data.matchups} />
               </div>
             </section>
           ) : null}
@@ -868,17 +888,7 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                     present in SnapshotBoardData.
                   </p>
                 </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
-                  <div className="mt-4 space-y-3">
-                    {data.matchups.slice(0, 4).map((m) => (
-                      <div key={m.key} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                        <div className="text-sm font-semibold text-white">{m.label}</div>
-                        <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <MatchupsCard matchups={data.matchups} />
               </div>
             </section>
           ) : null}
@@ -983,17 +993,7 @@ export default function NewDashboard({ data }: { data: SnapshotBoardData }) {
                     movement history.
                   </p>
                 </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
-                  <div className="mt-4 space-y-3">
-                    {data.matchups.slice(0, 4).map((m) => (
-                      <div key={m.key} className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
-                        <div className="text-sm font-semibold text-white">{m.label}</div>
-                        <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <MatchupsCard matchups={data.matchups} />
               </div>
             </section>
           ) : null}
