@@ -599,6 +599,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
     return spots;
   }, [selectedMatchupViews]);
+  const selectedMatchupVisibleMarkets = useMemo(
+    () =>
+      Array.from(new Set(matchupBestSpots.map((spot) => spot.market)))
+        .slice(0, 4)
+        .map((market) => MARKET_LABELS[market]),
+    [matchupBestSpots],
+  );
   const precisionMarketMix = useMemo(() => {
     const counts = new Map<SnapshotMarket, number>();
     precision.forEach(({ view }) => {
@@ -1137,6 +1144,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <Pill label={selectedMatchup.label} tone="cyan" />
                         <Pill label={selectedMatchup.gameTimeEt} />
                         {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
+                        {selectedMatchupVisibleMarkets.map((marketLabel) => (
+                          <Badge key={`briefing-market:${marketLabel}`} label={marketLabel} kind="LIVE" />
+                        ))}
                       </div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Board rows in this game" />
@@ -1386,6 +1396,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <div className="flex flex-wrap gap-2">
                             <Badge label="Selected matchup" kind="LIVE" />
                             <Pill label={selectedMatchup.gameTimeEt} />
+                            {selectedMatchupVisibleMarkets.map((marketLabel) => (
+                              <Badge key={`lens-market:${marketLabel}`} label={marketLabel} kind="LIVE" />
+                            ))}
                           </div>
                           <div className="mt-4 text-2xl font-semibold tracking-tight text-white">{selectedMatchup.label}</div>
                           <div className="mt-1 text-sm text-zinc-400">
@@ -1523,6 +1536,20 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                   Conf {spot.conf == null ? '-' : pct(spot.conf, 1)}
                                 </span>
                                 <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{spot.note}</span>
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-300">
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  L10 {spot.label} {n(spot.row.last10Average[spot.market], 1)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Season {n(spot.row.seasonAverage[spot.market], 1)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Trend {signed(spot.row.trendVsSeason[spot.market], 1)}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  Opp {signed(spot.row.opponentAllowanceDelta[spot.market], 1)}
+                                </span>
                               </div>
                             </button>
                           ))}
