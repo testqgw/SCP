@@ -287,6 +287,17 @@ type View = {
   precision: SnapshotDashboardPrecisionSignal | null;
 };
 
+type ResearchRecentRead = {
+  view: View;
+  recentAverage: number | null;
+  seasonAverage: number | null;
+  trend: number | null;
+  opponentDelta: number | null;
+  recentFive: string;
+  note: string;
+  kind: Kind;
+};
+
 type BoardResponse = { ok: true; result: SnapshotBoardViewData } | { ok: false; error: string };
 
 type RefreshResponse =
@@ -314,6 +325,23 @@ type RefreshNotice = {
 
 function isActionableView(v: View) {
   return v.live != null || v.precision?.qualified || v.conf != null || v.edge != null || v.reasons.length > 0;
+}
+
+function compareViews(a: View, b: View) {
+  return (
+    b.score - a.score ||
+    (b.conf ?? 0) - (a.conf ?? 0) ||
+    a.market.localeCompare(b.market) ||
+    a.row.playerName.localeCompare(b.row.playerName)
+  );
+}
+
+function rankViews(views: View[]) {
+  return views.slice().sort(compareViews);
+}
+
+function leadViewFromViews(views: View[]) {
+  return views.find((view) => isActionableView(view)) ?? views[0] ?? null;
 }
 
 function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
@@ -378,6 +406,32 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
 
 function lineList(values: number[]) {
   return values.length ? values.map((v) => n(v, 0)).join('  | ') : '-';
+}
+
+function trendRead(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) return 'Recent-versus-season trend is not available yet.';
+  if (value >= 1.5) return `Running clearly above season baseline at ${signed(value, 1)}.`;
+  if (value <= -1.5) return `Running clearly below season baseline at ${signed(value, 1)}.`;
+  if (value > 0.4) return `Running modestly above season baseline at ${signed(value, 1)}.`;
+  if (value < -0.4) return `Running modestly below season baseline at ${signed(value, 1)}.`;
+  return 'Tracking close to season baseline right now.';
+}
+
+function marketRead(view: View) {
+  if (view.live != null && view.edge != null) {
+    return `${view.side} ${signed(view.edge)} vs live`;
+  }
+  if (view.proj != null && view.fair != null) {
+    return `${view.side} ${signed(view.proj - view.fair)} vs fair`;
+  }
+  if (view.live != null) {
+    return `Live ${n(view.live)}`;
+  }
+  return 'Waiting for pricing context';
+}
+
+function formatRecord(wins: number, losses: number) {
+  return `${wins}-${losses}`;
 }
 
 function playerSearchKey(row: SnapshotDashboardRow) {
@@ -480,10 +534,26 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           : featured?.row ?? researchRows[0] ?? null,
     [featured?.row, hasActiveSearch, pickedPlayer, researchRows, rowById, searchLeadRow, searchPickedRow],
   );
+  const researchListCards = useMemo(
+    () =>
+      researchListRows.map((row) => {
+        const views = rankViews(MARKETS.map((market) => viewFor(row, market)));
+        return {
+          row,
+          leadView: leadViewFromViews(views),
+        };
+      }),
+    [researchListRows],
+  );
   const researchViews = useMemo(
-    () => (researchRow ? MARKETS.map((market) => viewFor(researchRow, market)).sort((a, b) => b.score - a.score || a.market.localeCompare(b.market)) : []),
+    () => (researchRow ? rankViews(MARKETS.map((market) => viewFor(researchRow, market))) : []),
     [researchRow],
   );
+  const researchLeadView = useMemo(() => leadViewFromViews(researchViews), [researchViews]);
+  const researchInterestingViews = useMemo(() => {
+    const actionable = researchViews.filter((view) => isActionableView(view));
+    return (actionable.length ? actionable : researchViews).slice(0, 3);
+  }, [researchViews]);
   const researchTopPrecision = useMemo(
     () => (researchRow ? precision.find((item) => item.row.playerId === researchRow.playerId) ?? null : null),
     [precision, researchRow],
@@ -515,9 +585,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const matchupLabelByKey = useMemo(() => new Map(data.matchups.map((m) => [m.key, m.label] as const)), [data.matchups]);
   const selectedMatchupViews = useMemo(
     () =>
-      allViews
-        .filter((v) => v.row.matchupKey === selectedMatchupKey && isActionableView(v))
-        .sort((a, b) => b.score - a.score || (b.conf ?? 0) - (a.conf ?? 0) || a.row.playerName.localeCompare(b.row.playerName)),
+      rankViews(allViews.filter((v) => v.row.matchupKey === selectedMatchupKey && isActionableView(v))),
     [allViews, selectedMatchupKey],
   );
   const matchupBestSpots = useMemo(() => {
@@ -572,6 +640,191 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const featuredMarketTrend = featured ? featured.row.trendVsSeason[featured.market] : null;
   const featuredMarketOpponentDelta = featured ? featured.row.opponentAllowanceDelta[featured.market] : null;
   const featuredMarketRecentFive = featured ? lineList(featured.row.last5[featured.market]) : '-';
+  const researchLeadTrend = researchRow && researchLeadView ? researchRow.trendVsSeason[researchLeadView.market] : null;
+  const researchLeadOpponentDelta = researchRow && researchLeadView ? researchRow.opponentAllowanceDelta[researchLeadView.market] : null;
+  const researchLeadRecentFive = researchRow && researchLeadView ? lineList(researchRow.last5[researchLeadView.market]) : '-';
+  const researchMinutesBandWidth =
+    researchRow?.playerContext.projectedMinutesFloor != null && researchRow.playerContext.projectedMinutesCeiling != null
+      ? Number((researchRow.playerContext.projectedMinutesCeiling - researchRow.playerContext.projectedMinutesFloor).toFixed(1))
+      : null;
+  const researchTeamMarketLast10 = teamMatchup && researchRow && researchLeadView
+    ? teamMatchup.awayTeam === researchRow.teamCode
+      ? teamMatchup.awayLast10For[researchLeadView.market]
+      : teamMatchup.homeLast10For[researchLeadView.market]
+    : null;
+  const researchOpponentMarketAllowedLast10 = teamMatchup && researchRow && researchLeadView
+    ? teamMatchup.awayTeam === researchRow.teamCode
+      ? teamMatchup.homeLast10Allowed[researchLeadView.market]
+      : teamMatchup.awayLast10Allowed[researchLeadView.market]
+    : null;
+  const researchSeasonRecord = teamMatchup && researchRow
+    ? teamMatchup.awayTeam === researchRow.teamCode
+      ? formatRecord(teamMatchup.awaySeasonRecord.wins, teamMatchup.awaySeasonRecord.losses)
+      : formatRecord(teamMatchup.homeSeasonRecord.wins, teamMatchup.homeSeasonRecord.losses)
+    : null;
+  const researchLast10Record = teamMatchup && researchRow
+    ? teamMatchup.awayTeam === researchRow.teamCode
+      ? formatRecord(teamMatchup.awayLast10Record.wins, teamMatchup.awayLast10Record.losses)
+      : formatRecord(teamMatchup.homeLast10Record.wins, teamMatchup.homeLast10Record.losses)
+    : null;
+  const researchWhyInteresting = useMemo(() => {
+    if (!researchRow || !researchLeadView) {
+      return 'Select a player and the board will explain why that slate row is worth a deeper look.';
+    }
+
+    const projectionSentence =
+      researchLeadView.live != null && researchLeadView.edge != null
+        ? `${researchLeadView.label} projects ${signed(researchLeadView.edge)} versus the live ${n(researchLeadView.live)} line, with the board fair line at ${n(researchLeadView.fair)} and projection at ${n(researchLeadView.proj)}.`
+        : researchLeadView.proj != null && researchLeadView.fair != null
+          ? `No live consensus ${researchLeadView.label} line is in the payload, so the board is comparing projection ${n(researchLeadView.proj)} to the fair line at ${n(researchLeadView.fair)}.`
+          : `${researchLeadView.label} currently leads this dossier, but the board does not yet have a clean projection-versus-line gap to lean on.`;
+
+    const trendSentence =
+      researchLeadTrend == null
+        ? `Recent-versus-season form for ${researchLeadView.label} is still incomplete.`
+        : `${researchLeadView.label} form is ${signed(researchLeadTrend, 1)} versus season baseline across the current board sample.`;
+
+    const matchupSentence =
+      researchLeadOpponentDelta == null
+        ? 'Opponent-specific allowance context is not available for that market yet.'
+        : `Opponent context is ${signed(researchLeadOpponentDelta, 1)} for ${researchLeadView.label}, which helps frame the current lean without guaranteeing it.`;
+
+    return `${researchRow.playerName} is interesting because ${projectionSentence} ${trendSentence} ${matchupSentence}`;
+  }, [researchLeadOpponentDelta, researchLeadTrend, researchLeadView, researchRow]);
+  const researchModelVsLineExplanation = useMemo(() => {
+    if (!researchLeadView) {
+      return 'No lead market is available yet, so the dossier cannot compare the model to the board.';
+    }
+
+    if (researchLeadView.live != null && researchLeadView.proj != null) {
+      const fairGap =
+        researchLeadView.fair != null ? Number((researchLeadView.proj - researchLeadView.fair).toFixed(1)) : null;
+      return `${researchLeadView.label} is the lead angle because projection ${n(researchLeadView.proj)} sits ${signed(researchLeadView.edge, 1)} versus the live market at ${n(researchLeadView.live)}${fairGap == null ? '.' : ` and ${signed(fairGap, 1)} versus the board fair line.`}`;
+    }
+
+    if (researchLeadView.proj != null && researchLeadView.fair != null) {
+      return `${researchLeadView.label} does not have a live consensus line right now, so the board is leaning on projection ${n(researchLeadView.proj)} versus fair line ${n(researchLeadView.fair)} for the current read.`;
+    }
+
+    return `${researchLeadView.label} is still the lead market in this dossier, but the payload is missing enough pricing context to state a cleaner model-versus-line gap.`;
+  }, [researchLeadView]);
+  const researchSupportDrivers = useMemo(() => {
+    if (!researchRow || !researchLeadView) return [] as string[];
+
+    const drivers: string[] = [];
+    const precisionReason = researchTopPrecision?.entry.precisionSignal?.reasons?.[0];
+    if (researchLeadView.live != null && researchLeadView.edge != null) {
+      drivers.push(`${researchLeadView.label} is ${signed(researchLeadView.edge, 1)} away from the live board price.`);
+    }
+    if (researchLeadView.precision?.qualified) {
+      drivers.push(
+        `${researchLeadView.label} is precision-qualified${researchLeadView.precision.selectorFamily ? ` through ${researchLeadView.precision.selectorFamily}` : ''}.`,
+      );
+    }
+    if (precisionReason) {
+      drivers.push(precisionReason);
+    }
+    if (researchLeadView.books != null && researchLeadView.books >= 4) {
+      drivers.push(`${n(researchLeadView.books, 0)} books are contributing to the live consensus line.`);
+    }
+    if (researchRow.playerContext.projectedMinutes != null) {
+      drivers.push(
+        `${n(researchRow.playerContext.projectedMinutes, 1)} projected minutes keep the role relevant to the slate read.`,
+      );
+    }
+    if (researchLeadTrend != null && Math.abs(researchLeadTrend) >= 1) {
+      drivers.push(`${researchLeadView.label} recent form is ${signed(researchLeadTrend, 1)} versus season baseline.`);
+    }
+    if (researchLeadOpponentDelta != null && Math.abs(researchLeadOpponentDelta) >= 1) {
+      drivers.push(`Opponent context is ${signed(researchLeadOpponentDelta, 1)} for ${researchLeadView.label}.`);
+    }
+
+    return drivers.slice(0, 4);
+  }, [researchLeadOpponentDelta, researchLeadTrend, researchLeadView, researchRow, researchTopPrecision]);
+  const researchCautionDrivers = useMemo(() => {
+    if (!researchRow || !researchLeadView) return [] as string[];
+
+    const cautions: string[] = [];
+    if (researchLeadView.live == null) {
+      cautions.push(`No live consensus ${researchLeadView.label} line is in the payload yet.`);
+    }
+    if (researchLeadView.books != null && researchLeadView.books > 0 && researchLeadView.books < 3) {
+      cautions.push(`Live market depth is thin at ${n(researchLeadView.books, 0)} books.`);
+    }
+    if (!researchLeadView.precision?.qualified) {
+      cautions.push(`${researchLeadView.label} is not precision-qualified right now, so this is a board read rather than a promoted card spot.`);
+    }
+    if (researchRow.dataCompleteness.score < 70) {
+      cautions.push(`Data completeness is only ${pct(researchRow.dataCompleteness.score, 0)} (${researchRow.dataCompleteness.tier}).`);
+    }
+    if (researchRow.playerContext.lineupStatus == null) {
+      cautions.push('Lineup status is not in the payload yet.');
+    }
+    if (researchMinutesBandWidth != null && researchMinutesBandWidth >= 6) {
+      cautions.push(
+        `Minutes range is wide at ${n(researchRow.playerContext.projectedMinutesFloor, 1)} to ${n(researchRow.playerContext.projectedMinutesCeiling, 1)}.`,
+      );
+    }
+    if (researchRow.playerContext.minutesVolatility != null && researchRow.playerContext.minutesVolatility >= 4) {
+      cautions.push(`Minutes volatility is elevated at ${n(researchRow.playerContext.minutesVolatility, 1)}.`);
+    }
+
+    return cautions.slice(0, 4);
+  }, [researchLeadView, researchMinutesBandWidth, researchRow]);
+  const researchRecentReads = useMemo<ResearchRecentRead[]>(() => {
+    if (!researchRow) return [];
+
+    return researchInterestingViews.map<ResearchRecentRead>((view) => {
+      const recentAverage = researchRow.last10Average[view.market];
+      const seasonAverage = researchRow.seasonAverage[view.market];
+      const trend = researchRow.trendVsSeason[view.market];
+      const opponentDelta = researchRow.opponentAllowanceDelta[view.market];
+      return {
+        view,
+        recentAverage,
+        seasonAverage,
+        trend,
+        opponentDelta,
+        recentFive: lineList(researchRow.last5[view.market]),
+        note: trendRead(trend),
+        kind:
+          recentAverage == null || seasonAverage == null
+            ? ('PLACEHOLDER' as Kind)
+            : Math.abs(trend ?? 0) >= 0.5
+              ? ('DERIVED' as Kind)
+              : ('LIVE' as Kind),
+      };
+    });
+  }, [researchInterestingViews, researchRow]);
+  const researchMatchupRead = useMemo(() => {
+    if (!researchRow || !researchLeadView) {
+      return 'Select a player to see matchup interpretation.';
+    }
+
+    const offenseSentence =
+      researchTeamMarketLast10 == null
+        ? `${researchRow.teamCode} recent ${researchLeadView.label} offense is not available in the team summary yet.`
+        : `${researchRow.teamCode} has produced ${n(researchTeamMarketLast10, 1)} ${researchLeadView.label} on its last-10 team sample.`;
+    const defenseSentence =
+      researchOpponentMarketAllowedLast10 == null
+        ? `${researchRow.opponentCode} defensive allowance for ${researchLeadView.label} is not available yet.`
+        : `${researchRow.opponentCode} has allowed ${n(researchOpponentMarketAllowedLast10, 1)} ${researchLeadView.label} on its last-10 defensive sample.`;
+    const deltaSentence =
+      researchLeadOpponentDelta == null
+        ? `The board does not carry an opponent delta for ${researchLeadView.label} here.`
+        : `Board opponent delta is ${signed(researchLeadOpponentDelta, 1)} for ${researchLeadView.label}.`;
+    const defenderSentence = researchRow.playerContext.primaryDefender?.matchupReason
+      ? `Primary defender note: ${researchRow.playerContext.primaryDefender.matchupReason}`
+      : 'No primary defender note is available in the current payload.';
+
+    return `${offenseSentence} ${defenseSentence} ${deltaSentence} ${defenderSentence}`;
+  }, [
+    researchLeadOpponentDelta,
+    researchLeadView,
+    researchOpponentMarketAllowedLast10,
+    researchRow,
+    researchTeamMarketLast10,
+  ]);
   const hasPrecisionTarget = target > 0;
   const precisionSlotsValue = hasPrecisionTarget ? `${n(selected, 0)} / ${n(target, 0)}` : '-';
   const precisionSlotsKind: Kind = hasPrecisionTarget ? 'DERIVED' : 'PLACEHOLDER';
@@ -1431,9 +1684,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       : 'Featured and highest-completeness players stay pinned below until you search.'}
                   </div>
                 </div>
-                {researchListRows.length ? (
-                  researchListRows.map((row) => {
-                    const v = viewFor(row, 'PTS');
+                {researchListCards.length ? (
+                  researchListCards.map(({ row, leadView }) => {
                     const picked = row.playerId === researchRow?.playerId;
                     return (
                       <button
@@ -1450,7 +1702,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <div>
                             <div className="flex flex-wrap gap-2">
                               {picked ? <Badge label="Selected" kind="DERIVED" /> : <Pill label="Player" />}
-                              <Pill label={v.label} tone="amber" />
+                              <Pill label={leadView?.label ?? 'No lead market'} tone="amber" />
+                              {leadView ? <Badge label={leadView.liveKind} kind={leadView.liveKind} /> : null}
                             </div>
                             <div className="mt-3 text-xl font-semibold text-white">{row.playerName}</div>
                             <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
@@ -1462,8 +1715,24 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         </div>
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Pill label={`${row.teamCode}${row.position ? ` ${row.position}` : ''}`} tone="cyan" />
-                          <Badge label={`L10 PTS ${n(row.last10Average.PTS, 1)}`} kind={row.last10Average.PTS == null ? 'PLACEHOLDER' : 'LIVE'} />
-                          <Badge label={`Trend ${signed(row.trendVsSeason.PTS, 1)}`} kind="DERIVED" />
+                          <Badge
+                            label={
+                              leadView
+                                ? `${leadView.label} ${leadView.edge == null ? n(leadView.proj, 1) : signed(leadView.edge, 1)}`
+                                : 'No lead read'
+                            }
+                            kind={leadView ? (leadView.edge != null ? leadView.edgeKind : leadView.projKind) : 'PLACEHOLDER'}
+                          />
+                          <Badge
+                            label={
+                              leadView
+                                ? leadView.conf == null
+                                  ? 'Conf -'
+                                  : `Conf ${pct(leadView.conf, 0)}`
+                                : 'Conf -'
+                            }
+                            kind={leadView ? leadView.confKind : 'PLACEHOLDER'}
+                          />
                           <Badge label={`Proj min ${n(row.playerContext.projectedMinutes, 1)}`} kind={row.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} />
                         </div>
                       </button>
@@ -1493,24 +1762,66 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <div className="flex flex-wrap gap-2">
                             <Badge label="Research dossier" kind="LIVE" />
                             {researchTopPrecision?.entry.rank ? <Badge label={`Precision ${researchTopPrecision.entry.rank}`} kind="DERIVED" /> : null}
+                            {researchLeadView ? <Pill label={`Lead ${researchLeadView.label}`} tone="amber" /> : null}
                           </div>
                           <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white">{researchRow.playerName}</h3>
                           <p className="mt-1 text-sm text-zinc-400">{matchup(researchRow)}</p>
+                          <p className="mt-4 max-w-4xl text-sm leading-7 text-zinc-300">{researchWhyInteresting}</p>
                         </div>
-                        <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[researchViews[0]?.side ?? 'NEUTRAL']}`}>
+                        <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[researchLeadView?.side ?? 'NEUTRAL']}`}>
                           <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Best market</div>
                           <div className="mt-2 flex justify-end">
-                            {researchViews[0] ? <Side side={researchViews[0].side} kind={researchViews[0].sideKind} /> : <Badge label="NEUTRAL" kind="PLACEHOLDER" />}
+                            {researchLeadView ? <Side side={researchLeadView.side} kind={researchLeadView.sideKind} /> : <Badge label="NEUTRAL" kind="PLACEHOLDER" />}
                           </div>
-                          <div className="mt-1 text-xs opacity-80">{researchViews[0]?.note ?? 'No market context available'}</div>
+                          <div className="mt-1 text-xs opacity-80">{researchLeadView?.note ?? 'No market context available'}</div>
                         </div>
                       </div>
-                      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
                         <Stat dense label="Projected minutes" value={n(researchRow.playerContext.projectedMinutes, 1)} kind={researchRow.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} note={`Floor ${n(researchRow.playerContext.projectedMinutesFloor, 1)} / ceiling ${n(researchRow.playerContext.projectedMinutesCeiling, 1)}`} />
                         <Stat dense label="Lineup status" value={researchRow.playerContext.lineupStatus ?? '-'} kind={researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'} note={researchRow.playerContext.projectedStarter} />
                         <Stat dense label="Rotation rank" value={researchRow.playerContext.rotationRank == null ? '-' : n(researchRow.playerContext.rotationRank, 0)} kind={researchRow.playerContext.rotationRank == null ? 'PLACEHOLDER' : 'LIVE'} note="Depth chart position" />
                         <Stat dense label="Completeness" value={pct(researchRow.dataCompleteness.score, 0)} kind="LIVE" note={researchRow.dataCompleteness.tier} />
+                        <Stat dense label="Lead edge" value={researchLeadView?.edge == null ? '-' : signed(researchLeadView.edge)} kind={researchLeadView?.edgeKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} vs current basis` : 'Lead market not available'} />
+                        <Stat dense label="Lead confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 1)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'} />
                         <Stat dense label="Primary defender" value={researchRow.playerContext.primaryDefender?.playerName ?? '-'} kind={researchRow.playerContext.primaryDefender ? 'LIVE' : 'PLACEHOLDER'} note={researchRow.playerContext.primaryDefender?.matchupReason ?? 'No defender context'} />
+                      </div>
+                      <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                        <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Model vs line</div>
+                              <div className="mt-1 text-sm font-semibold text-white">How the board is framing the lead market</div>
+                            </div>
+                            <Badge label={researchLeadView?.live != null ? 'LIVE' : researchLeadView ? 'DERIVED' : 'PLACEHOLDER'} kind={researchLeadView?.live != null ? 'LIVE' : researchLeadView ? 'DERIVED' : 'PLACEHOLDER'} />
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-zinc-300">{researchModelVsLineExplanation}</p>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <Stat dense label="Live line" value={researchLeadView?.live == null ? '-' : n(researchLeadView.live)} kind={researchLeadView?.liveKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market line` : 'Lead market unavailable'} />
+                            <Stat dense label="Fair line" value={researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)} kind={researchLeadView?.fairKind ?? 'PLACEHOLDER'} note="Board fair line" />
+                            <Stat dense label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection" />
+                            <Stat dense label="Recent 5" value={researchLeadRecentFive} kind={researchLeadView ? (researchRow.last5[researchLeadView.market].length ? 'LIVE' : 'PLACEHOLDER') : 'PLACEHOLDER'} note="Recent sample for the lead market" />
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Confidence signal</div>
+                              <div className="mt-1 text-sm font-semibold text-white">How much trust the current board supports</div>
+                            </div>
+                            <Badge label={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} />
+                          </div>
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {researchLeadView ? <Pill label={marketRead(researchLeadView)} tone={researchLeadView.live != null ? 'cyan' : 'default'} /> : null}
+                            {researchLeadView?.precision?.selectorFamily ? <Pill label={researchLeadView.precision.selectorFamily} tone="cyan" /> : null}
+                            {researchLeadView?.precision?.selectorTier ? <Pill label={researchLeadView.precision.selectorTier} tone="amber" /> : null}
+                            {researchLeadView?.books != null ? <Badge label={`${n(researchLeadView.books, 0)} books`} kind={researchLeadView.booksKind} /> : <Badge label="Books -" kind="PLACEHOLDER" />}
+                            <Badge label={researchLeadView?.precision?.qualified ? 'Precision-qualified' : 'Board read'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
+                          </div>
+                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <Stat dense label="Trend vs season" value={signed(researchLeadTrend, 1)} kind={researchLeadTrend == null ? 'PLACEHOLDER' : 'DERIVED'} note={researchLeadView ? trendRead(researchLeadTrend) : 'Lead market unavailable'} />
+                            <Stat dense label="Opponent delta" value={signed(researchLeadOpponentDelta, 1)} kind={researchLeadOpponentDelta == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchLeadView.label} matchup context` : 'Lead market unavailable'} />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1534,11 +1845,15 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                               <th className="px-3 py-3 text-left font-medium">Conf</th>
                               <th className="px-3 py-3 text-left font-medium">Side</th>
                               <th className="px-3 py-3 text-left font-medium">Books</th>
+                              <th className="px-3 py-3 text-left font-medium">Read</th>
                             </tr>
                           </thead>
                           <tbody>
                             {researchViews.map((v) => (
-                              <tr key={`${v.row.playerId}:${v.market}`} className="border-t border-white/8">
+                              <tr
+                                key={`${v.row.playerId}:${v.market}`}
+                                className={`border-t border-white/8 ${researchLeadView?.market === v.market ? 'bg-cyan-400/5' : ''}`}
+                              >
                                 <td className="px-3 py-3">
                                   <div className="font-semibold text-white">{v.label}</div>
                                   <div className="text-xs text-zinc-500">{v.source}</div>
@@ -1562,6 +1877,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                 <td className="px-3 py-3">
                                   <div className="flex flex-col gap-1"><span className="text-white">{v.books == null ? '-' : n(v.books, 0)}</span><Badge label={v.booksKind} kind={v.booksKind} /></div>
                                 </td>
+                                <td className="px-3 py-3">
+                                  <div className="text-white">{marketRead(v)}</div>
+                                  <div className="mt-1 text-xs text-zinc-500">
+                                    {v.precision?.qualified ? 'Precision-qualified' : v.live != null ? 'Live board read' : 'Model-only read'}
+                                  </div>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1571,46 +1892,113 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
                     <div className="grid gap-4 xl:grid-cols-2">
                       <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Player context</div>
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <Stat dense label="Season PTS" value={n(researchRow.seasonAverage.PTS, 1)} kind={researchRow.seasonAverage.PTS == null ? 'PLACEHOLDER' : 'LIVE'} note={`Trend ${signed(researchRow.trendVsSeason.PTS, 1)}`} />
-                          <Stat dense label="Season REB" value={n(researchRow.seasonAverage.REB, 1)} kind={researchRow.seasonAverage.REB == null ? 'PLACEHOLDER' : 'LIVE'} note={`Opp delta ${signed(researchRow.opponentAllowanceDelta.REB, 1)}`} />
-                          <Stat dense label="Season AST" value={n(researchRow.seasonAverage.AST, 1)} kind={researchRow.seasonAverage.AST == null ? 'PLACEHOLDER' : 'LIVE'} note={`Opp delta ${signed(researchRow.opponentAllowanceDelta.AST, 1)}`} />
-                          <Stat dense label="Minutes trend" value={signed(researchRow.playerContext.minutesTrend, 1)} kind={researchRow.playerContext.minutesTrend == null ? 'PLACEHOLDER' : 'LIVE'} note={`Volatility ${n(researchRow.playerContext.minutesVolatility, 1)}`} />
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Why this is interesting</div>
+                            <div className="mt-1 text-lg font-semibold text-white">Support for a deeper look</div>
+                          </div>
+                          <Badge label={researchSupportDrivers.length ? 'DERIVED' : 'PLACEHOLDER'} kind={researchSupportDrivers.length ? 'DERIVED' : 'PLACEHOLDER'} />
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-zinc-300">{researchWhyInteresting}</p>
+                        <div className="mt-4 space-y-3">
+                          {researchSupportDrivers.length ? (
+                            researchSupportDrivers.map((driver) => (
+                              <div key={driver} className="rounded-2xl border border-emerald-400/15 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-50/90">
+                                {driver}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
+                              The board does not yet have strong support drivers beyond the current visible market read.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Confidence and caution</div>
+                            <div className="mt-1 text-lg font-semibold text-white">What should keep the read grounded</div>
+                          </div>
+                          <Badge label={researchCautionDrivers.length ? 'DERIVED' : 'LIVE'} kind={researchCautionDrivers.length ? 'DERIVED' : 'LIVE'} />
+                        </div>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                          <Stat dense label="Completeness" value={pct(researchRow.dataCompleteness.score, 0)} kind="LIVE" note={researchRow.dataCompleteness.tier} />
+                          <Stat dense label="Lead confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 1)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView?.live != null ? 'Live confidence in payload' : 'Derived from board math or precision history'} />
+                          <Stat dense label="Books" value={researchLeadView?.books == null ? '-' : n(researchLeadView.books, 0)} kind={researchLeadView?.booksKind ?? 'PLACEHOLDER'} note={researchLeadView?.live != null ? 'Live line depth' : 'No live consensus line'} />
+                          <Stat dense label="Minutes band" value={researchMinutesBandWidth == null ? '-' : n(researchMinutesBandWidth, 1)} kind={researchMinutesBandWidth == null ? 'PLACEHOLDER' : researchMinutesBandWidth >= 6 ? 'DERIVED' : 'LIVE'} note={researchMinutesBandWidth == null ? 'Floor/ceiling missing' : `${n(researchRow.playerContext.projectedMinutesFloor, 1)} to ${n(researchRow.playerContext.projectedMinutesCeiling, 1)}`} />
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {researchCautionDrivers.length ? (
+                            researchCautionDrivers.map((driver) => (
+                              <div key={driver} className="rounded-2xl border border-amber-400/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/90">
+                                {driver}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/8 px-4 py-4 text-sm text-emerald-50/90">
+                              No major caution flags are surfacing beyond normal slate variance in the current payload.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent form interpretation</div>
+                            <div className="mt-1 text-lg font-semibold text-white">Season baseline versus the current sample</div>
+                          </div>
+                          <Badge label={researchRecentReads.length ? 'DERIVED' : 'PLACEHOLDER'} kind={researchRecentReads.length ? 'DERIVED' : 'PLACEHOLDER'} />
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {researchRecentReads.length ? (
+                            researchRecentReads.map((item) => (
+                              <div key={item.view.market} className="rounded-[24px] border border-white/8 bg-black/20 p-4">
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    <Pill label={item.view.label} tone="amber" />
+                                    <Badge label={item.kind} kind={item.kind} />
+                                  </div>
+                                  <div className="text-right text-xs text-zinc-500">{item.view.source}</div>
+                                </div>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                  <Stat dense label="L10 avg" value={n(item.recentAverage, 1)} kind={item.recentAverage == null ? 'PLACEHOLDER' : 'LIVE'} note="Current sample" />
+                                  <Stat dense label="Season avg" value={n(item.seasonAverage, 1)} kind={item.seasonAverage == null ? 'PLACEHOLDER' : 'LIVE'} note="Season baseline" />
+                                  <Stat dense label="Trend" value={signed(item.trend, 1)} kind={item.trend == null ? 'PLACEHOLDER' : 'DERIVED'} note={item.note} />
+                                  <Stat dense label="Opp delta" value={signed(item.opponentDelta, 1)} kind={item.opponentDelta == null ? 'PLACEHOLDER' : 'LIVE'} note="Opponent-specific context" />
+                                </div>
+                                <div className="mt-4 rounded-2xl border border-white/8 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-300">
+                                  Recent 5: <span className="font-mono text-xs text-zinc-200">{item.recentFive}</span>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
+                              Recent-form interpretation appears once the dossier has enough live or derived market context to rank.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Matchup and role context</div>
+                            <div className="mt-1 text-lg font-semibold text-white">Opponent read, defender note, and teammate context</div>
+                          </div>
+                          <Badge label={teamMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={teamMatchup ? 'LIVE' : 'PLACEHOLDER'} />
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-zinc-300">{researchMatchupRead}</p>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                          <Stat dense label="Team L10" value={n(researchTeamMarketLast10, 1)} kind={researchTeamMarketLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.teamCode} ${researchLeadView.label}` : 'Team sample'} />
+                          <Stat dense label="Opp allowed L10" value={n(researchOpponentMarketAllowedLast10, 1)} kind={researchOpponentMarketAllowedLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.opponentCode} ${researchLeadView.label} allowed` : 'Opponent sample'} />
+                          <Stat dense label="Season record" value={researchSeasonRecord ?? '-'} kind={researchSeasonRecord ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} overall`} />
+                          <Stat dense label="Last10 record" value={researchLast10Record ?? '-'} kind={researchLast10Record ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} recent`} />
                         </div>
                         <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
                           Teammates: {researchRow.playerContext.teammateCore.length ? researchRow.playerContext.teammateCore.slice(0, 3).map((mate) => `${mate.playerName} (${n(mate.avgMinutesLast10, 1)})`).join(' | ') : '-'}
                         </div>
                       </div>
-                      {teamMatchup ? (
-                        <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                          <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Team matchup</div>
-                          <div className="mt-4 grid grid-cols-2 gap-3">
-                            <Stat dense label="Offense L10" value={n(teamMatchup.awayTeam === researchRow.teamCode ? teamMatchup.awayLast10For.PTS : teamMatchup.homeLast10For.PTS, 1)} kind="LIVE" note="PTS basis" />
-                            <Stat dense label="Allowed L10" value={n(teamMatchup.awayTeam === researchRow.teamCode ? teamMatchup.homeLast10Allowed.PTS : teamMatchup.awayLast10Allowed.PTS, 1)} kind="LIVE" note="PTS basis" />
-                            <Stat dense label="Season record" value={teamMatchup.awayTeam === researchRow.teamCode ? `${teamMatchup.awaySeasonRecord.wins}-${teamMatchup.awaySeasonRecord.losses}` : `${teamMatchup.homeSeasonRecord.wins}-${teamMatchup.homeSeasonRecord.losses}`} kind="LIVE" note="Team record" />
-                            <Stat dense label="Last10 record" value={teamMatchup.awayTeam === researchRow.teamCode ? `${teamMatchup.awayLast10Record.wins}-${teamMatchup.awayLast10Record.losses}` : `${teamMatchup.homeLast10Record.wins}-${teamMatchup.homeLast10Record.losses}`} kind="LIVE" note="Recent form" />
-                          </div>
-                        </div>
-                      ) : (
-                        <EmptyState
-                          eyebrow="Team matchup"
-                          title="No team matchup summary is available for this player yet."
-                          detail="Player context is still usable, but the team-vs-team summary will appear only when the slate payload carries matchup stats."
-                        />
-                      )}
                     </div>
-
-                    {researchTopPrecision?.entry.precisionSignal?.reasons?.length ? (
-                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Precision reasons</div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {researchTopPrecision.entry.precisionSignal.reasons.slice(0, 4).map((r) => (
-                            <Badge key={r} label={r} kind="DERIVED" />
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
                   </>
                 ) : (
                   <EmptyState
