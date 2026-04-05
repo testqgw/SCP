@@ -693,7 +693,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(251,191,36,0.10),transparent_24%),linear-gradient(180deg,rgba(2,6,23,1)_0%,rgba(9,9,11,1)_42%,rgba(3,7,18,1)_100%)]" />
       <div className="relative">
         <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-[1520px] px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="flex items-start justify-between gap-4 xl:flex-1">
                 <div className="min-w-0">
@@ -747,8 +747,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-          <section className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
+        <main className="mx-auto max-w-[1520px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+          <section className="grid gap-6 xl:items-start xl:grid-cols-[minmax(0,1.16fr)_minmax(360px,0.84fr)] 2xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,0.88fr)]">
             <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(9,9,11,0.94),rgba(15,23,42,0.88))] p-5 shadow-2xl shadow-black/25 sm:p-6">
               <div className="flex flex-wrap gap-2">
                 <Pill label="Live NBA prop board" tone="cyan" />
@@ -838,7 +838,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 />
               </div>
 
-              <div className="mt-6 grid gap-3 xl:grid-cols-[1.02fr_1.05fr_1.05fr]">
+              <div className="mt-6 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
                 <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -870,7 +870,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <Pill label={selectedMatchup.label} tone="cyan" />
                         <Pill label={selectedMatchup.gameTimeEt} />
                       </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Board rows in this game" />
                         <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets priced right now" />
                         <Stat dense label="Qualified" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-ready views" />
@@ -914,7 +914,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 </div>
               </div>
             </div>
-            <div className="space-y-4 rounded-[32px] border border-white/10 bg-zinc-900/75 p-5 backdrop-blur">
+            <div className="space-y-4 rounded-[32px] border border-white/10 bg-zinc-900/75 p-5 backdrop-blur xl:self-start">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Board state</div>
@@ -933,7 +933,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                     <Badge label={featured.live != null ? 'Live candidate' : 'Derived candidate'} kind={featured.live != null ? 'LIVE' : 'DERIVED'} />
                   </div>
-                  <div className="mt-4 grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
+                  <div className="mt-4 grid gap-5">
                     <div>
                       <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{featured.row.playerName}</h3>
                       <p className="mt-1 text-sm leading-6 text-zinc-400">
@@ -971,7 +971,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       />
                     </div>
                   </div>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <Stat
                       dense
                       label={`L10 ${MARKET_LABELS[featured.market]}`}
@@ -1111,7 +1111,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 </div>
 
                 {selectedMatchup ? (
-                  <div className="mt-5 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+                  <div className="mt-5 grid gap-4 xl:items-start xl:grid-cols-[1.05fr_0.95fr]">
                     <div className="rounded-[24px] border border-white/10 bg-black/25 p-4 sm:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
@@ -1266,7 +1266,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           </section>
 
           {tab === 'precision' ? (
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-4">
                 {precision.length === 0 ? (
                   <EmptyState
@@ -1385,7 +1385,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'research' ? (
-            <section className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.55fr]">
+            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[0.95fr_1.55fr]">
               <div className="space-y-3">
                 <div className="rounded-[24px] border border-white/10 bg-zinc-900/75 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1629,7 +1629,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'scout' ? (
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_0.85fr]">
+            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-3">
                 {scoutViews.length === 0 ? (
                   <EmptyState
@@ -1740,7 +1740,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'tracking' ? (
-            <section className="mt-6 grid gap-6 xl:grid-cols-[1.55fr_0.85fr]">
+            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.55fr_0.85fr]">
               <div className="overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/75">
                 <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
                   <div>
