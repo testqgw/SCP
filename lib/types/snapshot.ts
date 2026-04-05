@@ -287,6 +287,89 @@ export type SnapshotBoardData = {
   universalSystem?: SnapshotUniversalSystemSummary | null;
 };
 
+export type SnapshotDashboardSignal = Pick<
+  SnapshotPtsSignal,
+  "marketLine" | "sportsbookCount" | "side" | "confidence" | "passReasons"
+>;
+
+export type SnapshotDashboardPrecisionSignal = Pick<
+  SnapshotPrecisionPickSignal,
+  | "side"
+  | "qualified"
+  | "historicalAccuracy"
+  | "projectionWinProbability"
+  | "projectionPriceEdge"
+  | "selectionScore"
+  | "selectorFamily"
+  | "selectorTier"
+  | "reasons"
+>;
+
+export type SnapshotDashboardModelLine = Pick<SnapshotModelLine, "fairLine" | "modelSide">;
+
+export type SnapshotDashboardModelLineRecord = Record<SnapshotMarket, SnapshotDashboardModelLine>;
+
+export type SnapshotDashboardDataCompleteness = Pick<SnapshotDataCompleteness, "score" | "tier">;
+
+export type SnapshotDashboardPrimaryDefender = Pick<SnapshotPrimaryDefender, "playerName" | "matchupReason">;
+
+export type SnapshotDashboardTeammateCore = Pick<
+  SnapshotTeammateCore,
+  "playerId" | "playerName" | "avgMinutesLast10"
+>;
+
+export type SnapshotDashboardPlayerContext = Pick<
+  SnapshotPlayerContext,
+  | "projectedStarter"
+  | "lineupStatus"
+  | "rotationRank"
+  | "minutesTrend"
+  | "minutesVolatility"
+  | "projectedMinutes"
+  | "projectedMinutesFloor"
+  | "projectedMinutesCeiling"
+> & {
+  primaryDefender: SnapshotDashboardPrimaryDefender | null;
+  teammateCore: SnapshotDashboardTeammateCore[];
+};
+
+export type SnapshotDashboardGameIntel = Pick<SnapshotGameIntel, "generatedAt">;
+
+export type SnapshotDashboardRow = Pick<
+  SnapshotRow,
+  | "playerId"
+  | "playerName"
+  | "position"
+  | "teamCode"
+  | "opponentCode"
+  | "matchupKey"
+  | "gameTimeEt"
+  | "last5"
+  | "last10Average"
+  | "seasonAverage"
+  | "trendVsSeason"
+  | "opponentAllowanceDelta"
+  | "projectedTonight"
+> & {
+  modelLines: SnapshotDashboardModelLineRecord;
+  ptsSignal: SnapshotDashboardSignal | null;
+  rebSignal: SnapshotDashboardSignal | null;
+  astSignal: SnapshotDashboardSignal | null;
+  threesSignal: SnapshotDashboardSignal | null;
+  praSignal: SnapshotDashboardSignal | null;
+  paSignal: SnapshotDashboardSignal | null;
+  prSignal: SnapshotDashboardSignal | null;
+  raSignal: SnapshotDashboardSignal | null;
+  precisionSignals?: Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>>;
+  dataCompleteness: SnapshotDashboardDataCompleteness;
+  playerContext: SnapshotDashboardPlayerContext;
+  gameIntel: SnapshotDashboardGameIntel;
+};
+
+export type SnapshotBoardViewData = Omit<SnapshotBoardData, "rows"> & {
+  rows: SnapshotDashboardRow[];
+};
+
 export type SnapshotPlayerLookupData = {
   requestedDateEt: string;
   resolvedDateEt: string;

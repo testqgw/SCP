@@ -1,5 +1,5 @@
 ﻿import { NextResponse } from 'next/server';
-import { getSnapshotBoardData } from '@/lib/snapshot/query';
+import { getInitialSnapshotBoardViewData, getSnapshotBoardViewData } from '@/lib/snapshot/query';
 import { getTodayEtDateString } from '@/lib/snapshot/time';
 
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     const dateEt = isValidEtDate(searchParams.get('date')) ? (searchParams.get('date') as string) : getTodayEtDateString();
     const bypassResponseCache = searchParams.has('refresh') || searchParams.has('t');
     const rebuildBoard = searchParams.get('rebuild') === '1';
-    const result = await getSnapshotBoardData(dateEt, rebuildBoard);
+    const result = rebuildBoard
+      ? await getSnapshotBoardViewData(dateEt, true)
+      : await getInitialSnapshotBoardViewData(dateEt);
     const response = NextResponse.json({ ok: true, result });
     if (bypassResponseCache) {
       response.headers.set('Cache-Control', 'no-store');

@@ -2,13 +2,13 @@
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-  SnapshotBoardData,
+  SnapshotBoardViewData,
+  SnapshotDashboardPrecisionSignal,
+  SnapshotDashboardRow,
+  SnapshotDashboardSignal,
   SnapshotMarket,
   SnapshotModelSide,
   SnapshotPrecisionCardEntry,
-  SnapshotPrecisionPickSignal,
-  SnapshotPtsSignal,
-  SnapshotRow,
 } from '@/lib/types/snapshot';
 
 type Tab = 'precision' | 'research' | 'scout' | 'tracking';
@@ -91,7 +91,7 @@ function ts(v: string | null) {
   }).format(d);
 }
 
-function matchup(row: SnapshotRow) {
+function matchup(row: SnapshotDashboardRow) {
   return `${row.matchupKey.replace('@', ' @ ')} - ${row.gameTimeEt}`;
 }
 
@@ -122,7 +122,7 @@ function hasValue<T>(value: T | null | undefined): value is T {
   return value != null;
 }
 
-function signal(row: SnapshotRow, market: SnapshotMarket): SnapshotPtsSignal | null {
+function signal(row: SnapshotDashboardRow, market: SnapshotMarket): SnapshotDashboardSignal | null {
   if (market === 'PTS') return row.ptsSignal;
   if (market === 'REB') return row.rebSignal;
   if (market === 'AST') return row.astSignal;
@@ -214,7 +214,7 @@ function MatchupsCard({
   selectedKey,
   onSelect,
 }: {
-  matchups: SnapshotBoardData['matchups'];
+  matchups: SnapshotBoardViewData['matchups'];
   selectedKey?: string | null;
   onSelect?: (matchupKey: string) => void;
 }) {
@@ -262,7 +262,7 @@ function MatchupsCard({
 }
 
 type View = {
-  row: SnapshotRow;
+  row: SnapshotDashboardRow;
   market: SnapshotMarket;
   label: string;
   live: number | null;
@@ -284,10 +284,10 @@ type View = {
   note: string;
   score: number;
   reasons: string[];
-  precision: SnapshotPrecisionPickSignal | null;
+  precision: SnapshotDashboardPrecisionSignal | null;
 };
 
-type BoardResponse = { ok: true; result: SnapshotBoardData } | { ok: false; error: string };
+type BoardResponse = { ok: true; result: SnapshotBoardViewData } | { ok: false; error: string };
 
 type RefreshResponse =
   | {
@@ -316,7 +316,7 @@ function isActionableView(v: View) {
   return v.live != null || v.precision?.qualified || v.conf != null || v.edge != null || v.reasons.length > 0;
 }
 
-function viewFor(row: SnapshotRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
+function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
   const liveSignal = signal(row, market);
   const precision = entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null;
   const fair = row.modelLines[market].fairLine;
@@ -380,7 +380,7 @@ function lineList(values: number[]) {
   return values.length ? values.map((v) => n(v, 0)).join('  | ') : '-';
 }
 
-function playerSearchKey(row: SnapshotRow) {
+function playerSearchKey(row: SnapshotDashboardRow) {
   return [row.playerName, row.teamCode, row.opponentCode, row.matchupKey, row.position ?? '', row.gameTimeEt].join(' ').toLowerCase();
 }
 
@@ -395,7 +395,7 @@ function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['resu
   };
 }
 
-export default function NewDashboard({ data: initialData }: { data: SnapshotBoardData }) {
+export default function NewDashboard({ data: initialData }: { data: SnapshotBoardViewData }) {
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>('precision');
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
@@ -425,7 +425,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           const row = rowById.get(entry.playerId);
           return row ? { entry, row, view: viewFor(row, entry.market, entry) } : null;
         })
-        .filter((x): x is { entry: SnapshotPrecisionCardEntry; row: SnapshotRow; view: View } => x !== null)
+        .filter((x): x is { entry: SnapshotPrecisionCardEntry; row: SnapshotDashboardRow; view: View } => x !== null)
         .sort((a, b) => a.entry.rank - b.entry.rank || (b.entry.selectionScore ?? 0) - (a.entry.selectionScore ?? 0)),
     [data.precisionCard, rowById],
   );
@@ -441,7 +441,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   }, [allViews, precision]);
   const slatePlayers = useMemo(() => {
     const ids = new Set<string>();
-    const out: SnapshotRow[] = [];
+    const out: SnapshotDashboardRow[] = [];
     precision.forEach(({ row }) => {
       if (!ids.has(row.playerId)) {
         ids.add(row.playerId);

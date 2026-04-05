@@ -79,7 +79,16 @@ import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
+  SnapshotBoardViewData,
   SnapshotDataCompleteness,
+  SnapshotDashboardDataCompleteness,
+  SnapshotDashboardGameIntel,
+  SnapshotDashboardModelLine,
+  SnapshotDashboardModelLineRecord,
+  SnapshotDashboardPlayerContext,
+  SnapshotDashboardPrecisionSignal,
+  SnapshotDashboardRow,
+  SnapshotDashboardSignal,
   SnapshotGameIntel,
   SnapshotIntelItem,
   SnapshotIntelModule,
@@ -91,6 +100,7 @@ import type {
   SnapshotPlayerLookupData,
   SnapshotPrecisionPickSignal,
   SnapshotPrimaryDefender,
+  SnapshotPtsSignal,
   SnapshotRow,
   SnapshotStatLog,
   SnapshotTeammateCore,
@@ -513,6 +523,140 @@ function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
   return {
     ...data,
     rows: data.rows.map((row) => toBoardSnapshotRow(row)),
+  };
+}
+
+function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): SnapshotDashboardSignal | null {
+  if (!signal) return null;
+  return {
+    marketLine: signal.marketLine,
+    sportsbookCount: signal.sportsbookCount,
+    side: signal.side,
+    confidence: signal.confidence,
+    passReasons: signal.passReasons.slice(0, 2),
+  };
+}
+
+function toDashboardPrecisionSignal(
+  signal: SnapshotPrecisionPickSignal | null | undefined,
+): SnapshotDashboardPrecisionSignal | null {
+  if (!signal) return null;
+  return {
+    side: signal.side,
+    qualified: signal.qualified,
+    historicalAccuracy: signal.historicalAccuracy,
+    projectionWinProbability: signal.projectionWinProbability,
+    projectionPriceEdge: signal.projectionPriceEdge ?? null,
+    selectionScore: signal.selectionScore ?? null,
+    selectorFamily: signal.selectorFamily ?? null,
+    selectorTier: signal.selectorTier ?? null,
+    reasons: signal.reasons?.slice(0, 4),
+  };
+}
+
+function toDashboardPrecisionSignals(
+  signals: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> | undefined,
+): Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>> | undefined {
+  if (!signals) return undefined;
+
+  const entries = Object.entries(signals)
+    .map(([market, signal]) => {
+      const dashboardSignal = toDashboardPrecisionSignal(signal);
+      return dashboardSignal ? ([market, dashboardSignal] as const) : null;
+    })
+    .filter((entry): entry is readonly [string, SnapshotDashboardPrecisionSignal] => entry !== null);
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>>;
+}
+
+function toDashboardModelLines(modelLines: SnapshotRow["modelLines"]): SnapshotDashboardModelLineRecord {
+  return Object.fromEntries(
+    MARKETS.map((market) => [
+      market,
+      {
+        fairLine: modelLines[market].fairLine,
+        modelSide: modelLines[market].modelSide,
+      } satisfies SnapshotDashboardModelLine,
+    ]),
+  ) as SnapshotDashboardModelLineRecord;
+}
+
+function toDashboardDataCompleteness(dataCompleteness: SnapshotDataCompleteness): SnapshotDashboardDataCompleteness {
+  return {
+    score: dataCompleteness.score,
+    tier: dataCompleteness.tier,
+  };
+}
+
+function toDashboardPlayerContext(playerContext: SnapshotRow["playerContext"]): SnapshotDashboardPlayerContext {
+  return {
+    projectedStarter: playerContext.projectedStarter,
+    lineupStatus: playerContext.lineupStatus,
+    rotationRank: playerContext.rotationRank,
+    minutesTrend: playerContext.minutesTrend,
+    minutesVolatility: playerContext.minutesVolatility,
+    projectedMinutes: playerContext.projectedMinutes,
+    projectedMinutesFloor: playerContext.projectedMinutesFloor,
+    projectedMinutesCeiling: playerContext.projectedMinutesCeiling,
+    primaryDefender: playerContext.primaryDefender
+      ? {
+          playerName: playerContext.primaryDefender.playerName,
+          matchupReason: playerContext.primaryDefender.matchupReason,
+        }
+      : null,
+    teammateCore: playerContext.teammateCore.slice(0, 3).map((teammate) => ({
+      playerId: teammate.playerId,
+      playerName: teammate.playerName,
+      avgMinutesLast10: teammate.avgMinutesLast10,
+    })),
+  };
+}
+
+function toDashboardGameIntel(gameIntel: SnapshotGameIntel): SnapshotDashboardGameIntel {
+  return {
+    generatedAt: gameIntel.generatedAt,
+  };
+}
+
+function toDashboardSnapshotRow(row: SnapshotRow): SnapshotDashboardRow {
+  return {
+    playerId: row.playerId,
+    playerName: row.playerName,
+    position: row.position,
+    teamCode: row.teamCode,
+    opponentCode: row.opponentCode,
+    matchupKey: row.matchupKey,
+    gameTimeEt: row.gameTimeEt,
+    last5: row.last5,
+    last10Average: row.last10Average,
+    seasonAverage: row.seasonAverage,
+    trendVsSeason: row.trendVsSeason,
+    opponentAllowanceDelta: row.opponentAllowanceDelta,
+    projectedTonight: row.projectedTonight,
+    modelLines: toDashboardModelLines(row.modelLines),
+    ptsSignal: toDashboardSignal(row.ptsSignal),
+    rebSignal: toDashboardSignal(row.rebSignal),
+    astSignal: toDashboardSignal(row.astSignal),
+    threesSignal: toDashboardSignal(row.threesSignal),
+    praSignal: toDashboardSignal(row.praSignal),
+    paSignal: toDashboardSignal(row.paSignal),
+    prSignal: toDashboardSignal(row.prSignal),
+    raSignal: toDashboardSignal(row.raSignal),
+    precisionSignals: toDashboardPrecisionSignals(row.precisionSignals),
+    dataCompleteness: toDashboardDataCompleteness(row.dataCompleteness),
+    playerContext: toDashboardPlayerContext(row.playerContext),
+    gameIntel: toDashboardGameIntel(row.gameIntel),
+  };
+}
+
+export function toSnapshotBoardViewData(data: SnapshotBoardData): SnapshotBoardViewData {
+  return {
+    ...data,
+    rows: data.rows.map((row) => toDashboardSnapshotRow(row)),
   };
 }
 
@@ -2376,6 +2520,22 @@ export async function getSnapshotPlayerLookupData(input: {
   }
 
   throw new Error("No projected matchup could be built for this player.");
+}
+
+export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
+  const persistedBoardSetting = await prisma.systemSetting.findUnique({
+    where: { key: getSnapshotBoardSettingKey(dateEt) },
+    select: { value: true },
+  });
+  const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
+  if (persistedBoard) {
+    return toSnapshotBoardViewData(persistedBoard.data);
+  }
+  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt));
+}
+
+export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
+  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt, bustCache));
 }
 
 export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
