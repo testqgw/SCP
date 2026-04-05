@@ -634,6 +634,20 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const boardRefreshRelative = relativeTime(data.lastUpdatedAt, now);
   const featuredRefreshRelative = relativeTime(featuredUpdatedAt, now);
   const selectedMatchupLead = matchupBestSpots[0] ?? null;
+  const selectedMatchupFocusMarket = selectedMatchupLead?.market ?? selectedMatchupViews[0]?.market ?? null;
+  const selectedMatchupFocusLabel = selectedMatchupFocusMarket ? MARKET_LABELS[selectedMatchupFocusMarket] : null;
+  const selectedMatchupAwayOffense = selectedMatchupTeamStats && selectedMatchupFocusMarket
+    ? selectedMatchupTeamStats.awayLast10For[selectedMatchupFocusMarket]
+    : null;
+  const selectedMatchupHomeOffense = selectedMatchupTeamStats && selectedMatchupFocusMarket
+    ? selectedMatchupTeamStats.homeLast10For[selectedMatchupFocusMarket]
+    : null;
+  const selectedMatchupAwayAllowed = selectedMatchupTeamStats && selectedMatchupFocusMarket
+    ? selectedMatchupTeamStats.awayLast10Allowed[selectedMatchupFocusMarket]
+    : null;
+  const selectedMatchupHomeAllowed = selectedMatchupTeamStats && selectedMatchupFocusMarket
+    ? selectedMatchupTeamStats.homeLast10Allowed[selectedMatchupFocusMarket]
+    : null;
   const boardModelNote = firstSentence(data.universalSystem?.note);
   const featuredMarketAverageLast10 = featured ? featured.row.last10Average[featured.market] : null;
   const featuredMarketAverageSeason = featured ? featured.row.seasonAverage[featured.market] : null;
@@ -1122,6 +1136,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Pill label={selectedMatchup.label} tone="cyan" />
                         <Pill label={selectedMatchup.gameTimeEt} />
+                        {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
                       </div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Board rows in this game" />
@@ -1130,7 +1145,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       </div>
                       <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
                         {selectedMatchupLead
-                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is the current lead spot for this game, showing ${selectedMatchupLead.side} with ${selectedMatchupLead.edge == null ? 'no clear edge yet' : `an edge of ${signed(selectedMatchupLead.edge)}`}.`
+                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is the current lead spot for this game, showing ${selectedMatchupLead.side} with ${selectedMatchupLead.edge == null ? 'no clear edge yet' : `an edge of ${signed(selectedMatchupLead.edge)}`}. The surrounding team context is anchored to ${selectedMatchupLead.label} instead of a fixed PTS-only view.`
                           : 'This matchup is selected, but the board does not yet have a clear live or derived lead spot for it.'}
                       </div>
                     </>
@@ -1421,16 +1436,40 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         />
                       </div>
 
-                      {selectedMatchupTeamStats ? (
+                      {selectedMatchupTeamStats && selectedMatchupFocusLabel ? (
                         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                          <Stat dense label={`${selectedMatchupTeamStats.awayTeam} off L10`} value={n(selectedMatchupTeamStats.awayLast10For.PTS, 1)} kind="LIVE" note="PTS basis" />
-                          <Stat dense label={`${selectedMatchupTeamStats.homeTeam} off L10`} value={n(selectedMatchupTeamStats.homeLast10For.PTS, 1)} kind="LIVE" note="PTS basis" />
-                          <Stat dense label={`${selectedMatchupTeamStats.awayTeam} allowed L10`} value={n(selectedMatchupTeamStats.awayLast10Allowed.PTS, 1)} kind="LIVE" note="PTS basis" />
-                          <Stat dense label={`${selectedMatchupTeamStats.homeTeam} allowed L10`} value={n(selectedMatchupTeamStats.homeLast10Allowed.PTS, 1)} kind="LIVE" note="PTS basis" />
+                          <Stat
+                            dense
+                            label={`${selectedMatchupTeamStats.awayTeam} off L10`}
+                            value={n(selectedMatchupAwayOffense, 1)}
+                            kind={selectedMatchupAwayOffense == null ? 'PLACEHOLDER' : 'LIVE'}
+                            note={`${selectedMatchupFocusLabel} basis`}
+                          />
+                          <Stat
+                            dense
+                            label={`${selectedMatchupTeamStats.homeTeam} off L10`}
+                            value={n(selectedMatchupHomeOffense, 1)}
+                            kind={selectedMatchupHomeOffense == null ? 'PLACEHOLDER' : 'LIVE'}
+                            note={`${selectedMatchupFocusLabel} basis`}
+                          />
+                          <Stat
+                            dense
+                            label={`${selectedMatchupTeamStats.awayTeam} allowed L10`}
+                            value={n(selectedMatchupAwayAllowed, 1)}
+                            kind={selectedMatchupAwayAllowed == null ? 'PLACEHOLDER' : 'LIVE'}
+                            note={`${selectedMatchupFocusLabel} basis`}
+                          />
+                          <Stat
+                            dense
+                            label={`${selectedMatchupTeamStats.homeTeam} allowed L10`}
+                            value={n(selectedMatchupHomeAllowed, 1)}
+                            kind={selectedMatchupHomeAllowed == null ? 'PLACEHOLDER' : 'LIVE'}
+                            note={`${selectedMatchupFocusLabel} basis`}
+                          />
                         </div>
                       ) : (
                         <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-3 text-sm text-zinc-400">
-                          Team-vs-team context is not available for this matchup yet, but the player-level spots below are still live.
+                          Team-vs-team context is not available for this matchup yet, or the board has not identified a clear focus market for this game. The player-level spots below are still live.
                         </div>
                       )}
                     </div>
@@ -2096,10 +2135,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Pill label={selectedMatchup.label} tone="cyan" />
                         <Pill label={selectedMatchup.gameTimeEt} />
+                        {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
                       </div>
                       <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
                         {selectedMatchupLead
-                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is the live lead spot for this game on the current board.`
+                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is the live lead spot for this game on the current board. Sidebar context is keyed to ${selectedMatchupLead.label}.`
                           : 'No clear lead spot is surfaced for the selected game yet.'}
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3">
@@ -2235,6 +2275,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Pill label={selectedMatchup.label} tone="cyan" />
                         {selectedMatchupLead ? <Pill label={`${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label}`} tone="amber" /> : null}
+                        {!selectedMatchupLead && selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
