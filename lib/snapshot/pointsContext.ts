@@ -2102,7 +2102,25 @@ function applyJokicRaLiveOverride(input: {
 }
 
 export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal | null {
-  if (input.projection == null) return null;
+  if (input.projection == null) {
+    if (input.marketLine?.line != null) {
+      return {
+        marketLine: input.marketLine.line,
+        sportsbookCount: input.marketLine.sportsbookCount ?? 0,
+        side: 'NEUTRAL',
+        baselineSide: 'NEUTRAL',
+        confidence: null,
+        confidenceTier: null,
+        projectionGap: null,
+        minutesRisk: null,
+        lineupTimingConfidence: null,
+        qualified: false,
+        passReasons: [],
+        rule: { minConfidence: 0, maxMinutesRisk: 0, minProjectionGap: 0, blockOverWhenFavoriteBy: 0 },
+      };
+    }
+    return null;
+  }
 
   const marketLine = input.marketLine?.line ?? null;
   const projectionGap = marketLine == null ? null : round(input.projection - marketLine, 2);
@@ -2407,7 +2425,25 @@ export function buildLivePtsSignal(input: LivePtsSignalInput): SnapshotPtsSignal
 }
 
 export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal | null {
-  if (input.projection == null) return null;
+  if (input.projection == null) {
+    if (input.marketLine?.line != null) {
+      return {
+        marketLine: input.marketLine.line,
+        sportsbookCount: input.marketLine.sportsbookCount ?? 0,
+        side: 'NEUTRAL',
+        baselineSide: 'NEUTRAL',
+        confidence: null,
+        confidenceTier: null,
+        projectionGap: null,
+        minutesRisk: null,
+        lineupTimingConfidence: null,
+        qualified: false,
+        passReasons: [],
+        rule: { minConfidence: 0, maxMinutesRisk: 0, minProjectionGap: 0, blockOverWhenFavoriteBy: 0 },
+      };
+    }
+    return null;
+  }
 
   const marketLine = input.marketLine?.line ?? null;
   const projectionGap = marketLine == null ? null : round(input.projection - marketLine, 2);
@@ -2604,7 +2640,25 @@ export function buildLiveRebSignal(input: LiveRebSignalInput): SnapshotRebSignal
 }
 
 export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal | null {
-  if (input.projection == null) return null;
+  if (input.projection == null) {
+    if (input.marketLine?.line != null) {
+      return {
+        marketLine: input.marketLine.line,
+        sportsbookCount: input.marketLine.sportsbookCount ?? 0,
+        side: 'NEUTRAL',
+        baselineSide: 'NEUTRAL',
+        confidence: null,
+        confidenceTier: null,
+        projectionGap: null,
+        minutesRisk: null,
+        lineupTimingConfidence: null,
+        qualified: false,
+        passReasons: [],
+        rule: { minConfidence: 0, maxMinutesRisk: 0, minProjectionGap: 0, blockOverWhenFavoriteBy: 0 },
+      };
+    }
+    return null;
+  }
 
   const marketLine = input.marketLine?.line ?? null;
   const projectionGap = marketLine == null ? null : round(input.projection - marketLine, 2);
@@ -2819,7 +2873,25 @@ export function buildLiveAstSignal(input: LiveAstSignalInput): SnapshotAstSignal
 }
 
 export function buildLiveThreesSignal(input: LiveThreesSignalInput): SnapshotThreesSignal | null {
-  if (input.projection == null) return null;
+  if (input.projection == null) {
+    if (input.marketLine?.line != null) {
+      return {
+        marketLine: input.marketLine.line,
+        sportsbookCount: input.marketLine.sportsbookCount ?? 0,
+        side: 'NEUTRAL',
+        baselineSide: 'NEUTRAL',
+        confidence: null,
+        confidenceTier: null,
+        projectionGap: null,
+        minutesRisk: null,
+        lineupTimingConfidence: null,
+        qualified: false,
+        passReasons: [],
+        rule: { minConfidence: 0, maxMinutesRisk: 0, minProjectionGap: 0, blockOverWhenFavoriteBy: 0 },
+      };
+    }
+    return null;
+  }
 
   const marketLine = input.marketLine?.line ?? null;
   const projectionGap = marketLine == null ? null : round(input.projection - marketLine, 2);
@@ -3015,7 +3087,25 @@ function comboRuleForMarket(market: LiveComboSignalInput["market"]): SnapshotPts
 }
 
 function buildLiveComboSignal(input: LiveComboSignalInput): SnapshotPtsSignal | null {
-  if (input.projection == null) return null;
+  if (input.projection == null) {
+    if (input.marketLine?.line != null) {
+      return {
+        marketLine: input.marketLine.line,
+        sportsbookCount: input.marketLine.sportsbookCount ?? 0,
+        side: 'NEUTRAL',
+        baselineSide: 'NEUTRAL',
+        confidence: null,
+        confidenceTier: null,
+        projectionGap: null,
+        minutesRisk: null,
+        lineupTimingConfidence: null,
+        qualified: false,
+        passReasons: [],
+        rule: { minConfidence: 0, maxMinutesRisk: 0, minProjectionGap: 0, blockOverWhenFavoriteBy: 0 },
+      };
+    }
+    return null;
+  }
 
   const marketLine = input.marketLine?.line ?? null;
   const projectionGap = marketLine == null ? null : round(input.projection - marketLine, 2);
