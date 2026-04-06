@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
@@ -795,7 +795,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const researchRecentReads = useMemo<ResearchRecentRead[]>(() => {
     if (!researchRow) return [];
 
-    return researchInterestingViews.map<ResearchRecentRead>((view) => {
+    return researchViews.map<ResearchRecentRead>((view) => {
       const recentAverage = researchRow.last10Average[view.market];
       const seasonAverage = researchRow.seasonAverage[view.market];
       const trend = researchRow.trendVsSeason[view.market];
@@ -816,7 +816,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               : ('LIVE' as Kind),
       };
     });
-  }, [researchInterestingViews, researchRow]);
+  }, [researchViews, researchRow]);
   const researchMatchupRead = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player to see matchup interpretation.';
@@ -1227,9 +1227,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why it leads the slate</div>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
                           {featured.precision?.reasons?.length
-                            ? featured.precision.reasons.slice(0, 2).join(' â€¢ ')
+                            ? featured.precision.reasons.slice(0, 2).join(' • ')
                             : featured.reasons.length
-                              ? featured.reasons.slice(0, 2).join(' â€¢ ')
+                              ? featured.reasons.slice(0, 2).join(' • ')
                               : 'No extra reasons surfaced by the current payload.'}
                         </p>
                       </div>
