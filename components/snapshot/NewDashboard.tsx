@@ -12,7 +12,7 @@ import type {
 } from '@/lib/types/snapshot';
 
 type Tab = 'precision' | 'research' | 'scout' | 'tracking';
-type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER';
+type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
@@ -44,6 +44,7 @@ const KIND_CLASS: Record<Kind, string> = {
   LIVE: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100',
   DERIVED: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
   PLACEHOLDER: 'border-slate-400/20 bg-slate-500/10 text-slate-200',
+  MODEL: 'border-amber-400/20 bg-amber-500/10 text-amber-200',
 };
 
 const PILL_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
@@ -388,7 +389,7 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
     conf,
     books: liveSignal?.sportsbookCount ?? null,
     side,
-    liveKind: live != null ? 'LIVE' : 'PLACEHOLDER',
+    liveKind: live != null ? 'LIVE' : 'MODEL',
     fairKind: fair != null ? 'LIVE' : 'PLACEHOLDER',
     projKind: proj != null ? 'LIVE' : 'PLACEHOLDER',
     edgeKind: edge != null ? (usesDerivedEdge ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
@@ -1921,7 +1922,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                   <div className="text-xs text-zinc-500">{v.source}</div>
                                 </td>
                                 <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.live == null ? '-' : n(v.live)}</span><Badge label={v.liveKind} kind={v.liveKind} /></div>
+                                  <div className="flex flex-col gap-1"><span className="text-white">{v.live != null ? n(v.live) : v.fair != null ? n(v.fair) : '-'}</span><Badge label={v.liveKind} kind={v.liveKind} /></div>
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex flex-col gap-1"><span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span><Badge label={v.fairKind} kind={v.fairKind} /></div>
@@ -1942,7 +1943,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                 <td className="px-3 py-3">
                                   <div className="text-white">{marketRead(v)}</div>
                                   <div className="mt-1 text-xs text-zinc-500">
-                                    {v.precision?.qualified ? 'Precision-qualified' : v.live != null ? 'Live board read' : 'Model-only read'}
+                                    {v.precision?.qualified ? 'Precision-qualified' : v.live != null ? 'Live board read' : 'Model fair line (no books)'}
                                   </div>
                                 </td>
                               </tr>
