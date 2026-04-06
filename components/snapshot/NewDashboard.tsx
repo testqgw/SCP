@@ -550,10 +550,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     [researchRow],
   );
   const researchLeadView = useMemo(() => leadViewFromViews(researchViews), [researchViews]);
-  const researchInterestingViews = useMemo(() => {
-    const actionable = researchViews.filter((view) => isActionableView(view));
-    return (actionable.length ? actionable : researchViews).slice(0, 3);
-  }, [researchViews]);
   const researchTopPrecision = useMemo(
     () => (researchRow ? precision.find((item) => item.row.playerId === researchRow.playerId) ?? null : null),
     [precision, researchRow],
@@ -1227,9 +1223,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why it leads the slate</div>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
                           {featured.precision?.reasons?.length
-                            ? featured.precision.reasons.slice(0, 2).join(' • ')
+                            ? featured.precision.reasons.slice(0, 2).join(' ï¿½ ')
                             : featured.reasons.length
-                              ? featured.reasons.slice(0, 2).join(' • ')
+                              ? featured.reasons.slice(0, 2).join(' ï¿½ ')
                               : 'No extra reasons surfaced by the current payload.'}
                         </p>
                       </div>
