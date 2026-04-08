@@ -1809,7 +1809,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <div className="mt-2">{featuredLeadReason}</div>
                   </div>
 
-                  <div className="mt-5 hidden gap-4 md:grid lg:grid-cols-[1.15fr_0.85fr]">
+                  <div className="mt-5 hidden items-start gap-4 md:grid lg:grid-cols-[1.15fr_0.85fr]">
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
                       <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Why it matters</div>
                       <div className="mt-3 flex items-start gap-3 rounded-xl bg-[var(--surface)] px-3.5 py-3">
