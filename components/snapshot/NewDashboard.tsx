@@ -313,6 +313,12 @@ function booksLiveLabel(books: number | null | undefined) {
   return `${rounded} ${rounded === 1 ? 'book' : 'books'} live`;
 }
 
+function booksCountLabel(books: number | null | undefined) {
+  if (books == null || Number.isNaN(books)) return null;
+  const rounded = Math.max(0, Math.round(books));
+  return `${rounded} ${rounded === 1 ? 'book' : 'books'}`;
+}
+
 function gapRead(value: number | null | undefined, digits = 1) {
   if (value == null || Number.isNaN(value)) return '-';
   if (Math.abs(value) < 0.05) return 'On line';
@@ -330,13 +336,13 @@ function conciseLeadReason(
   fallback?: string | null,
 ) {
   if (view.live != null && view.edge != null) {
-    const coverage = booksLiveLabel(view.books);
-    return `Projection sits ${gapRead(view.edge)} the live line${coverage ? ` across ${coverage}` : ''}.`;
+    const coverage = booksCountLabel(view.books);
+    return `Projection is ${gapRead(view.edge)} the live line${coverage ? ` across ${coverage}` : ''}.`;
   }
   if (view.proj != null && view.fair != null) {
     const fairGap = Number((view.proj - view.fair).toFixed(1));
-    if (Math.abs(fairGap) < 0.05) return 'Projection is sitting right on the board fair line.';
-    return `Projection sits ${gapRead(fairGap)} the board fair line.`;
+    if (Math.abs(fairGap) < 0.05) return 'Projection is right on the board fair line.';
+    return `Projection is ${gapRead(fairGap)} the board fair line.`;
   }
   return firstSentence(fallback) ?? 'The live number is playable while the rest of the board context catches up.';
 }
@@ -446,22 +452,23 @@ function RecommendationBox({
   const detail = recommendationDetail(view);
   const boxSizeClass =
     size === 'hero'
-      ? 'rounded-[22px] px-4 py-3 sm:rounded-[26px] sm:px-5 sm:py-4'
+      ? 'rounded-[20px] px-4 py-2.5 sm:rounded-[24px] sm:px-[18px] sm:py-3.5'
       : size === 'compact'
         ? 'rounded-[16px] px-3 py-2.5 sm:rounded-[18px] sm:px-3.5 sm:py-3'
         : 'rounded-[18px] px-3.5 py-3 sm:rounded-[22px] sm:px-4 sm:py-3';
   const titleClass = size === 'hero' ? 'text-[11px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]';
   const headlineClass =
     size === 'hero'
-      ? 'mt-2.5 text-xl font-semibold tracking-tight sm:mt-3 sm:text-[2rem]'
+      ? 'mt-2 text-xl font-semibold tracking-tight sm:mt-2.5 sm:text-[2rem]'
       : size === 'compact'
         ? 'mt-2 text-base font-semibold tracking-tight sm:text-lg'
         : 'mt-2 text-base font-semibold tracking-tight sm:text-xl';
+  const detailClass = size === 'hero' ? 'mt-0.5 text-xs opacity-80' : 'mt-1 text-xs opacity-80';
   return (
     <div className={`border ${boxSizeClass} ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
       <div className={`${titleClass} uppercase opacity-75`}>{title}</div>
       <div className={headlineClass}>{recommendationHeadline(view)}</div>
-      <div className="mt-1 text-xs opacity-80">{detail}</div>
+      <div className={detailClass}>{detail}</div>
     </div>
   );
 }
@@ -1250,8 +1257,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(109,74,255,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(183,129,44,0.10),transparent_28%),linear-gradient(180deg,rgba(255,253,252,0.65)_0%,rgba(245,241,232,0.88)_100%)]" />
       <div className="relative">
         <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
-          <div className="mx-auto max-w-[1440px] px-3 py-2 sm:px-6 sm:py-2.5 xl:px-8">
-            <div className="flex flex-col gap-2">
+          <div className="mx-auto max-w-[1440px] px-3 py-1.5 sm:px-6 sm:py-2 xl:px-8">
+            <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold tracking-[0.12em] text-[var(--accent)] sm:h-10 sm:w-10 sm:rounded-2xl sm:text-sm">
@@ -1287,13 +1294,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <Badge label={isRefreshing ? 'Updated' : 'Live'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
                 </div>
               </div>
-              <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-0.5 px-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-px px-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TOP_NAV.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => (item.action === 'help' ? openHelp() : setTab(item.tab!))}
-                    className={`${ACTION_CLASS} min-h-10 shrink-0 rounded-full px-3 py-2 text-xs font-medium sm:min-h-11 sm:px-4 sm:text-sm ${
+                    className={`${ACTION_CLASS} min-h-[38px] shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
                       item.tab && tab === item.tab
                         ? 'bg-[var(--accent)] text-white'
                         : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
@@ -1458,9 +1465,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     >
                       Compare lines
                     </button>
-                    <div className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-2)] sm:w-auto">
-                      {booksLiveLabel(featured.books) ?? 'Books pending'}
-                    </div>
                   </div>
                 </div>
               ) : (
