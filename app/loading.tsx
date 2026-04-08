@@ -6,18 +6,18 @@ const statusSteps = [
     detail: "Loading matchup windows, player rows, and consensus lines.",
   },
   {
-    title: "Ranking the precision card",
-    detail: "Sorting the featured pick and the curated edge stack.",
+    title: "Ranking the best live numbers",
+    detail: "Sorting the featured play, top opportunities, and current board pulse.",
   },
   {
-    title: "Preparing research tabs",
-    detail: "Assembling scout feed, dossiers, and line-tracking context.",
+    title: "Preparing the workspace",
+    detail: "Assembling the players, feed, and lines panels behind the live board.",
   },
 ];
 
-const loadingTiles = ["Matchups", "Live lines", "Precision card", "Research tabs"];
-const topNav = ["Board", "Research", "Scout Feed", "Methodology"];
-const loadingTabs = ["Precision Card", "Research Center", "Scout Feed", "Line Tracking"];
+const loadingTiles = ["Best play", "Board pulse", "Top opportunities", "Live feed"];
+const topNav = ["Overview", "Players", "Feed", "Lines", "Method"];
+const loadingTabs = ["Overview", "Players", "Feed", "Lines"];
 
 export default function Loading(): React.ReactElement {
   return (
@@ -315,9 +315,9 @@ export default function Loading(): React.ReactElement {
               <div className="snapshot-loading-heading">
                 <div className="snapshot-loading-spinner" />
                 <div style={{ display: "grid", gap: 6 }}>
-                  <h1 className="snapshot-loading-title">Loading the live NBA prop board</h1>
+                  <h1 className="snapshot-loading-title">Loading the live analyst board</h1>
                   <p className="snapshot-loading-copy">
-                    Streaming the featured pick, board summary, and research tabs from the current snapshot payload.
+                    Streaming the best play, board pulse, opportunities, and workspace panels from the current snapshot payload.
                   </p>
                 </div>
               </div>
@@ -339,7 +339,7 @@ export default function Loading(): React.ReactElement {
           <div className="snapshot-loading-grid">
             <div className="snapshot-loading-panel">
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {["Board loading", "Featured pick", "Research tabs"].map((label) => (
+                {["Board loading", "Best play", "Workspace panels"].map((label) => (
                   <span key={label} className="snapshot-loading-chip">
                     {label}
                   </span>
@@ -439,8 +439,8 @@ export default function Loading(): React.ReactElement {
                   Expected next
                 </div>
                 <div style={{ display: "grid", gap: 10, color: "#d9e7f4", fontSize: 13, lineHeight: 1.55 }}>
-                  <div>Featured precision card and ranked edge stack</div>
-                  <div>Research Center, Scout Feed, and Line Tracking tabs</div>
+                  <div>Featured play, board pulse, and ranked opportunities</div>
+                  <div>Overview, Players, Feed, and Lines workspace panels</div>
                   <div>Live, derived, and placeholder labels carried into the board</div>
                 </div>
               </div>
