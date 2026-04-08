@@ -773,7 +773,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const boardPulseNote =
     refreshNotice?.detail ??
     (featured
-      ? `${recommendationHeadline(featured)} is leading the board, with ${n(topOpportunities.length, 0)} live opportunities and ${n(liveFeedViews.length, 0)} fresh feed items.`
+      ? `${recommendationHeadline(featured)} is leading the board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const researchWhyInteresting = useMemo(() => {
     if (!researchRow || !researchLeadView) {
