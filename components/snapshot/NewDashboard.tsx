@@ -15,6 +15,7 @@ import type {
 type Tab = 'precision' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'players' | 'feed' | 'lines' | 'method';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
+type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
@@ -236,10 +237,12 @@ function EmptyState({
 function MatchupsCard({
   matchups,
   selectedKey,
+  highlightedKey,
   onSelect,
 }: {
   matchups: SnapshotBoardViewData['matchups'];
   selectedKey?: string | null;
+  highlightedKey?: string | null;
   onSelect?: (matchupKey: string) => void;
 }) {
   return (
@@ -263,6 +266,8 @@ function MatchupsCard({
                   : onSelect
                     ? 'border-[var(--border)] bg-[var(--surface-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
                     : 'border-[var(--border)] bg-[var(--surface-2)]'
+              } ${
+                highlightedKey === m.key ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : ''
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -712,6 +717,14 @@ function parseViewParam(value: string | null): ViewKey {
   return 'overview';
 }
 
+function viewKeepsPlayerParam(view: ViewKey) {
+  return view === 'players';
+}
+
+function viewKeepsMatchupParam(view: ViewKey) {
+  return view !== 'method';
+}
+
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
   const totals = `${n(result.totals.games, 0)} games | ${n(result.totals.players, 0)} players`;
   const boardTime = refreshedAt ? `Board updated ${ts(refreshedAt)}` : null;
@@ -739,14 +752,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [urlReady, setUrlReady] = useState(false);
+  const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const matchupExplorerRef = useRef<HTMLElement | null>(null);
   const helpRef = useRef<HTMLDivElement | null>(null);
+  const researchDossierRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const hasParsedUrlRef = useRef(false);
   const pendingUrlSearchRef = useRef<string | null>(null);
   const urlNavigationModeRef = useRef<'push' | 'replace'>('replace');
+  const highlightTimeoutRef = useRef<number | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   useEffect(() => {
@@ -756,6 +773,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current != null) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
   }, []);
 
   const rowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
@@ -1235,26 +1260,59 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     },
   };
   const activeWorkspace = TABS.find((item) => item.id === tab) ?? TABS[0];
-  const scrollToSection = (ref: React.RefObject<HTMLElement | null>, behavior: ScrollBehavior = 'smooth') => {
-    window.setTimeout(() => ref.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+  const flashTarget = (kind: NonNullable<HighlightTarget>['kind'], key: string | null | undefined) => {
+    if (!key) return;
+    if (highlightTimeoutRef.current != null) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    setHighlightTarget({ kind, key });
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightTarget((current) => (current?.kind === kind && current.key === key ? null : current));
+      highlightTimeoutRef.current = null;
+    }, 1800);
+  };
+  const isPlayerHighlighted = (playerId: string) => highlightTarget?.kind === 'player' && highlightTarget.key === playerId;
+  const isMatchupHighlighted = (matchupKey: string) => highlightTarget?.kind === 'matchup' && highlightTarget.key === matchupKey;
+  const scrollToSection = (
+    ref: React.RefObject<HTMLElement | null>,
+    behavior: ScrollBehavior = 'smooth',
+    focusRef?: React.RefObject<HTMLElement | null>,
+  ) => {
+    window.setTimeout(() => {
+      const element = ref.current;
+      if (!element) return;
+      const headerHeight = headerRef.current?.getBoundingClientRect().height ?? 0;
+      const top = Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerHeight - 12);
+      window.scrollTo({ top, behavior });
+      const focusTarget = focusRef?.current ?? element;
+      const focusDelay = behavior === 'smooth' ? 220 : 0;
+      window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), focusDelay);
+    }, 0);
   };
   const scrollToView = (nextView: ViewKey, options?: { behavior?: ScrollBehavior; matchupKey?: string | null }) => {
     const behavior = options?.behavior ?? 'smooth';
     if (nextView === 'method') {
-      window.setTimeout(() => helpRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      scrollToSection(helpRef, behavior);
       return;
     }
     if (nextView === 'overview' && options?.matchupKey) {
       scrollToSection(matchupExplorerRef, behavior);
       return;
     }
+    if (nextView === 'players') {
+      scrollToSection(workspaceRef, behavior, researchDossierRef);
+      return;
+    }
     scrollToSection(nextView === 'overview' ? overviewRef : workspaceRef, behavior);
   };
-  const setMatchupSelection = (matchupKey: string, options?: { pin?: boolean }) => {
+  const setMatchupSelection = (matchupKey: string, options?: { pin?: boolean; highlight?: boolean }) => {
     urlNavigationModeRef.current = 'push';
     setSelectedMatchupKey(matchupKey);
     if (options?.pin !== false) {
       setPinnedMatchupKey(matchupKey);
+    }
+    if (options?.highlight) {
+      flashTarget('matchup', matchupKey);
     }
   };
   const activateTab = (nextTab: Tab) => {
@@ -1275,28 +1333,27 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     setHeaderView('players');
     setTab('research');
     setHeaderSearchOpen(false);
-    window.setTimeout(() => {
-      workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      searchInputRef.current?.focus();
-    }, 0);
+    scrollToSection(workspaceRef, 'smooth');
+    window.setTimeout(() => searchInputRef.current?.focus(), 220);
   };
   const setResearch = (playerId: string, options?: { scroll?: boolean }) => {
     urlNavigationModeRef.current = 'push';
     const row = rowById.get(playerId);
     if (row?.matchupKey) {
-      setMatchupSelection(row.matchupKey);
+      setMatchupSelection(row.matchupKey, { highlight: false });
     }
     setPickedPlayer(playerId);
     setHeaderView('players');
     setTab('research');
     setHeaderSearchOpen(false);
+    flashTarget('player', playerId);
     if (options?.scroll !== false) {
       scrollToView('players');
     }
   };
   const openMatchup = (matchupKey: string) => {
     urlNavigationModeRef.current = 'push';
-    setMatchupSelection(matchupKey);
+    setMatchupSelection(matchupKey, { highlight: true });
     setHeaderView('overview');
     setTab('precision');
     setHeaderSearchOpen(false);
@@ -1324,7 +1381,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     const nextMatchup = searchParams.get('matchup');
     const matchedPlayer = nextPlayer ? playerByParam.get(nextPlayer) ?? null : null;
     const matchedMatchup = nextMatchup ? matchupByParam.get(nextMatchup) ?? null : null;
-    const nextSelectedMatchupKey = matchedMatchup?.key ?? matchedPlayer?.matchupKey ?? null;
+    const keepPlayer = viewKeepsPlayerParam(nextView);
+    const keepMatchup = viewKeepsMatchupParam(nextView);
+    const nextPickedPlayer = keepPlayer ? matchedPlayer?.playerId ?? null : null;
+    const nextPinnedMatchupKey = keepMatchup
+      ? matchedMatchup?.key ?? (keepPlayer ? matchedPlayer?.matchupKey ?? null : null)
+      : null;
+    const nextSelectedMatchupKey = nextPinnedMatchupKey;
     const isInternalUrlUpdate = pendingUrlSearchRef.current === currentSearch;
 
     setHeaderSearchOpen(false);
@@ -1332,8 +1395,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     if (nextTab) {
       setTab(nextTab);
     }
-    setPickedPlayer(matchedPlayer?.playerId ?? null);
-    setPinnedMatchupKey(matchedMatchup?.key ?? null);
+    setPickedPlayer(nextPickedPlayer);
+    setPinnedMatchupKey(nextPinnedMatchupKey);
     setSelectedMatchupKey(nextSelectedMatchupKey);
     setUrlReady(true);
     if (isInternalUrlUpdate) {
@@ -1343,18 +1406,27 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
     const behavior: ScrollBehavior = hasParsedUrlRef.current ? 'smooth' : 'auto';
     hasParsedUrlRef.current = true;
+    if (nextPickedPlayer) {
+      flashTarget('player', nextPickedPlayer);
+    } else if (nextSelectedMatchupKey) {
+      flashTarget('matchup', nextSelectedMatchupKey);
+    }
     if (currentSearch.length === 0 && nextView === 'overview') {
       return;
     }
     if (nextView === 'method') {
-      window.setTimeout(() => helpRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      scrollToSection(helpRef, behavior);
       return;
     }
     if (nextView === 'overview' && nextSelectedMatchupKey) {
-      window.setTimeout(() => matchupExplorerRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      scrollToSection(matchupExplorerRef, behavior);
       return;
     }
-    window.setTimeout(() => (nextView === 'overview' ? overviewRef.current : workspaceRef.current)?.scrollIntoView({ behavior, block: 'start' }), 0);
+    if (nextView === 'players') {
+      scrollToSection(workspaceRef, behavior, researchDossierRef);
+      return;
+    }
+    scrollToSection(nextView === 'overview' ? overviewRef : workspaceRef, behavior);
   }, [matchupByParam, playerByParam, searchParams]);
 
   useEffect(() => {
@@ -1362,14 +1434,16 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     const params = new URLSearchParams();
     const encodedPlayer = pickedPlayer ? rowById.get(pickedPlayer) : null;
     const encodedMatchup = pinnedMatchupKey ? matchupByParam.get(pinnedMatchupKey) ?? null : null;
+    const keepPlayer = viewKeepsPlayerParam(headerView);
+    const keepMatchup = viewKeepsMatchupParam(headerView);
 
-    if (headerView !== 'overview' || encodedPlayer || encodedMatchup) {
+    if (headerView !== 'overview' || (keepPlayer && encodedPlayer) || (keepMatchup && encodedMatchup)) {
       params.set('view', headerView);
     }
-    if (encodedPlayer) {
+    if (keepPlayer && encodedPlayer) {
       params.set('player', slugifyParam(encodedPlayer.playerName));
     }
-    if (encodedMatchup) {
+    if (keepMatchup && encodedMatchup) {
       params.set('matchup', slugifyParam(encodedMatchup.key));
     }
 
@@ -1469,7 +1543,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(109,74,255,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(183,129,44,0.10),transparent_28%),linear-gradient(180deg,rgba(255,253,252,0.65)_0%,rgba(245,241,232,0.88)_100%)]" />
       <div className="relative">
-        <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
+        <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-3 py-1.5 sm:px-6 sm:py-2 xl:px-8">
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-3">
@@ -1778,7 +1852,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section ref={overviewRef} className="mt-4 md:mt-6">
+          <section ref={overviewRef} tabIndex={-1} className="mt-4 scroll-mt-28 outline-none md:mt-6 md:scroll-mt-32">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
@@ -1850,7 +1924,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section ref={matchupExplorerRef} className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
+          <section ref={matchupExplorerRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="order-2 xl:order-1 xl:col-span-5">
               <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1873,12 +1947,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <button
                           key={m.key}
                           type="button"
-                          onClick={() => setMatchupSelection(m.key)}
+                          onClick={() => setMatchupSelection(m.key, { highlight: true })}
                           className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
                             selectedMatchupKey === m.key
                               ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
                               : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                          }`}
+                          } ${isMatchupHighlighted(m.key) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : ''}`}
                         >
                           <div className="text-sm font-semibold">{m.label}</div>
                           <div className="mt-1 text-xs opacity-80">{m.gameTimeEt}</div>
@@ -1888,7 +1962,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
                     {selectedMatchup ? (
                       <>
-                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                        <div
+                          className={`mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-shadow ${
+                            selectedMatchup ? (isMatchupHighlighted(selectedMatchup.key) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : '') : ''
+                          }`}
+                        >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <div className="text-lg font-semibold text-[var(--text)]">{selectedMatchup.label}</div>
@@ -2060,7 +2138,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section ref={workspaceRef} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
+          <section ref={workspaceRef} tabIndex={-1} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:p-6 md:scroll-mt-32">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -2217,7 +2295,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   )}
                 </div>
 
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
+                <MatchupsCard
+                  matchups={data.matchups}
+                  selectedKey={selectedMatchupKey}
+                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
+                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
+                />
               </div>
             </section>
           ) : null}
@@ -2280,7 +2363,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           picked
                             ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
                             : 'border-white/10 bg-zinc-900/75'
-                        }`}
+                        } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''}`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div>
@@ -2340,7 +2423,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               <div className="space-y-4">
                 {researchRow ? (
                   <>
-                    <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+                    <div
+                      ref={researchDossierRef}
+                      tabIndex={-1}
+                      className={`rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 outline-none transition-shadow ${
+                        isPlayerHighlighted(researchRow.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''
+                      }`}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap gap-2">
@@ -2715,7 +2804,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     present in SnapshotBoardData.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
+                <MatchupsCard
+                  matchups={data.matchups}
+                  selectedKey={selectedMatchupKey}
+                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
+                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
+                />
               </div>
             </section>
           ) : null}
@@ -2850,13 +2944,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     movement history.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
+                <MatchupsCard
+                  matchups={data.matchups}
+                  selectedKey={selectedMatchupKey}
+                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
+                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
+                />
               </div>
             </section>
           ) : null}
           </section>
 
-          <section ref={helpRef} id="methodology" className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+          <section ref={helpRef} id="methodology" tabIndex={-1} className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:scroll-mt-32">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Method</div>
