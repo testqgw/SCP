@@ -301,6 +301,66 @@ type ResearchRecentRead = {
   kind: Kind;
 };
 
+function booksLiveLabel(books: number | null | undefined) {
+  if (books == null || Number.isNaN(books)) return null;
+  const rounded = Math.max(0, Math.round(books));
+  return `${rounded} ${rounded === 1 ? 'book' : 'books'} live`;
+}
+
+function recommendationHeadline(view: Pick<View, 'side' | 'live' | 'fair' | 'label'>) {
+  const line = view.live ?? view.fair;
+  if (view.side === 'NEUTRAL') {
+    return line == null ? `${view.label} waiting for line` : `${view.label} ${n(line)}`;
+  }
+  return line == null ? `${view.side} ${view.label}` : `${view.side} ${n(line)} ${view.label}`;
+}
+
+function recommendationDetail(view: Pick<View, 'live' | 'fair' | 'books' | 'note'>) {
+  if (view.live != null) {
+    return booksLiveLabel(view.books) ?? 'Consensus live line';
+  }
+  if (view.fair != null) {
+    return `Model fair line ${n(view.fair)} until live books land`;
+  }
+  return view.note;
+}
+
+function CompactMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</div>
+      <div className="mt-1 text-lg font-semibold tracking-tight text-white">{value}</div>
+    </div>
+  );
+}
+
+function RecommendationBox({
+  view,
+  title = 'Recommendation',
+  align = 'left',
+  className = '',
+}: {
+  view: Pick<View, 'side' | 'sideKind' | 'live' | 'fair' | 'books' | 'label' | 'note'>;
+  title?: string;
+  align?: 'left' | 'right';
+  className?: string;
+}) {
+  const detail = recommendationDetail(view);
+  return (
+    <div className={`rounded-[22px] border px-4 py-3 ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
+      <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">{title}</div>
+      <div className="mt-2 text-lg font-semibold tracking-tight sm:text-xl">{recommendationHeadline(view)}</div>
+      <div className="mt-1 text-xs opacity-80">{detail}</div>
+    </div>
+  );
+}
+
 type BoardResponse = { ok: true; result: SnapshotBoardViewData } | { ok: false; error: string };
 
 type RefreshResponse =
@@ -1213,14 +1273,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                     <Badge label={featured.live != null ? 'Live candidate' : 'Derived candidate'} kind={featured.live != null ? 'LIVE' : 'DERIVED'} />
                   </div>
-                  <div className="mt-4 grid gap-5">
+                  <div className="mt-4 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(250px,0.85fr)] xl:items-start">
                     <div>
                       <h3 className="text-2xl font-semibold tracking-tight text-white sm:text-[2rem]">{featured.row.playerName}</h3>
                       <p className="mt-1 text-sm leading-6 text-zinc-400">
                         {matchup(featured.row)} - {MARKET_LABELS[featured.market]}
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <Side side={featured.side} kind={featured.sideKind} />
                         <Badge label={featured.sideKind} kind={featured.sideKind} />
                         {featured.precision?.selectorFamily ? <Pill label={featured.precision.selectorFamily} tone="cyan" /> : null}
                         {featured.precision?.selectorTier ? <Pill label={featured.precision.selectorTier} tone="amber" /> : null}
@@ -1229,15 +1288,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Why it leads the slate</div>
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">
                           {featured.precision?.reasons?.length
-                            ? featured.precision.reasons.slice(0, 2).join(' � ')
+                            ? featured.precision.reasons.slice(0, 2).join(' | ')
                             : featured.reasons.length
-                              ? featured.reasons.slice(0, 2).join(' � ')
+                              ? featured.reasons.slice(0, 2).join(' | ')
                               : 'No extra reasons surfaced by the current payload.'}
                         </p>
                       </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Stat dense label="Live line" value={featured.live == null ? '-' : n(featured.live)} kind={featured.liveLineKind} note="Consensus market line" />
+                    <RecommendationBox view={featured} title="Slate recommendation" className="w-full xl:min-w-[250px]" />
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <Stat
+                        dense
+                        label="Line to play"
+                        value={featured.live == null ? (featured.fair == null ? '-' : n(featured.fair)) : n(featured.live)}
+                        kind={featured.live == null ? featured.fairKind : featured.liveLineKind}
+                        note={featured.live != null ? 'Current consensus line behind the call' : featured.fair != null ? 'Model fair line until live books land' : 'Waiting for a usable line'}
+                      />
                       <Stat dense label="Fair line" value={featured.fair == null ? '-' : n(featured.fair)} kind={featured.fairKind} note="Model fair line from payload" />
                       <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection from payload" />
                       <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" />
@@ -1249,7 +1316,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'}
                         note={hasValue(featuredUpdatedAt) ? `Most recent board or dossier timestamp, ${featuredRefreshRelative}` : 'Most recent board or dossier timestamp'}
                       />
-                    </div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <Stat
@@ -1520,26 +1586,19 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                   <div className="mt-3 text-lg font-semibold text-white">{spot.row.playerName}</div>
                                   <div className="mt-1 text-sm text-zinc-400">{matchup(spot.row)}</div>
                                 </div>
-                                <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[spot.side]}`}>
-                                  <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Recommendation</div>
-                                  <div className="mt-2 flex justify-end">
-                                    <Side side={spot.side} kind={spot.sideKind} />
-                                  </div>
-                                </div>
+                                <RecommendationBox view={spot} className="w-full sm:w-auto sm:min-w-[250px]" />
                               </div>
-                              <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-300">
-                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
-                                  Live {spot.live == null ? '-' : n(spot.live)}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
-                                  Edge {spot.edge == null ? '-' : signed(spot.edge)}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
-                                  Conf {spot.conf == null ? '-' : pct(spot.conf, 1)}
-                                </span>
-                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{spot.note}</span>
+                              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <CompactMetric label="Line to play" value={spot.live == null ? (spot.fair == null ? '-' : n(spot.fair)) : n(spot.live)} />
+                                <CompactMetric label="Projection" value={spot.proj == null ? '-' : n(spot.proj)} />
+                                <CompactMetric label="Edge" value={spot.edge == null ? '-' : signed(spot.edge)} />
+                                <CompactMetric label="Confidence" value={spot.conf == null ? '-' : pct(spot.conf, 1)} />
                               </div>
                               <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-300">
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
+                                  {booksLiveLabel(spot.books) ?? 'Books pending'}
+                                </span>
+                                <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{spot.note}</span>
                                 <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">
                                   L10 {spot.label} {n(spot.row.last10Average[spot.market], 1)}
                                 </span>
@@ -1619,17 +1678,17 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{row.playerName}</div>
                           <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
                         </div>
-                        <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[view.side]}`}>
-                          <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Recommendation</div>
-                          <div className="mt-2 flex justify-end">
-                            <Side side={view.side} kind={view.sideKind} />
-                          </div>
-                          <div className="mt-1 text-xs opacity-80">{view.note}</div>
-                        </div>
+                        <RecommendationBox view={view} className="w-full sm:w-auto sm:min-w-[250px]" />
                       </div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <Stat dense label="Live line" value={view.live == null ? '-' : n(view.live)} kind={view.liveLineKind} note={view.note} />
-                        <Stat dense label="Fair line" value={view.fair == null ? '-' : n(view.fair)} kind={view.fairKind} note="Model fair line from payload" />
+                        <Stat
+                          dense
+                          label="Line to play"
+                          value={view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)}
+                          kind={view.live == null ? view.fairKind : view.liveLineKind}
+                          note={view.live != null ? 'Current consensus line behind the call' : view.fair != null ? 'Model fair line until live books land' : view.note}
+                        />
+                        <Stat dense label="Projection" value={view.proj == null ? '-' : n(view.proj)} kind={view.projKind} note="Tonight projection from payload" />
                         <Stat dense label="Edge" value={view.edge == null ? '-' : signed(view.edge)} kind={view.edgeKind} note="Projection minus line" />
                         <Stat dense label="Confidence" value={view.conf == null ? '-' : pct(view.conf, 1)} kind={view.confKind} note="Payload confidence or derived win probability" />
                       </div>
@@ -2119,20 +2178,21 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{v.row.playerName}</div>
                           <div className="mt-1 text-sm text-zinc-400">{matchup(v.row)}</div>
                         </div>
-                        <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[v.side]}`}>
-                          <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Recommendation</div>
-                          <div className="mt-2 flex justify-end">
-                            <Side side={v.side} kind={v.sideKind} />
-                          </div>
-                        </div>
+                        <RecommendationBox view={v} className="w-full sm:w-auto sm:min-w-[250px]" />
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                        <Stat dense label="Live line" value={v.live == null ? '-' : n(v.live)} kind={v.liveLineKind} note={v.note} />
-                        <Stat dense label="Fair line" value={v.fair == null ? '-' : n(v.fair)} kind={v.fairKind} note="Fair line from payload" />
+                        <Stat
+                          dense
+                          label="Line to play"
+                          value={v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}
+                          kind={v.live == null ? v.fairKind : v.liveLineKind}
+                          note={v.live != null ? 'Current consensus line behind the call' : v.fair != null ? 'Model fair line until live books land' : v.note}
+                        />
+                        <Stat dense label="Projection" value={v.proj == null ? '-' : n(v.proj)} kind={v.projKind} note="Tonight projection from payload" />
                         <Stat dense label="Edge" value={v.edge == null ? '-' : signed(v.edge)} kind={v.edgeKind} note="Projection minus line" />
                         <Stat dense label="Confidence" value={v.conf == null ? '-' : pct(v.conf, 1)} kind={v.confKind} note="Payload confidence or derived win probability" />
-                        <Stat dense label="Books" value={v.books == null ? '-' : n(v.books, 0)} kind={v.booksKind} note="Consensus books currently seen" />
+                        <Stat dense label="Books live" value={booksLiveLabel(v.books) ?? '-'} kind={v.booksKind} note="Consensus books currently seen" />
                       </div>
 
                       {v.reasons.length ? (
