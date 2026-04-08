@@ -699,9 +699,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
   const [selectedMatchupKey, setSelectedMatchupKey] = useState<string | null>(initialData.matchups[0]?.key ?? null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const overviewRef = useRef<HTMLElement | null>(null);
+  const workspaceRef = useRef<HTMLElement | null>(null);
+  const matchupExplorerRef = useRef<HTMLElement | null>(null);
   const helpRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
@@ -762,6 +766,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     if (!deferredSearchQuery) return [];
     return slatePlayers.filter((row) => playerSearchKey(row).includes(deferredSearchQuery));
   }, [deferredSearchQuery, slatePlayers]);
+  const headerPlayerResults = useMemo(() => searchResults.slice(0, 5), [searchResults]);
+  const headerMatchupResults = useMemo(() => {
+    if (!deferredSearchQuery) return [] as SnapshotBoardViewData['matchups'];
+    return data.matchups
+      .filter((matchup) =>
+        [matchup.label, matchup.key, matchup.gameTimeEt]
+          .join(' ')
+          .toLowerCase()
+          .includes(deferredSearchQuery),
+      )
+      .slice(0, 4);
+  }, [data.matchups, deferredSearchQuery]);
   const hasActiveSearch = deferredSearchQuery.length > 0;
   const researchListRows = deferredSearchQuery ? searchResults : researchRows;
   const searchLeadRow = deferredSearchQuery ? searchResults[0] ?? null : null;
@@ -1163,18 +1179,56 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     },
   };
   const activeWorkspace = TABS.find((item) => item.id === tab) ?? TABS[0];
-  const openHelp = () => helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const scrollToSection = (ref: React.RefObject<HTMLElement | null>, behavior: ScrollBehavior = 'smooth') => {
+    window.setTimeout(() => ref.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+  };
+  const activateTab = (nextTab: Tab) => {
+    setHeaderSearchOpen(false);
+    setTab(nextTab);
+    scrollToSection(nextTab === 'precision' ? overviewRef : workspaceRef);
+  };
+  const openHelp = () => {
+    setHeaderSearchOpen(false);
+    helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const openResearchSearch = () => {
     setTab('research');
-    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    setHeaderSearchOpen(false);
+    window.setTimeout(() => {
+      workspaceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      searchInputRef.current?.focus();
+    }, 0);
   };
-  const setResearch = (playerId: string) => {
+  const setResearch = (playerId: string, options?: { scroll?: boolean }) => {
     const row = rowById.get(playerId);
     if (row?.matchupKey) {
       setSelectedMatchupKey(row.matchupKey);
     }
     setPickedPlayer(playerId);
     setTab('research');
+    setHeaderSearchOpen(false);
+    if (options?.scroll !== false) {
+      scrollToSection(workspaceRef);
+    }
+  };
+  const openMatchup = (matchupKey: string) => {
+    setSelectedMatchupKey(matchupKey);
+    setTab('precision');
+    setHeaderSearchOpen(false);
+    scrollToSection(matchupExplorerRef);
+  };
+  const commitHeaderSearch = () => {
+    if (headerPlayerResults[0]) {
+      setSearchQuery(headerPlayerResults[0].playerName);
+      setResearch(headerPlayerResults[0].playerId);
+      return;
+    }
+    if (headerMatchupResults[0]) {
+      setSearchQuery(headerMatchupResults[0].label);
+      openMatchup(headerMatchupResults[0].key);
+      return;
+    }
+    activateTab('research');
   };
 
   useEffect(() => {
@@ -1271,14 +1325,82 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                  <input
-                    type="search"
-                    value={searchQuery}
-                    onFocus={() => setTab('research')}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="Search players or matchups"
-                    className="hidden w-[240px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)] lg:block"
-                  />
+                  <div className="relative hidden lg:block">
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onFocus={() => setHeaderSearchOpen(true)}
+                      onBlur={() => window.setTimeout(() => setHeaderSearchOpen(false), 120)}
+                      onChange={(event) => {
+                        setSearchQuery(event.target.value);
+                        setHeaderSearchOpen(true);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          commitHeaderSearch();
+                        }
+                        if (event.key === 'Escape') {
+                          setHeaderSearchOpen(false);
+                        }
+                      }}
+                      placeholder="Search players or matchups"
+                      className="w-[240px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)]"
+                    />
+                    {headerSearchOpen && deferredSearchQuery ? (
+                      <div className="absolute right-0 top-full z-50 mt-2 w-[320px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_40px_rgba(20,16,35,0.12)]">
+                        {headerPlayerResults.length ? (
+                          <div className="border-b border-[var(--border)] p-2">
+                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Players</div>
+                            {headerPlayerResults.map((row) => (
+                              <button
+                                key={`header-player:${row.playerId}`}
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                  setSearchQuery(row.playerName);
+                                  setResearch(row.playerId);
+                                }}
+                                className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-[var(--surface-2)]`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold text-[var(--text)]">{row.playerName}</div>
+                                  <div className="mt-0.5 truncate text-xs text-[var(--text-2)]">{matchup(row)}</div>
+                                </div>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Player</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                        {headerMatchupResults.length ? (
+                          <div className="p-2">
+                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Matchups</div>
+                            {headerMatchupResults.map((matchupResult) => (
+                              <button
+                                key={`header-matchup:${matchupResult.key}`}
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                  setSearchQuery(matchupResult.label);
+                                  openMatchup(matchupResult.key);
+                                }}
+                                className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-[var(--surface-2)]`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold text-[var(--text)]">{matchupResult.label}</div>
+                                  <div className="mt-0.5 truncate text-xs text-[var(--text-2)]">{matchupResult.gameTimeEt}</div>
+                                </div>
+                                <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Game</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                        {!headerPlayerResults.length && !headerMatchupResults.length ? (
+                          <div className="px-4 py-3 text-sm text-[var(--text-2)]">No live player or matchup matches for that search yet.</div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
                   <button
                     type="button"
                     onClick={refreshSlate}
@@ -1300,7 +1422,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => (item.action === 'help' ? openHelp() : setTab(item.tab!))}
+                    onClick={() => (item.action === 'help' ? openHelp() : activateTab(item.tab!))}
                     className={`${ACTION_CLASS} min-h-[38px] shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
                       item.tab && tab === item.tab
                         ? 'bg-[var(--accent)] text-white'
@@ -1454,14 +1576,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <div className="mt-4 flex flex-wrap gap-2 md:mt-5">
                     <button
                       type="button"
-                      onClick={() => setTab('research')}
+                      onClick={() => setResearch(featured.row.playerId)}
                       className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] sm:w-auto`}
                     >
                       Open player
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTab('tracking')}
+                      onClick={() => activateTab('tracking')}
                       className={`${ACTION_CLASS} hidden min-h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:inline-flex`}
                     >
                       Compare lines
@@ -1498,7 +1620,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section className="mt-4 md:mt-6">
+          <section ref={overviewRef} className="mt-4 md:mt-6">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
@@ -1570,7 +1692,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
+          <section ref={matchupExplorerRef} className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
             <div className="order-2 xl:order-1 xl:col-span-5">
               <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1580,7 +1702,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   </div>
                   <button
                     type="button"
-                    onClick={() => setTab('scout')}
+                    onClick={() => activateTab('scout')}
                     className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open feed
@@ -1718,7 +1840,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   </div>
                   <button
                     type="button"
-                    onClick={() => setTab('scout')}
+                    onClick={() => activateTab('scout')}
                     className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open full feed
@@ -1780,7 +1902,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
+          <section ref={workspaceRef} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
