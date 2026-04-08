@@ -1656,10 +1656,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge label={refreshNotice.kind} kind={refreshNotice.kind} />
-                    <div className="text-sm font-semibold text-white">{refreshNotice.title}</div>
+                    <Badge label={refreshNotice?.kind ?? 'PLACEHOLDER'} kind={refreshNotice?.kind ?? 'PLACEHOLDER'} />
+                    <div className="text-sm font-semibold text-white">{refreshNotice?.title ?? ''}</div>
                   </div>
-                  <div className="mt-2 text-sm text-zinc-300">{refreshNotice.detail}</div>
+                  <div className="mt-2 text-sm text-zinc-300">{refreshNotice?.detail ?? ''}</div>
                 </div>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2 text-[11px] uppercase tracking-[0.18em] text-zinc-400">
