@@ -1648,9 +1648,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               {refreshNotice ? (
                 <div
                   className={`mt-4 rounded-2xl border p-4 ${
-                    refreshNotice.kind === 'LIVE'
+                    refreshNotice?.kind === 'LIVE'
                       ? 'border-emerald-400/20 bg-emerald-400/8'
-                      : refreshNotice.kind === 'DERIVED'
+                      : refreshNotice?.kind === 'DERIVED'
                         ? 'border-amber-400/20 bg-amber-400/8'
                         : 'border-white/10 bg-white/5'
                   }`}
