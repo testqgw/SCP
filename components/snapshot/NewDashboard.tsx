@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   SnapshotBoardViewData,
@@ -12,6 +13,7 @@ import type {
 } from '@/lib/types/snapshot';
 
 type Tab = 'precision' | 'research' | 'scout' | 'tracking';
+type ViewKey = 'overview' | 'players' | 'feed' | 'lines' | 'method';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
@@ -32,6 +34,20 @@ const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Lines', hint: 'Live line vs fair' },
 ];
+
+const TAB_TO_VIEW: Record<Tab, ViewKey> = {
+  precision: 'overview',
+  research: 'players',
+  scout: 'feed',
+  tracking: 'lines',
+};
+
+const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
+  overview: 'precision',
+  players: 'research',
+  feed: 'scout',
+  lines: 'tracking',
+};
 
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
   { label: 'Overview', tab: 'precision' },
@@ -682,6 +698,20 @@ function playerSearchKey(row: SnapshotDashboardRow) {
   return [row.playerName, row.teamCode, row.opponentCode, row.matchupKey, row.position ?? '', row.gameTimeEt].join(' ').toLowerCase();
 }
 
+function slugifyParam(value: string) {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function parseViewParam(value: string | null): ViewKey {
+  if (value === 'players' || value === 'feed' || value === 'lines' || value === 'method') return value;
+  return 'overview';
+}
+
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
   const totals = `${n(result.totals.games, 0)} games | ${n(result.totals.players, 0)} players`;
   const boardTime = refreshedAt ? `Board updated ${ts(refreshedAt)}` : null;
@@ -694,20 +724,28 @@ function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['resu
 }
 
 export default function NewDashboard({ data: initialData }: { data: SnapshotBoardViewData }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [data, setData] = useState(initialData);
   const [tab, setTab] = useState<Tab>('precision');
+  const [headerView, setHeaderView] = useState<ViewKey>('overview');
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
+  const [pinnedMatchupKey, setPinnedMatchupKey] = useState<string | null>(null);
   const [selectedMatchupKey, setSelectedMatchupKey] = useState<string | null>(initialData.matchups[0]?.key ?? null);
   const [searchQuery, setSearchQuery] = useState('');
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [urlReady, setUrlReady] = useState(false);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const matchupExplorerRef = useRef<HTMLElement | null>(null);
   const helpRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const hasParsedUrlRef = useRef(false);
+  const pendingUrlSearchRef = useRef<string | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   useEffect(() => {
@@ -840,6 +878,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     [data.teamMatchups, selectedMatchupKey],
   );
   const matchupLabelByKey = useMemo(() => new Map(data.matchups.map((m) => [m.key, m.label] as const)), [data.matchups]);
+  const playerByParam = useMemo(() => {
+    const map = new Map<string, SnapshotDashboardRow>();
+    slatePlayers.forEach((row) => {
+      map.set(slugifyParam(row.playerName), row);
+      map.set(row.playerId, row);
+    });
+    return map;
+  }, [slatePlayers]);
+  const matchupByParam = useMemo(() => {
+    const map = new Map<string, SnapshotBoardViewData['matchups'][number]>();
+    data.matchups.forEach((matchupItem) => {
+      map.set(matchupItem.key, matchupItem);
+      map.set(slugifyParam(matchupItem.key), matchupItem);
+      map.set(slugifyParam(matchupItem.label), matchupItem);
+    });
+    return map;
+  }, [data.matchups]);
   const selectedMatchupViews = useMemo(
     () =>
       rankViews(allViews.filter((v) => v.row.matchupKey === selectedMatchupKey && isActionableView(v))),
@@ -1182,16 +1237,37 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const scrollToSection = (ref: React.RefObject<HTMLElement | null>, behavior: ScrollBehavior = 'smooth') => {
     window.setTimeout(() => ref.current?.scrollIntoView({ behavior, block: 'start' }), 0);
   };
+  const scrollToView = (nextView: ViewKey, options?: { behavior?: ScrollBehavior; matchupKey?: string | null }) => {
+    const behavior = options?.behavior ?? 'smooth';
+    if (nextView === 'method') {
+      window.setTimeout(() => helpRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      return;
+    }
+    if (nextView === 'overview' && options?.matchupKey) {
+      scrollToSection(matchupExplorerRef, behavior);
+      return;
+    }
+    scrollToSection(nextView === 'overview' ? overviewRef : workspaceRef, behavior);
+  };
+  const setMatchupSelection = (matchupKey: string, options?: { pin?: boolean }) => {
+    setSelectedMatchupKey(matchupKey);
+    if (options?.pin !== false) {
+      setPinnedMatchupKey(matchupKey);
+    }
+  };
   const activateTab = (nextTab: Tab) => {
     setHeaderSearchOpen(false);
+    setHeaderView(TAB_TO_VIEW[nextTab]);
     setTab(nextTab);
-    scrollToSection(nextTab === 'precision' ? overviewRef : workspaceRef);
+    scrollToView(TAB_TO_VIEW[nextTab]);
   };
   const openHelp = () => {
     setHeaderSearchOpen(false);
-    helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setHeaderView('method');
+    scrollToView('method');
   };
   const openResearchSearch = () => {
+    setHeaderView('players');
     setTab('research');
     setHeaderSearchOpen(false);
     window.setTimeout(() => {
@@ -1202,20 +1278,22 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const setResearch = (playerId: string, options?: { scroll?: boolean }) => {
     const row = rowById.get(playerId);
     if (row?.matchupKey) {
-      setSelectedMatchupKey(row.matchupKey);
+      setMatchupSelection(row.matchupKey);
     }
     setPickedPlayer(playerId);
+    setHeaderView('players');
     setTab('research');
     setHeaderSearchOpen(false);
     if (options?.scroll !== false) {
-      scrollToSection(workspaceRef);
+      scrollToView('players');
     }
   };
   const openMatchup = (matchupKey: string) => {
-    setSelectedMatchupKey(matchupKey);
+    setMatchupSelection(matchupKey);
+    setHeaderView('overview');
     setTab('precision');
     setHeaderSearchOpen(false);
-    scrollToSection(matchupExplorerRef);
+    scrollToView('overview', { matchupKey });
   };
   const commitHeaderSearch = () => {
     if (headerPlayerResults[0]) {
@@ -1230,6 +1308,72 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
     activateTab('research');
   };
+
+  useEffect(() => {
+    const currentSearch = searchParams.toString();
+    const nextView = parseViewParam(searchParams.get('view'));
+    const nextTab = VIEW_TO_TAB[nextView];
+    const nextPlayer = searchParams.get('player');
+    const nextMatchup = searchParams.get('matchup');
+    const matchedPlayer = nextPlayer ? playerByParam.get(nextPlayer) ?? null : null;
+    const matchedMatchup = nextMatchup ? matchupByParam.get(nextMatchup) ?? null : null;
+    const nextSelectedMatchupKey = matchedMatchup?.key ?? matchedPlayer?.matchupKey ?? null;
+    const isInternalUrlUpdate = pendingUrlSearchRef.current === currentSearch;
+
+    setHeaderSearchOpen(false);
+    setHeaderView(nextView);
+    if (nextTab) {
+      setTab(nextTab);
+    }
+    setPickedPlayer(matchedPlayer?.playerId ?? null);
+    setPinnedMatchupKey(matchedMatchup?.key ?? null);
+    setSelectedMatchupKey(nextSelectedMatchupKey);
+    setUrlReady(true);
+    if (isInternalUrlUpdate) {
+      pendingUrlSearchRef.current = null;
+      hasParsedUrlRef.current = true;
+      return;
+    }
+    const behavior: ScrollBehavior = hasParsedUrlRef.current ? 'smooth' : 'auto';
+    hasParsedUrlRef.current = true;
+    if (currentSearch.length === 0 && nextView === 'overview') {
+      return;
+    }
+    if (nextView === 'method') {
+      window.setTimeout(() => helpRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      return;
+    }
+    if (nextView === 'overview' && nextSelectedMatchupKey) {
+      window.setTimeout(() => matchupExplorerRef.current?.scrollIntoView({ behavior, block: 'start' }), 0);
+      return;
+    }
+    window.setTimeout(() => (nextView === 'overview' ? overviewRef.current : workspaceRef.current)?.scrollIntoView({ behavior, block: 'start' }), 0);
+  }, [matchupByParam, playerByParam, searchParams]);
+
+  useEffect(() => {
+    if (!urlReady) return;
+    const params = new URLSearchParams();
+    const encodedPlayer = pickedPlayer ? rowById.get(pickedPlayer) : null;
+    const encodedMatchup = pinnedMatchupKey ? matchupByParam.get(pinnedMatchupKey) ?? null : null;
+
+    if (headerView !== 'overview' || encodedPlayer || encodedMatchup) {
+      params.set('view', headerView);
+    }
+    if (encodedPlayer) {
+      params.set('player', slugifyParam(encodedPlayer.playerName));
+    }
+    if (encodedMatchup) {
+      params.set('matchup', slugifyParam(encodedMatchup.key));
+    }
+
+    const nextSearch = params.toString();
+    const currentSearch = searchParams.toString();
+    if (nextSearch === currentSearch) return;
+    pendingUrlSearchRef.current = nextSearch;
+    startTransition(() => {
+      router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname, { scroll: false });
+    });
+  }, [headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, router, searchParams, urlReady]);
 
   useEffect(() => {
     if (pickedPlayer && !rowById.has(pickedPlayer)) {
@@ -1424,7 +1568,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     type="button"
                     onClick={() => (item.action === 'help' ? openHelp() : activateTab(item.tab!))}
                     className={`${ACTION_CLASS} min-h-[38px] shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
-                      item.tab && tab === item.tab
+                      (item.tab && headerView === TAB_TO_VIEW[item.tab]) || (item.action === 'help' && headerView === 'method')
                         ? 'bg-[var(--accent)] text-white'
                         : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
                     }`}
@@ -1715,7 +1859,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <button
                           key={m.key}
                           type="button"
-                          onClick={() => setSelectedMatchupKey(m.key)}
+                          onClick={() => setMatchupSelection(m.key)}
                           className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
                             selectedMatchupKey === m.key
                               ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
@@ -1920,7 +2064,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <button
                     key={`workspace:${item.id}`}
                     type="button"
-                    onClick={() => setTab(item.id)}
+                    onClick={() => activateTab(item.id)}
                     className={`${ACTION_CLASS} rounded-full px-4 py-2 text-sm font-medium ${
                       tab === item.id
                         ? 'bg-[var(--accent)] text-white'
@@ -1933,7 +2077,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <button
                   type="button"
                   onClick={openHelp}
-                  className={`${ACTION_CLASS} rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]`}
+                  className={`${ACTION_CLASS} rounded-full border px-4 py-2 text-sm font-medium ${
+                    headerView === 'method'
+                      ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent)] text-white'
+                      : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                  }`}
                 >
                   Method
                 </button>
@@ -2055,7 +2203,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   )}
                 </div>
 
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
               </div>
             </section>
           ) : null}
@@ -2553,7 +2701,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     present in SnapshotBoardData.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
               </div>
             </section>
           ) : null}
@@ -2688,7 +2836,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     movement history.
                   </p>
                 </div>
-                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setSelectedMatchupKey} />
+                <MatchupsCard matchups={data.matchups} selectedKey={selectedMatchupKey} onSelect={setMatchupSelection} />
               </div>
             </section>
           ) : null}
