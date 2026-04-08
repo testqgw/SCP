@@ -392,13 +392,22 @@ function recommendationDetail(view: Pick<View, 'live' | 'fair' | 'books' | 'note
   return view.note;
 }
 
-function selectorFamilyLabel(value: string | null | undefined) {
+function signalTokenLabel(value: string | null | undefined) {
   if (!value) return null;
   return value
+    .replace(/([a-zA-Z])([0-9])/g, '$1 $2')
     .split('_')
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
+}
+
+function selectorFamilyLabel(value: string | null | undefined) {
+  return signalTokenLabel(value);
+}
+
+function selectorTierLabel(value: string | null | undefined) {
+  return signalTokenLabel(value);
 }
 
 function feedReason(
@@ -996,7 +1005,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const featuredMarketAverageSeason = featured ? featured.row.seasonAverage[featured.market] : null;
   const featuredMarketTrend = featured ? featured.row.trendVsSeason[featured.market] : null;
   const featuredMarketOpponentDelta = featured ? featured.row.opponentAllowanceDelta[featured.market] : null;
-  const featuredMarketRecentFive = featured ? lineList(featured.row.last5[featured.market]) : '-';
+  const featuredRecentValues = featured ? featured.row.last5[featured.market].slice(-5) : [];
+  const featuredRecentAverage = featuredRecentValues.length
+    ? featuredRecentValues.reduce((sum, value) => sum + value, 0) / featuredRecentValues.length
+    : null;
   const researchLeadTrend = researchRow && researchLeadView ? researchRow.trendVsSeason[researchLeadView.market] : null;
   const researchLeadOpponentDelta = researchRow && researchLeadView ? researchRow.opponentAllowanceDelta[researchLeadView.market] : null;
   const researchLeadRecentFive = researchRow && researchLeadView ? lineList(researchRow.last5[researchLeadView.market]) : '-';
@@ -1247,6 +1259,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const featuredLeadReason =
     (featured ? conciseLeadReason(featured, featuredReasonList[0] ?? null) : null) ??
     'The board is still waiting for a cleaner support note, but the live number is already playable.';
+  const featuredWhyItMatters =
+    firstSentence(featuredReasonList[0] ?? null) ??
+    firstSentence(featuredLeadReason) ??
+    'The board surfaced this number as one of the strongest live player-market pairs on the slate.';
+  const featuredWhySupport = useMemo(() => {
+    if (!featured) return null;
+    const precisionLabel = selectorFamilyLabel(featured.precision?.selectorFamily);
+    const tierLabel = selectorTierLabel(featured.precision?.selectorTier);
+    const coverage = booksLiveLabel(featured.books);
+    const parts = [
+      featured.rank ? `Rank ${featured.rank}` : null,
+      tierLabel ? `${tierLabel} signal` : featured.precision?.qualified ? 'Precision qualified' : null,
+      precisionLabel,
+      coverage,
+    ].filter(Boolean);
+    return parts.length ? parts.slice(0, 3).join(' · ') : null;
+  }, [featured]);
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     precision: {
       title: 'Overview workspace',
@@ -1783,18 +1812,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <div className="mt-5 hidden gap-4 md:grid lg:grid-cols-[1.15fr_0.85fr]">
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
                       <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Why it matters</div>
-                      <div className="mt-3 flex flex-col gap-2">
-                        {featuredReasonList.length ? (
-                          featuredReasonList.map((reason) => (
-                            <div key={reason} className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm leading-6 text-[var(--text-2)]">
-                              {reason}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm leading-6 text-[var(--text-2)]">
-                            No extra reasons surfaced by the current payload.
-                          </div>
-                        )}
+                      <div className="mt-3 flex items-start gap-3 rounded-xl bg-[var(--surface)] px-3.5 py-3">
+                        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+                        <div className="min-w-0">
+                          <div className="text-sm leading-6 text-[var(--text)]">{featuredWhyItMatters}</div>
+                          {featuredWhySupport ? (
+                            <div className="mt-1.5 text-xs text-[var(--text-2)]">{featuredWhySupport}</div>
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
@@ -1805,8 +1830,32 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <CompactMetric label="Trend" value={signed(featuredMarketTrend, 1)} />
                         <CompactMetric label="Opp delta" value={signed(featuredMarketOpponentDelta, 1)} />
                       </div>
-                      <div className="mt-4 rounded-xl bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text-2)]">
-                        Recent 5: <span className="font-mono text-xs text-[var(--text)]">{featuredMarketRecentFive}</span>
+                      <div className="mt-4 rounded-xl bg-[var(--surface)] px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Recent 5</div>
+                          <div className="text-[11px] text-[var(--muted)]">Oldest to newest</div>
+                        </div>
+                        {featuredRecentValues.length ? (
+                          <>
+                            <div className="mt-2.5 grid grid-cols-5 gap-2">
+                              {featuredRecentValues.map((value, index) => (
+                                <div
+                                  key={`${featured.row.playerId}-${featured.market}-recent-${index}`}
+                                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2.5 text-center"
+                                >
+                                  <div className="text-base font-semibold text-[var(--text)]">{n(value, 0)}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mt-2.5 text-xs text-[var(--text-2)]">
+                              Avg {n(featuredRecentAverage, 1)} over the last five results.
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-2.5 text-sm text-[var(--text-2)]">
+                            Recent game logs will fill in here as soon as the slate data resolves.
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
