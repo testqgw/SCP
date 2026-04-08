@@ -161,13 +161,13 @@ function Stat({
   showKind?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3 md:p-3.5' : 'p-3.5 md:p-4'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">{label}</p>
+        <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--muted)] md:text-[10px]">{label}</p>
         {showKind ? <Badge label={kind} kind={kind} /> : null}
       </div>
-      <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-lg' : 'text-2xl'}`}>{value}</div>
-      {note ? <div className="mt-1 text-xs text-[var(--text-2)]">{note}</div> : null}
+      <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-base md:text-lg' : 'text-xl md:text-2xl'}`}>{value}</div>
+      {note ? <div className="mt-1 text-[11px] leading-5 text-[var(--text-2)] md:text-xs">{note}</div> : null}
     </div>
   );
 }
@@ -356,9 +356,9 @@ function CompactMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</div>
-      <div className="mt-1 text-lg font-semibold tracking-tight text-[var(--text)]">{value}</div>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 md:rounded-2xl md:py-3">
+      <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)] md:text-[10px]">{label}</div>
+      <div className="mt-1 text-base font-semibold tracking-tight text-[var(--text)] md:text-lg">{value}</div>
     </div>
   );
 }
@@ -377,14 +377,90 @@ function RecommendationBox({
   size?: 'default' | 'hero' | 'compact';
 }) {
   const detail = recommendationDetail(view);
-  const boxSizeClass = size === 'hero' ? 'rounded-[26px] px-5 py-4' : size === 'compact' ? 'rounded-[18px] px-3.5 py-3' : 'rounded-[22px] px-4 py-3';
+  const boxSizeClass =
+    size === 'hero'
+      ? 'rounded-[22px] px-4 py-3 sm:rounded-[26px] sm:px-5 sm:py-4'
+      : size === 'compact'
+        ? 'rounded-[16px] px-3 py-2.5 sm:rounded-[18px] sm:px-3.5 sm:py-3'
+        : 'rounded-[18px] px-3.5 py-3 sm:rounded-[22px] sm:px-4 sm:py-3';
   const titleClass = size === 'hero' ? 'text-[11px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]';
-  const headlineClass = size === 'hero' ? 'mt-3 text-2xl font-semibold tracking-tight sm:text-[2rem]' : size === 'compact' ? 'mt-2 text-base font-semibold tracking-tight sm:text-lg' : 'mt-2 text-lg font-semibold tracking-tight sm:text-xl';
+  const headlineClass =
+    size === 'hero'
+      ? 'mt-2.5 text-xl font-semibold tracking-tight sm:mt-3 sm:text-[2rem]'
+      : size === 'compact'
+        ? 'mt-2 text-base font-semibold tracking-tight sm:text-lg'
+        : 'mt-2 text-base font-semibold tracking-tight sm:text-xl';
   return (
     <div className={`border ${boxSizeClass} ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
       <div className={`${titleClass} uppercase opacity-75`}>{title}</div>
       <div className={headlineClass}>{recommendationHeadline(view)}</div>
       <div className="mt-1 text-xs opacity-80">{detail}</div>
+    </div>
+  );
+}
+
+function BoardPulseCard({
+  boardRefresh,
+  featuredUpdate,
+  liveLines,
+  feedItems,
+  strongestMarket,
+  bestAlternative,
+  mostActiveGame,
+  booksLive,
+  note,
+  className = '',
+}: {
+  boardRefresh: string;
+  featuredUpdate: string;
+  liveLines: string;
+  feedItems: string;
+  strongestMarket: string;
+  bestAlternative: string;
+  mostActiveGame: string;
+  booksLive: string;
+  note: string;
+  className?: string;
+}) {
+  return (
+    <div className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5 ${className}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board pulse</div>
+          <h2 className="mt-2 text-lg font-semibold text-[var(--text)] sm:text-xl">What changed on the board</h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-2)]">
+            Freshness, live depth, and the active game context without the extra board theory up top.
+          </p>
+        </div>
+        <Badge label="LIVE" kind="LIVE" />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3">
+        <CompactMetric label="Board refresh" value={boardRefresh} />
+        <CompactMetric label="Featured update" value={featuredUpdate} />
+        <CompactMetric label="Live lines" value={liveLines} />
+        <CompactMetric label="Feed items" value={feedItems} />
+      </div>
+      <div className="mt-4 divide-y divide-[var(--border)]">
+        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="text-[var(--text-2)]">Strongest market</span>
+          <span className="font-semibold text-[var(--text)] sm:text-right">{strongestMarket}</span>
+        </div>
+        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="text-[var(--text-2)]">Best alternative</span>
+          <span className="font-semibold text-[var(--text)] sm:text-right">{bestAlternative}</span>
+        </div>
+        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="text-[var(--text-2)]">Most active game</span>
+          <span className="font-semibold text-[var(--text)] sm:text-right">{mostActiveGame}</span>
+        </div>
+        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="text-[var(--text-2)]">Books live</span>
+          <span className="font-semibold text-[var(--text)] sm:text-right">{booksLive}</span>
+        </div>
+      </div>
+      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)]">
+        {note}
+      </div>
     </div>
   );
 }
@@ -980,6 +1056,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     const reasons = featured.precision?.reasons?.length ? featured.precision.reasons : featured.reasons;
     return reasons.slice(0, 3);
   }, [featured]);
+  const featuredLeadReason =
+    featuredReasonList[0] ??
+    'The board is still waiting for a cleaner support note, but the live number is already playable.';
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     precision: {
       title: 'Overview workspace',
@@ -1094,49 +1173,50 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(109,74,255,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(183,129,44,0.10),transparent_28%),linear-gradient(180deg,rgba(255,253,252,0.65)_0%,rgba(245,241,232,0.88)_100%)]" />
       <div className="relative">
         <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
-          <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-6 xl:px-8">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center justify-between gap-4 xl:flex-1">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-sm font-semibold tracking-[0.12em] text-[var(--accent)]">
+          <div className="mx-auto max-w-[1440px] px-3 py-2.5 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold tracking-[0.12em] text-[var(--accent)] sm:h-10 sm:w-10 sm:rounded-2xl sm:text-sm">
                     U
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">ULTOPS / Snapshot</div>
-                    <div className="mt-1 text-sm text-[var(--text-2)]">NBA prop intelligence board</div>
+                    <div className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--muted)] sm:text-[11px] sm:tracking-[0.28em]">ULTOPS / Snapshot</div>
+                    <div className="mt-1 hidden text-sm text-[var(--text-2)] sm:block">NBA prop intelligence board</div>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2 md:gap-3">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                   <input
                     type="search"
                     value={searchQuery}
                     onFocus={() => setTab('research')}
                     onChange={(event) => setSearchQuery(event.target.value)}
                     placeholder="Search players or matchups"
-                    className="hidden w-[250px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)] md:block"
+                    className="hidden w-[240px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)] lg:block"
                   />
                   <button
                     type="button"
                     onClick={refreshSlate}
                     disabled={isRefreshing}
-                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium ${
+                    className={`${ACTION_CLASS} inline-flex min-h-11 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-medium sm:px-4 sm:py-2.5 sm:text-sm ${
                       isRefreshing
                         ? 'cursor-wait bg-[color:rgba(183,129,44,0.12)] text-[var(--warning)]'
                         : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
                     }`}
                   >
-                    {isRefreshing ? 'Refreshing...' : 'Refresh slate'}
+                    <span className="sm:hidden">{isRefreshing ? 'Refreshing' : 'Refresh'}</span>
+                    <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh slate'}</span>
                   </button>
                   <Badge label={isRefreshing ? 'Updated' : 'Live'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
                 </div>
               </div>
-              <nav className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1">
+              <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TOP_NAV.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => (item.action === 'help' ? openHelp() : setTab(item.tab!))}
-                    className={`${ACTION_CLASS} shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
+                    className={`${ACTION_CLASS} min-h-11 shrink-0 rounded-full px-3 py-2 text-xs font-medium sm:px-4 sm:text-sm ${
                       item.tab && tab === item.tab
                         ? 'bg-[var(--accent)] text-white'
                         : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
@@ -1150,8 +1230,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1440px] px-4 pb-16 pt-6 sm:px-6 xl:px-8">
-          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:grid-cols-3 xl:grid-cols-6">
+        <main className="mx-auto max-w-[1440px] px-3 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:px-8">
+          <section className="grid grid-cols-3 gap-2 md:hidden">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+              <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Refresh</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{boardRefreshRelative}</div>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+              <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Games</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(data.matchups.length, 0)}</div>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+              <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Books</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</div>
+            </div>
+          </section>
+
+          <section className="mt-4 hidden grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:mt-0 md:grid md:grid-cols-3 xl:grid-cols-6">
             <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
               <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Slate date</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">{data.dateEt}</div>
@@ -1193,24 +1288,24 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           ) : null}
 
-          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <section className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
             <div className="xl:col-span-7">
               {featured ? (
-                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_12px_34px_rgba(20,16,35,0.07)] md:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-5">
+                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_34px_rgba(20,16,35,0.07)] sm:p-5 md:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-4 md:gap-5">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
                         {featured.rank ? <Badge label={featured.rank} kind="DERIVED" /> : null}
                         <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                       </div>
-                      <div className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Best play now</div>
-                      <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">{featured.row.playerName}</h1>
-                      <p className="mt-2 max-w-2xl text-base text-[var(--text-2)]">{matchup(featured.row)} - Updated {ts(featuredUpdatedAt)}</p>
+                      <div className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)] md:mt-5">Best play now</div>
+                      <h1 className="mt-2 text-[2.35rem] font-semibold tracking-tight text-[var(--text)] sm:text-4xl md:text-5xl">{featured.row.playerName}</h1>
+                      <p className="mt-2 max-w-2xl text-sm text-[var(--text-2)] sm:text-base">{matchup(featured.row)} - Updated {ts(featuredUpdatedAt)}</p>
                     </div>
-                    <RecommendationBox view={featured} title="Best play" size="hero" className="w-full md:w-auto md:min-w-[290px]" />
+                    <RecommendationBox view={featured} title="Best play" size="hero" className="w-full sm:w-auto sm:min-w-[260px] md:min-w-[290px]" />
                   </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3 xl:grid-cols-4">
                     <Stat
                       dense
                       label="Line to play"
@@ -1224,7 +1319,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 1)} kind={featured.confKind} note="Payload confidence" showKind={false} />
                   </div>
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                  <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)] md:hidden">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Why it leads</div>
+                    <div className="mt-2">{featuredLeadReason}</div>
+                  </div>
+
+                  <div className="mt-5 hidden gap-4 md:grid lg:grid-cols-[1.15fr_0.85fr]">
                     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
                       <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Why it matters</div>
                       <div className="mt-3 flex flex-col gap-2">
@@ -1255,22 +1355,22 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-2 md:mt-5">
                     <button
                       type="button"
                       onClick={() => setTab('research')}
-                      className={`${ACTION_CLASS} inline-flex items-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)]`}
+                      className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] sm:w-auto`}
                     >
                       Open player dossier
                     </button>
                     <button
                       type="button"
                       onClick={() => setTab('tracking')}
-                      className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                      className={`${ACTION_CLASS} hidden min-h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:inline-flex`}
                     >
                       Compare lines
                     </button>
-                    <div className="inline-flex items-center rounded-xl bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-2)]">
+                    <div className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-2)] sm:w-auto">
                       {booksLiveLabel(featured.books) ?? 'Books pending'}
                     </div>
                   </div>
@@ -1290,93 +1390,63 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               )}
             </div>
 
-            <div className="xl:col-span-5">
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board pulse</div>
-                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What changed on the board</h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
-                      Freshness, live depth, and the active game context without the extra board theory up top.
-                    </p>
-                  </div>
-                  <Badge label="LIVE" kind="LIVE" />
-                </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <CompactMetric label="Board refresh" value={ts(data.lastUpdatedAt)} />
-                  <CompactMetric label="Featured update" value={ts(featuredUpdatedAt)} />
-                  <CompactMetric label="Live lines" value={n(liveCount, 0)} />
-                  <CompactMetric label="Feed items" value={n(liveFeedViews.length, 0)} />
-                </div>
-                <div className="mt-5 divide-y divide-[var(--border)]">
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Strongest market</span>
-                    <span className="font-semibold text-[var(--text)]">{featured ? `${featured.row.playerName} ${featured.label}` : '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Best alternative</span>
-                    <span className="font-semibold text-[var(--text)]">
-                      {topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Most active game</span>
-                    <span className="font-semibold text-[var(--text)]">{selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Books live</span>
-                    <span className="font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</span>
-                  </div>
-                </div>
-                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  {boardPulseNote}
-                </div>
-              </div>
+            <div className="hidden md:block xl:col-span-5">
+              <BoardPulseCard
+                boardRefresh={ts(data.lastUpdatedAt)}
+                featuredUpdate={ts(featuredUpdatedAt)}
+                liveLines={n(liveCount, 0)}
+                feedItems={n(liveFeedViews.length, 0)}
+                strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
+                bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
+                mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
+                booksLive={liveBookDepth == null ? '-' : n(liveBookDepth)}
+                note={boardPulseNote}
+              />
             </div>
           </section>
 
-          <section className="mt-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
+          <section className="mt-4 md:mt-6">
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Best live numbers on the board</h2>
                 <p className="mt-1 text-sm text-[var(--text-2)]">Best actionable plays right now.</p>
               </div>
-              <div className="text-sm text-[var(--text-2)]">
+              <div className="text-xs text-[var(--text-2)] sm:text-sm">
                 {topOpportunities.length ? `${n(topOpportunities.length, 0)} live cards ready to open` : 'Waiting for a broader set of live book lines'}
               </div>
             </div>
             {topOpportunities.length ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
                 {topOpportunities.map((view, index) => (
                   <button
                     key={`${view.row.playerId}:${view.market}:top-opportunity`}
                     type="button"
                     onClick={() => setResearch(view.row.playerId)}
-                    className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                    className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5 text-left md:p-4 ${CARD_BUTTON_CLASS}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2.5 md:gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap gap-2">
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
                           <Pill label={view.label} tone="amber" />
                         </div>
-                        <div className="mt-3 text-xl font-semibold leading-tight text-[var(--text)]">{view.row.playerName}</div>
-                        <div className="mt-2 text-base font-semibold text-[var(--text)]">{recommendationHeadline(view)}</div>
-                        <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
+                        <div className="mt-2.5 text-lg font-semibold leading-tight text-[var(--text)] md:mt-3 md:text-xl">{view.row.playerName}</div>
+                        <div className="mt-1.5 text-sm font-semibold text-[var(--text)] md:mt-2 md:text-base">{recommendationHeadline(view)}</div>
+                        <div className="mt-1 text-[13px] text-[var(--text-2)] md:text-sm">{matchup(view.row)}</div>
                       </div>
-                      <div className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text-2)]">
+                      <div className="rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-2)] md:px-3 md:text-xs">
                         {relativeTime(view.row.gameIntel.generatedAt, now)}
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="mt-3.5 grid grid-cols-3 gap-2 md:mt-4 md:gap-3">
                       <CompactMetric label="Line" value={view.live == null ? '-' : n(view.live)} />
                       <CompactMetric label="Edge" value={view.edge == null ? '-' : signed(view.edge)} />
                       <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 1)} />
                     </div>
-                    <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--text-2)]">
+                    <div className="mt-3.5 flex items-center justify-between gap-3 text-xs text-[var(--text-2)] md:mt-4 md:text-sm">
                       <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
-                      <span className="text-right">Open player</span>
+                      <span className="text-right font-medium text-[var(--accent)]">Open player</span>
                     </div>
                   </button>
                 ))}
@@ -1392,11 +1462,25 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 />
               </div>
             )}
+
+            <div className="mt-4 md:hidden">
+              <BoardPulseCard
+                boardRefresh={ts(data.lastUpdatedAt)}
+                featuredUpdate={ts(featuredUpdatedAt)}
+                liveLines={n(liveCount, 0)}
+                feedItems={n(liveFeedViews.length, 0)}
+                strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
+                bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
+                mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
+                booksLive={liveBookDepth == null ? '-' : n(liveBookDepth)}
+                note={boardPulseNote}
+              />
+            </div>
           </section>
 
-          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
-            <div className="xl:col-span-5">
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+          <section className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
+            <div className="order-2 xl:order-1 xl:col-span-5">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Matchup explorer</div>
@@ -1405,7 +1489,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <button
                     type="button"
                     onClick={() => setTab('scout')}
-                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open feed
                   </button>
@@ -1532,8 +1616,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               </div>
             </div>
 
-            <div className="xl:col-span-7">
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+            <div className="order-1 xl:order-2 xl:col-span-7">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board feed</div>
@@ -1543,51 +1627,51 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <button
                     type="button"
                     onClick={() => setTab('scout')}
-                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open full feed
                   </button>
                 </div>
                 {liveFeedViews.length ? (
-                  <div className="mt-4 flex max-h-[480px] flex-col gap-3 overflow-auto pr-1">
+                  <div className="mt-4 flex max-h-[480px] flex-col gap-2.5 overflow-auto pr-1 md:gap-3">
                     {liveFeedViews.map((view) => (
                       <button
                         key={`${view.row.playerId}:${view.market}:live-feed`}
                         type="button"
                         onClick={() => setResearch(view.row.playerId)}
-                        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                        className={`rounded-xl border border-[var(--border)] border-l-[3px] border-l-[color:rgba(109,74,255,0.20)] bg-[color:rgba(240,232,220,0.45)] p-3 text-left md:rounded-2xl md:p-4 ${CARD_BUTTON_CLASS}`}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start justify-between gap-3 md:gap-4">
                           <div className="min-w-0">
                             <div className="flex flex-wrap gap-2">
                               <Pill label={view.label} tone="amber" />
                               {view.precision?.selectorTier ? <Pill label={view.precision.selectorTier} tone="default" /> : null}
                             </div>
-                            <div className="mt-2 text-lg font-semibold text-[var(--text)]">{view.row.playerName}</div>
-                            <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
+                            <div className="mt-2 text-base font-semibold text-[var(--text)] md:text-lg">{view.row.playerName}</div>
+                            <div className="mt-1 text-[13px] text-[var(--text-2)] md:text-sm">{matchup(view.row)}</div>
                           </div>
-                          <div className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text-2)]">
+                          <div className="rounded-full bg-[var(--surface)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-2)] md:px-3 md:text-xs">
                             {relativeTime(view.row.gameIntel.generatedAt, now)}
                           </div>
                         </div>
-                        <div className="mt-3 text-sm leading-6 text-[var(--text-2)]">{feedReason(view)}</div>
-                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+                        <div className="mt-2.5 text-sm leading-5 text-[var(--text-2)] md:mt-3 md:leading-6">{feedReason(view)}</div>
+                        <div className="mt-3 flex flex-col gap-3 border-t border-[var(--border)] pt-3 md:mt-4 md:flex-row md:items-center md:justify-between md:pt-4">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${SIDE_CLASS[view.side]}`}>
+                            <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[view.side]}`}>
                               {recommendationHeadline(view)}
                             </span>
-                            <span className="text-sm text-[var(--text-2)]">
+                            <span className="text-[13px] text-[var(--text-2)] md:text-sm">
                               {view.live == null ? '-' : n(view.live)} live / {view.fair == null ? '-' : n(view.fair)} fair / {view.proj == null ? '-' : n(view.proj)} proj
                             </span>
                           </div>
-                          <div className="flex flex-wrap gap-2 text-sm text-[var(--text-2)]">
-                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                          <div className="flex flex-wrap gap-2 text-xs text-[var(--text-2)] md:text-sm">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                               Edge {view.edge == null ? '-' : signed(view.edge)}
                             </span>
-                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                               Conf {view.conf == null ? '-' : pct(view.conf, 1)}
                             </span>
-                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
                               {booksLiveLabel(view.books) ?? 'Books pending'}
                             </span>
                           </div>
