@@ -81,6 +81,12 @@ const ACTION_CLASS =
   'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(109,74,255,0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
 
 const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-[color:rgba(109,74,255,0.24)] hover:shadow-[0_10px_24px_rgba(29,26,34,0.06)]`;
+const WORKSPACE_SWITCH_CLASS =
+  'rounded-full border px-3 py-1.5 text-[13px] font-medium sm:px-3.5 sm:py-2';
+const ACTIVE_SWITCH_CLASS =
+  'border-[color:rgba(109,74,255,0.24)] bg-[var(--surface)] text-[var(--accent)] shadow-[0_6px_18px_rgba(109,74,255,0.10)]';
+const INACTIVE_SWITCH_CLASS =
+  'border-[var(--border)] bg-transparent text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]';
 
 function n(v: number | null | undefined, d = 1) {
   if (v == null || Number.isNaN(v)) return '-';
@@ -262,7 +268,7 @@ function MatchupsCard({
                 onSelect ? ACTION_CLASS : ''
               } ${
                 selectedKey === m.key
-                  ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)]'
+                  ? 'border-[color:rgba(109,74,255,0.32)] bg-[var(--accent-soft)] shadow-[0_10px_24px_rgba(109,74,255,0.10)]'
                   : onSelect
                     ? 'border-[var(--border)] bg-[var(--surface-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
                     : 'border-[var(--border)] bg-[var(--surface-2)]'
@@ -1942,7 +1948,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 </div>
                 {data.matchups.length ? (
                   <>
-                    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                    <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 pr-1 md:gap-3">
                       {data.matchups.map((m) => (
                         <button
                           key={m.key}
@@ -1950,7 +1956,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           onClick={() => setMatchupSelection(m.key, { highlight: true })}
                           className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
                             selectedMatchupKey === m.key
-                              ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                              ? 'border-[color:rgba(109,74,255,0.32)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_10px_24px_rgba(109,74,255,0.10)]'
                               : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
                           } ${isMatchupHighlighted(m.key) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : ''}`}
                         >
@@ -2087,35 +2093,39 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     {liveFeedBuckets.map((bucket) => (
                       <div key={bucket.label}>
                         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{bucket.label}</div>
-                        <div className="relative ml-1 border-l border-[color:rgba(216,204,186,0.85)] pl-4">
+                        <div className="relative ml-1 border-l-2 border-[color:rgba(109,74,255,0.18)] pl-5">
                           {bucket.views.map((view, index) => (
                             <button
                               key={`${view.row.playerId}:${view.market}:live-feed`}
                               type="button"
                               onClick={() => setResearch(view.row.playerId)}
-                              className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[color:rgba(216,204,186,0.72)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
+                              className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[color:rgba(216,204,186,0.58)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
                             >
-                              <span className="absolute -left-[21px] top-2.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--surface)]" />
-                              <div className="flex items-start justify-between gap-3">
+                              <span className="absolute -left-[25px] top-2.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]" />
+                              <div className="grid gap-2 sm:grid-cols-[76px_minmax(0,1fr)] sm:gap-3">
+                                <div className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] sm:text-right">
+                                  {relativeTime(view.row.gameIntel.generatedAt, now)}
+                                </div>
                                 <div className="min-w-0">
-                                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
-                                    {relativeTime(view.row.gameIntel.generatedAt, now)}
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="text-sm font-semibold text-[var(--text)] md:text-[15px]">{feedEventTitle(view)}</div>
+                                      <div className="mt-0.5 text-[13px] text-[var(--text-2)] md:text-sm">
+                                        {view.row.playerName} | {MARKET_LABELS[view.market]} | {matchup(view.row)}
+                                      </div>
+                                    </div>
+                                    {index === 0 ? <Pill label={view.label} tone="amber" /> : null}
                                   </div>
-                                  <div className="mt-1 text-sm font-semibold text-[var(--text)] md:text-[15px]">{feedEventTitle(view)}</div>
-                                  <div className="mt-0.5 text-[13px] text-[var(--text-2)] md:text-sm">
-                                    {view.row.playerName} | {MARKET_LABELS[view.market]} | {matchup(view.row)}
+                                  <div className="mt-1.5 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(view)}</div>
+                                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-2)] md:text-sm">
+                                    <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[view.side]}`}>
+                                      {recommendationHeadline(view)}
+                                    </span>
+                                    <span>Gap {gapRead(view.edge)}</span>
+                                    <span>Conf {view.conf == null ? '-' : pct(view.conf, 0)}</span>
+                                    <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
                                   </div>
                                 </div>
-                                {index === 0 ? <Pill label={view.label} tone="amber" /> : null}
-                              </div>
-                              <div className="mt-1.5 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(view)}</div>
-                              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-2)] md:text-sm">
-                                <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[view.side]}`}>
-                                  {recommendationHeadline(view)}
-                                </span>
-                                <span>Gap {gapRead(view.edge)}</span>
-                                <span>Conf {view.conf == null ? '-' : pct(view.conf, 0)}</span>
-                                <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
                               </div>
                             </button>
                           ))}
@@ -2151,16 +2161,17 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <div className="mt-1 text-sm font-semibold text-[var(--text)]">{tabSummary[tab].detail}</div>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="mr-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Quick switch</div>
                 {TABS.map((item) => (
                   <button
                     key={`workspace:${item.id}`}
                     type="button"
                     onClick={() => activateTab(item.id)}
-                    className={`${ACTION_CLASS} rounded-full px-4 py-2 text-sm font-medium ${
+                    className={`${ACTION_CLASS} ${WORKSPACE_SWITCH_CLASS} ${
                       tab === item.id
-                        ? 'bg-[var(--accent)] text-white'
-                        : 'border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                        ? ACTIVE_SWITCH_CLASS
+                        : INACTIVE_SWITCH_CLASS
                     }`}
                   >
                     {item.label}
@@ -2169,10 +2180,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <button
                   type="button"
                   onClick={openHelp}
-                  className={`${ACTION_CLASS} rounded-full border px-4 py-2 text-sm font-medium ${
+                  className={`${ACTION_CLASS} ${WORKSPACE_SWITCH_CLASS} ${
                     headerView === 'method'
-                      ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent)] text-white'
-                      : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                      ? ACTIVE_SWITCH_CLASS
+                      : INACTIVE_SWITCH_CLASS
                   }`}
                 >
                   Method
@@ -2361,7 +2372,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         onClick={() => setResearch(row.playerId)}
                         className={`w-full rounded-[24px] border p-4 text-left ${CARD_BUTTON_CLASS} ${
                           picked
-                            ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
+                            ? 'border-[color:rgba(109,74,255,0.34)] bg-[linear-gradient(145deg,rgba(35,28,58,0.96),rgba(15,23,42,0.94))] shadow-[0_14px_32px_rgba(109,74,255,0.12)]'
                             : 'border-white/10 bg-zinc-900/75'
                         } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''}`}
                       >
@@ -2426,14 +2437,17 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <div
                       ref={researchDossierRef}
                       tabIndex={-1}
-                      className={`rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 outline-none transition-shadow ${
-                        isPlayerHighlighted(researchRow.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''
+                      className={`rounded-[28px] border bg-zinc-900/75 p-5 outline-none transition-shadow ${
+                        isPlayerHighlighted(researchRow.playerId)
+                          ? 'border-[color:rgba(109,74,255,0.34)] shadow-[0_0_0_3px_rgba(109,74,255,0.20)]'
+                          : 'border-white/10'
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap gap-2">
                             <Badge label="Research dossier" kind="LIVE" />
+                            {pickedPlayer === researchRow.playerId ? <Pill label="Selected player" tone="cyan" /> : null}
                             {researchTopPrecision?.entry.rank ? <Badge label={`Precision ${researchTopPrecision.entry.rank}`} kind="DERIVED" /> : null}
                             {researchLeadView ? <Pill label={`Lead ${researchLeadView.label}`} tone="amber" /> : null}
                           </div>
