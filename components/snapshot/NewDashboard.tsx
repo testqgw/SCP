@@ -27,42 +27,43 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 };
 
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
-  { id: 'precision', label: 'Precision Card', hint: 'Top curated edges' },
-  { id: 'research', label: 'Research Center', hint: 'Player dossiers' },
-  { id: 'scout', label: 'Scout Feed', hint: 'Live signal stream' },
-  { id: 'tracking', label: 'Line Tracking', hint: 'Current line vs fair' },
+  { id: 'precision', label: 'Overview', hint: 'Best board setups' },
+  { id: 'research', label: 'Players', hint: 'Player dossiers' },
+  { id: 'scout', label: 'Feed', hint: 'Live board signals' },
+  { id: 'tracking', label: 'Lines', hint: 'Live line vs fair' },
 ];
 
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
-  { label: 'Board', tab: 'precision' },
-  { label: 'Research', tab: 'research' },
-  { label: 'Scout Feed', tab: 'scout' },
-  { label: 'Methodology', action: 'help' },
+  { label: 'Overview', tab: 'precision' },
+  { label: 'Players', tab: 'research' },
+  { label: 'Feed', tab: 'scout' },
+  { label: 'Lines', tab: 'tracking' },
+  { label: 'Method', action: 'help' },
 ];
 
 const KIND_CLASS: Record<Kind, string> = {
-  LIVE: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-100',
-  DERIVED: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  PLACEHOLDER: 'border-slate-400/20 bg-slate-500/10 text-slate-200',
-  MODEL: 'border-amber-400/20 bg-amber-500/10 text-amber-200',
+  LIVE: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]',
+  DERIVED: 'border-[color:rgba(183,129,44,0.24)] bg-[color:rgba(183,129,44,0.10)] text-[var(--warning)]',
+  PLACEHOLDER: 'border-[var(--border)] bg-[color:rgba(240,232,220,0.55)] text-[var(--muted)]',
+  MODEL: 'border-[color:rgba(109,74,255,0.22)] bg-[var(--accent-soft)] text-[var(--accent)]',
 };
 
 const PILL_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
-  default: 'border-white/10 bg-white/5 text-zinc-200',
-  cyan: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-  amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+  default: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-2)]',
+  cyan: 'border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)] text-[var(--accent)]',
+  amber: 'border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] text-[var(--warning)]',
 };
 
 const SIDE_CLASS: Record<SnapshotModelSide, string> = {
-  OVER: 'border-cyan-400/20 bg-cyan-400/10 text-cyan-100',
-  UNDER: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
-  NEUTRAL: 'border-slate-400/20 bg-slate-500/10 text-slate-200',
+  OVER: 'border-[color:rgba(47,125,90,0.20)] bg-[color:rgba(47,125,90,0.10)] text-[var(--positive)]',
+  UNDER: 'border-[color:rgba(180,74,74,0.20)] bg-[color:rgba(180,74,74,0.10)] text-[var(--negative)]',
+  NEUTRAL: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)]',
 };
 
 const ACTION_CLASS =
-  'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950';
+  'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(109,74,255,0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
 
-const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-cyan-400/25 hover:bg-zinc-900/90`;
+const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-[color:rgba(109,74,255,0.24)] hover:shadow-[0_10px_24px_rgba(29,26,34,0.06)]`;
 
 function n(v: number | null | undefined, d = 1) {
   if (v == null || Number.isNaN(v)) return '-';
@@ -162,13 +163,13 @@ function Stat({
   dense?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl border border-white/10 bg-black/25 ${dense ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3' : 'p-4'}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">{label}</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">{label}</p>
         <Badge label={kind} kind={kind} />
       </div>
-      <div className={`mt-2 font-semibold tracking-tight text-white ${dense ? 'text-lg' : 'text-2xl'}`}>{value}</div>
-      {note ? <div className="mt-1 text-xs text-zinc-400">{note}</div> : null}
+      <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-lg' : 'text-2xl'}`}>{value}</div>
+      {note ? <div className="mt-1 text-xs text-[var(--text-2)]">{note}</div> : null}
     </div>
   );
 }
@@ -189,20 +190,20 @@ function EmptyState({
   onAction?: () => void;
 }) {
   return (
-    <div className="rounded-[28px] border border-dashed border-white/15 bg-black/25 p-5 sm:p-6">
+    <div className="rounded-[28px] border border-dashed border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">{eyebrow}</div>
-          <div className="mt-2 text-base font-semibold text-white sm:text-lg">{title}</div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">{eyebrow}</div>
+          <div className="mt-2 text-base font-semibold text-[var(--text)] sm:text-lg">{title}</div>
         </div>
         <Badge label={kind} kind={kind} />
       </div>
-      <div className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{detail}</div>
+      <div className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-2)]">{detail}</div>
       {actionLabel && onAction ? (
         <button
           type="button"
           onClick={onAction}
-          className={`${ACTION_CLASS} mt-4 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:border-white/20 hover:bg-white/10`}
+          className={`${ACTION_CLASS} mt-4 inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
         >
           {actionLabel}
         </button>
@@ -221,9 +222,9 @@ function MatchupsCard({
   onSelect?: (matchupKey: string) => void;
 }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Top matchups</div>
+        <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Top matchups</div>
         <Badge label={matchups.length ? 'LIVE' : 'PLACEHOLDER'} kind={matchups.length ? 'LIVE' : 'PLACEHOLDER'} />
       </div>
       {matchups.length ? (
@@ -237,16 +238,16 @@ function MatchupsCard({
                 onSelect ? ACTION_CLASS : ''
               } ${
                 selectedKey === m.key
-                  ? 'border-cyan-400/25 bg-cyan-400/10'
+                  ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)]'
                   : onSelect
-                    ? 'border-white/8 bg-black/20 hover:border-white/15 hover:bg-black/30'
-                    : 'border-white/8 bg-black/20'
+                    ? 'border-[var(--border)] bg-[var(--surface-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                    : 'border-[var(--border)] bg-[var(--surface-2)]'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-white">{m.label}</div>
-                  <div className="mt-1 text-xs text-zinc-400">{m.gameTimeEt}</div>
+                  <div className="text-sm font-semibold text-[var(--text)]">{m.label}</div>
+                  <div className="mt-1 text-xs text-[var(--text-2)]">{m.gameTimeEt}</div>
                 </div>
                 {selectedKey === m.key ? <Badge label="Selected" kind="DERIVED" /> : null}
               </div>
@@ -254,7 +255,7 @@ function MatchupsCard({
           ))}
         </div>
       ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/25 px-4 py-4 text-sm text-zinc-400">
+        <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
           Matchup windows will appear here as soon as the slate loads. Until then, the board stays usable through the
           featured card and research tabs.
         </div>
@@ -333,9 +334,9 @@ function CompactMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
-      <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold tracking-tight text-white">{value}</div>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+      <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">{label}</div>
+      <div className="mt-1 text-lg font-semibold tracking-tight text-[var(--text)]">{value}</div>
     </div>
   );
 }
@@ -354,7 +355,7 @@ function RecommendationBox({
   const detail = recommendationDetail(view);
   return (
     <div className={`rounded-[22px] border px-4 py-3 ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
-      <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">{title}</div>
+      <div className="text-[10px] uppercase tracking-[0.18em] opacity-75">{title}</div>
       <div className="mt-2 text-lg font-semibold tracking-tight sm:text-xl">{recommendationHeadline(view)}</div>
       <div className="mt-1 text-xs opacity-80">{detail}</div>
     </div>
@@ -934,6 +935,54 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       kind: trackViews.length ? 'DERIVED' : 'PLACEHOLDER',
     },
   };
+  const liveBookDepth = useMemo(() => {
+    const liveBookViews = allViews.filter((view) => view.live != null && view.books != null);
+    if (!liveBookViews.length) return null;
+    return Number((liveBookViews.reduce((sum, view) => sum + (view.books ?? 0), 0) / liveBookViews.length).toFixed(1));
+  }, [allViews]);
+  const topOpportunities = useMemo(() => {
+    const picks: View[] = [];
+    const seen = new Set<string>();
+    const push = (view: View | null | undefined) => {
+      if (!view) return;
+      const key = `${view.row.playerId}:${view.market}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      picks.push(view);
+    };
+
+    precision.forEach(({ view }) => push(view));
+    scoutViews.forEach((view) => push(view));
+    selectedMatchupViews.forEach((view) => push(view));
+
+    return picks.filter((view) => view.live != null).slice(0, 6);
+  }, [precision, scoutViews, selectedMatchupViews]);
+  const matchupExplorerSpots = useMemo(() => matchupBestSpots.slice(0, 3), [matchupBestSpots]);
+  const liveFeedViews = useMemo(() => scoutViews.filter((view) => view.live != null).slice(0, 8), [scoutViews]);
+  const featuredReasonList = useMemo(() => {
+    if (!featured) return [] as string[];
+    const reasons = featured.precision?.reasons?.length ? featured.precision.reasons : featured.reasons;
+    return reasons.slice(0, 3);
+  }, [featured]);
+  const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
+    precision: {
+      title: 'Overview workspace',
+      detail: 'Curated board picks, confidence mix, and matchup shortcuts stay grouped here.',
+    },
+    research: {
+      title: 'Players workspace',
+      detail: 'Search the active slate, then open a cleaner player dossier with line, projection, and support context first.',
+    },
+    scout: {
+      title: 'Feed workspace',
+      detail: 'The feed stays focused on live board signals and quick catalyst reads without forcing you through extra tabs.',
+    },
+    tracking: {
+      title: 'Lines workspace',
+      detail: 'Live line versus fair line stays in one comparison surface with current board context on the side.',
+    },
+  };
+  const activeWorkspace = TABS.find((item) => item.id === tab) ?? TABS[0];
   const openHelp = () => helpRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const openResearchSearch = () => {
     setTab('research');
@@ -1025,54 +1074,56 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_top_right,rgba(251,191,36,0.10),transparent_24%),linear-gradient(180deg,rgba(2,6,23,1)_0%,rgba(9,9,11,1)_42%,rgba(3,7,18,1)_100%)]" />
+    <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(109,74,255,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(183,129,44,0.10),transparent_28%),linear-gradient(180deg,rgba(255,253,252,0.65)_0%,rgba(245,241,232,0.88)_100%)]" />
       <div className="relative">
-        <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
-          <div className="mx-auto max-w-[1520px] px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-start justify-between gap-4 xl:flex-1">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-300/80">ULTOPS / Snapshot</div>
-                  <div className="mt-1 text-sm text-zinc-400">NBA prop intelligence board</div>
+        <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
+          <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex items-center justify-between gap-4 xl:flex-1">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] text-sm font-semibold tracking-[0.12em] text-[var(--accent)]">
+                    U
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">ULTOPS / Snapshot</div>
+                    <div className="mt-1 text-sm text-[var(--text-2)]">NBA prop intelligence board</div>
+                  </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-3">
+                <div className="flex shrink-0 items-center gap-2 md:gap-3">
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onFocus={() => setTab('research')}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search players or matchups"
+                    className="hidden w-[250px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)] md:block"
+                  />
                   <button
                     type="button"
                     onClick={refreshSlate}
                     disabled={isRefreshing}
-                    className={`${ACTION_CLASS} rounded-full border px-4 py-2 text-sm font-semibold ${
+                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-medium ${
                       isRefreshing
-                        ? 'cursor-wait border-amber-400/20 bg-amber-400/10 text-amber-100'
-                        : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/15'
+                        ? 'cursor-wait bg-[color:rgba(183,129,44,0.12)] text-[var(--warning)]'
+                        : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
                     }`}
                   >
-                    {isRefreshing ? 'Refreshing slate...' : 'Refresh slate'}
+                    {isRefreshing ? 'Refreshing...' : 'Refresh slate'}
                   </button>
-                  <Badge label={isRefreshing ? 'Refreshing' : 'LIVE'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
-                  <div className="grid gap-3 text-right sm:grid-cols-2">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Board date</div>
-                      <div className="text-sm font-medium text-white">{data.dateEt}</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">Last refresh</div>
-                      <div className="text-sm font-medium text-white">{ts(data.lastUpdatedAt)}</div>
-                      <div className="mt-1 text-[11px] text-zinc-500">{boardRefreshRelative}</div>
-                    </div>
-                  </div>
+                  <Badge label={isRefreshing ? 'Updated' : 'Live'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
                 </div>
               </div>
-              <nav className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 xl:mx-0 xl:px-0 xl:pb-0">
+              <nav className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1">
                 {TOP_NAV.map((item) => (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => (item.action === 'help' ? openHelp() : setTab(item.tab!))}
-                    className={`${ACTION_CLASS} shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                    className={`${ACTION_CLASS} shrink-0 rounded-full px-4 py-2 text-sm font-medium ${
                       item.tab && tab === item.tab
-                        ? 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.08)]'
-                        : 'border-white/10 bg-white/5 text-zinc-300 hover:border-white/20 hover:bg-white/10'
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
                     }`}
                   >
                     {item.label}
@@ -1083,7 +1134,480 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1520px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-[1440px] px-4 pb-16 pt-6 sm:px-6 xl:px-8">
+          <section className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:grid-cols-3 xl:grid-cols-6">
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Slate date</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{data.dateEt}</div>
+            </div>
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Last refresh</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{ts(data.lastUpdatedAt)}</div>
+              <div className="mt-1 text-xs text-[var(--text-2)]">{boardRefreshRelative}</div>
+            </div>
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Books live</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</div>
+              <div className="mt-1 text-xs text-[var(--text-2)]">Average consensus depth</div>
+            </div>
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Games</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(data.matchups.length, 0)}</div>
+              <div className="mt-1 text-xs text-[var(--text-2)]">Live slate windows</div>
+            </div>
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Players</div>
+              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(slatePlayers.length, 0)}</div>
+              <div className="mt-1 text-xs text-[var(--text-2)]">Active slate pool</div>
+            </div>
+            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top signal</div>
+              <div className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{featured ? `${featured.row.playerName} ${featured.label}` : '-'}</div>
+              <div className="mt-1 truncate text-xs text-[var(--text-2)]">{featured ? recommendationHeadline(featured) : 'Waiting for board read'}</div>
+            </div>
+          </section>
+
+          {refreshNotice ? (
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge label={refreshNotice.kind} kind={refreshNotice.kind} />
+                <div className="text-sm font-semibold text-[var(--text)]">{refreshNotice.title}</div>
+              </div>
+              <div className="mt-2 text-sm text-[var(--text-2)]">{refreshNotice.detail}</div>
+            </div>
+          ) : null}
+
+          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+            <div className="xl:col-span-7">
+              {featured ? (
+                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap gap-2">
+                        {featured.rank ? <Badge label={featured.rank} kind="DERIVED" /> : null}
+                        <Pill label={featured.source} tone={featured.live != null ? 'cyan' : 'default'} />
+                        <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
+                      </div>
+                      <div className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Featured signal</div>
+                      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)] md:text-4xl">{featured.row.playerName}</h1>
+                      <p className="mt-2 text-sm text-[var(--text-2)]">{matchup(featured.row)} - Updated {ts(featuredUpdatedAt)}</p>
+                    </div>
+                    <RecommendationBox view={featured} title="Recommendation" className="w-full md:w-auto md:min-w-[250px]" />
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <Stat
+                      dense
+                      label="Line to play"
+                      value={featured.live == null ? (featured.fair == null ? '-' : n(featured.fair)) : n(featured.live)}
+                      kind={featured.live == null ? featured.fairKind : featured.liveLineKind}
+                      note={featured.live != null ? 'Current consensus number' : featured.fair != null ? 'Model fair line fallback' : 'Waiting for line'}
+                    />
+                    <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" />
+                    <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" />
+                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 1)} kind={featured.confKind} note="Payload confidence" />
+                  </div>
+
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Why it matters</div>
+                      <div className="mt-3 flex flex-col gap-2">
+                        {featuredReasonList.length ? (
+                          featuredReasonList.map((reason) => (
+                            <div key={reason} className="rounded-xl bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-2)]">
+                              {reason}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-xl bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-2)]">
+                            No extra reasons surfaced by the current payload.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Recent shape</div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <CompactMetric label={`L10 ${MARKET_LABELS[featured.market]}`} value={n(featuredMarketAverageLast10, 1)} />
+                        <CompactMetric label={`Season ${MARKET_LABELS[featured.market]}`} value={n(featuredMarketAverageSeason, 1)} />
+                        <CompactMetric label="Trend" value={signed(featuredMarketTrend, 1)} />
+                        <CompactMetric label="Opp delta" value={signed(featuredMarketOpponentDelta, 1)} />
+                      </div>
+                      <div className="mt-4 rounded-xl bg-[var(--surface)] px-3 py-3 text-sm text-[var(--text-2)]">
+                        Recent 5: <span className="font-mono text-xs text-[var(--text)]">{featuredMarketRecentFive}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTab('research')}
+                      className={`${ACTION_CLASS} inline-flex items-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)]`}
+                    >
+                      Open player dossier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTab('tracking')}
+                      className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                    >
+                      Compare lines
+                    </button>
+                    <div className="inline-flex items-center rounded-xl bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-2)]">
+                      {booksLiveLabel(featured.books) ?? 'Books pending'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  eyebrow="Featured signal"
+                  title={hasBoardRows ? 'The board has not surfaced a featured signal yet.' : 'Waiting for board data to load.'}
+                  detail={
+                    hasBoardRows
+                      ? 'As soon as a precision-card entry or high-signal live market is available, the lead recommendation will anchor here.'
+                      : 'The board will promote the strongest slate recommendation here once SnapshotBoardData finishes loading.'
+                  }
+                  actionLabel="Refresh slate"
+                  onAction={refreshSlate}
+                />
+              )}
+            </div>
+
+            <div className="space-y-4 xl:col-span-5">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board snapshot</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Board state at a glance</h2>
+                  </div>
+                  <Badge label={featured ? 'LIVE' : 'PLACEHOLDER'} kind={featured ? 'LIVE' : 'PLACEHOLDER'} />
+                </div>
+                <div className="mt-4 divide-y divide-[var(--border)]">
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Strongest market</span>
+                    <span className="font-semibold text-[var(--text)]">{featured ? `${featured.row.playerName} ${featured.label}` : '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Most active game</span>
+                    <span className="font-semibold text-[var(--text)]">{selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Live lines</span>
+                    <span className="font-semibold text-[var(--text)]">{n(liveCount, 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Precision-ready</span>
+                    <span className="font-semibold text-[var(--text)]">{n(qualifiedCount, 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Top feed items</span>
+                    <span className="font-semibold text-[var(--text)]">{n(liveFeedViews.length, 0)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board context</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What supports the board</h2>
+                  </div>
+                  <Badge label={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} kind={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <Stat dense label="Board refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
+                  <Stat dense label="Featured update" value={ts(featuredUpdatedAt)} kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'} note={featuredRefreshRelative} />
+                  <Stat dense label="WF raw" value={data.universalSystem ? pct(data.universalSystem.walkForwardRawAccuracy, 1) : '-'} kind={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} note="Board replay quality" />
+                  <Stat dense label="Precision" value={data.precisionSystem ? pct(data.precisionSystem.historicalAccuracy, 1) : '-'} kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} note={data.precisionSystem?.label ?? 'Selector unavailable'} />
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-2)]">
+                  {boardModelNote ?? 'The board model summary is missing from the payload, so the board is leaning on visible player-market rows only.'}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Best live numbers on the board</h2>
+              </div>
+              <div className="text-sm text-[var(--text-2)]">
+                {topOpportunities.length ? `${n(topOpportunities.length, 0)} live cards ready to open` : 'Waiting for a broader set of live book lines'}
+              </div>
+            </div>
+            {topOpportunities.length ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {topOpportunities.map((view, index) => (
+                  <button
+                    key={`${view.row.playerId}:${view.market}:top-opportunity`}
+                    type="button"
+                    onClick={() => setResearch(view.row.playerId)}
+                    className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge label={`#${index + 1}`} kind="DERIVED" />
+                          <Pill label={view.label} tone="amber" />
+                          <Badge label="LIVE" kind="LIVE" />
+                        </div>
+                        <div className="mt-3 text-lg font-semibold leading-tight text-[var(--text)]">{view.row.playerName}</div>
+                        <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
+                      </div>
+                      <div className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text-2)]">
+                        {relativeTime(view.row.gameIntel.generatedAt, now)}
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <RecommendationBox view={view} title="Play now" className="w-full" />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--text-2)]">
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                        Line {view.live == null ? '-' : n(view.live)}
+                      </span>
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                        Edge {view.edge == null ? '-' : signed(view.edge)}
+                      </span>
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                        Conf {view.conf == null ? '-' : pct(view.conf, 1)}
+                      </span>
+                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                        {booksLiveLabel(view.books) ?? 'Books pending'}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <EmptyState
+                  eyebrow="Top opportunities"
+                  title="Live book lines have not stacked up enough to rank this strip yet."
+                  detail="The board will promote live cards here as soon as more current sportsbook numbers land. Until then, the featured signal remains the quickest way into the slate."
+                  actionLabel="Refresh slate"
+                  onAction={refreshSlate}
+                />
+              </div>
+            )}
+          </section>
+
+          <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+            <div className="xl:col-span-5">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Matchup explorer</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Game-first board scan</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTab('scout')}
+                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                  >
+                    Open feed
+                  </button>
+                </div>
+                {data.matchups.length ? (
+                  <>
+                    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                      {data.matchups.map((m) => (
+                        <button
+                          key={m.key}
+                          type="button"
+                          onClick={() => setSelectedMatchupKey(m.key)}
+                          className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
+                            selectedMatchupKey === m.key
+                              ? 'border-[color:rgba(109,74,255,0.24)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                          }`}
+                        >
+                          <div className="text-sm font-semibold">{m.label}</div>
+                          <div className="mt-1 text-xs opacity-80">{m.gameTimeEt}</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    {selectedMatchup ? (
+                      <>
+                        <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-semibold text-[var(--text)]">{selectedMatchup.label}</div>
+                              <div className="mt-1 text-sm text-[var(--text-2)]">{selectedMatchup.gameTimeEt}</div>
+                            </div>
+                            {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
+                          </div>
+                          <div className="mt-4 grid grid-cols-2 gap-3">
+                            <CompactMetric
+                              label={`${selectedMatchupTeamStats?.awayTeam ?? 'Away'} off L10`}
+                              value={n(selectedMatchupAwayOffense, 1)}
+                            />
+                            <CompactMetric
+                              label={`${selectedMatchupTeamStats?.homeTeam ?? 'Home'} off L10`}
+                              value={n(selectedMatchupHomeOffense, 1)}
+                            />
+                            <CompactMetric
+                              label={`${selectedMatchupTeamStats?.awayTeam ?? 'Away'} allowed`}
+                              value={n(selectedMatchupAwayAllowed, 1)}
+                            />
+                            <CompactMetric
+                              label={`${selectedMatchupTeamStats?.homeTeam ?? 'Home'} allowed`}
+                              value={n(selectedMatchupHomeAllowed, 1)}
+                            />
+                          </div>
+                          <div className="mt-4 rounded-2xl bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                            {selectedMatchupLead?.row.playerContext.primaryDefender?.matchupReason ??
+                              selectedMatchupLead?.reasons[0] ??
+                              boardModelNote ??
+                              'No matchup-specific support note is available yet, but the live player spots below are ready to scan.'}
+                          </div>
+                        </div>
+
+                        <div className="mt-5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-semibold text-[var(--text)]">Best spots in this game</div>
+                            <div className="text-sm text-[var(--text-2)]">
+                              {matchupExplorerSpots.length ? `${n(matchupExplorerSpots.length, 0)} live spots` : 'No live spots yet'}
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-col gap-3">
+                            {matchupExplorerSpots.length ? (
+                              matchupExplorerSpots.map((spot) => (
+                                <button
+                                  key={`${spot.row.playerId}:${spot.market}:matchup-explorer`}
+                                  type="button"
+                                  onClick={() => setResearch(spot.row.playerId)}
+                                  className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                                >
+                                  <div className="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                      <div className="text-base font-semibold text-[var(--text)]">{spot.row.playerName}</div>
+                                      <div className="mt-1 text-sm text-[var(--text-2)]">{spot.label}</div>
+                                    </div>
+                                    <div className={`rounded-full border px-3 py-1 text-sm font-semibold ${SIDE_CLASS[spot.side]}`}>
+                                      {recommendationHeadline(spot)}
+                                    </div>
+                                  </div>
+                                  <div className="mt-3 flex flex-wrap gap-2 text-sm text-[var(--text-2)]">
+                                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
+                                      Projection {spot.proj == null ? '-' : n(spot.proj)}
+                                    </span>
+                                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
+                                      Edge {spot.edge == null ? '-' : signed(spot.edge)}
+                                    </span>
+                                    <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
+                                      {booksLiveLabel(spot.books) ?? 'Books pending'}
+                                    </span>
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                                This matchup does not have three live player spots yet. Try another game or refresh the slate.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                        Pick a game above to lock the board on one matchup and surface its best live numbers.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="mt-4">
+                    <EmptyState
+                      eyebrow="Matchup explorer"
+                      title="No matchup windows are loaded yet."
+                      detail="Once the slate payload lands, this card will let you scan the board one game at a time."
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="xl:col-span-7">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board feed</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Current live numbers, newest first</h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTab('scout')}
+                    className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                  >
+                    Open full feed
+                  </button>
+                </div>
+                {liveFeedViews.length ? (
+                  <div className="mt-4 flex max-h-[480px] flex-col gap-3 overflow-auto pr-1">
+                    {liveFeedViews.map((view) => (
+                      <button
+                        key={`${view.row.playerId}:${view.market}:live-feed`}
+                        type="button"
+                        onClick={() => setResearch(view.row.playerId)}
+                        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap gap-2">
+                              <Pill label={view.label} tone="amber" />
+                              <Badge label="LIVE" kind="LIVE" />
+                              {view.precision?.selectorTier ? <Pill label={view.precision.selectorTier} tone="default" /> : null}
+                            </div>
+                            <div className="mt-2 text-base font-semibold text-[var(--text)]">{view.row.playerName}</div>
+                            <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
+                          </div>
+                          <div className="text-xs text-[var(--text-2)]">{relativeTime(view.row.gameIntel.generatedAt, now)}</div>
+                        </div>
+                        <div className="mt-3 text-sm text-[var(--text-2)]">
+                          Live line {view.live == null ? '-' : n(view.live)} versus fair {view.fair == null ? '-' : n(view.fair)} with projection {view.proj == null ? '-' : n(view.proj)}.
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${SIDE_CLASS[view.side]}`}>
+                            {recommendationHeadline(view)}
+                          </span>
+                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
+                            Edge {view.edge == null ? '-' : signed(view.edge)}
+                          </span>
+                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
+                            Conf {view.conf == null ? '-' : pct(view.conf, 1)}
+                          </span>
+                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
+                            {booksLiveLabel(view.books) ?? 'Books pending'}
+                          </span>
+                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
+                            {view.precision?.selectorFamily ?? view.source}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <EmptyState
+                      eyebrow="Live board feed"
+                      title="No live board items are ready for the feed yet."
+                      detail="The feed only shows rows with an actual sportsbook number. As soon as live books land, they will surface here with the current line and read."
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {false ? (
+            <>
           <section className="grid gap-6 xl:items-start xl:grid-cols-[minmax(0,1.16fr)_minmax(360px,0.84fr)] 2xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,0.88fr)]">
             <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(145deg,rgba(9,9,11,0.94),rgba(15,23,42,0.88))] p-5 shadow-2xl shadow-black/25 sm:p-6">
               <div className="flex flex-wrap gap-2">
@@ -1645,8 +2169,48 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             )}
           </section>
 
+            </>
+          ) : null}
+          <section className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Workspace</div>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">{workspaceCopy[tab].title}</h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">{workspaceCopy[tab].detail}</p>
+                </div>
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">{activeWorkspace.label}</div>
+                  <div className="mt-1 text-sm font-semibold text-[var(--text)]">{tabSummary[tab].detail}</div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {TABS.map((item) => (
+                  <button
+                    key={`workspace:${item.id}`}
+                    type="button"
+                    onClick={() => setTab(item.id)}
+                    className={`${ACTION_CLASS} rounded-full px-4 py-2 text-sm font-medium ${
+                      tab === item.id
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={openHelp}
+                  className={`${ACTION_CLASS} rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-medium text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]`}
+                >
+                  Method
+                </button>
+              </div>
+            </div>
+
           {tab === 'precision' ? (
-            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
+            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-4">
                 {precision.length === 0 ? (
                   <EmptyState
@@ -1765,7 +2329,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'research' ? (
-            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[0.95fr_1.55fr]">
+            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.95fr_1.55fr]">
               <div className="space-y-3">
                 <div className="rounded-[24px] border border-white/10 bg-zinc-900/75 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -2150,7 +2714,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'scout' ? (
-            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
+            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-3">
                 {scoutViews.length === 0 ? (
                   <EmptyState
@@ -2263,7 +2827,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'tracking' ? (
-            <section className="mt-6 grid gap-6 xl:items-start xl:grid-cols-[1.55fr_0.85fr]">
+            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.55fr_0.85fr]">
               <div className="overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/75">
                 <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
                   <div>
@@ -2397,27 +2961,28 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               </div>
             </section>
           ) : null}
+          </section>
 
-          <section ref={helpRef} id="methodology" className="mt-8 rounded-[28px] border border-white/10 bg-black/55 p-6 backdrop-blur">
+          <section ref={helpRef} id="methodology" className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-300/80">Methodology / Support</div>
-                <h2 className="mt-1 text-2xl font-semibold text-white">Value labels and remaining stubs</h2>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Method</div>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">How the board labels its numbers</h2>
               </div>
               <Badge label="Support" kind="DERIVED" />
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm font-semibold text-white">Live</div>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">Board date, matchup windows, player rows, model fair lines, projections, ranks, context fields, live consensus lines, and sportsbook counts read directly from SnapshotBoardData.</p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div className="text-sm font-semibold text-[var(--text)]">Live</div>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">Board date, matchup windows, player rows, live consensus lines, sportsbook counts, and supporting context read directly from SnapshotBoardData.</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm font-semibold text-white">Derived</div>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">Client-side edges, board averages, slot gaps, tab ordering, selector fallback picks, and confidence values converted from raw win-probability fields.</p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div className="text-sm font-semibold text-[var(--text)]">Derived</div>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">Client-side edges, board averages, ranking order, selector fallback picks, and confidence values converted from the raw payload live here.</p>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm font-semibold text-white">Placeholder</div>
-                <p className="mt-2 text-sm leading-6 text-zinc-300">Missing live lines or unsupported values stay as em dashes. Historical sportsbook movement is not present in SnapshotBoardData, so the line-tracking tab stays current-line based.</p>
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div className="text-sm font-semibold text-[var(--text)]">Missing values</div>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">Unsupported values stay as dashes. Historical sportsbook movement is not present in SnapshotBoardData, so the board shows the current live number instead of inventing a line history.</p>
               </div>
             </div>
           </section>
