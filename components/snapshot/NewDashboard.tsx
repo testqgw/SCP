@@ -120,10 +120,6 @@ function firstSentence(v: string | null | undefined) {
   return (match?.[0] ?? trimmed).trim();
 }
 
-function hasValue<T>(value: T | null | undefined): value is T {
-  return value != null;
-}
-
 function signal(row: SnapshotDashboardRow, market: SnapshotMarket): SnapshotDashboardSignal | null {
   if (market === 'PTS') return row.ptsSignal;
   if (market === 'REB') return row.rebSignal;
@@ -155,18 +151,20 @@ function Stat({
   kind,
   note,
   dense = false,
+  showKind = true,
 }: {
   label: string;
   value: string;
   kind: Kind;
   note?: string;
   dense?: boolean;
+  showKind?: boolean;
 }) {
   return (
     <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3' : 'p-4'}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">{label}</p>
-        <Badge label={kind} kind={kind} />
+        {showKind ? <Badge label={kind} kind={kind} /> : null}
       </div>
       <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-lg' : 'text-2xl'}`}>{value}</div>
       {note ? <div className="mt-1 text-xs text-[var(--text-2)]">{note}</div> : null}
@@ -326,6 +324,20 @@ function recommendationDetail(view: Pick<View, 'live' | 'fair' | 'books' | 'note
   return view.note;
 }
 
+function feedReason(
+  view: Pick<View, 'live' | 'books' | 'reasons' | 'precision' | 'source' | 'note'>,
+) {
+  const surfacedReason = firstSentence(view.reasons[0]);
+  if (surfacedReason) return surfacedReason;
+  if (view.precision?.selectorFamily) {
+    return `${view.precision.selectorFamily.replaceAll('_', ' ')} surfaced this live market.`;
+  }
+  if (view.live != null) {
+    return `${booksLiveLabel(view.books) ?? 'Consensus live books'} are backing the current board read.`;
+  }
+  return view.note;
+}
+
 function CompactMetric({
   label,
   value,
@@ -346,17 +358,22 @@ function RecommendationBox({
   title = 'Recommendation',
   align = 'left',
   className = '',
+  size = 'default',
 }: {
   view: Pick<View, 'side' | 'sideKind' | 'live' | 'fair' | 'books' | 'label' | 'note'>;
   title?: string;
   align?: 'left' | 'right';
   className?: string;
+  size?: 'default' | 'hero' | 'compact';
 }) {
   const detail = recommendationDetail(view);
+  const boxSizeClass = size === 'hero' ? 'rounded-[26px] px-5 py-4' : size === 'compact' ? 'rounded-[18px] px-3.5 py-3' : 'rounded-[22px] px-4 py-3';
+  const titleClass = size === 'hero' ? 'text-[11px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]';
+  const headlineClass = size === 'hero' ? 'mt-3 text-2xl font-semibold tracking-tight sm:text-[2rem]' : size === 'compact' ? 'mt-2 text-base font-semibold tracking-tight sm:text-lg' : 'mt-2 text-lg font-semibold tracking-tight sm:text-xl';
   return (
-    <div className={`rounded-[22px] border px-4 py-3 ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
-      <div className="text-[10px] uppercase tracking-[0.18em] opacity-75">{title}</div>
-      <div className="mt-2 text-lg font-semibold tracking-tight sm:text-xl">{recommendationHeadline(view)}</div>
+    <div className={`border ${boxSizeClass} ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
+      <div className={`${titleClass} uppercase opacity-75`}>{title}</div>
+      <div className={headlineClass}>{recommendationHeadline(view)}</div>
       <div className="mt-1 text-xs opacity-80">{detail}</div>
     </div>
   );
@@ -695,7 +712,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const hasBoardRows = data.rows.length > 0;
   const featuredUpdatedAt = featured?.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
   const boardRefreshRelative = relativeTime(data.lastUpdatedAt, now);
-  const featuredRefreshRelative = relativeTime(featuredUpdatedAt, now);
   const selectedMatchupLead = matchupBestSpots[0] ?? null;
   const selectedMatchupFocusMarket = selectedMatchupLead?.market ?? selectedMatchupViews[0]?.market ?? null;
   const selectedMatchupFocusLabel = selectedMatchupFocusMarket ? MARKET_LABELS[selectedMatchupFocusMarket] : null;
@@ -1165,19 +1181,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           <section className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
             <div className="xl:col-span-7">
               {featured ? (
-                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_12px_34px_rgba(20,16,35,0.07)] md:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-5">
                     <div className="min-w-0">
                       <div className="flex flex-wrap gap-2">
                         {featured.rank ? <Badge label={featured.rank} kind="DERIVED" /> : null}
-                        <Pill label={featured.source} tone={featured.live != null ? 'cyan' : 'default'} />
                         <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                       </div>
-                      <div className="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Featured signal</div>
-                      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--text)] md:text-4xl">{featured.row.playerName}</h1>
-                      <p className="mt-2 text-sm text-[var(--text-2)]">{matchup(featured.row)} - Updated {ts(featuredUpdatedAt)}</p>
+                      <div className="mt-5 text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Best play now</div>
+                      <h1 className="mt-2 text-4xl font-semibold tracking-tight text-[var(--text)] md:text-5xl">{featured.row.playerName}</h1>
+                      <p className="mt-2 max-w-2xl text-base text-[var(--text-2)]">{matchup(featured.row)} - Updated {ts(featuredUpdatedAt)}</p>
                     </div>
-                    <RecommendationBox view={featured} title="Recommendation" className="w-full md:w-auto md:min-w-[250px]" />
+                    <RecommendationBox view={featured} title="Best play" size="hero" className="w-full md:w-auto md:min-w-[290px]" />
                   </div>
 
                   <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -1187,10 +1202,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       value={featured.live == null ? (featured.fair == null ? '-' : n(featured.fair)) : n(featured.live)}
                       kind={featured.live == null ? featured.fairKind : featured.liveLineKind}
                       note={featured.live != null ? 'Current consensus number' : featured.fair != null ? 'Model fair line fallback' : 'Waiting for line'}
+                      showKind={false}
                     />
-                    <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" />
-                    <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" />
-                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 1)} kind={featured.confKind} note="Payload confidence" />
+                    <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" showKind={false} />
+                    <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" showKind={false} />
+                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 1)} kind={featured.confKind} note="Payload confidence" showKind={false} />
                   </div>
 
                   <div className="mt-5 grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
@@ -1199,12 +1215,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="mt-3 flex flex-col gap-2">
                         {featuredReasonList.length ? (
                           featuredReasonList.map((reason) => (
-                            <div key={reason} className="rounded-xl bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-2)]">
+                            <div key={reason} className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm leading-6 text-[var(--text-2)]">
                               {reason}
                             </div>
                           ))
                         ) : (
-                          <div className="rounded-xl bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-2)]">
+                          <div className="rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm leading-6 text-[var(--text-2)]">
                             No extra reasons surfaced by the current payload.
                           </div>
                         )}
@@ -1259,55 +1275,48 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               )}
             </div>
 
-            <div className="space-y-4 xl:col-span-5">
+            <div className="xl:col-span-5">
               <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board snapshot</div>
-                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Board state at a glance</h2>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board pulse</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What changed on the board</h2>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      Freshness, live depth, and the active game context without the extra board theory up top.
+                    </p>
                   </div>
-                  <Badge label={featured ? 'LIVE' : 'PLACEHOLDER'} kind={featured ? 'LIVE' : 'PLACEHOLDER'} />
+                  <Badge label="LIVE" kind="LIVE" />
                 </div>
-                <div className="mt-4 divide-y divide-[var(--border)]">
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <CompactMetric label="Board refresh" value={ts(data.lastUpdatedAt)} />
+                  <CompactMetric label="Featured update" value={ts(featuredUpdatedAt)} />
+                  <CompactMetric label="Live lines" value={n(liveCount, 0)} />
+                  <CompactMetric label="Feed items" value={n(liveFeedViews.length, 0)} />
+                </div>
+                <div className="mt-5 divide-y divide-[var(--border)]">
                   <div className="flex items-center justify-between py-3 text-sm">
                     <span className="text-[var(--text-2)]">Strongest market</span>
                     <span className="font-semibold text-[var(--text)]">{featured ? `${featured.row.playerName} ${featured.label}` : '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 text-sm">
+                    <span className="text-[var(--text-2)]">Best alternative</span>
+                    <span className="font-semibold text-[var(--text)]">
+                      {topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between py-3 text-sm">
                     <span className="text-[var(--text-2)]">Most active game</span>
                     <span className="font-semibold text-[var(--text)]">{selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}</span>
                   </div>
                   <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Live lines</span>
-                    <span className="font-semibold text-[var(--text)]">{n(liveCount, 0)}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Precision-ready</span>
-                    <span className="font-semibold text-[var(--text)]">{n(qualifiedCount, 0)}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-3 text-sm">
-                    <span className="text-[var(--text-2)]">Top feed items</span>
-                    <span className="font-semibold text-[var(--text)]">{n(liveFeedViews.length, 0)}</span>
+                    <span className="text-[var(--text-2)]">Books live</span>
+                    <span className="font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</span>
                   </div>
                 </div>
-              </div>
-
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board context</div>
-                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What supports the board</h2>
-                  </div>
-                  <Badge label={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} kind={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} />
-                </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <Stat dense label="Board refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
-                  <Stat dense label="Featured update" value={ts(featuredUpdatedAt)} kind={hasValue(featuredUpdatedAt) ? 'LIVE' : 'PLACEHOLDER'} note={featuredRefreshRelative} />
-                  <Stat dense label="WF raw" value={data.universalSystem ? pct(data.universalSystem.walkForwardRawAccuracy, 1) : '-'} kind={data.universalSystem ? 'LIVE' : 'PLACEHOLDER'} note="Board replay quality" />
-                  <Stat dense label="Precision" value={data.precisionSystem ? pct(data.precisionSystem.historicalAccuracy, 1) : '-'} kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} note={data.precisionSystem?.label ?? 'Selector unavailable'} />
-                </div>
-                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-2)]">
-                  {boardModelNote ?? 'The board model summary is missing from the payload, so the board is leaning on visible player-market rows only.'}
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                  {refreshNotice?.detail ??
+                    boardModelNote ??
+                    'The board is refreshed and the top modules are prioritizing current live numbers first.'}
                 </div>
               </div>
             </div>
@@ -1318,6 +1327,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Best live numbers on the board</h2>
+                <p className="mt-1 text-sm text-[var(--text-2)]">Best actionable plays right now.</p>
               </div>
               <div className="text-sm text-[var(--text-2)]">
                 {topOpportunities.length ? `${n(topOpportunities.length, 0)} live cards ready to open` : 'Waiting for a broader set of live book lines'}
@@ -1337,31 +1347,23 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         <div className="flex flex-wrap gap-2">
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
                           <Pill label={view.label} tone="amber" />
-                          <Badge label="LIVE" kind="LIVE" />
                         </div>
-                        <div className="mt-3 text-lg font-semibold leading-tight text-[var(--text)]">{view.row.playerName}</div>
+                        <div className="mt-3 text-xl font-semibold leading-tight text-[var(--text)]">{view.row.playerName}</div>
+                        <div className="mt-2 text-base font-semibold text-[var(--text)]">{recommendationHeadline(view)}</div>
                         <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
                       </div>
                       <div className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text-2)]">
                         {relativeTime(view.row.gameIntel.generatedAt, now)}
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <RecommendationBox view={view} title="Play now" className="w-full" />
+                    <div className="mt-4 grid grid-cols-3 gap-3">
+                      <CompactMetric label="Line" value={view.live == null ? '-' : n(view.live)} />
+                      <CompactMetric label="Edge" value={view.edge == null ? '-' : signed(view.edge)} />
+                      <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 1)} />
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2 text-sm text-[var(--text-2)]">
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
-                        Line {view.live == null ? '-' : n(view.live)}
-                      </span>
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
-                        Edge {view.edge == null ? '-' : signed(view.edge)}
-                      </span>
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
-                        Conf {view.conf == null ? '-' : pct(view.conf, 1)}
-                      </span>
-                      <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
-                        {booksLiveLabel(view.books) ?? 'Books pending'}
-                      </span>
+                    <div className="mt-4 flex items-center justify-between gap-3 text-sm text-[var(--text-2)]">
+                      <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
+                      <span className="text-right">Open player</span>
                     </div>
                   </button>
                 ))}
@@ -1522,7 +1524,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board feed</div>
-                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Current live numbers, newest first</h2>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What changed on the board</h2>
+                    <p className="mt-1 text-sm text-[var(--text-2)]">Current live numbers, newest first.</p>
                   </div>
                   <button
                     type="button"
@@ -1539,39 +1542,42 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         key={`${view.row.playerId}:${view.market}:live-feed`}
                         type="button"
                         onClick={() => setResearch(view.row.playerId)}
-                        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left ${CARD_BUTTON_CLASS}`}
+                        className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left ${CARD_BUTTON_CLASS}`}
                       >
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
                             <div className="flex flex-wrap gap-2">
                               <Pill label={view.label} tone="amber" />
-                              <Badge label="LIVE" kind="LIVE" />
                               {view.precision?.selectorTier ? <Pill label={view.precision.selectorTier} tone="default" /> : null}
                             </div>
-                            <div className="mt-2 text-base font-semibold text-[var(--text)]">{view.row.playerName}</div>
+                            <div className="mt-2 text-lg font-semibold text-[var(--text)]">{view.row.playerName}</div>
                             <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(view.row)}</div>
                           </div>
-                          <div className="text-xs text-[var(--text-2)]">{relativeTime(view.row.gameIntel.generatedAt, now)}</div>
+                          <div className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text-2)]">
+                            {relativeTime(view.row.gameIntel.generatedAt, now)}
+                          </div>
                         </div>
-                        <div className="mt-3 text-sm text-[var(--text-2)]">
-                          Live line {view.live == null ? '-' : n(view.live)} versus fair {view.fair == null ? '-' : n(view.fair)} with projection {view.proj == null ? '-' : n(view.proj)}.
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${SIDE_CLASS[view.side]}`}>
-                            {recommendationHeadline(view)}
-                          </span>
-                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
-                            Edge {view.edge == null ? '-' : signed(view.edge)}
-                          </span>
-                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
-                            Conf {view.conf == null ? '-' : pct(view.conf, 1)}
-                          </span>
-                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
-                            {booksLiveLabel(view.books) ?? 'Books pending'}
-                          </span>
-                          <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm text-[var(--text-2)]">
-                            {view.precision?.selectorFamily ?? view.source}
-                          </span>
+                        <div className="mt-3 text-sm leading-6 text-[var(--text-2)]">{feedReason(view)}</div>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${SIDE_CLASS[view.side]}`}>
+                              {recommendationHeadline(view)}
+                            </span>
+                            <span className="text-sm text-[var(--text-2)]">
+                              {view.live == null ? '-' : n(view.live)} live / {view.fair == null ? '-' : n(view.fair)} fair / {view.proj == null ? '-' : n(view.proj)} proj
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-sm text-[var(--text-2)]">
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                              Edge {view.edge == null ? '-' : signed(view.edge)}
+                            </span>
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                              Conf {view.conf == null ? '-' : pct(view.conf, 1)}
+                            </span>
+                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5">
+                              {booksLiveLabel(view.books) ?? 'Books pending'}
+                            </span>
+                          </div>
                         </div>
                       </button>
                     ))}
