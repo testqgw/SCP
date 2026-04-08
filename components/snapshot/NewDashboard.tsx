@@ -456,7 +456,7 @@ function RecommendationBox({
       : size === 'compact'
         ? 'rounded-[16px] px-3 py-2.5 sm:rounded-[18px] sm:px-3.5 sm:py-3'
         : 'rounded-[18px] px-3.5 py-3 sm:rounded-[22px] sm:px-4 sm:py-3';
-  const titleClass = size === 'hero' ? 'text-[11px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]';
+  const titleClass = size === 'hero' ? 'text-[10px] tracking-[0.18em]' : 'text-[10px] tracking-[0.18em]';
   const headlineClass =
     size === 'hero'
       ? 'mt-2 text-xl font-semibold tracking-tight sm:mt-2.5 sm:text-[2rem]'
@@ -464,9 +464,10 @@ function RecommendationBox({
         ? 'mt-2 text-base font-semibold tracking-tight sm:text-lg'
         : 'mt-2 text-base font-semibold tracking-tight sm:text-xl';
   const detailClass = size === 'hero' ? 'mt-0.5 text-xs opacity-80' : 'mt-1 text-xs opacity-80';
+  const titleToneClass = size === 'hero' ? 'opacity-60' : 'opacity-75';
   return (
     <div className={`border ${boxSizeClass} ${SIDE_CLASS[view.side]} ${align === 'right' ? 'text-right' : 'text-left'} ${className}`}>
-      <div className={`${titleClass} uppercase opacity-75`}>{title}</div>
+      <div className={`${titleClass} uppercase ${titleToneClass}`}>{title}</div>
       <div className={headlineClass}>{recommendationHeadline(view)}</div>
       <div className={detailClass}>{detail}</div>
     </div>
@@ -1384,11 +1385,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       </div>
                       <div className="mt-3 hidden text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)] md:block">Best play</div>
                       <h1 className="mt-2 text-[2.2rem] font-semibold tracking-tight text-[var(--text)] sm:text-4xl md:text-5xl">{featured.row.playerName}</h1>
-                      <div className="mt-3 md:hidden">
+                      <div className="mt-2 md:hidden">
                         <RecommendationBox view={featured} title="Best play" size="hero" className="w-full" />
                       </div>
                       <p className="mt-3 max-w-2xl text-sm text-[var(--text-2)] sm:text-base">{matchup(featured.row)}</p>
-                      <div className="mt-1 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--text-2)]">
+                      <div className="mt-1 text-[11px] font-medium text-[var(--muted)]">
                         Updated {relativeTime(featuredUpdatedAt, now)}
                       </div>
                     </div>
@@ -1456,7 +1457,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       onClick={() => setTab('research')}
                       className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] sm:w-auto`}
                     >
-                      Open player dossier
+                      Open player
                     </button>
                     <button
                       type="button"
@@ -1515,7 +1516,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     key={`${view.row.playerId}:${view.market}:top-opportunity`}
                     type="button"
                     onClick={() => setResearch(view.row.playerId)}
-                    className={`h-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 text-left md:p-3.5 ${CARD_BUTTON_CLASS}`}
+                    className={`h-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 text-left md:p-3 ${CARD_BUTTON_CLASS}`}
                   >
                     <div className="flex items-start justify-between gap-2.5">
                       <div className="min-w-0">
@@ -1523,7 +1524,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
                           <Pill label={view.label} tone="amber" />
                         </div>
-                        <div className="mt-2 text-lg font-semibold leading-tight text-[var(--text)] md:text-[1.05rem]">{view.row.playerName}</div>
+                        <div className="mt-1.5 text-lg font-semibold leading-tight text-[var(--text)] md:text-[1.02rem]">{view.row.playerName}</div>
                         <div className="mt-1 text-sm font-semibold text-[var(--text)] md:text-[15px]">{recommendationHeadline(view)}</div>
                         <div className="mt-1 text-[13px] text-[var(--text-2)] md:text-sm">{matchup(view.row)}</div>
                       </div>
@@ -1531,14 +1532,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         {relativeTime(view.row.gameIntel.generatedAt, now)}
                       </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-1.5 md:gap-2">
+                    <div className="mt-2.5 grid grid-cols-3 gap-1.5">
                       <CompactMetric label="Line" value={view.live == null ? '-' : n(view.live)} compact />
                       <CompactMetric label="Gap" value={gapRead(view.edge)} compact />
                       <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 0)} compact />
                     </div>
-                    <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--text-2)] md:text-sm">
+                    <div className="mt-2.5 flex items-center gap-3 text-xs text-[var(--text-2)] md:text-sm">
                       <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
-                      <span className="text-right font-medium text-[var(--accent)]">Open player</span>
                     </div>
                   </button>
                 ))}
@@ -1735,35 +1735,29 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                               key={`${view.row.playerId}:${view.market}:live-feed`}
                               type="button"
                               onClick={() => setResearch(view.row.playerId)}
-                              className={`relative mb-3 w-full rounded-xl border border-[color:rgba(216,204,186,0.7)] bg-[color:rgba(255,253,252,0.72)] px-3 py-3 text-left last:mb-0 md:rounded-2xl md:px-4 md:py-3.5 ${CARD_BUTTON_CLASS}`}
+                              className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[color:rgba(216,204,186,0.72)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
                             >
-                              <span className="absolute -left-[21px] top-4 h-2.5 w-2.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--surface)]" />
+                              <span className="absolute -left-[21px] top-2.5 h-2.5 w-2.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--surface)]" />
                               <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
                                     {relativeTime(view.row.gameIntel.generatedAt, now)}
                                   </div>
                                   <div className="mt-1 text-sm font-semibold text-[var(--text)] md:text-[15px]">{feedEventTitle(view)}</div>
-                                  <div className="mt-1 text-[13px] text-[var(--text-2)] md:text-sm">
+                                  <div className="mt-0.5 text-[13px] text-[var(--text-2)] md:text-sm">
                                     {view.row.playerName} | {MARKET_LABELS[view.market]} | {matchup(view.row)}
                                   </div>
                                 </div>
                                 {index === 0 ? <Pill label={view.label} tone="amber" /> : null}
                               </div>
-                              <div className="mt-2 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(view)}</div>
-                              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--text-2)] md:text-sm">
+                              <div className="mt-1.5 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(view)}</div>
+                              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-2)] md:text-sm">
                                 <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[view.side]}`}>
                                   {recommendationHeadline(view)}
                                 </span>
-                                <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                                  Gap {gapRead(view.edge)}
-                                </span>
-                                <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                                  Conf {view.conf == null ? '-' : pct(view.conf, 0)}
-                                </span>
-                                <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5">
-                                  {booksLiveLabel(view.books) ?? 'Books pending'}
-                                </span>
+                                <span>Gap {gapRead(view.edge)}</span>
+                                <span>Conf {view.conf == null ? '-' : pct(view.conf, 0)}</span>
+                                <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
                               </div>
                             </button>
                           ))}
