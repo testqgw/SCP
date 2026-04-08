@@ -13,5 +13,5 @@ export const UNIVERSAL_SYSTEM_SUMMARY: SnapshotUniversalSystemSummary = {
   walkForwardBlendedAccuracy: 60.2,
   walkForwardCoveragePct: 74.32,
   note:
-    "Board-faithful full-board scoreboard using resolved raw accuracy: player override when present, else universal raw, else baseline, with the promoted PRA raw feature artifact, the Joel/Javon/Ja/Nae'Qwan/Cole/Dejounte/Devin/Aaron/Sabonis/Taurean/Tristan/Marcus/Kyle dedicated overrides, and the additive player-local recovery manifest v13 active. This version keeps the Nae'Qwan normalized-name fix, keeps Cole Anthony plus Dejounte Murray as dedicated live overrides, and promotes the generalized Cole/Dej guard-role family lift after a clean full, 14d, and 30d live-stack replay. Older universal-only 51.x% walk-forward numbers remain research-only and are not the official board score.",
+    "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, and the active player-local recovery manifest. This version keeps the Nae'Qwan normalized-name fix, keeps Cole Anthony plus Dejounte Murray as dedicated live overrides, and promotes the generalized Cole/Dej guard-role family lift after a clean full, 14d, and 30d live-stack replay. Older universal-only 51.x% walk-forward numbers remain research-only and are not the official board score.",
 };

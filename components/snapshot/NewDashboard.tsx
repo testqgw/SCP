@@ -274,6 +274,7 @@ type View = {
   books: number | null;
   side: SnapshotModelSide;
   liveKind: Kind;
+  liveLineKind: Kind;
   fairKind: Kind;
   projKind: Kind;
   edgeKind: Kind;
@@ -369,6 +370,7 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
     : precision?.historicalAccuracy ?? liveSignal?.confidence ?? null;
   const usesDerivedEdge = proj != null && basis != null;
   const edge = usesDerivedEdge ? Number((proj - basis).toFixed(1)) : precision?.projectionPriceEdge ?? null;
+  const liveBooks = live != null && (liveSignal?.sportsbookCount ?? 0) > 0 ? (liveSignal?.sportsbookCount ?? null) : null;
   const reasons = [...(precision?.reasons ?? []).slice(0, 2), ...(liveSignal?.passReasons ?? []).slice(0, 2)].filter(Boolean);
   const score =
     (entry?.selectionScore ?? precision?.selectionScore ?? 0) +
@@ -387,18 +389,19 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
     proj,
     edge,
     conf,
-    books: liveSignal?.sportsbookCount ?? null,
+    books: liveBooks,
     side,
     liveKind: live != null ? 'LIVE' : 'MODEL',
-    fairKind: fair != null ? 'LIVE' : 'PLACEHOLDER',
-    projKind: proj != null ? 'LIVE' : 'PLACEHOLDER',
+    liveLineKind: live != null ? 'LIVE' : 'PLACEHOLDER',
+    fairKind: fair != null ? 'MODEL' : 'PLACEHOLDER',
+    projKind: proj != null ? 'MODEL' : 'PLACEHOLDER',
     edgeKind: edge != null ? (usesDerivedEdge ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
     confKind: conf != null ? (usesDerivedConfidence ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
-    booksKind: liveSignal?.sportsbookCount != null ? 'LIVE' : 'PLACEHOLDER',
+    booksKind: liveBooks != null ? 'LIVE' : 'PLACEHOLDER',
     sideKind: usesComputedSide ? 'DERIVED' : 'LIVE',
     rank: entry ? `#${entry.rank}` : null,
-    source: entry ? `Precision rank #${entry.rank}` : live != null ? 'Live signal' : 'Model view',
-    note: live != null ? `${liveSignal?.sportsbookCount ?? 0} books live` : fair != null ? 'No live consensus line in payload' : 'No market line available yet',
+    source: entry ? `Precision rank #${entry.rank}` : live != null ? 'Live consensus' : fair != null ? 'Fair line only' : 'No line yet',
+    note: live != null ? `${liveBooks ?? 0} books live` : fair != null ? 'Fair line only until live consensus lands' : 'No market line available yet',
     score,
     reasons,
     precision,
@@ -1204,7 +1207,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <div className="rounded-[28px] border border-white/10 bg-black/30 p-4 sm:p-5">
                   <div className="flex flex-wrap gap-2">
                     {featured.rank ? <Badge label={featured.rank} kind="DERIVED" /> : null}
-                    <Pill label={featured.source} tone={featured.source === 'Live signal' ? 'cyan' : 'default'} />
+                    <Pill label={featured.source} tone={featured.live != null ? 'cyan' : 'default'} />
                     <Pill label={MARKET_LABELS[featured.market]} tone="amber" />
                     <Badge label={featured.live != null ? 'Live candidate' : 'Derived candidate'} kind={featured.live != null ? 'LIVE' : 'DERIVED'} />
                   </div>
@@ -1232,7 +1235,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       </div>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <Stat dense label="Live line" value={featured.live == null ? '-' : n(featured.live)} kind={featured.liveKind} note="Consensus market line" />
+                      <Stat dense label="Live line" value={featured.live == null ? '-' : n(featured.live)} kind={featured.liveLineKind} note="Consensus market line" />
                       <Stat dense label="Fair line" value={featured.fair == null ? '-' : n(featured.fair)} kind={featured.fairKind} note="Model fair line from payload" />
                       <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection from payload" />
                       <Stat dense label="Edge" value={featured.edge == null ? '-' : signed(featured.edge)} kind={featured.edgeKind} note="Projection minus line" />
@@ -1623,14 +1626,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         </div>
                       </div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <Stat dense label="Live line" value={view.live == null ? '-' : n(view.live)} kind={view.liveKind} note={view.note} />
+                        <Stat dense label="Live line" value={view.live == null ? '-' : n(view.live)} kind={view.liveLineKind} note={view.note} />
                         <Stat dense label="Fair line" value={view.fair == null ? '-' : n(view.fair)} kind={view.fairKind} note="Model fair line from payload" />
                         <Stat dense label="Edge" value={view.edge == null ? '-' : signed(view.edge)} kind={view.edgeKind} note="Projection minus line" />
                         <Stat dense label="Confidence" value={view.conf == null ? '-' : pct(view.conf, 1)} kind={view.confKind} note="Payload confidence or derived win probability" />
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {view.rank ? <Badge label={view.rank} kind="DERIVED" /> : null}
-                        <Pill label={view.source} tone={view.source === 'Live signal' ? 'cyan' : 'default'} />
+                        <Pill label={view.source} tone={view.live != null ? 'cyan' : 'default'} />
                         {view.precision?.selectorFamily ? <Pill label={view.precision.selectorFamily} tone="cyan" /> : null}
                         {view.precision?.selectorTier ? <Pill label={view.precision.selectorTier} tone="amber" /> : null}
                       </div>
@@ -1859,7 +1862,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           </div>
                           <p className="mt-3 text-sm leading-6 text-zinc-300">{researchModelVsLineExplanation}</p>
                           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <Stat dense label="Live line" value={researchLeadView?.live == null ? '-' : n(researchLeadView.live)} kind={researchLeadView?.liveKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market line` : 'Lead market unavailable'} />
+                            <Stat dense label="Live line" value={researchLeadView?.live == null ? '-' : n(researchLeadView.live)} kind={researchLeadView?.liveLineKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market line` : 'Lead market unavailable'} />
                             <Stat dense label="Fair line" value={researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)} kind={researchLeadView?.fairKind ?? 'PLACEHOLDER'} note="Board fair line" />
                             <Stat dense label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection" />
                             <Stat dense label="Recent 5" value={researchLeadRecentFive} kind={researchLeadView ? (researchRow.last5[researchLeadView.market].length ? 'LIVE' : 'PLACEHOLDER') : 'PLACEHOLDER'} note="Recent sample for the lead market" />
@@ -1901,7 +1904,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           <thead className="bg-white/5 text-zinc-400">
                             <tr>
                               <th className="px-3 py-3 text-left font-medium">Market</th>
-                              <th className="px-3 py-3 text-left font-medium">Live</th>
+                              <th className="px-3 py-3 text-left font-medium">Live line</th>
                               <th className="px-3 py-3 text-left font-medium">Fair</th>
                               <th className="px-3 py-3 text-left font-medium">Proj</th>
                               <th className="px-3 py-3 text-left font-medium">Edge</th>
@@ -1922,7 +1925,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                   <div className="text-xs text-zinc-500">{v.source}</div>
                                 </td>
                                 <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.live != null ? n(v.live) : v.fair != null ? n(v.fair) : '-'}</span><Badge label={v.liveKind} kind={v.liveKind} /></div>
+                                  <div className="flex flex-col gap-1"><span className="text-white">{v.live == null ? '-' : n(v.live)}</span><Badge label={v.liveLineKind} kind={v.liveLineKind} /></div>
                                 </td>
                                 <td className="px-3 py-3">
                                   <div className="flex flex-col gap-1"><span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span><Badge label={v.fairKind} kind={v.fairKind} /></div>
@@ -2117,7 +2120,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                        <Stat dense label="Live line" value={v.live == null ? '-' : n(v.live)} kind={v.liveKind} note={v.note} />
+                        <Stat dense label="Live line" value={v.live == null ? '-' : n(v.live)} kind={v.liveLineKind} note={v.note} />
                         <Stat dense label="Fair line" value={v.fair == null ? '-' : n(v.fair)} kind={v.fairKind} note="Fair line from payload" />
                         <Stat dense label="Edge" value={v.edge == null ? '-' : signed(v.edge)} kind={v.edgeKind} note="Projection minus line" />
                         <Stat dense label="Confidence" value={v.conf == null ? '-' : pct(v.conf, 1)} kind={v.confKind} note="Payload confidence or derived win probability" />
@@ -2206,7 +2209,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <thead className="bg-white/5 text-zinc-400">
                       <tr>
                         <th className="px-4 py-3 text-left font-medium">Player / market</th>
-                        <th className="px-4 py-3 text-left font-medium">Live</th>
+                        <th className="px-4 py-3 text-left font-medium">Live line</th>
                         <th className="px-4 py-3 text-left font-medium">Fair</th>
                         <th className="px-4 py-3 text-left font-medium">Proj</th>
                         <th className="px-4 py-3 text-left font-medium">Edge</th>
@@ -2239,7 +2242,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                             <td className="px-4 py-4">
                               <div className="flex flex-col gap-1">
                                 <span className="text-white">{v.live == null ? '-' : n(v.live)}</span>
-                                <Badge label={v.liveKind} kind={v.liveKind} />
+                                <Badge label={v.liveLineKind} kind={v.liveLineKind} />
                               </div>
                             </td>
                             <td className="px-4 py-4">
