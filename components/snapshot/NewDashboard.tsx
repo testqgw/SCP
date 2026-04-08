@@ -324,18 +324,28 @@ function recommendationDetail(view: Pick<View, 'live' | 'fair' | 'books' | 'note
   return view.note;
 }
 
+function selectorFamilyLabel(value: string | null | undefined) {
+  if (!value) return null;
+  return value
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 function feedReason(
-  view: Pick<View, 'live' | 'books' | 'reasons' | 'precision' | 'source' | 'note'>,
+  view: Pick<View, 'live' | 'books' | 'reasons' | 'precision' | 'note'>,
 ) {
   const surfacedReason = firstSentence(view.reasons[0]);
   if (surfacedReason) return surfacedReason;
-  if (view.precision?.selectorFamily) {
-    return `${view.precision.selectorFamily.replaceAll('_', ' ')} surfaced this live market.`;
+  const selectorFamily = selectorFamilyLabel(view.precision?.selectorFamily);
+  if (selectorFamily) {
+    return `${selectorFamily} surfaced this live number.`;
   }
   if (view.live != null) {
-    return `${booksLiveLabel(view.books) ?? 'Consensus live books'} are backing the current board read.`;
+    return `${booksLiveLabel(view.books) ?? 'Consensus live books'} are backing the current number.`;
   }
-  return view.note;
+  return view.note ?? 'The board has a fresh live number ready to review.';
 }
 
 function CompactMetric({
@@ -760,6 +770,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       ? formatRecord(teamMatchup.awayLast10Record.wins, teamMatchup.awayLast10Record.losses)
       : formatRecord(teamMatchup.homeLast10Record.wins, teamMatchup.homeLast10Record.losses)
     : null;
+  const boardPulseNote =
+    refreshNotice?.detail ??
+    (featured
+      ? `${recommendationHeadline(featured)} is leading the board, with ${n(topOpportunities.length, 0)} live opportunities and ${n(liveFeedViews.length, 0)} fresh feed items.`
+      : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const researchWhyInteresting = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player and the board will explain why that slate row is worth a deeper look.';
@@ -1314,9 +1329,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  {refreshNotice?.detail ??
-                    boardModelNote ??
-                    'The board is refreshed and the top modules are prioritizing current live numbers first.'}
+                  {boardPulseNote}
                 </div>
               </div>
             </div>
