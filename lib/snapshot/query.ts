@@ -196,7 +196,7 @@ type CachedPlayerPosition = {
 
 const LIVE_FEED_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_LIVE_FEED_TIMEOUT_MS);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 12_000;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 20_000;
   return Math.min(Math.max(3_000, Math.floor(parsed)), 25_000);
 })();
 
@@ -4435,12 +4435,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       gameIntel,
     });
     const rowKey = getSnapshotBoardRowKey(computedRow);
-    const frozenRow =
-      isTodayEt && hasGameStarted(matchup.gameTimeUtc, nowMs) ? persistedRowMap.get(rowKey) ?? null : null;
     builtRowKeys.add(rowKey);
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
-      row: frozenRow ? toBoardSnapshotRow(frozenRow) : computedRow,
+      row: computedRow,
     });
   }
 

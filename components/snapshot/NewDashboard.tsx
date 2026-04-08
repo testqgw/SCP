@@ -136,6 +136,7 @@ function signal(row: SnapshotDashboardRow, market: SnapshotMarket): SnapshotDash
 }
 
 function Badge({ label, kind = 'PLACEHOLDER' as Kind }: { label: string; kind?: Kind }) {
+  if (!label || kind === 'PLACEHOLDER' || label.trim().toUpperCase() === 'PLACEHOLDER') return null;
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${KIND_CLASS[kind]}`}>{label}</span>;
 }
 
@@ -343,7 +344,7 @@ function rankViews(views: View[]) {
 }
 
 function leadViewFromViews(views: View[]) {
-  return views.find((view) => isActionableView(view)) ?? views[0] ?? null;
+  return views.find((view) => view.live != null) ?? views.find((view) => isActionableView(view)) ?? views[0] ?? null;
 }
 
 function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
@@ -553,6 +554,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     () => (researchRow ? rankViews(MARKETS.map((market) => viewFor(researchRow, market))) : []),
     [researchRow],
   );
+  const researchLiveViews = useMemo(() => researchViews.filter((view) => view.live != null), [researchViews]);
   const researchLeadView = useMemo(() => leadViewFromViews(researchViews), [researchViews]);
   const researchTopPrecision = useMemo(
     () => (researchRow ? precision.find((item) => item.row.playerId === researchRow.playerId) ?? null : null),
@@ -1034,7 +1036,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               </h1>
               <p className="mt-4 max-w-2xl text-base text-zinc-300 sm:text-lg">
                 Start with the featured pick, search any active player, and refresh the board when new lineups or prices
-                land. The live, derived, and placeholder labels stay visible all the way through the dashboard.
+                land. Live pricing, board math, and precision reads stay visible throughout the dashboard.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
@@ -1899,61 +1901,67 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         </div>
                         <Pill label="Live payload + board math" />
                       </div>
-                      <div className="mt-4 overflow-x-auto rounded-[22px] border border-white/10">
-                        <table className="min-w-full text-sm">
-                          <thead className="bg-white/5 text-zinc-400">
-                            <tr>
-                              <th className="px-3 py-3 text-left font-medium">Market</th>
-                              <th className="px-3 py-3 text-left font-medium">Live line</th>
-                              <th className="px-3 py-3 text-left font-medium">Fair</th>
-                              <th className="px-3 py-3 text-left font-medium">Proj</th>
-                              <th className="px-3 py-3 text-left font-medium">Edge</th>
-                              <th className="px-3 py-3 text-left font-medium">Conf</th>
-                              <th className="px-3 py-3 text-left font-medium">Side</th>
-                              <th className="px-3 py-3 text-left font-medium">Books</th>
-                              <th className="px-3 py-3 text-left font-medium">Read</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {researchViews.map((v) => (
-                              <tr
-                                key={`${v.row.playerId}:${v.market}`}
-                                className={`border-t border-white/8 ${researchLeadView?.market === v.market ? 'bg-cyan-400/5' : ''}`}
-                              >
-                                <td className="px-3 py-3">
-                                  <div className="font-semibold text-white">{v.label}</div>
-                                  <div className="text-xs text-zinc-500">{v.source}</div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.live == null ? '-' : n(v.live)}</span><Badge label={v.liveLineKind} kind={v.liveLineKind} /></div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span><Badge label={v.fairKind} kind={v.fairKind} /></div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.proj == null ? '-' : n(v.proj)}</span><Badge label={v.projKind} kind={v.projKind} /></div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.edge == null ? '-' : signed(v.edge)}</span><Badge label={v.edgeKind} kind={v.edgeKind} /></div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.conf == null ? '-' : pct(v.conf, 1)}</span><Badge label={v.confKind} kind={v.confKind} /></div>
-                                </td>
-                                <td className="px-3 py-3"><Side side={v.side} kind={v.sideKind} /></td>
-                                <td className="px-3 py-3">
-                                  <div className="flex flex-col gap-1"><span className="text-white">{v.books == null ? '-' : n(v.books, 0)}</span><Badge label={v.booksKind} kind={v.booksKind} /></div>
-                                </td>
-                                <td className="px-3 py-3">
-                                  <div className="text-white">{marketRead(v)}</div>
-                                  <div className="mt-1 text-xs text-zinc-500">
-                                    {v.precision?.qualified ? 'Precision-qualified' : v.live != null ? 'Live board read' : 'Model fair line (no books)'}
-                                  </div>
-                                </td>
+                      {researchLiveViews.length ? (
+                        <div className="mt-4 overflow-x-auto rounded-[22px] border border-white/10">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-white/5 text-zinc-400">
+                              <tr>
+                                <th className="px-3 py-3 text-left font-medium">Market</th>
+                                <th className="px-3 py-3 text-left font-medium">Live line</th>
+                                <th className="px-3 py-3 text-left font-medium">Fair</th>
+                                <th className="px-3 py-3 text-left font-medium">Proj</th>
+                                <th className="px-3 py-3 text-left font-medium">Edge</th>
+                                <th className="px-3 py-3 text-left font-medium">Conf</th>
+                                <th className="px-3 py-3 text-left font-medium">Side</th>
+                                <th className="px-3 py-3 text-left font-medium">Books</th>
+                                <th className="px-3 py-3 text-left font-medium">Read</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody>
+                              {researchLiveViews.map((v) => (
+                                <tr
+                                  key={`${v.row.playerId}:${v.market}`}
+                                  className={`border-t border-white/8 ${researchLeadView?.market === v.market ? 'bg-cyan-400/5' : ''}`}
+                                >
+                                  <td className="px-3 py-3">
+                                    <div className="font-semibold text-white">{v.label}</div>
+                                    <div className="text-xs text-zinc-500">{v.source}</div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{n(v.live)}</span><Badge label={v.liveLineKind} kind={v.liveLineKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span><Badge label={v.fairKind} kind={v.fairKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{v.proj == null ? '-' : n(v.proj)}</span><Badge label={v.projKind} kind={v.projKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{v.edge == null ? '-' : signed(v.edge)}</span><Badge label={v.edgeKind} kind={v.edgeKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{v.conf == null ? '-' : pct(v.conf, 1)}</span><Badge label={v.confKind} kind={v.confKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3"><Side side={v.side} kind={v.sideKind} /></td>
+                                  <td className="px-3 py-3">
+                                    <div className="flex flex-col gap-1"><span className="text-white">{v.books == null ? '-' : n(v.books, 0)}</span><Badge label={v.booksKind} kind={v.booksKind} /></div>
+                                  </td>
+                                  <td className="px-3 py-3">
+                                    <div className="text-white">{marketRead(v)}</div>
+                                    <div className="mt-1 text-xs text-zinc-500">
+                                      {v.precision?.qualified ? 'Precision-qualified' : 'Live board read'}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-[22px] border border-dashed border-white/15 bg-black/25 px-4 py-4 text-sm text-zinc-400">
+                          No live player prop lines are available for this player right now. Model-only rows stay hidden until a real book line lands.
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid gap-4 xl:grid-cols-2">
