@@ -746,6 +746,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const hasParsedUrlRef = useRef(false);
   const pendingUrlSearchRef = useRef<string | null>(null);
+  const urlNavigationModeRef = useRef<'push' | 'replace'>('replace');
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
 
   useEffect(() => {
@@ -1250,23 +1251,27 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     scrollToSection(nextView === 'overview' ? overviewRef : workspaceRef, behavior);
   };
   const setMatchupSelection = (matchupKey: string, options?: { pin?: boolean }) => {
+    urlNavigationModeRef.current = 'push';
     setSelectedMatchupKey(matchupKey);
     if (options?.pin !== false) {
       setPinnedMatchupKey(matchupKey);
     }
   };
   const activateTab = (nextTab: Tab) => {
+    urlNavigationModeRef.current = 'push';
     setHeaderSearchOpen(false);
     setHeaderView(TAB_TO_VIEW[nextTab]);
     setTab(nextTab);
     scrollToView(TAB_TO_VIEW[nextTab]);
   };
   const openHelp = () => {
+    urlNavigationModeRef.current = 'push';
     setHeaderSearchOpen(false);
     setHeaderView('method');
     scrollToView('method');
   };
   const openResearchSearch = () => {
+    urlNavigationModeRef.current = 'push';
     setHeaderView('players');
     setTab('research');
     setHeaderSearchOpen(false);
@@ -1276,6 +1281,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }, 0);
   };
   const setResearch = (playerId: string, options?: { scroll?: boolean }) => {
+    urlNavigationModeRef.current = 'push';
     const row = rowById.get(playerId);
     if (row?.matchupKey) {
       setMatchupSelection(row.matchupKey);
@@ -1289,6 +1295,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
   };
   const openMatchup = (matchupKey: string) => {
+    urlNavigationModeRef.current = 'push';
     setMatchupSelection(matchupKey);
     setHeaderView('overview');
     setTab('precision');
@@ -1370,8 +1377,15 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     const currentSearch = searchParams.toString();
     if (nextSearch === currentSearch) return;
     pendingUrlSearchRef.current = nextSearch;
+    const navigationMode = urlNavigationModeRef.current;
+    urlNavigationModeRef.current = 'replace';
     startTransition(() => {
-      router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname, { scroll: false });
+      const href = nextSearch ? `${pathname}?${nextSearch}` : pathname;
+      if (navigationMode === 'push') {
+        router.push(href, { scroll: false });
+        return;
+      }
+      router.replace(href, { scroll: false });
     });
   }, [headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, router, searchParams, urlReady]);
 
