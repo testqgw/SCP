@@ -79,6 +79,10 @@ import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
+  SnapshotBoardFeed,
+  SnapshotBoardFeedEventType,
+  SnapshotBoardFeedItem,
+  SnapshotBoardFeedStatus,
   SnapshotBoardViewData,
   SnapshotDataCompleteness,
   SnapshotDashboardDataCompleteness,
@@ -240,12 +244,27 @@ type LineupPlayerSignal = {
 };
 
 const MARKETS: SnapshotMarket[] = SNAPSHOT_MARKETS;
+const MARKET_LABELS: Record<SnapshotMarket, string> = {
+  PTS: "PTS",
+  REB: "REB",
+  AST: "AST",
+  THREES: "3PM",
+  PRA: "PRA",
+  PA: "PA",
+  PR: "PR",
+  RA: "RA",
+};
 const SNAPSHOT_BOARD_CACHE_TTL_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_BOARD_CACHE_TTL_MS);
   if (!Number.isFinite(parsed) || parsed <= 0) return 300_000;
   return Math.min(Math.max(5_000, Math.floor(parsed)), 10 * 60_000);
 })();
 const PLAYER_POSITION_CACHE_TTL_MS = 30 * 60_000;
+const SNAPSHOT_BOARD_FEED_SEED_LIMIT = 8;
+const SNAPSHOT_BOARD_FEED_EVENT_LIMIT = 180;
+const SNAPSHOT_BOARD_FEED_LINE_THRESHOLD = 0.5;
+const SNAPSHOT_BOARD_FEED_GAP_THRESHOLD = 0.5;
+const SNAPSHOT_BOARD_FEED_CONFIDENCE_THRESHOLD = 4;
 
 type SnapshotBoardCacheEntry = {
   data: SnapshotBoardData;
@@ -261,6 +280,27 @@ const SNAPSHOT_BOARD_PAYLOAD_VERSION = "modal-preload-v2";
 type PersistedSnapshotBoardSetting = {
   sourceSignal: string;
   data: SnapshotBoardData;
+};
+
+type BoardFeedMarketSnapshot = {
+  key: string;
+  playerId: string;
+  playerName: string;
+  matchupKey: string;
+  gameTimeEt: string;
+  market: SnapshotMarket;
+  side: SnapshotModelSide;
+  line: number | null;
+  fairLine: number | null;
+  projection: number | null;
+  gap: number | null;
+  confidence: number | null;
+  booksLive: number | null;
+  rank: number | null;
+  precisionQualified: boolean;
+  selectorFamily: string | null;
+  reasons: string[];
+  score: number;
 };
 
 function getSnapshotBoardSettingKey(dateEt: string): string {
@@ -524,6 +564,10 @@ function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
     ...data,
     rows: data.rows.map((row) => toBoardSnapshotRow(row)),
   };
+}
+
+function hasPersistedBoardFeedData(data: SnapshotBoardData): boolean {
+  return Boolean(data.boardFeed && Array.isArray(data.boardFeed.events));
 }
 
 function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): SnapshotDashboardSignal | null {
@@ -1117,6 +1161,389 @@ function formatSigned(value: number | null | undefined): string {
 function formatPercent(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "-";
   return `${(value * 100).toFixed(0)}%`;
+}
+
+function formatPercentPoints(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${Math.round(value)}%`;
+}
+
+function formatGapRead(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "on the line";
+  if (Math.abs(value) < 0.05) return "on the line";
+  return `${formatNumber(Math.abs(value))} ${value > 0 ? "above" : "below"}`;
+}
+
+function getBoardFeedKey(input: Pick<BoardFeedMarketSnapshot, "matchupKey" | "playerId" | "market">): string {
+  return `${input.matchupKey}|${input.playerId}|${input.market}`;
+}
+
+function buildBoardFeedTitle(eventType: SnapshotBoardFeedEventType): string {
+  if (eventType === "SURFACED") return "Surfaced";
+  if (eventType === "MOVED") return "Moved";
+  if (eventType === "STRENGTHENED") return "Strengthened";
+  if (eventType === "WEAKENED") return "Weakened";
+  if (eventType === "DROPPED") return "Dropped";
+  return "Locked";
+}
+
+function buildBoardFeedRecommendation(snapshot: Pick<BoardFeedMarketSnapshot, "side" | "line" | "fairLine" | "market">): string {
+  const line = snapshot.line ?? snapshot.fairLine;
+  const label = MARKET_LABELS[snapshot.market];
+  if (snapshot.side === "NEUTRAL") {
+    return line == null ? `${label} waiting for line` : `${label} ${formatNumber(line)}`;
+  }
+  return line == null ? `${snapshot.side} ${label}` : `${snapshot.side} ${formatNumber(line)} ${label}`;
+}
+
+function buildBoardFeedBooksPhrase(booksLive: number | null | undefined): string {
+  if (booksLive == null || !Number.isFinite(booksLive) || booksLive <= 0) return "";
+  const rounded = Math.max(0, Math.round(booksLive));
+  return ` across ${rounded} ${rounded === 1 ? "book" : "books"}`;
+}
+
+function buildBoardFeedReason(snapshot: Pick<BoardFeedMarketSnapshot, "gap" | "booksLive" | "reasons" | "selectorFamily">): string {
+  if (snapshot.gap != null) {
+    return `Projection is ${formatGapRead(snapshot.gap)} the live line${buildBoardFeedBooksPhrase(snapshot.booksLive)}.`;
+  }
+  const surfacedReason = snapshot.reasons[0]?.trim();
+  if (surfacedReason) return surfacedReason;
+  if (snapshot.selectorFamily) {
+    return `${snapshot.selectorFamily} surfaced this pregame number.`;
+  }
+  return `Pregame books posted a trackable number${buildBoardFeedBooksPhrase(snapshot.booksLive)}.`;
+}
+
+function getBoardFeedSignal(row: SnapshotRow, market: SnapshotMarket): SnapshotPtsSignal | null {
+  if (market === "PTS") return row.ptsSignal;
+  if (market === "REB") return row.rebSignal;
+  if (market === "AST") return row.astSignal;
+  if (market === "THREES") return row.threesSignal;
+  if (market === "PRA") return row.praSignal;
+  if (market === "PA") return row.paSignal;
+  if (market === "PR") return row.prSignal;
+  if (market === "RA") return row.raSignal;
+  return null;
+}
+
+function buildPrecisionEntryMap(data: Pick<SnapshotBoardData, "precisionCard">): Map<string, SnapshotPrecisionCardEntry> {
+  return new Map(
+    (data.precisionCard ?? []).map((entry) => [
+      `${entry.playerId}|${entry.market}`,
+      entry,
+    ] as const),
+  );
+}
+
+function buildBoardFeedSnapshot(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  entry: SnapshotPrecisionCardEntry | null = null,
+): BoardFeedMarketSnapshot {
+  const liveSignal = getBoardFeedSignal(row, market);
+  const precision = entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null;
+  const fairLine = row.modelLines[market].fairLine;
+  const line = liveSignal?.marketLine ?? null;
+  const projection = row.projectedTonight[market];
+  const basis = line ?? fairLine;
+  const usesComputedSide = !(precision?.qualified && precision.side !== "NEUTRAL") && basis != null && projection != null;
+  const side: SnapshotModelSide =
+    precision?.qualified && precision.side !== "NEUTRAL"
+      ? precision.side
+      : usesComputedSide
+        ? projection > basis
+          ? "OVER"
+          : projection < basis
+            ? "UNDER"
+            : "NEUTRAL"
+        : liveSignal?.side ?? row.modelLines[market].modelSide;
+  const confidence =
+    precision?.projectionWinProbability != null
+      ? precision.projectionWinProbability * 100
+      : precision?.historicalAccuracy ?? liveSignal?.confidence ?? null;
+  const gap = projection != null && basis != null ? round(projection - basis, 1) : precision?.projectionPriceEdge ?? null;
+  const booksLive = line != null && (liveSignal?.sportsbookCount ?? 0) > 0 ? liveSignal?.sportsbookCount ?? null : null;
+  const reasons = [...(precision?.reasons ?? []).slice(0, 2), ...(liveSignal?.passReasons ?? []).slice(0, 2)].filter(Boolean);
+  const score =
+    (entry?.selectionScore ?? precision?.selectionScore ?? 0) +
+    (confidence ?? 0) * 0.35 +
+    (gap != null ? Math.abs(gap) * 12 : 0) +
+    (line != null ? 10 : 0) +
+    (precision?.qualified ? 18 : 0) +
+    Math.min(liveSignal?.sportsbookCount ?? 0, 6) +
+    row.dataCompleteness.score * 0.08;
+
+  return {
+    key: getBoardFeedKey({ matchupKey: row.matchupKey, playerId: row.playerId, market }),
+    playerId: row.playerId,
+    playerName: row.playerName,
+    matchupKey: row.matchupKey,
+    gameTimeEt: row.gameTimeEt,
+    market,
+    side,
+    line,
+    fairLine,
+    projection,
+    gap,
+    confidence,
+    booksLive,
+    rank: entry?.rank ?? null,
+    precisionQualified: Boolean(precision?.qualified || (precision?.side && precision.side !== "NEUTRAL")),
+    selectorFamily: precision?.selectorFamily ?? null,
+    reasons,
+    score,
+  };
+}
+
+function buildBoardFeedSnapshotMap(data: SnapshotBoardData): Map<string, BoardFeedMarketSnapshot> {
+  const entryByKey = buildPrecisionEntryMap(data);
+  const snapshots = new Map<string, BoardFeedMarketSnapshot>();
+
+  data.rows.forEach((row) => {
+    MARKETS.forEach((market) => {
+      const snapshot = buildBoardFeedSnapshot(row, market, entryByKey.get(`${row.playerId}|${market}`) ?? null);
+      snapshots.set(snapshot.key, snapshot);
+    });
+  });
+
+  return snapshots;
+}
+
+function isBoardFeedCandidate(snapshot: BoardFeedMarketSnapshot | null | undefined): snapshot is BoardFeedMarketSnapshot {
+  if (!snapshot || snapshot.line == null) return false;
+  const absGap = Math.abs(snapshot.gap ?? 0);
+  const confidence = snapshot.confidence ?? 0;
+  return snapshot.precisionQualified || absGap >= 0.5 || confidence >= 58 || snapshot.score >= 55;
+}
+
+function buildBoardFeedLatestEventMap(events: SnapshotBoardFeedItem[]): Map<string, SnapshotBoardFeedItem> {
+  const map = new Map<string, SnapshotBoardFeedItem>();
+  events.forEach((event) => {
+    const key = `${event.matchupKey}|${event.playerId}|${event.market}`;
+    const existing = map.get(key);
+    if (!existing || existing.createdAt < event.createdAt) {
+      map.set(key, event);
+    }
+  });
+  return map;
+}
+
+function createBoardFeedItem(input: {
+  eventType: SnapshotBoardFeedEventType;
+  status: SnapshotBoardFeedStatus;
+  createdAt: string;
+  snapshot: BoardFeedMarketSnapshot;
+  detail: string;
+}): SnapshotBoardFeedItem {
+  return {
+    id: `${input.createdAt}:${input.eventType}:${input.snapshot.key}`,
+    createdAt: input.createdAt,
+    eventType: input.eventType,
+    status: input.status,
+    title: buildBoardFeedTitle(input.eventType),
+    detail: input.detail,
+    playerId: input.snapshot.playerId,
+    playerName: input.snapshot.playerName,
+    matchupKey: input.snapshot.matchupKey,
+    gameTimeEt: input.snapshot.gameTimeEt,
+    market: input.snapshot.market,
+    recommendation: buildBoardFeedRecommendation(input.snapshot),
+    side: input.snapshot.side,
+    line: input.snapshot.line,
+    fairLine: input.snapshot.fairLine,
+    projection: input.snapshot.projection,
+    gap: input.snapshot.gap,
+    confidence: input.snapshot.confidence,
+    booksLive: input.snapshot.booksLive,
+    rank: input.snapshot.rank,
+  };
+}
+
+function buildBoardFeedTransitionEvent(
+  previous: BoardFeedMarketSnapshot,
+  current: BoardFeedMarketSnapshot,
+  createdAt: string,
+): SnapshotBoardFeedItem | null {
+  const lineChanged =
+    previous.line != null &&
+    current.line != null &&
+    Math.abs(current.line - previous.line) >= SNAPSHOT_BOARD_FEED_LINE_THRESHOLD;
+  const sideChanged = previous.side !== current.side && current.side !== "NEUTRAL";
+
+  if (lineChanged || sideChanged) {
+    const detail = lineChanged
+      ? `Line moved from ${formatNumber(previous.line)} to ${formatNumber(current.line)}. ${buildBoardFeedReason(current)}`
+      : `Recommendation flipped from ${previous.side} to ${current.side}. ${buildBoardFeedReason(current)}`;
+    return createBoardFeedItem({
+      eventType: "MOVED",
+      status: "PREGAME",
+      createdAt,
+      snapshot: current,
+      detail,
+    });
+  }
+
+  const gapDelta = Math.abs(current.gap ?? 0) - Math.abs(previous.gap ?? 0);
+  const confidenceDelta = (current.confidence ?? 0) - (previous.confidence ?? 0);
+  if (gapDelta >= SNAPSHOT_BOARD_FEED_GAP_THRESHOLD || confidenceDelta >= SNAPSHOT_BOARD_FEED_CONFIDENCE_THRESHOLD) {
+    const detail =
+      gapDelta >= SNAPSHOT_BOARD_FEED_GAP_THRESHOLD
+        ? `Model gap widened to ${formatGapRead(current.gap)} before tipoff. Confidence now sits ${formatPercentPoints(current.confidence)}.`
+        : `Confidence climbed to ${formatPercentPoints(current.confidence)} while the pregame number stayed in range.`;
+    return createBoardFeedItem({
+      eventType: "STRENGTHENED",
+      status: "PREGAME",
+      createdAt,
+      snapshot: current,
+      detail,
+    });
+  }
+
+  if (gapDelta <= -SNAPSHOT_BOARD_FEED_GAP_THRESHOLD || confidenceDelta <= -SNAPSHOT_BOARD_FEED_CONFIDENCE_THRESHOLD) {
+    const detail =
+      gapDelta <= -SNAPSHOT_BOARD_FEED_GAP_THRESHOLD
+        ? `Model gap narrowed to ${formatGapRead(current.gap)} before tipoff. Confidence now sits ${formatPercentPoints(current.confidence)}.`
+        : `Confidence eased to ${formatPercentPoints(current.confidence)} while the pregame line stayed posted.`;
+    return createBoardFeedItem({
+      eventType: "WEAKENED",
+      status: "PREGAME",
+      createdAt,
+      snapshot: current,
+      detail,
+    });
+  }
+
+  return null;
+}
+
+function buildSnapshotBoardFeed(input: {
+  dateEt: string;
+  current: SnapshotBoardData;
+  previous: SnapshotBoardData | null;
+  matchupStartMsByKey: Map<string, number | null>;
+  nowMs: number;
+  isTodayEt: boolean;
+  eventTime: string;
+}): SnapshotBoardFeed {
+  const label = "Board feed";
+  const note = "Pregame changes captured throughout the day. Markets freeze at tipoff.";
+  const previousEvents = input.previous?.boardFeed?.events ?? [];
+  if (!input.isTodayEt) {
+    return {
+      label,
+      note,
+      events: previousEvents,
+    };
+  }
+
+  const previousSnapshots = input.previous ? buildBoardFeedSnapshotMap(input.previous) : new Map<string, BoardFeedMarketSnapshot>();
+  const currentSnapshots = buildBoardFeedSnapshotMap(input.current);
+  const latestEventByKey = buildBoardFeedLatestEventMap(previousEvents);
+  const candidateKeys = new Set<string>([
+    ...previousSnapshots.keys(),
+    ...currentSnapshots.keys(),
+  ]);
+
+  const orderedKeys = Array.from(candidateKeys).sort((left, right) => {
+    const leftSnapshot = currentSnapshots.get(left) ?? previousSnapshots.get(left);
+    const rightSnapshot = currentSnapshots.get(right) ?? previousSnapshots.get(right);
+    return (rightSnapshot?.score ?? 0) - (leftSnapshot?.score ?? 0);
+  });
+
+  const nextEvents: SnapshotBoardFeedItem[] = [];
+  orderedKeys.forEach((key) => {
+    const previous = previousSnapshots.get(key) ?? null;
+    const current = currentSnapshots.get(key) ?? null;
+    const latestEvent = latestEventByKey.get(key) ?? null;
+    if (latestEvent?.eventType === "LOCKED" || latestEvent?.status === "FINAL") {
+      return;
+    }
+
+    const matchupKey = current?.matchupKey ?? previous?.matchupKey;
+    const matchupStartMs = matchupKey != null ? input.matchupStartMsByKey.get(matchupKey) ?? null : null;
+    const started = matchupStartMs != null && matchupStartMs <= input.nowMs;
+    const previousTracked = isBoardFeedCandidate(previous);
+    const currentTracked = !started && isBoardFeedCandidate(current);
+
+    if (started) {
+      if (previousTracked) {
+        nextEvents.push(
+          createBoardFeedItem({
+            eventType: "LOCKED",
+            status: input.dateEt === getTodayEtDateString() ? "LOCKED" : "FINAL",
+            createdAt: input.eventTime,
+            snapshot: previous,
+            detail: "Pregame tracking stopped at tipoff. Final pregame snapshot kept.",
+          }),
+        );
+      }
+      return;
+    }
+
+    if (!previousTracked && currentTracked) {
+      nextEvents.push(
+        createBoardFeedItem({
+          eventType: "SURFACED",
+          status: "PREGAME",
+          createdAt: input.eventTime,
+          snapshot: current,
+          detail: buildBoardFeedReason(current),
+        }),
+      );
+      return;
+    }
+
+    if (previousTracked && !currentTracked) {
+      nextEvents.push(
+        createBoardFeedItem({
+          eventType: "DROPPED",
+          status: "PREGAME",
+          createdAt: input.eventTime,
+          snapshot: previous,
+          detail: "Pregame number disappeared before tipoff, so the play fell off the board.",
+        }),
+      );
+      return;
+    }
+
+    if (previousTracked && currentTracked) {
+      const transitionEvent = buildBoardFeedTransitionEvent(previous, current, input.eventTime);
+      if (transitionEvent) {
+        nextEvents.push(transitionEvent);
+      }
+    }
+  });
+
+  const mergedEvents =
+    previousEvents.length === 0 && nextEvents.length === 0
+      ? Array.from(currentSnapshots.values())
+          .filter((snapshot) => {
+            const matchupStartMs = input.matchupStartMsByKey.get(snapshot.matchupKey) ?? null;
+            return !((matchupStartMs ?? Number.MAX_SAFE_INTEGER) <= input.nowMs) && isBoardFeedCandidate(snapshot);
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, SNAPSHOT_BOARD_FEED_SEED_LIMIT)
+          .map((snapshot) =>
+            createBoardFeedItem({
+              eventType: "SURFACED",
+              status: "PREGAME",
+              createdAt: input.eventTime,
+              snapshot,
+              detail: buildBoardFeedReason(snapshot),
+            }),
+          )
+      : [...nextEvents, ...previousEvents];
+
+  return {
+    label,
+    note,
+    events: mergedEvents
+      .sort((a, b) => {
+        if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1;
+        return a.playerName.localeCompare(b.playerName);
+      })
+      .slice(0, SNAPSHOT_BOARD_FEED_EVENT_LIMIT),
+  };
 }
 
 function formatEmpiricalHitRateSummary(input: {
@@ -2528,10 +2955,10 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     select: { value: true },
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
-  if (persistedBoard) {
+  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
     return toSnapshotBoardViewData(persistedBoard.data);
   }
-  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt));
+  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt, true));
 }
 
 export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
@@ -2607,7 +3034,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     cached &&
     cached.sourceSignal === sourceSignal &&
     cached.expiresAt > Date.now() &&
-    !isUnderfilledPrecisionBoard(dateEt, cached.data)
+    !isUnderfilledPrecisionBoard(dateEt, cached.data) &&
+    hasPersistedBoardFeedData(cached.data)
   ) {
     return toBoardSnapshotData(cached.data);
   }
@@ -2622,7 +3050,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     !bustCache &&
     persistedBoard &&
     persistedBoard.sourceSignal === sourceSignal &&
-    !isUnderfilledPrecisionBoard(dateEt, persistedBoard.data)
+    !isUnderfilledPrecisionBoard(dateEt, persistedBoard.data) &&
+    hasPersistedBoardFeedData(persistedBoard.data)
   ) {
     const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
     snapshotBoardCache.set(cacheKey, {
@@ -2647,6 +3076,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       precisionCardSummary: null,
       precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
       universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
+      boardFeed: {
+        label: "Board feed",
+        note: "Pregame changes captured throughout the day. Markets freeze at tipoff.",
+        events: persistedBoard?.data.boardFeed?.events ?? [],
+      },
     };
     snapshotBoardCache.set(cacheKey, {
       data: emptyData,
@@ -2677,6 +3111,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const matchupByTeamId = new Map<string, TeamMatchup>();
   const matchupOptionsByKey = new Map<string, SnapshotMatchupOption>();
   const matchupMetaByKey = new Map<string, MatchupMeta>();
+  const matchupStartTimesByKey = new Map<string, number | null>();
   const startedMatchupTimesByKey = new Map<string, number>();
 
   for (const game of games) {
@@ -2684,6 +3119,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const awayCode = game.awayTeam.abbreviation;
     const gameTimeEt = formatUtcToEt(game.commenceTimeUtc);
     const matchupKey = `${awayCode}@${homeCode}`;
+    matchupStartTimesByKey.set(matchupKey, game.commenceTimeUtc?.getTime() ?? null);
 
     if (isTodayEt && hasGameStarted(game.commenceTimeUtc, nowMs)) {
       startedMatchupTimesByKey.set(matchupKey, game.commenceTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER);
@@ -2859,6 +3295,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
       teamMatchups,
       rows: [],
+      boardFeed: {
+        label: "Board feed",
+        note: "Pregame changes captured throughout the day. Markets freeze at tipoff.",
+        events: persistedBoard?.data.boardFeed?.events ?? [],
+      },
     };
     snapshotBoardCache.set(cacheKey, {
       data: emptyData,
@@ -4511,8 +4952,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     fillCount: 0,
     selectedCount: finalPrecisionCard.length,
   };
-
-  const result = toBoardSnapshotData({
+  const currentData: SnapshotBoardData = {
     dateEt,
     lastUpdatedAt: sourceUpdatedAtIso,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
@@ -4522,6 +4962,20 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
+  };
+  const boardFeed = buildSnapshotBoardFeed({
+    dateEt,
+    current: currentData,
+    previous: persistedBoard?.data ?? null,
+    matchupStartMsByKey: matchupStartTimesByKey,
+    nowMs,
+    isTodayEt,
+    eventTime: sourceUpdatedAtIso ?? new Date(nowMs).toISOString(),
+  });
+
+  const result = toBoardSnapshotData({
+    ...currentData,
+    boardFeed,
   });
   snapshotBoardCache.set(cacheKey, {
     data: result,

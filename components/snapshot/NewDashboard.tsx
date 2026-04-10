@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
+  SnapshotBoardFeedItem,
   SnapshotBoardViewData,
   SnapshotDashboardPrecisionSignal,
   SnapshotDashboardRow,
@@ -410,33 +411,12 @@ function selectorTierLabel(value: string | null | undefined) {
   return signalTokenLabel(value);
 }
 
-function feedReason(
-  view: Pick<View, 'live' | 'fair' | 'proj' | 'edge' | 'books' | 'reasons' | 'precision' | 'note'>,
-) {
-  if (view.live != null && view.edge != null) {
-    return conciseLeadReason(view);
-  }
-  const surfacedReason = firstSentence(view.reasons[0]);
-  if (surfacedReason) return surfacedReason;
-  const selectorFamily = selectorFamilyLabel(view.precision?.selectorFamily);
-  if (selectorFamily) {
-    return `${selectorFamily} surfaced this live number.`;
-  }
-  if (view.live != null) {
-    return `${booksLiveLabel(view.books) ?? 'Consensus live books'} are backing the current number.`;
-  }
-  return view.note ?? 'The board has a fresh live number ready to review.';
+function feedReason(event: SnapshotBoardFeedItem) {
+  return event.detail;
 }
 
-function feedEventTitle(view: Pick<View, 'precision' | 'live' | 'edge'>) {
-  const selectorFamily = selectorFamilyLabel(view.precision?.selectorFamily);
-  if (selectorFamily || view.precision?.qualified) return 'Precision surfaced';
-  if (view.live != null && view.edge != null) {
-    if (Math.abs(view.edge) < 0.05) return 'Model matched the line';
-    return view.edge > 0 ? 'Model cleared the line' : 'Model came in below the line';
-  }
-  if (view.live != null) return 'Live number posted';
-  return 'Board updated';
+function feedEventTitle(event: SnapshotBoardFeedItem) {
+  return event.title;
 }
 
 function feedBucketLabel(timestamp: string | null, now: number) {
@@ -445,6 +425,16 @@ function feedBucketLabel(timestamp: string | null, now: number) {
   if (minutes < 5) return 'Now';
   if (minutes < 15) return 'Last 15 min';
   return 'Earlier';
+}
+
+function feedStatusLabel(event: Pick<SnapshotBoardFeedItem, 'status'>) {
+  if (event.status === 'LOCKED') return 'Locked at tipoff';
+  if (event.status === 'FINAL') return 'Final';
+  return 'Pregame';
+}
+
+function feedStatusTone(event: Pick<SnapshotBoardFeedItem, 'status'>): 'amber' | 'cyan' {
+  return event.status === 'PREGAME' ? 'amber' : 'cyan';
 }
 
 function CompactMetric({
@@ -978,7 +968,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const matchupQualifiedCount = selectedMatchupViews.filter((v) => v.precision?.qualified).length;
   const liveCount = allViews.filter((v) => v.live != null).length;
   const qualifiedCount = allViews.filter((v) => v.precision?.qualified).length;
-  const avgCompleteness = data.rows.length ? Math.round((data.rows.reduce((s, r) => s + r.dataCompleteness.score, 0) / data.rows.length) * 10) / 10 : null;
   const target = data.precisionSystem?.targetCardCount ?? data.precisionCardSummary?.targetCardCount ?? precision.length;
   const selected = data.precisionCardSummary?.selectedCount ?? precision.length;
   const gap = Math.max(target - selected, 0);
@@ -1240,17 +1229,28 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     return picks.filter((view) => view.live != null).slice(0, 6);
   }, [precision, scoutViews, selectedMatchupViews]);
   const matchupExplorerSpots = useMemo(() => matchupBestSpots.slice(0, 3), [matchupBestSpots]);
-  const liveFeedViews = useMemo(() => scoutViews.filter((view) => view.live != null).slice(0, 8), [scoutViews]);
+  const boardFeedEvents = useMemo(() => data.boardFeed?.events ?? [], [data.boardFeed]);
+  const liveFeedEvents = useMemo(() => boardFeedEvents.slice(0, 12), [boardFeedEvents]);
   const liveFeedBuckets = useMemo(() => {
-    const grouped = new Map<string, View[]>();
-    liveFeedViews.forEach((view) => {
-      const label = feedBucketLabel(view.row.gameIntel.generatedAt, now);
-      grouped.set(label, [...(grouped.get(label) ?? []), view]);
+    const grouped = new Map<string, SnapshotBoardFeedItem[]>();
+    liveFeedEvents.forEach((event) => {
+      const label = feedBucketLabel(event.createdAt, now);
+      grouped.set(label, [...(grouped.get(label) ?? []), event]);
     });
     return ['Now', 'Last 15 min', 'Earlier']
-      .map((label) => ({ label, views: grouped.get(label) ?? [] }))
-      .filter((bucket) => bucket.views.length);
-  }, [liveFeedViews, now]);
+      .map((label) => ({ label, events: grouped.get(label) ?? [] }))
+      .filter((bucket) => bucket.events.length);
+  }, [liveFeedEvents, now]);
+  const boardFeedSummary = useMemo(() => {
+    const counts = { surfaced: 0, moved: 0, locked: 0 };
+    boardFeedEvents.forEach((event) => {
+      if (event.eventType === 'SURFACED') counts.surfaced += 1;
+      if (event.eventType === 'MOVED' || event.eventType === 'STRENGTHENED' || event.eventType === 'WEAKENED') counts.moved += 1;
+      if (event.eventType === 'LOCKED') counts.locked += 1;
+    });
+    return counts;
+  }, [boardFeedEvents]);
+  const latestBoardFeedEvent = boardFeedEvents[0] ?? null;
   const featuredReasonList = useMemo(() => {
     if (!featured) return [] as string[];
     const reasons = featured.precision?.reasons?.length ? featured.precision.reasons : featured.reasons;
@@ -1895,9 +1895,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             <div className="hidden md:block xl:col-span-5">
               <BoardPulseCard
                 boardRefresh={ts(data.lastUpdatedAt)}
-                featuredUpdate={ts(featuredUpdatedAt)}
+                featuredUpdate={ts(latestBoardFeedEvent?.createdAt ?? featuredUpdatedAt)}
                 liveLines={n(liveCount, 0)}
-                feedItems={n(liveFeedViews.length, 0)}
+                feedItems={n(boardFeedEvents.length, 0)}
                 strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
                 bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
                 mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
@@ -1967,9 +1967,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             <div className="mt-4 md:hidden">
               <BoardPulseCard
                 boardRefresh={ts(data.lastUpdatedAt)}
-                featuredUpdate={ts(featuredUpdatedAt)}
+                featuredUpdate={ts(latestBoardFeedEvent?.createdAt ?? featuredUpdatedAt)}
                 liveLines={n(liveCount, 0)}
-                feedItems={n(liveFeedViews.length, 0)}
+                feedItems={n(boardFeedEvents.length, 0)}
                 strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
                 bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
                 mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
@@ -2125,9 +2125,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Live board feed</div>
-                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">What changed on the board</h2>
-                    <p className="mt-1 text-sm text-[var(--text-2)]">Current live numbers, newest first.</p>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board feed</div>
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Pregame changes captured through the day</h2>
+                    <p className="mt-1 text-sm text-[var(--text-2)]">Markets freeze at tipoff, so this feed stays historical instead of drifting into live-play noise.</p>
                   </div>
                   <button
                     type="button"
@@ -2137,42 +2137,45 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     Open full feed
                   </button>
                 </div>
-                {liveFeedViews.length ? (
+                {liveFeedEvents.length ? (
                   <div className="mt-4 flex max-h-[480px] flex-col gap-4 overflow-auto pr-1">
                     {liveFeedBuckets.map((bucket) => (
                       <div key={bucket.label}>
                         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{bucket.label}</div>
                         <div className="relative ml-1 border-l-2 border-[color:rgba(109,74,255,0.18)] pl-5">
-                          {bucket.views.map((view, index) => (
+                          {bucket.events.map((event, index) => (
                             <button
-                              key={`${view.row.playerId}:${view.market}:live-feed`}
+                              key={event.id}
                               type="button"
-                              onClick={() => setResearch(view.row.playerId)}
+                              onClick={() => setResearch(event.playerId)}
                               className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[color:rgba(216,204,186,0.58)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
                             >
                               <span className="absolute -left-[25px] top-2.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]" />
                               <div className="grid gap-2 sm:grid-cols-[76px_minmax(0,1fr)] sm:gap-3">
                                 <div className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] sm:text-right">
-                                  {relativeTime(view.row.gameIntel.generatedAt, now)}
+                                  {relativeTime(event.createdAt, now)}
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="min-w-0">
-                                      <div className="text-sm font-semibold text-[var(--text)] md:text-[15px]">{feedEventTitle(view)}</div>
+                                      <div className="text-sm font-semibold text-[var(--text)] md:text-[15px]">{feedEventTitle(event)}</div>
                                       <div className="mt-0.5 text-[13px] text-[var(--text-2)] md:text-sm">
-                                        {view.row.playerName} | {MARKET_LABELS[view.market]} | {matchup(view.row)}
+                                        {event.playerName} | {MARKET_LABELS[event.market]} | {event.matchupKey.replace('@', ' @ ')} - {event.gameTimeEt}
                                       </div>
                                     </div>
-                                    {index === 0 ? <Pill label={view.label} tone="amber" /> : null}
+                                    <div className="flex flex-wrap items-center justify-end gap-2">
+                                      {index === 0 ? <Pill label="Newest" tone="amber" /> : null}
+                                      <Pill label={feedStatusLabel(event)} tone={feedStatusTone(event)} />
+                                    </div>
                                   </div>
-                                  <div className="mt-1.5 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(view)}</div>
+                                  <div className="mt-1.5 text-sm leading-5 text-[var(--text-2)] md:leading-6">{feedReason(event)}</div>
                                   <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-2)] md:text-sm">
-                                    <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[view.side]}`}>
-                                      {recommendationHeadline(view)}
+                                    <span className={`rounded-full border px-3 py-1.5 text-xs font-semibold md:text-sm ${SIDE_CLASS[event.side]}`}>
+                                      {event.recommendation}
                                     </span>
-                                    <span>Gap {gapRead(view.edge)}</span>
-                                    <span>Conf {view.conf == null ? '-' : pct(view.conf, 0)}</span>
-                                    <span>{booksLiveLabel(view.books) ?? 'Books pending'}</span>
+                                    <span>Gap {gapRead(event.gap)}</span>
+                                    <span>Conf {event.confidence == null ? '-' : pct(event.confidence, 0)}</span>
+                                    <span>{booksLiveLabel(event.booksLive) ?? 'Books pending'}</span>
                                   </div>
                                 </div>
                               </div>
@@ -2185,9 +2188,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 ) : (
                   <div className="mt-4">
                     <EmptyState
-                      eyebrow="Live board feed"
-                      title="No live board items are ready for the feed yet."
-                      detail="The feed only shows rows with an actual sportsbook number. As soon as live books land, they will surface here with the current line and read."
+                      eyebrow="Board feed"
+                      title="No pregame feed events are logged yet."
+                      detail="The feed starts filling once a pregame number surfaces, moves materially, drops, or locks at tipoff."
                       actionLabel="Refresh slate"
                       onAction={refreshSlate}
                     />
@@ -2761,56 +2764,55 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           {tab === 'scout' ? (
             <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
               <div className="space-y-3">
-                {scoutViews.length === 0 ? (
+                {boardFeedEvents.length === 0 ? (
                   <EmptyState
-                    eyebrow="Scout feed"
-                    title="No scout feed items are available yet."
-                    detail="Once live line or precision data lands, the feed will populate with actionable signal rows."
+                    eyebrow="Board feed"
+                    title="No pregame board events are available yet."
+                    detail="This workspace fills as playable numbers surface, move materially, drop, and then lock at tipoff."
                     actionLabel="Refresh slate"
                     onAction={refreshSlate}
                   />
                 ) : (
-                  scoutViews.map((v, i) => (
+                  boardFeedEvents.map((event, i) => (
                     <button
-                      key={`${v.row.playerId}:${v.market}`}
+                      key={event.id}
                       type="button"
-                      onClick={() => setResearch(v.row.playerId)}
+                      onClick={() => setResearch(event.playerId)}
                       className={`w-full rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 text-left ${CARD_BUTTON_CLASS}`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap gap-2">
                             <Badge label={`#${i + 1}`} kind="DERIVED" />
-                            <Pill label={v.label} tone="amber" />
-                            <Badge label={v.liveKind} kind={v.liveKind} />
+                            <Pill label={feedEventTitle(event)} tone="amber" />
+                            <Pill label={feedStatusLabel(event)} tone={feedStatusTone(event)} />
                           </div>
-                          <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{v.row.playerName}</div>
-                          <div className="mt-1 text-sm text-zinc-400">{matchup(v.row)}</div>
+                          <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{event.playerName}</div>
+                          <div className="mt-1 text-sm text-zinc-400">
+                            {MARKET_LABELS[event.market]} | {event.matchupKey.replace('@', ' @ ')} - {event.gameTimeEt}
+                          </div>
+                          <div className="mt-2 text-sm text-zinc-300">{feedReason(event)}</div>
                         </div>
-                        <RecommendationBox view={v} className="w-full sm:w-auto sm:min-w-[250px]" />
+                        <div className={`w-full rounded-[20px] border px-4 py-3 text-left sm:w-auto sm:min-w-[250px] ${SIDE_CLASS[event.side]}`}>
+                          <div className="text-[10px] uppercase tracking-[0.18em] opacity-60">Pregame snapshot</div>
+                          <div className="mt-2 text-xl font-semibold tracking-tight">{event.recommendation}</div>
+                          <div className="mt-1 text-xs opacity-80">{relativeTime(event.createdAt, now)}</div>
+                        </div>
                       </div>
 
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                         <Stat
                           dense
                           label="Line to play"
-                          value={v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}
-                          kind={v.live == null ? v.fairKind : v.liveLineKind}
-                          note={v.live != null ? 'Current consensus line behind the call' : v.fair != null ? 'Model fair line until live books land' : v.note}
+                          value={event.line == null ? (event.fairLine == null ? '-' : n(event.fairLine)) : n(event.line)}
+                          kind={event.line == null ? (event.fairLine == null ? 'PLACEHOLDER' : 'MODEL') : 'LIVE'}
+                          note={event.line != null ? 'Last tracked pregame line' : event.fairLine != null ? 'Model fair line fallback' : 'No pregame line captured'}
                         />
-                        <Stat dense label="Projection" value={v.proj == null ? '-' : n(v.proj)} kind={v.projKind} note="Tonight projection from payload" />
-                        <Stat dense label="Edge" value={v.edge == null ? '-' : signed(v.edge)} kind={v.edgeKind} note="Projection minus line" />
-                        <Stat dense label="Confidence" value={v.conf == null ? '-' : pct(v.conf, 1)} kind={v.confKind} note="Payload confidence or derived win probability" />
-                        <Stat dense label="Books live" value={booksLiveLabel(v.books) ?? '-'} kind={v.booksKind} note="Consensus books currently seen" />
+                        <Stat dense label="Projection" value={event.projection == null ? '-' : n(event.projection)} kind={event.projection == null ? 'PLACEHOLDER' : 'MODEL'} note="Projection saved with the event" />
+                        <Stat dense label="Gap" value={event.gap == null ? '-' : gapRead(event.gap)} kind={event.gap == null ? 'PLACEHOLDER' : 'DERIVED'} note="Projection vs pregame line" />
+                        <Stat dense label="Confidence" value={event.confidence == null ? '-' : pct(event.confidence, 0)} kind={event.confidence == null ? 'PLACEHOLDER' : 'DERIVED'} note="Confidence at the time of the event" />
+                        <Stat dense label="Books live" value={booksLiveLabel(event.booksLive) ?? '-'} kind={event.booksLive == null ? 'PLACEHOLDER' : 'LIVE'} note="Consensus books seen pregame" />
                       </div>
-
-                      {v.reasons.length ? (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {v.reasons.map((r) => (
-                            <Pill key={r} label={r} />
-                          ))}
-                        </div>
-                      ) : null}
                     </button>
                   ))
                 )}
@@ -2818,18 +2820,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Scout summary</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Feed summary</div>
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <Stat dense label="Live lines" value={n(liveCount, 0)} kind="LIVE" note="Markets with live line data" />
-                    <Stat dense label="Qualified" value={n(qualifiedCount, 0)} kind="DERIVED" note="Precision-ready market views" />
-                    <Stat dense label="Completeness" value={avgCompleteness == null ? '-' : pct(avgCompleteness, 0)} kind={avgCompleteness == null ? 'PLACEHOLDER' : 'DERIVED'} note="Board-wide score" />
-                    <Stat dense label="Updated" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note="ET timestamp" />
+                    <Stat dense label="Events" value={n(boardFeedEvents.length, 0)} kind={boardFeedEvents.length ? 'LIVE' : 'PLACEHOLDER'} note="Pregame events stored today" />
+                    <Stat dense label="Surfaced" value={n(boardFeedSummary.surfaced, 0)} kind={boardFeedSummary.surfaced ? 'DERIVED' : 'PLACEHOLDER'} note="New pregame numbers tracked" />
+                    <Stat dense label="Moved" value={n(boardFeedSummary.moved, 0)} kind={boardFeedSummary.moved ? 'DERIVED' : 'PLACEHOLDER'} note="Material pregame changes" />
+                    <Stat dense label="Locked" value={n(boardFeedSummary.locked, 0)} kind={boardFeedSummary.locked ? 'LIVE' : 'PLACEHOLDER'} note="Markets frozen at tipoff" />
                   </div>
                 </div>
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Scout context</div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Feed context</div>
                       <div className="mt-1 text-lg font-semibold text-white">Selected matchup pulse</div>
                     </div>
                     <Badge label={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} kind={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} />
@@ -2843,28 +2845,27 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       </div>
                       <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
                         {selectedMatchupLead
-                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is the live lead spot for this game on the current board. Sidebar context is keyed to ${selectedMatchupLead.label}.`
+                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is still the clearest current board lead for this matchup. Feed history beside it stays frozen once tipoff hits.`
                           : 'No clear lead spot is surfaced for the selected game yet.'}
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
                         <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets currently priced" />
-                        <Stat dense label="Qualified" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-ready views" />
-                        <Stat dense label="Last refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
+                        <Stat dense label="Pregame events" value={n(boardFeedEvents.filter((event) => event.matchupKey === selectedMatchup.key).length, 0)} kind={boardFeedEvents.some((event) => event.matchupKey === selectedMatchup.key) ? 'DERIVED' : 'PLACEHOLDER'} note="Events stored for this matchup" />
+                        <Stat dense label="Last event" value={ts(latestBoardFeedEvent?.createdAt)} kind={latestBoardFeedEvent ? 'LIVE' : 'PLACEHOLDER'} note="Most recent stored feed event" />
                       </div>
                     </>
                   ) : (
                     <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                      Select a matchup in the lens above to keep this sidebar anchored to one game while you scan the scout feed.
+                      Select a matchup in the lens above to keep this sidebar anchored to one game while you scan the board feed.
                     </div>
                   )}
                 </div>
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Support note</div>
                   <p className="mt-3 text-sm leading-6 text-zinc-300">
-                    The scout feed is built from the current board payload. It shows live line data when present, then
-                    falls back to derived confidence and projection context. It does not invent book movement that is not
-                    present in SnapshotBoardData.
+                    The board feed is now stored across refreshes and only tracks pregame changes. Once a game tips,
+                    that player-market locks and stays historical instead of mutating off live-play movement.
                   </p>
                 </div>
                 <MatchupsCard

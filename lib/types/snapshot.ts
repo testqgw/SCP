@@ -285,6 +285,46 @@ export type SnapshotBoardData = {
   precisionCardSummary?: SnapshotPrecisionCardSummary | null;
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
+  boardFeed?: SnapshotBoardFeed | null;
+};
+
+export type SnapshotBoardFeedEventType =
+  | "SURFACED"
+  | "MOVED"
+  | "STRENGTHENED"
+  | "WEAKENED"
+  | "DROPPED"
+  | "LOCKED";
+
+export type SnapshotBoardFeedStatus = "PREGAME" | "LOCKED" | "FINAL";
+
+export type SnapshotBoardFeedItem = {
+  id: string;
+  createdAt: string;
+  eventType: SnapshotBoardFeedEventType;
+  status: SnapshotBoardFeedStatus;
+  title: string;
+  detail: string;
+  playerId: string;
+  playerName: string;
+  matchupKey: string;
+  gameTimeEt: string;
+  market: SnapshotMarket;
+  recommendation: string;
+  side: SnapshotModelSide;
+  line: number | null;
+  fairLine: number | null;
+  projection: number | null;
+  gap: number | null;
+  confidence: number | null;
+  booksLive: number | null;
+  rank: number | null;
+};
+
+export type SnapshotBoardFeed = {
+  label: string;
+  note: string;
+  events: SnapshotBoardFeedItem[];
 };
 
 export type SnapshotDashboardSignal = Pick<
