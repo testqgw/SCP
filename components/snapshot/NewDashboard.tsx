@@ -14,7 +14,8 @@ import type {
 } from '@/lib/types/snapshot';
 
 type Tab = 'precision' | 'research' | 'scout' | 'tracking';
-type ViewKey = 'overview' | 'players' | 'feed' | 'lines' | 'method';
+type ViewKey = 'overview' | 'players' | 'feed' | 'tracker' | 'method';
+type TrackerSort = 'gap' | 'confidence' | 'books';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
@@ -34,28 +35,28 @@ const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'precision', label: 'Overview', hint: 'Best board setups' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
-  { id: 'tracking', label: 'Lines', hint: 'Live line vs fair' },
+  { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
 ];
 
 const TAB_TO_VIEW: Record<Tab, ViewKey> = {
   precision: 'overview',
   research: 'players',
   scout: 'feed',
-  tracking: 'lines',
+  tracking: 'tracker',
 };
 
 const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
   overview: 'precision',
   players: 'research',
   feed: 'scout',
-  lines: 'tracking',
+  tracker: 'tracking',
 };
 
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
   { label: 'Overview', tab: 'precision' },
   { label: 'Players', tab: 'research' },
   { label: 'Feed', tab: 'scout' },
-  { label: 'Lines', tab: 'tracking' },
+  { label: 'Tracker', tab: 'tracking' },
   { label: 'Method', action: 'help' },
 ];
 
@@ -82,13 +83,6 @@ const ACTION_CLASS =
   'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(109,74,255,0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
 
 const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-[color:rgba(109,74,255,0.24)] hover:shadow-[0_10px_24px_rgba(29,26,34,0.06)]`;
-const WORKSPACE_SWITCH_CLASS =
-  'rounded-full border px-3 py-1.5 text-[13px] font-medium sm:px-3.5 sm:py-2';
-const ACTIVE_SWITCH_CLASS =
-  'border-[color:rgba(109,74,255,0.24)] bg-[var(--surface)] text-[var(--accent)] shadow-[0_6px_18px_rgba(109,74,255,0.10)]';
-const INACTIVE_SWITCH_CLASS =
-  'border-[var(--border)] bg-transparent text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]';
-
 function n(v: number | null | undefined, d = 1) {
   if (v == null || Number.isNaN(v)) return '-';
   const s = v.toFixed(d);
@@ -718,7 +712,8 @@ function slugifyParam(value: string) {
 }
 
 function parseViewParam(value: string | null): ViewKey {
-  if (value === 'players' || value === 'feed' || value === 'lines' || value === 'method') return value;
+  if (value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
+  if (value === 'lines') return 'tracker';
   return 'overview';
 }
 
@@ -758,6 +753,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const [now, setNow] = useState(() => Date.now());
   const [urlReady, setUrlReady] = useState(false);
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
+  const [trackerSort, setTrackerSort] = useState<TrackerSort>('gap');
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -892,10 +888,19 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     () => allViews.filter((v) => isActionableView(v)).sort((a, b) => b.score - a.score).slice(0, 8),
     [allViews],
   );
-  const trackViews = useMemo(
-    () => allViews.filter((v) => v.live != null || v.fair != null || v.edge != null).sort((a, b) => Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score).slice(0, 8),
-    [allViews],
-  );
+  const trackViews = useMemo(() => {
+    const views = allViews.filter((v) => v.live != null || v.fair != null || v.edge != null);
+    views.sort((a, b) => {
+      if (trackerSort === 'confidence') {
+        return (b.conf ?? -1) - (a.conf ?? -1) || Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score;
+      }
+      if (trackerSort === 'books') {
+        return (b.books ?? -1) - (a.books ?? -1) || Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score;
+      }
+      return Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || (b.conf ?? -1) - (a.conf ?? -1) || b.score - a.score;
+    });
+    return views.slice(0, 18);
+  }, [allViews, trackerSort]);
   const selectedMatchup = useMemo(
     () => (selectedMatchupKey ? data.matchups.find((m) => m.key === selectedMatchupKey) ?? null : null),
     [data.matchups, selectedMatchupKey],
@@ -908,7 +913,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     () => (selectedMatchupKey ? data.teamMatchups.find((m) => m.matchupKey === selectedMatchupKey) ?? null : null),
     [data.teamMatchups, selectedMatchupKey],
   );
-  const matchupLabelByKey = useMemo(() => new Map(data.matchups.map((m) => [m.key, m.label] as const)), [data.matchups]);
   const playerByParam = useMemo(() => {
     const map = new Map<string, SnapshotDashboardRow>();
     slatePlayers.forEach((row) => {
@@ -942,35 +946,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
     return spots;
   }, [selectedMatchupViews]);
-  const precisionMarketMix = useMemo(() => {
-    const counts = new Map<SnapshotMarket, number>();
-    precision.forEach(({ view }) => {
-      counts.set(view.market, (counts.get(view.market) ?? 0) + 1);
-    });
-    return MARKETS.map((market) => ({ market, count: counts.get(market) ?? 0 }))
-      .filter((item) => item.count > 0)
-      .sort((a, b) => b.count - a.count || a.market.localeCompare(b.market));
-  }, [precision]);
-  const precisionMatchupMix = useMemo(() => {
-    const counts = new Map<string, number>();
-    precision.forEach(({ row }) => {
-      counts.set(row.matchupKey, (counts.get(row.matchupKey) ?? 0) + 1);
-    });
-    return Array.from(counts.entries())
-      .map(([matchupKey, count]) => ({
-        matchupKey,
-        count,
-        label: matchupLabelByKey.get(matchupKey) ?? matchupKey.replace('@', ' @ '),
-      }))
-      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-  }, [matchupLabelByKey, precision]);
   const matchupLiveCount = selectedMatchupViews.filter((v) => v.live != null).length;
   const matchupQualifiedCount = selectedMatchupViews.filter((v) => v.precision?.qualified).length;
   const liveCount = allViews.filter((v) => v.live != null).length;
   const qualifiedCount = allViews.filter((v) => v.precision?.qualified).length;
-  const target = data.precisionSystem?.targetCardCount ?? data.precisionCardSummary?.targetCardCount ?? precision.length;
-  const selected = data.precisionCardSummary?.selectedCount ?? precision.length;
-  const gap = Math.max(target - selected, 0);
   const hasBoardRows = data.rows.length > 0;
   const featuredUpdatedAt = featured?.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
   const boardRefreshRelative = relativeTime(data.lastUpdatedAt, now);
@@ -1190,7 +1169,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   ]);
   const tabSummary: Record<Tab, { detail: string; kind: Kind }> = {
     precision: {
-      detail: precision.length ? `${n(precision.length, 0)} card item${precision.length === 1 ? '' : 's'}` : 'No card items yet',
+      detail: precision.length ? `${n(precision.length, 0)} board picks ready` : 'No board picks yet',
       kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
@@ -1198,11 +1177,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       kind: slatePlayers.length ? 'LIVE' : 'PLACEHOLDER',
     },
     scout: {
-      detail: scoutViews.length ? `${n(scoutViews.length, 0)} signal rows` : 'Waiting for signals',
-      kind: scoutViews.length ? 'DERIVED' : 'PLACEHOLDER',
+      detail: data.boardFeed?.events?.length ? `${n(data.boardFeed.events.length, 0)} pregame events` : 'Waiting for feed events',
+      kind: data.boardFeed?.events?.length ? 'DERIVED' : 'PLACEHOLDER',
     },
     tracking: {
-      detail: trackViews.length ? `${n(trackViews.length, 0)} tracked views` : 'No tracked views yet',
+      detail: trackViews.length ? `${n(trackViews.length, 0)} tracker rows` : 'No tracker rows yet',
       kind: trackViews.length ? 'DERIVED' : 'PLACEHOLDER',
     },
   };
@@ -1274,24 +1253,33 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       precisionLabel,
       coverage,
     ].filter(Boolean);
-    return parts.length ? parts.slice(0, 3).join(' · ') : null;
+    return parts.length ? parts.slice(0, 3).join(' | ') : null;
   }, [featured]);
+  const overviewPrecisionSupport = useMemo(() => {
+    if (!featured) return [] as string[];
+    return [
+      featured.precision?.qualified ? 'This number cleared the board qualification pass before it reached Overview.' : null,
+      featured.edge != null ? `Projection is ${gapRead(featured.edge)} the live line.` : null,
+      featured.books != null ? `${n(featured.books, 0)} books are contributing to the current consensus number.` : null,
+      firstSentence(featuredReasonList[1] ?? null),
+    ].filter((value): value is string => Boolean(value)).slice(0, 3);
+  }, [featured, featuredReasonList]);
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     precision: {
       title: 'Overview workspace',
-      detail: 'Curated board picks, confidence mix, and matchup shortcuts stay grouped here.',
+      detail: 'Best pick, next best numbers, and matchup shortcuts stay grouped here.',
     },
     research: {
       title: 'Players workspace',
-      detail: 'Search the active slate, then open a cleaner player dossier with line, projection, and support context first.',
+      detail: 'Search the slate on the left, then keep the selected player dossier open on the right.',
     },
     scout: {
       title: 'Feed workspace',
-      detail: 'The feed stays focused on live board signals and quick catalyst reads without forcing you through extra tabs.',
+      detail: 'The feed stays focused on persistent pregame changes and lock timing through the day.',
     },
     tracking: {
-      title: 'Lines workspace',
-      detail: 'Live line versus fair line stays in one comparison surface with current board context on the side.',
+      title: 'Tracker workspace',
+      detail: 'Use the tracker to sort the market numerically instead of jumping between card views.',
     },
   };
   const activeWorkspace = TABS.find((item) => item.id === tab) ?? TABS[0];
@@ -1873,7 +1861,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       onClick={() => activateTab('tracking')}
                       className={`${ACTION_CLASS} hidden min-h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:inline-flex`}
                     >
-                      Compare lines
+                      Open tracker
                     </button>
                   </div>
                 </div>
@@ -2213,34 +2201,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   <div className="mt-1 text-sm font-semibold text-[var(--text)]">{tabSummary[tab].detail}</div>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="mr-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">Quick switch</div>
-                {TABS.map((item) => (
-                  <button
-                    key={`workspace:${item.id}`}
-                    type="button"
-                    onClick={() => activateTab(item.id)}
-                    className={`${ACTION_CLASS} ${WORKSPACE_SWITCH_CLASS} ${
-                      tab === item.id
-                        ? ACTIVE_SWITCH_CLASS
-                        : INACTIVE_SWITCH_CLASS
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={openHelp}
-                  className={`${ACTION_CLASS} ${WORKSPACE_SWITCH_CLASS} ${
-                    headerView === 'method'
-                      ? ACTIVE_SWITCH_CLASS
-                      : INACTIVE_SWITCH_CLASS
-                  }`}
-                >
-                  Method
-                </button>
-              </div>
             </div>
 
           {tab === 'precision' ? (
@@ -2248,9 +2208,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               <div className="space-y-4">
                 {precision.length === 0 ? (
                   <EmptyState
-                    eyebrow="Precision card"
-                    title="No precision-card entries are loaded on this slate."
-                    detail="The board still works, but the featured anchor stays in fallback mode until a valid precision card is present."
+                    eyebrow="Overview board"
+                    title="No overview picks are loaded on this slate."
+                    detail="The board still works, but the overview queue stays empty until a playable set of live numbers is available."
                     actionLabel="Refresh slate"
                     onAction={refreshSlate}
                   />
@@ -2287,14 +2247,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                           note={view.live != null ? 'Current consensus line behind the call' : view.fair != null ? 'Model fair line until live books land' : view.note}
                         />
                         <Stat dense label="Projection" value={view.proj == null ? '-' : n(view.proj)} kind={view.projKind} note="Tonight projection from payload" />
-                        <Stat dense label="Edge" value={view.edge == null ? '-' : signed(view.edge)} kind={view.edgeKind} note="Projection minus line" />
-                        <Stat dense label="Confidence" value={view.conf == null ? '-' : pct(view.conf, 1)} kind={view.confKind} note="Payload confidence or derived win probability" />
+                        <Stat dense label="Model gap" value={view.edge == null ? '-' : gapRead(view.edge)} kind={view.edgeKind} note="Projection versus the current number" />
+                        <Stat dense label="Confidence" value={view.conf == null ? '-' : pct(view.conf, 0)} kind={view.confKind} note="Payload confidence or derived win probability" />
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {view.rank ? <Badge label={view.rank} kind="DERIVED" /> : null}
-                        <Pill label={view.source} tone={view.live != null ? 'cyan' : 'default'} />
-                        {view.precision?.selectorFamily ? <Pill label={view.precision.selectorFamily} tone="cyan" /> : null}
-                        {view.precision?.selectorTier ? <Pill label={view.precision.selectorTier} tone="amber" /> : null}
+                      <div className="mt-4 text-sm text-zinc-300">
+                        {conciseLeadReason(view, view.precision?.reasons?.[0] ?? view.reasons[0] ?? null)}
                       </div>
                     </button>
                   ))
@@ -2302,60 +2259,43 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Precision system</div>
-                      <div className="mt-1 text-lg font-semibold text-white">{data.precisionSystem?.label ?? 'Unavailable'}</div>
+                      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision pick</div>
+                      <div className="mt-1 text-lg font-semibold text-[var(--text)]">
+                        {featured ? `${featured.row.playerName} ${recommendationHeadline(featured)}` : "Waiting for today's lead"}
+                      </div>
                     </div>
-                    <Badge label={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} />
+                    <Badge label={featured?.precision?.qualified ? 'Qualified' : 'Board lead'} kind={featured?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <Stat dense label="Accuracy" value={data.precisionSystem ? pct(data.precisionSystem.historicalAccuracy, 1) : '-'} kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} note="Historical system rate from payload" />
-                    <Stat dense label="Coverage" value={data.precisionSystem ? pct(data.precisionSystem.historicalCoveragePct, 1) : '-'} kind={data.precisionSystem ? 'LIVE' : 'PLACEHOLDER'} note="Historical pick coverage from payload" />
-                    <Stat dense label="Target" value={data.precisionSystem?.targetCardCount != null ? n(data.precisionSystem.targetCardCount, 0) : '-'} kind={data.precisionSystem?.targetCardCount != null ? 'LIVE' : 'PLACEHOLDER'} note="Card slots expected" />
-                    <Stat dense label="Selected" value={n(selected, 0)} kind={data.precisionCardSummary?.selectedCount != null ? 'LIVE' : 'DERIVED'} note="Entries on the card" />
-                  </div>
-                  {data.precisionSystem?.note ? <div className="mt-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/8 px-4 py-3 text-sm text-cyan-50/90">{data.precisionSystem.note}</div> : null}
-                  {gap > 0 ? <div className="mt-3 rounded-2xl border border-amber-400/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/90">Precision card is under target by {gap} slot{gap === 1 ? '' : 's'}.</div> : null}
+                  <p className="mt-4 text-sm leading-6 text-[var(--text-2)]">
+                    {featured
+                      ? featuredWhyItMatters
+                      : 'When the board surfaces a lead, this block explains why it is the clearest current read.'}
+                  </p>
+                  {overviewPrecisionSupport.length ? (
+                    <div className="mt-4 space-y-3">
+                      {overviewPrecisionSupport.map((item) => (
+                        <div key={item} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Card mix</div>
-                      <div className="mt-1 text-lg font-semibold text-white">How the current precision card is built</div>
-                    </div>
-                    <Badge label={precision.length ? 'DERIVED' : 'PLACEHOLDER'} kind={precision.length ? 'DERIVED' : 'PLACEHOLDER'} />
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Overview support</div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
+                    Overview stays focused on the best board read, the next best live numbers, and the matchup shortcut that deserves the next click.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <Stat dense label="Best pick" value={precision[0] ? recommendationHeadline(precision[0].view) : '-'} kind={precision[0] ? 'LIVE' : 'PLACEHOLDER'} note="Lead recommendation in the current queue" />
+                    <Stat dense label="Board feed" value={n(boardFeedEvents.length, 0)} kind={boardFeedEvents.length ? 'DERIVED' : 'PLACEHOLDER'} note="Pregame events captured today" />
+                    <Stat dense label="Live books avg" value={liveBookDepth == null ? '-' : n(liveBookDepth)} kind={liveBookDepth == null ? 'PLACEHOLDER' : 'LIVE'} note="Average books contributing to current lines" />
+                    <Stat dense label="Matchup focus" value={selectedMatchup?.label ?? '-'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} note="Game tied to the current explorer" />
                   </div>
-                  {precision.length ? (
-                    <>
-                      <div className="mt-4 text-[10px] uppercase tracking-[0.18em] text-zinc-500">Markets on card</div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {precisionMarketMix.map((item) => (
-                          <Badge key={item.market} label={`${MARKET_LABELS[item.market]} ${item.count}`} kind="DERIVED" />
-                        ))}
-                      </div>
-                      <div className="mt-4 text-[10px] uppercase tracking-[0.18em] text-zinc-500">Games covered</div>
-                      <div className="mt-3 space-y-2">
-                        {precisionMatchupMix.map((item) => (
-                          <div key={item.matchupKey} className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm">
-                            <div className="min-w-0">
-                              <div className="truncate font-semibold text-white">{item.label}</div>
-                              <div className="mt-1 text-xs text-zinc-400">
-                                {item.matchupKey === selectedMatchupKey ? 'Currently selected in the matchup lens' : 'Visible in the current precision card'}
-                              </div>
-                            </div>
-                            <Badge label={`${item.count} slot${item.count === 1 ? '' : 's'}`} kind={item.matchupKey === selectedMatchupKey ? 'LIVE' : 'DERIVED'} />
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                      Card-mix detail appears when the precision card has at least one live or derived entry.
-                    </div>
-                  )}
                 </div>
 
                 <MatchupsCard
@@ -2373,9 +2313,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 <div className="rounded-[24px] border border-white/10 bg-zinc-900/75 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Slate player search</div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Player search</div>
                       <div className="mt-1 text-sm text-zinc-300">
-                        Search the current slate only, then open live and derived player stats in the dossier.
+                        Search the active slate and keep one player dossier open at a time.
                       </div>
                     </div>
                     <Badge
@@ -2411,7 +2351,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       ? searchResults.length
                         ? 'Showing matching players from the active slate.'
                         : 'No player on the current slate matched that search.'
-                      : 'Featured and highest-completeness players stay pinned below until you search.'}
+                      : 'The strongest player rows stay pinned below until you search.'}
                   </div>
                 </div>
                 {researchListCards.length ? (
@@ -2429,41 +2369,26 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''}`}
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex flex-wrap gap-2">
-                              {picked ? <Badge label="Selected" kind="DERIVED" /> : <Pill label="Player" />}
-                              <Pill label={leadView?.label ?? 'No lead market'} tone="amber" />
-                              {leadView ? <Badge label={leadView.liveKind} kind={leadView.liveKind} /> : null}
+                              {picked ? <Badge label="Selected" kind="DERIVED" /> : null}
+                              {leadView ? <Pill label={leadView.label} tone="amber" /> : <Pill label="No lead market" />}
                             </div>
-                            <div className="mt-3 text-xl font-semibold text-white">{row.playerName}</div>
+                            <div className="mt-3 truncate text-xl font-semibold text-white">{row.playerName}</div>
                             <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
+                            <div className="mt-3 text-sm font-medium text-zinc-200">
+                              {leadView ? recommendationHeadline(leadView) : 'No live player market is leading this row yet.'}
+                            </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Completeness</div>
-                            <div className="mt-2 text-xl font-semibold text-white">{pct(row.dataCompleteness.score, 0)}</div>
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Confidence</div>
+                            <div className="mt-2 text-xl font-semibold text-white">{leadView?.conf == null ? '-' : pct(leadView.conf, 0)}</div>
                           </div>
                         </div>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <Pill label={`${row.teamCode}${row.position ? ` ${row.position}` : ''}`} tone="cyan" />
-                          <Badge
-                            label={
-                              leadView
-                                ? `${leadView.label} ${leadView.edge == null ? n(leadView.proj, 1) : signed(leadView.edge, 1)}`
-                                : 'No lead read'
-                            }
-                            kind={leadView ? (leadView.edge != null ? leadView.edgeKind : leadView.projKind) : 'PLACEHOLDER'}
-                          />
-                          <Badge
-                            label={
-                              leadView
-                                ? leadView.conf == null
-                                  ? 'Conf -'
-                                  : `Conf ${pct(leadView.conf, 0)}`
-                                : 'Conf -'
-                            }
-                            kind={leadView ? leadView.confKind : 'PLACEHOLDER'}
-                          />
-                          <Badge label={`Proj min ${n(row.playerContext.projectedMinutes, 1)}`} kind={row.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} />
+                        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs text-zinc-400">
+                          <span>{row.teamCode}{row.position ? ` | ${row.position}` : ''}</span>
+                          <span>{leadView ? `Best market ${leadView.label}` : 'Waiting for best market'}</span>
+                          <span>{leadView?.books != null ? `${n(leadView.books, 0)} books live` : 'Books pending'}</span>
                         </div>
                       </button>
                     );
@@ -2498,10 +2423,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
                           <div className="flex flex-wrap gap-2">
-                            <Badge label="Research dossier" kind="LIVE" />
+                            <Badge label="Player dossier" kind="LIVE" />
                             {pickedPlayer === researchRow.playerId ? <Pill label="Selected player" tone="cyan" /> : null}
-                            {researchTopPrecision?.entry.rank ? <Badge label={`Precision ${researchTopPrecision.entry.rank}`} kind="DERIVED" /> : null}
-                            {researchLeadView ? <Pill label={`Lead ${researchLeadView.label}`} tone="amber" /> : null}
+                            {researchLeadView ? <Pill label={`Best market ${researchLeadView.label}`} tone="amber" /> : null}
                           </div>
                           <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white">{researchRow.playerName}</h3>
                           <p className="mt-1 text-sm text-zinc-400">{matchup(researchRow)}</p>
@@ -2516,13 +2440,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                         </div>
                       </div>
                       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                        <Stat dense label="Projected minutes" value={n(researchRow.playerContext.projectedMinutes, 1)} kind={researchRow.playerContext.projectedMinutes == null ? 'PLACEHOLDER' : 'LIVE'} note={`Floor ${n(researchRow.playerContext.projectedMinutesFloor, 1)} / ceiling ${n(researchRow.playerContext.projectedMinutesCeiling, 1)}`} />
+                        <Stat dense label="Line to play" value={researchLeadView?.live == null ? (researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)) : n(researchLeadView.live)} kind={researchLeadView?.live == null ? (researchLeadView?.fairKind ?? 'PLACEHOLDER') : researchLeadView.liveLineKind} note={researchLeadView ? `${researchLeadView.label} market basis` : 'Lead market unavailable'} />
+                        <Stat dense label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection for the lead market" />
+                        <Stat dense label="Model gap" value={researchLeadView?.edge == null ? '-' : gapRead(researchLeadView.edge)} kind={researchLeadView?.edgeKind ?? 'PLACEHOLDER'} note={researchLeadView ? gapNote(researchLeadView) : 'Lead market unavailable'} />
+                        <Stat dense label="Confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 0)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'} />
+                        <Stat dense label="Books live" value={researchLeadView?.books == null ? '-' : n(researchLeadView.books, 0)} kind={researchLeadView?.booksKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market depth` : 'Book depth unavailable'} />
                         <Stat dense label="Lineup status" value={researchRow.playerContext.lineupStatus ?? '-'} kind={researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'} note={researchRow.playerContext.projectedStarter} />
-                        <Stat dense label="Rotation rank" value={researchRow.playerContext.rotationRank == null ? '-' : n(researchRow.playerContext.rotationRank, 0)} kind={researchRow.playerContext.rotationRank == null ? 'PLACEHOLDER' : 'LIVE'} note="Depth chart position" />
-                        <Stat dense label="Completeness" value={pct(researchRow.dataCompleteness.score, 0)} kind="LIVE" note={researchRow.dataCompleteness.tier} />
-                        <Stat dense label="Lead edge" value={researchLeadView?.edge == null ? '-' : signed(researchLeadView.edge)} kind={researchLeadView?.edgeKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} vs current basis` : 'Lead market not available'} />
-                        <Stat dense label="Lead confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 1)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'} />
-                        <Stat dense label="Primary defender" value={researchRow.playerContext.primaryDefender?.playerName ?? '-'} kind={researchRow.playerContext.primaryDefender ? 'LIVE' : 'PLACEHOLDER'} note={researchRow.playerContext.primaryDefender?.matchupReason ?? 'No defender context'} />
                       </div>
                       <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
                         <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
@@ -2549,12 +2472,15 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                             </div>
                             <Badge label={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} />
                           </div>
+                          <p className="mt-3 text-sm leading-6 text-zinc-300">
+                            {researchLeadView?.precision?.qualified
+                              ? 'This player-market read still clears the main board qualification pass.'
+                              : 'This is a clean player-level board read, but it is not one of the promoted precision spots right now.'}
+                          </p>
                           <div className="mt-4 flex flex-wrap gap-2">
                             {researchLeadView ? <Pill label={marketRead(researchLeadView)} tone={researchLeadView.live != null ? 'cyan' : 'default'} /> : null}
-                            {researchLeadView?.precision?.selectorFamily ? <Pill label={researchLeadView.precision.selectorFamily} tone="cyan" /> : null}
-                            {researchLeadView?.precision?.selectorTier ? <Pill label={researchLeadView.precision.selectorTier} tone="amber" /> : null}
-                            {researchLeadView?.books != null ? <Badge label={`${n(researchLeadView.books, 0)} books`} kind={researchLeadView.booksKind} /> : <Badge label="Books -" kind="PLACEHOLDER" />}
-                            <Badge label={researchLeadView?.precision?.qualified ? 'Precision-qualified' : 'Board read'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
+                            {researchLeadView?.books != null ? <Pill label={`${n(researchLeadView.books, 0)} books live`} /> : null}
+                            <Badge label={researchLeadView?.precision?.qualified ? 'Precision pick' : 'Board read'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
                           </div>
                           <div className="mt-4 grid gap-3 sm:grid-cols-2">
                             <Stat dense label="Trend vs season" value={signed(researchLeadTrend, 1)} kind={researchLeadTrend == null ? 'PLACEHOLDER' : 'DERIVED'} note={researchLeadView ? trendRead(researchLeadTrend) : 'Lead market unavailable'} />
@@ -2747,7 +2673,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                   </>
                 ) : (
                   <EmptyState
-                    eyebrow="Research dossier"
+                    eyebrow="Player dossier"
                     title={hasActiveSearch ? 'No player on the current slate matched that search.' : 'No research row is selected.'}
                     detail={
                       hasActiveSearch
@@ -2882,30 +2808,42 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               <div className="overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/75">
                 <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Line tracking</div>
-                    <div className="mt-1 text-lg font-semibold text-white">Current line vs fair line and recent production</div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Market tracker</div>
+                    <div className="mt-1 text-lg font-semibold text-white">Current live lines sorted for the next read</div>
                   </div>
-                  <Pill label="Current board snapshot" />
+                  <div className="flex items-center gap-2">
+                    <label htmlFor="tracker-sort" className="text-xs font-medium text-zinc-400">Sort</label>
+                    <select
+                      id="tracker-sort"
+                      value={trackerSort}
+                      onChange={(event) => setTrackerSort(event.target.value as TrackerSort)}
+                      className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/30"
+                    >
+                      <option value="gap">Biggest gap</option>
+                      <option value="confidence">Highest confidence</option>
+                      <option value="books">Most books live</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="bg-white/5 text-zinc-400">
                       <tr>
-                        <th className="px-4 py-3 text-left font-medium">Player / market</th>
-                        <th className="px-4 py-3 text-left font-medium">Live line</th>
-                        <th className="px-4 py-3 text-left font-medium">Fair</th>
-                        <th className="px-4 py-3 text-left font-medium">Proj</th>
-                        <th className="px-4 py-3 text-left font-medium">Edge</th>
-                        <th className="px-4 py-3 text-left font-medium">Conf</th>
-                        <th className="px-4 py-3 text-left font-medium">Trend</th>
-                        <th className="px-4 py-3 text-left font-medium">Recent 5</th>
+                        <th className="px-4 py-3 text-left font-medium">Player</th>
+                        <th className="px-4 py-3 text-left font-medium">Market</th>
+                        <th className="px-4 py-3 text-right font-medium">Current line</th>
+                        <th className="px-4 py-3 text-right font-medium">Projection</th>
+                        <th className="px-4 py-3 text-right font-medium">Gap</th>
+                        <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                        <th className="px-4 py-3 text-right font-medium">Books live</th>
+                        <th className="px-4 py-3 text-right font-medium">Trend</th>
                       </tr>
                     </thead>
                     <tbody>
                       {trackViews.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="px-4 py-6 text-sm text-zinc-400">
-                            No line-tracking rows are available yet. Refresh the slate or return to the precision card while live lines load.
+                            No tracker rows are available yet. Refresh the slate or return to Overview while live lines load.
                           </td>
                         </tr>
                       ) : (
@@ -2918,42 +2856,33 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                   <span className="font-semibold text-white">{v.row.playerName}</span>
                                 </div>
                                 <div className="mt-1 text-xs text-zinc-500">
-                                  {v.row.matchupKey} - {v.label}
+                                  {v.row.matchupKey.replace('@', ' @ ')} | {v.row.gameTimeEt}
                                 </div>
                               </button>
                             </td>
                             <td className="px-4 py-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-white">{v.live == null ? '-' : n(v.live)}</span>
-                                <Badge label={v.liveLineKind} kind={v.liveLineKind} />
-                              </div>
+                              <div className="font-semibold text-white">{v.label}</div>
+                              <div className="mt-1 text-xs text-zinc-500">{marketRead(v)}</div>
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span>
-                                <Badge label={v.fairKind} kind={v.fairKind} />
-                              </div>
+                            <td className="px-4 py-4 text-right text-white">
+                              <div>{v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}</div>
+                              <div className="mt-1 text-xs text-zinc-500">{v.live == null ? 'Fair fallback' : 'Live consensus'}</div>
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-white">{v.proj == null ? '-' : n(v.proj)}</span>
-                                <Badge label={v.projKind} kind={v.projKind} />
-                              </div>
+                            <td className="px-4 py-4 text-right text-white">
+                              {v.proj == null ? '-' : n(v.proj)}
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-white">{v.edge == null ? '-' : signed(v.edge)}</span>
-                                <Badge label={v.edgeKind} kind={v.edgeKind} />
-                              </div>
+                            <td className={`px-4 py-4 text-right ${v.edge == null ? 'text-zinc-400' : v.edge > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                              {v.edge == null ? '-' : gapRead(v.edge)}
                             </td>
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-white">{v.conf == null ? '-' : pct(v.conf, 1)}</span>
-                                <Badge label={v.confKind} kind={v.confKind} />
-                              </div>
+                            <td className="px-4 py-4 text-right text-white">
+                              {v.conf == null ? '-' : pct(v.conf, 0)}
                             </td>
-                            <td className="px-4 py-4 text-zinc-300">{signed(v.row.trendVsSeason[v.market], 1)}</td>
-                            <td className="px-4 py-4 font-mono text-xs text-zinc-300">{lineList(v.row.last5[v.market])}</td>
+                            <td className="px-4 py-4 text-right text-white">
+                              {v.books == null ? '-' : n(v.books, 0)}
+                            </td>
+                            <td className={`px-4 py-4 text-right ${v.row.trendVsSeason[v.market] == null ? 'text-zinc-400' : (v.row.trendVsSeason[v.market] ?? 0) > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+                              {signed(v.row.trendVsSeason[v.market], 1)}
+                            </td>
                           </tr>
                         ))
                       )}
@@ -2964,18 +2893,18 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracking summary</div>
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracker summary</div>
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <Stat dense label="Live rows" value={n(data.rows.length, 0)} kind="LIVE" note="Board rows in play" />
                     <Stat dense label="Market views" value={n(allViews.length, 0)} kind="DERIVED" note="All row-market contexts" />
                     <Stat dense label="Live lines" value={n(liveCount, 0)} kind="LIVE" note="Markets with sportsbook lines" />
-                    <Stat dense label="Qualified" value={n(qualifiedCount, 0)} kind="DERIVED" note="Precision-ready views" />
+                    <Stat dense label="Board picks" value={n(qualifiedCount, 0)} kind="DERIVED" note="Precision-qualified views" />
                   </div>
                 </div>
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracking context</div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracker context</div>
                       <div className="mt-1 text-lg font-semibold text-white">Selected matchup pulse</div>
                     </div>
                     <Badge label={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} kind={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} />
@@ -2990,22 +2919,22 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="mt-4 grid grid-cols-2 gap-3">
                         <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
                         <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets priced right now" />
-                        <Stat dense label="Qualified" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-ready views" />
+                        <Stat dense label="Board picks" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-qualified views" />
                         <Stat dense label="Last refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
                       </div>
                     </>
                   ) : (
                     <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                      Select a matchup in the lens above to keep the tracking tab centered on one game while you compare lines.
+                      Select a matchup in the lens above to keep the tracker centered on one game while you compare numbers.
                     </div>
                   )}
                 </div>
                 <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
                   <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Current limitation</div>
                   <p className="mt-3 text-sm leading-6 text-zinc-300">
-                    SnapshotBoardData does not include full historical sportsbook movement. This tab therefore tracks the
-                    current live line, the payload fair line, and recent production snapshots instead of fabricating a
-                    movement history.
+                    SnapshotBoardData does not include full historical sportsbook movement. The tracker therefore sorts the
+                    current live line, the board projection, and the current gap instead of pretending to show a full
+                    intraday tape.
                   </p>
                 </div>
                 <MatchupsCard
