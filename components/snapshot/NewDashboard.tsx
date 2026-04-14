@@ -73,6 +73,12 @@ const PILL_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
   amber: 'border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] text-[var(--warning)]',
 };
 
+const SURFACE_TONE_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
+  default: 'border-[var(--border)] bg-[var(--surface-2)]',
+  cyan: 'border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)]',
+  amber: 'border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)]',
+};
+
 const SIDE_CLASS: Record<SnapshotModelSide, string> = {
   OVER: 'border-[color:rgba(47,125,90,0.20)] bg-[color:rgba(47,125,90,0.10)] text-[var(--positive)]',
   UNDER: 'border-[color:rgba(180,74,74,0.20)] bg-[color:rgba(180,74,74,0.10)] text-[var(--negative)]',
@@ -164,10 +170,6 @@ function Badge({ label, kind = 'PLACEHOLDER' as Kind }: { label: string; kind?: 
 
 function Pill({ label, tone = 'default' }: { label: string; tone?: 'default' | 'cyan' | 'amber' }) {
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${PILL_CLASS[tone]}`}>{label}</span>;
-}
-
-function Side({ side, kind }: { side: SnapshotModelSide; kind: Kind }) {
-  return <Badge label={side} kind={kind} />;
 }
 
 function Stat({
@@ -318,15 +320,13 @@ type View = {
   precision: SnapshotDashboardPrecisionSignal | null;
 };
 
-type ResearchRecentRead = {
-  view: View;
-  recentAverage: number | null;
-  seasonAverage: number | null;
-  trend: number | null;
-  opponentDelta: number | null;
-  recentFive: string;
-  note: string;
+type PrecisionStateSummary = {
+  label: 'Precision pick' | 'Precision qualified' | 'Not a precision pick';
+  tone: 'default' | 'cyan' | 'amber';
   kind: Kind;
+  summary: string;
+  detail: string | null;
+  reasons: string[];
 };
 
 function booksLiveLabel(books: number | null | undefined) {
@@ -403,6 +403,12 @@ function selectorFamilyLabel(value: string | null | undefined) {
 
 function selectorTierLabel(value: string | null | undefined) {
   return signalTokenLabel(value);
+}
+
+function cleanReasonLine(value: string | null | undefined) {
+  const sentence = firstSentence(value);
+  if (!sentence) return null;
+  return sentence.length > 150 ? `${sentence.slice(0, 147).trimEnd()}...` : sentence;
 }
 
 function feedReason(event: SnapshotBoardFeedItem) {
@@ -668,10 +674,6 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
   };
 }
 
-function lineList(values: number[]) {
-  return values.length ? values.map((v) => n(v, 0)).join('  | ') : '-';
-}
-
 function trendRead(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return 'Recent-versus-season trend is not available yet.';
   if (value >= 1.5) return `Running clearly above season baseline at ${signed(value, 1)}.`;
@@ -754,6 +756,8 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const [urlReady, setUrlReady] = useState(false);
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
   const [trackerSort, setTrackerSort] = useState<TrackerSort>('gap');
+  const [showResearchMarkets, setShowResearchMarkets] = useState(false);
+  const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -826,7 +830,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       });
     return out;
   }, [data.rows, precision]);
-  const researchRows = useMemo(() => slatePlayers.slice(0, 6), [slatePlayers]);
+  const researchRows = useMemo(() => slatePlayers.slice(0, 12), [slatePlayers]);
   const searchResults = useMemo(() => {
     if (!deferredSearchQuery) return [];
     return slatePlayers.filter((row) => playerSearchKey(row).includes(deferredSearchQuery));
@@ -844,7 +848,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
       .slice(0, 4);
   }, [data.matchups, deferredSearchQuery]);
   const hasActiveSearch = deferredSearchQuery.length > 0;
-  const researchListRows = deferredSearchQuery ? searchResults : researchRows;
+  const researchListRows = deferredSearchQuery ? searchResults : slatePlayers;
   const searchLeadRow = deferredSearchQuery ? searchResults[0] ?? null : null;
   const searchPickedRow = useMemo(
     () => (hasActiveSearch && pickedPlayer ? searchResults.find((row) => row.playerId === pickedPlayer) ?? null : null),
@@ -867,7 +871,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
           row,
           leadView: leadViewFromViews(views),
         };
-      }),
+      }).sort(
+        (a, b) =>
+          (b.leadView?.score ?? -1) - (a.leadView?.score ?? -1) ||
+          (b.leadView?.conf ?? -1) - (a.leadView?.conf ?? -1) ||
+          a.row.playerName.localeCompare(b.row.playerName),
+      ),
     [researchListRows],
   );
   const researchViews = useMemo(
@@ -879,6 +888,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const researchTopPrecision = useMemo(
     () => (researchRow ? precision.find((item) => item.row.playerId === researchRow.playerId) ?? null : null),
     [precision, researchRow],
+  );
+  const researchQualifiedView = useMemo(
+    () => (researchRow ? researchTopPrecision?.view ?? researchViews.find((view) => view.precision?.qualified) ?? null : null),
+    [researchRow, researchTopPrecision, researchViews],
   );
   const teamMatchup = useMemo(
     () => (researchRow ? data.teamMatchups.find((m) => m.matchupKey === researchRow.matchupKey) ?? null : null),
@@ -979,7 +992,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     : null;
   const researchLeadTrend = researchRow && researchLeadView ? researchRow.trendVsSeason[researchLeadView.market] : null;
   const researchLeadOpponentDelta = researchRow && researchLeadView ? researchRow.opponentAllowanceDelta[researchLeadView.market] : null;
-  const researchLeadRecentFive = researchRow && researchLeadView ? lineList(researchRow.last5[researchLeadView.market]) : '-';
+  const researchLeadRecentValues = researchRow && researchLeadView ? researchRow.last5[researchLeadView.market].slice(-5) : [];
+  const researchLeadRecentAverage = researchLeadRecentValues.length
+    ? researchLeadRecentValues.reduce((sum, value) => sum + value, 0) / researchLeadRecentValues.length
+    : null;
   const researchMinutesBandWidth =
     researchRow?.playerContext.projectedMinutesFloor != null && researchRow.playerContext.projectedMinutesCeiling != null
       ? Number((researchRow.playerContext.projectedMinutesCeiling - researchRow.playerContext.projectedMinutesFloor).toFixed(1))
@@ -1050,6 +1066,12 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
     return `${researchLeadView.label} is still the lead market in this dossier, but the payload is missing enough pricing context to state a cleaner model-versus-line gap.`;
   }, [researchLeadView]);
+  const researchShortWhy = useMemo(() => {
+    if (!researchLeadView) {
+      return 'Select a player and the board will surface the clearest reason to keep that dossier open.';
+    }
+    return conciseLeadReason(researchLeadView, researchWhyInteresting);
+  }, [researchLeadView, researchWhyInteresting]);
   const researchSupportDrivers = useMemo(() => {
     if (!researchRow || !researchLeadView) return [] as string[];
 
@@ -1113,31 +1135,78 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
 
     return cautions.slice(0, 4);
   }, [researchLeadView, researchMinutesBandWidth, researchRow]);
-  const researchRecentReads = useMemo<ResearchRecentRead[]>(() => {
-    if (!researchRow) return [];
-
-    return researchViews.map<ResearchRecentRead>((view) => {
-      const recentAverage = researchRow.last10Average[view.market];
-      const seasonAverage = researchRow.seasonAverage[view.market];
-      const trend = researchRow.trendVsSeason[view.market];
-      const opponentDelta = researchRow.opponentAllowanceDelta[view.market];
+  const researchPrecisionState = useMemo<PrecisionStateSummary>(() => {
+    if (!researchRow || !researchLeadView) {
       return {
-        view,
-        recentAverage,
-        seasonAverage,
-        trend,
-        opponentDelta,
-        recentFive: lineList(researchRow.last5[view.market]),
-        note: trendRead(trend),
-        kind:
-          recentAverage == null || seasonAverage == null
-            ? ('PLACEHOLDER' as Kind)
-            : Math.abs(trend ?? 0) >= 0.5
-              ? ('DERIVED' as Kind)
-              : ('LIVE' as Kind),
+        label: 'Not a precision pick',
+        tone: 'default',
+        kind: 'LIVE',
+        summary: 'Open a player and the board will show whether the current read is promoted, qualified, or just a broader board lean.',
+        detail: null,
+        reasons: [],
       };
-    });
-  }, [researchViews, researchRow]);
+    }
+
+    const precisionView = researchQualifiedView;
+    const focusView = precisionView ?? researchLeadView;
+    const basisLabel = focusView.live != null ? 'live line' : focusView.fair != null ? 'board fair line' : 'current board basis';
+    const reasonSet = new Set<string>();
+    if (focusView.edge != null) {
+      reasonSet.add(`Gap is ${gapRead(focusView.edge)} the ${basisLabel}.`);
+    }
+    if (focusView.books != null && focusView.books > 0) {
+      reasonSet.add(`${booksCountLabel(focusView.books)} are contributing to the current number.`);
+    }
+    if (focusView.conf != null) {
+      reasonSet.add(`Confidence is ${pct(focusView.conf, 0)} on ${focusView.label}.`);
+    }
+    const precisionReason = cleanReasonLine((focusView.precision?.reasons ?? [])[0]);
+    if (precisionReason) {
+      reasonSet.add(precisionReason);
+    }
+    const reasons = Array.from(reasonSet).slice(0, 3);
+    const precisionDetail =
+      precisionView && precisionView.market !== researchLeadView.market
+        ? `Precision market: ${recommendationHeadline(precisionView)}`
+        : `Current board lead: ${recommendationHeadline(researchLeadView)}`;
+
+    if (researchTopPrecision?.entry.rank === 1) {
+      return {
+        label: 'Precision pick',
+        tone: 'cyan',
+        kind: 'MODEL',
+        summary:
+          precisionView && precisionView.market !== researchLeadView.market
+            ? `${recommendationHeadline(precisionView)} is the promoted precision market for this player right now.`
+            : 'This player is the promoted board selection right now.',
+        detail: precisionDetail,
+        reasons,
+      };
+    }
+
+    if (precisionView) {
+      return {
+        label: 'Precision qualified',
+        tone: 'amber',
+        kind: 'DERIVED',
+        summary:
+          precisionView.market !== researchLeadView.market
+            ? `${recommendationHeadline(precisionView)} clears the precision rules, even though ${researchLeadView.label} is the broader player read.`
+            : 'This lead market clears the current precision rules, but it is not the promoted board pick.',
+        detail: precisionDetail,
+        reasons,
+      };
+    }
+
+    return {
+      label: 'Not a precision pick',
+      tone: 'default',
+      kind: 'LIVE',
+      summary: 'This player has a usable board read, but the current lead market is not one of the promoted precision spots right now.',
+      detail: precisionDetail,
+      reasons,
+    };
+  }, [researchLeadView, researchQualifiedView, researchRow, researchTopPrecision]);
   const researchMatchupRead = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player to see matchup interpretation.';
@@ -1167,6 +1236,11 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     researchRow,
     researchTeamMarketLast10,
   ]);
+
+  useEffect(() => {
+    setShowResearchMarkets(false);
+    setShowResearchContext(false);
+  }, [researchRow?.playerId]);
   const tabSummary: Record<Tab, { detail: string; kind: Kind }> = {
     precision: {
       detail: precision.length ? `${n(precision.length, 0)} board picks ready` : 'No board picks yet',
@@ -2308,15 +2382,13 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           {tab === 'research' ? (
-            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.95fr_1.55fr]">
-              <div className="space-y-3">
-                <div className="rounded-[24px] border border-white/10 bg-zinc-900/75 p-4">
+            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.92fr_1.58fr]">
+              <div className="space-y-4">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Player search</div>
-                      <div className="mt-1 text-sm text-zinc-300">
-                        Search the active slate and keep one player dossier open at a time.
-                      </div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player lookup</div>
+                      <div className="mt-1 text-sm text-[var(--text-2)]">Search the slate and open one clean dossier at a time.</div>
                     </div>
                     <Badge
                       label={
@@ -2334,78 +2406,86 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Search player, team, opponent, or matchup"
-                      className="w-full rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-cyan-400/30 focus:bg-black/35"
+                      className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     />
                     {searchQuery ? (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-200 hover:border-white/20 hover:bg-white/10"
+                        className={`${ACTION_CLASS} rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
                       >
                         Clear
                       </button>
                     ) : null}
                   </div>
-                  <div className="mt-3 text-xs text-zinc-400">
+                  <div className="mt-3 text-xs text-[var(--text-2)]">
                     {deferredSearchQuery
                       ? searchResults.length
                         ? 'Showing matching players from the active slate.'
                         : 'No player on the current slate matched that search.'
-                      : 'The strongest player rows stay pinned below until you search.'}
+                      : 'Top slate players stay in the rail until you search for a specific name or matchup.'}
                   </div>
                 </div>
-                {researchListCards.length ? (
-                  researchListCards.map(({ row, leadView }) => {
-                    const picked = row.playerId === researchRow?.playerId;
-                    return (
-                      <button
-                        key={row.playerId}
-                        type="button"
-                        onClick={() => setResearch(row.playerId)}
-                        className={`w-full rounded-[24px] border p-4 text-left ${CARD_BUTTON_CLASS} ${
-                          picked
-                            ? 'border-[color:rgba(109,74,255,0.34)] bg-[linear-gradient(145deg,rgba(35,28,58,0.96),rgba(15,23,42,0.94))] shadow-[0_14px_32px_rgba(109,74,255,0.12)]'
-                            : 'border-white/10 bg-zinc-900/75'
-                        } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.20)]' : ''}`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap gap-2">
-                              {picked ? <Badge label="Selected" kind="DERIVED" /> : null}
-                              {leadView ? <Pill label={leadView.label} tone="amber" /> : <Pill label="No lead market" />}
+
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-3">
+                  {researchListCards.length ? (
+                    <div className="max-h-[68vh] space-y-2 overflow-auto pr-1 xl:max-h-[calc(100vh-16rem)]">
+                      {researchListCards.map(({ row, leadView }) => {
+                        const picked = row.playerId === researchRow?.playerId;
+                        return (
+                          <button
+                            key={row.playerId}
+                            type="button"
+                            onClick={() => setResearch(row.playerId)}
+                            className={`w-full rounded-[22px] border px-4 py-3.5 text-left ${CARD_BUTTON_CLASS} ${
+                              picked
+                                ? 'border-[color:rgba(109,74,255,0.30)] bg-[var(--accent-soft)] shadow-[0_12px_28px_rgba(109,74,255,0.10)]'
+                                : 'border-[var(--border)] bg-[var(--surface-2)]'
+                            } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.16)]' : ''}`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-base font-semibold text-[var(--text)] sm:text-lg">{row.playerName}</div>
+                                <div className="mt-1 text-xs leading-5 text-[var(--text-2)] sm:text-sm">{matchup(row)}</div>
+                              </div>
+                              {picked ? (
+                                <span className="inline-flex items-center rounded-full border border-[color:rgba(109,74,255,0.22)] bg-white/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                                  Selected
+                                </span>
+                              ) : null}
                             </div>
-                            <div className="mt-3 truncate text-xl font-semibold text-white">{row.playerName}</div>
-                            <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
-                            <div className="mt-3 text-sm font-medium text-zinc-200">
-                              {leadView ? recommendationHeadline(leadView) : 'No live player market is leading this row yet.'}
+                            <div className="mt-3 grid grid-cols-[1fr_auto] gap-3">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Best market</div>
+                                <div className="mt-1 text-sm font-medium text-[var(--text)]">
+                                  {leadView ? recommendationHeadline(leadView) : 'Waiting for market context'}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Confidence</div>
+                                <div className="mt-1 text-sm font-semibold text-[var(--text)]">
+                                  {leadView?.conf == null ? '-' : pct(leadView.conf, 0)}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Confidence</div>
-                            <div className="mt-2 text-xl font-semibold text-white">{leadView?.conf == null ? '-' : pct(leadView.conf, 0)}</div>
-                          </div>
-                        </div>
-                        <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-xs text-zinc-400">
-                          <span>{row.teamCode}{row.position ? ` | ${row.position}` : ''}</span>
-                          <span>{leadView ? `Best market ${leadView.label}` : 'Waiting for best market'}</span>
-                          <span>{leadView?.books != null ? `${n(leadView.books, 0)} books live` : 'Books pending'}</span>
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <EmptyState
-                    eyebrow="Slate player search"
-                    title={deferredSearchQuery ? 'No players on the current slate matched that search.' : 'Active-slate players will appear here as soon as the board loads.'}
-                    detail={
-                      deferredSearchQuery
-                        ? 'Try a team code, opponent, matchup, or clear the search to fall back to the featured research queue.'
-                        : 'Once the slate rows are available, this rail will stay anchored to the featured queue until you search.'
-                    }
-                    actionLabel={searchQuery ? 'Clear search' : undefined}
-                    onAction={searchQuery ? () => setSearchQuery('') : undefined}
-                  />
-                )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <EmptyState
+                      eyebrow="Slate player search"
+                      title={deferredSearchQuery ? 'No players on the current slate matched that search.' : 'Active-slate players will appear here as soon as the board loads.'}
+                      detail={
+                        deferredSearchQuery
+                          ? 'Try a player name, team code, or matchup, or clear the search to fall back to the strongest slate rows.'
+                          : 'Once the slate rows are available, this rail will stay anchored to the strongest player reads.'
+                      }
+                      actionLabel={searchQuery ? 'Clear search' : undefined}
+                      onAction={searchQuery ? () => setSearchQuery('') : undefined}
+                    />
+                  )}
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -2414,261 +2494,327 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     <div
                       ref={researchDossierRef}
                       tabIndex={-1}
-                      className={`rounded-[28px] border bg-zinc-900/75 p-5 outline-none transition-shadow ${
+                      className={`rounded-[28px] border bg-[var(--surface)] p-5 outline-none transition-shadow ${
                         isPlayerHighlighted(researchRow.playerId)
-                          ? 'border-[color:rgba(109,74,255,0.34)] shadow-[0_0_0_3px_rgba(109,74,255,0.20)]'
-                          : 'border-white/10'
+                          ? 'border-[color:rgba(109,74,255,0.30)] shadow-[0_0_0_3px_rgba(109,74,255,0.16)]'
+                          : 'border-[var(--border)]'
                       }`}
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge label="Player dossier" kind="LIVE" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player dossier</div>
                             {pickedPlayer === researchRow.playerId ? <Pill label="Selected player" tone="cyan" /> : null}
-                            {researchLeadView ? <Pill label={`Best market ${researchLeadView.label}`} tone="amber" /> : null}
                           </div>
-                          <h3 className="mt-4 text-3xl font-semibold tracking-tight text-white">{researchRow.playerName}</h3>
-                          <p className="mt-1 text-sm text-zinc-400">{matchup(researchRow)}</p>
-                          <p className="mt-4 max-w-4xl text-sm leading-7 text-zinc-300">{researchWhyInteresting}</p>
+                          <h3 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text)]">{researchRow.playerName}</h3>
+                          <p className="mt-1 text-sm text-[var(--text-2)]">{matchup(researchRow)}</p>
+                          <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--text-2)]">{researchShortWhy}</p>
                         </div>
-                        <div className={`rounded-2xl border px-4 py-3 text-right ${SIDE_CLASS[researchLeadView?.side ?? 'NEUTRAL']}`}>
-                          <div className="text-[10px] uppercase tracking-[0.18em] opacity-70">Best market</div>
-                          <div className="mt-2 flex justify-end">
-                            {researchLeadView ? <Side side={researchLeadView.side} kind={researchLeadView.sideKind} /> : <Badge label="NEUTRAL" kind="PLACEHOLDER" />}
+                        {researchLeadView ? (
+                          <RecommendationBox
+                            view={researchLeadView}
+                            title="Best market"
+                            align="right"
+                            size="compact"
+                            className="w-full sm:max-w-[280px]"
+                          />
+                        ) : (
+                          <div className="w-full rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)] sm:max-w-[280px]">
+                            Lead market unavailable until the board has enough player pricing context.
                           </div>
-                          <div className="mt-1 text-xs opacity-80">{researchLeadView?.note ?? 'No market context available'}</div>
-                        </div>
+                        )}
                       </div>
+
+                      <div className={`mt-5 rounded-[24px] border p-4 sm:p-5 ${SURFACE_TONE_CLASS[researchPrecisionState.tone]}`}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Precision state</div>
+                            <div
+                              className={`mt-2 text-xl font-semibold tracking-tight ${
+                                researchPrecisionState.tone === 'cyan'
+                                  ? 'text-[var(--accent)]'
+                                  : researchPrecisionState.tone === 'amber'
+                                    ? 'text-[var(--warning)]'
+                                    : 'text-[var(--text)]'
+                              }`}
+                            >
+                              {researchPrecisionState.label}
+                            </div>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">{researchPrecisionState.summary}</p>
+                            {researchPrecisionState.detail ? (
+                              <div className="mt-2 text-xs font-medium text-[var(--text-2)]">{researchPrecisionState.detail}</div>
+                            ) : null}
+                          </div>
+                          <Badge
+                            label={
+                              researchPrecisionState.kind === 'MODEL'
+                                ? 'PROMOTED'
+                                : researchPrecisionState.kind === 'DERIVED'
+                                  ? 'QUALIFIED'
+                                  : 'BOARD READ'
+                            }
+                            kind={researchPrecisionState.kind}
+                          />
+                        </div>
+                        {researchPrecisionState.reasons.length ? (
+                          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                            {researchPrecisionState.reasons.map((reason) => (
+                              <div key={reason} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-5 text-[var(--text-2)]">
+                                {reason}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+
                       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                        <Stat dense label="Line to play" value={researchLeadView?.live == null ? (researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)) : n(researchLeadView.live)} kind={researchLeadView?.live == null ? (researchLeadView?.fairKind ?? 'PLACEHOLDER') : researchLeadView.liveLineKind} note={researchLeadView ? `${researchLeadView.label} market basis` : 'Lead market unavailable'} />
-                        <Stat dense label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection for the lead market" />
-                        <Stat dense label="Model gap" value={researchLeadView?.edge == null ? '-' : gapRead(researchLeadView.edge)} kind={researchLeadView?.edgeKind ?? 'PLACEHOLDER'} note={researchLeadView ? gapNote(researchLeadView) : 'Lead market unavailable'} />
-                        <Stat dense label="Confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 0)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'} />
-                        <Stat dense label="Books live" value={researchLeadView?.books == null ? '-' : n(researchLeadView.books, 0)} kind={researchLeadView?.booksKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market depth` : 'Book depth unavailable'} />
-                        <Stat dense label="Lineup status" value={researchRow.playerContext.lineupStatus ?? '-'} kind={researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'} note={researchRow.playerContext.projectedStarter} />
-                      </div>
-                      <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-                        <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Model vs line</div>
-                              <div className="mt-1 text-sm font-semibold text-white">How the board is framing the lead market</div>
-                            </div>
-                            <Badge label={researchLeadView?.live != null ? 'LIVE' : researchLeadView ? 'DERIVED' : 'PLACEHOLDER'} kind={researchLeadView?.live != null ? 'LIVE' : researchLeadView ? 'DERIVED' : 'PLACEHOLDER'} />
-                          </div>
-                          <p className="mt-3 text-sm leading-6 text-zinc-300">{researchModelVsLineExplanation}</p>
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                            <Stat dense label="Live line" value={researchLeadView?.live == null ? '-' : n(researchLeadView.live)} kind={researchLeadView?.liveLineKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market line` : 'Lead market unavailable'} />
-                            <Stat dense label="Fair line" value={researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)} kind={researchLeadView?.fairKind ?? 'PLACEHOLDER'} note="Board fair line" />
-                            <Stat dense label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection" />
-                            <Stat dense label="Recent 5" value={researchLeadRecentFive} kind={researchLeadView ? (researchRow.last5[researchLeadView.market].length ? 'LIVE' : 'PLACEHOLDER') : 'PLACEHOLDER'} note="Recent sample for the lead market" />
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Confidence signal</div>
-                              <div className="mt-1 text-sm font-semibold text-white">How much trust the current board supports</div>
-                            </div>
-                            <Badge label={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : researchLeadView ? 'LIVE' : 'PLACEHOLDER'} />
-                          </div>
-                          <p className="mt-3 text-sm leading-6 text-zinc-300">
-                            {researchLeadView?.precision?.qualified
-                              ? 'This player-market read still clears the main board qualification pass.'
-                              : 'This is a clean player-level board read, but it is not one of the promoted precision spots right now.'}
-                          </p>
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {researchLeadView ? <Pill label={marketRead(researchLeadView)} tone={researchLeadView.live != null ? 'cyan' : 'default'} /> : null}
-                            {researchLeadView?.books != null ? <Pill label={`${n(researchLeadView.books, 0)} books live`} /> : null}
-                            <Badge label={researchLeadView?.precision?.qualified ? 'Precision pick' : 'Board read'} kind={researchLeadView?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
-                          </div>
-                          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            <Stat dense label="Trend vs season" value={signed(researchLeadTrend, 1)} kind={researchLeadTrend == null ? 'PLACEHOLDER' : 'DERIVED'} note={researchLeadView ? trendRead(researchLeadTrend) : 'Lead market unavailable'} />
-                            <Stat dense label="Opponent delta" value={signed(researchLeadOpponentDelta, 1)} kind={researchLeadOpponentDelta == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchLeadView.label} matchup context` : 'Lead market unavailable'} />
-                          </div>
-                        </div>
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Line to play"
+                          value={researchLeadView?.live == null ? (researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)) : n(researchLeadView.live)}
+                          kind={researchLeadView?.live == null ? (researchLeadView?.fairKind ?? 'PLACEHOLDER') : researchLeadView.liveLineKind}
+                          note={researchLeadView ? `${researchLeadView.label} market basis` : 'Lead market unavailable'}
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Projection"
+                          value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)}
+                          kind={researchLeadView?.projKind ?? 'PLACEHOLDER'}
+                          note="Board projection for the lead market"
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Model gap"
+                          value={researchLeadView?.edge == null ? '-' : gapRead(researchLeadView.edge)}
+                          kind={researchLeadView?.edgeKind ?? 'PLACEHOLDER'}
+                          note={researchLeadView ? gapNote(researchLeadView) : 'Lead market unavailable'}
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Confidence"
+                          value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 0)}
+                          kind={researchLeadView?.confKind ?? 'PLACEHOLDER'}
+                          note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'}
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Books live"
+                          value={researchLeadView?.books == null ? '-' : n(researchLeadView.books, 0)}
+                          kind={researchLeadView?.booksKind ?? 'PLACEHOLDER'}
+                          note={researchLeadView ? `${researchLeadView.label} market depth` : 'Book depth unavailable'}
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Lineup status"
+                          value={researchRow.playerContext.lineupStatus ?? '-'}
+                          kind={researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'}
+                          note={researchRow.playerContext.projectedStarter ?? 'Starter note unavailable'}
+                        />
                       </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                      <div className="flex items-center justify-between gap-3">
+                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Market matrix</div>
-                          <div className="mt-1 text-lg font-semibold text-white">All markets for the selected player</div>
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">All markets</div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">Open the full player market table only when you need it</div>
                         </div>
-                        <Pill label="Live payload + board math" />
+                        <button
+                          type="button"
+                          onClick={() => setShowResearchMarkets((value) => !value)}
+                          className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                        >
+                          {showResearchMarkets ? 'Hide markets' : 'See all markets'}
+                        </button>
                       </div>
-                      {researchLiveViews.length ? (
-                        <div className="mt-4 overflow-x-auto rounded-[22px] border border-white/10">
-                          <table className="min-w-full text-sm">
-                            <thead className="bg-white/5 text-zinc-400">
-                              <tr>
-                                <th className="px-3 py-3 text-left font-medium">Market</th>
-                                <th className="px-3 py-3 text-left font-medium">Live line</th>
-                                <th className="px-3 py-3 text-left font-medium">Fair</th>
-                                <th className="px-3 py-3 text-left font-medium">Proj</th>
-                                <th className="px-3 py-3 text-left font-medium">Edge</th>
-                                <th className="px-3 py-3 text-left font-medium">Conf</th>
-                                <th className="px-3 py-3 text-left font-medium">Side</th>
-                                <th className="px-3 py-3 text-left font-medium">Books</th>
-                                <th className="px-3 py-3 text-left font-medium">Read</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {researchLiveViews.map((v) => (
-                                <tr
-                                  key={`${v.row.playerId}:${v.market}`}
-                                  className={`border-t border-white/8 ${researchLeadView?.market === v.market ? 'bg-cyan-400/5' : ''}`}
-                                >
-                                  <td className="px-3 py-3">
-                                    <div className="font-semibold text-white">{v.label}</div>
-                                    <div className="text-xs text-zinc-500">{v.source}</div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{n(v.live)}</span><Badge label={v.liveLineKind} kind={v.liveLineKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{v.fair == null ? '-' : n(v.fair)}</span><Badge label={v.fairKind} kind={v.fairKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{v.proj == null ? '-' : n(v.proj)}</span><Badge label={v.projKind} kind={v.projKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{v.edge == null ? '-' : signed(v.edge)}</span><Badge label={v.edgeKind} kind={v.edgeKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{v.conf == null ? '-' : pct(v.conf, 1)}</span><Badge label={v.confKind} kind={v.confKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3"><Side side={v.side} kind={v.sideKind} /></td>
-                                  <td className="px-3 py-3">
-                                    <div className="flex flex-col gap-1"><span className="text-white">{v.books == null ? '-' : n(v.books, 0)}</span><Badge label={v.booksKind} kind={v.booksKind} /></div>
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <div className="text-white">{marketRead(v)}</div>
-                                    <div className="mt-1 text-xs text-zinc-500">
-                                      {v.precision?.qualified ? 'Precision-qualified' : 'Live board read'}
-                                    </div>
-                                  </td>
+                      {showResearchMarkets ? (
+                        researchLiveViews.length ? (
+                          <div className="mt-4 overflow-x-auto rounded-[22px] border border-[var(--border)] bg-[var(--surface)]">
+                            <table className="min-w-full text-sm">
+                              <thead className="bg-[var(--surface-2)] text-[var(--text-2)]">
+                                <tr>
+                                  <th className="px-4 py-3 text-left font-medium">Market</th>
+                                  <th className="px-4 py-3 text-right font-medium">Line</th>
+                                  <th className="px-4 py-3 text-right font-medium">Projection</th>
+                                  <th className="px-4 py-3 text-right font-medium">Gap</th>
+                                  <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                                  <th className="px-4 py-3 text-right font-medium">Books</th>
+                                  <th className="px-4 py-3 text-left font-medium">Precision</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                              </thead>
+                              <tbody>
+                                {researchLiveViews.map((v) => (
+                                  <tr
+                                    key={`${v.row.playerId}:${v.market}`}
+                                    className={`border-t border-[var(--border)] ${
+                                      researchLeadView?.market === v.market ? 'bg-[color:rgba(109,74,255,0.06)]' : 'bg-[var(--surface)]'
+                                    }`}
+                                  >
+                                    <td className="px-4 py-3">
+                                      <div className="font-semibold text-[var(--text)]">{v.label}</div>
+                                      <div className="text-xs text-[var(--text-2)]">
+                                        {researchLeadView?.market === v.market ? 'Lead market' : marketRead(v)}
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.live == null ? '-' : n(v.live)}</td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.edge == null ? '-' : gapRead(v.edge)}</td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.conf == null ? '-' : pct(v.conf, 0)}</td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
+                                    <td className="px-4 py-3 text-[var(--text-2)]">
+                                      {researchTopPrecision?.entry.market === v.market
+                                        ? 'Precision pick'
+                                        : v.precision?.qualified
+                                          ? 'Precision qualified'
+                                          : 'Board read'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="mt-4 rounded-[22px] border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                            No live player prop lines are available for this player right now. Model-only rows stay hidden until a real book line lands.
+                          </div>
+                        )
                       ) : (
-                        <div className="mt-4 rounded-[22px] border border-dashed border-white/15 bg-black/25 px-4 py-4 text-sm text-zinc-400">
-                          No live player prop lines are available for this player right now. Model-only rows stay hidden until a real book line lands.
-                        </div>
+                        <p className="mt-4 text-sm leading-6 text-[var(--text-2)]">
+                          Keep the full matrix collapsed unless you need to compare every live market for this player.
+                        </p>
                       )}
                     </div>
 
-                    <div className="grid gap-4 xl:grid-cols-2">
-                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Why this is interesting</div>
-                            <div className="mt-1 text-lg font-semibold text-white">Support for a deeper look</div>
-                          </div>
-                          <Badge label={researchSupportDrivers.length ? 'DERIVED' : 'PLACEHOLDER'} kind={researchSupportDrivers.length ? 'DERIVED' : 'PLACEHOLDER'} />
+                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">More context</div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">Open the deeper model, matchup, and recent-form read only when you need it</div>
                         </div>
-                        <p className="mt-3 text-sm leading-6 text-zinc-300">{researchWhyInteresting}</p>
-                        <div className="mt-4 space-y-3">
-                          {researchSupportDrivers.length ? (
-                            researchSupportDrivers.map((driver) => (
-                              <div key={driver} className="rounded-2xl border border-emerald-400/15 bg-emerald-400/8 px-4 py-3 text-sm text-emerald-50/90">
-                                {driver}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                              The board does not yet have strong support drivers beyond the current visible market read.
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowResearchContext((value) => !value)}
+                          className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                        >
+                          {showResearchContext ? 'Hide context' : 'Show context'}
+                        </button>
                       </div>
-                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Confidence and caution</div>
-                            <div className="mt-1 text-lg font-semibold text-white">What should keep the read grounded</div>
-                          </div>
-                          <Badge label={researchCautionDrivers.length ? 'DERIVED' : 'LIVE'} kind={researchCautionDrivers.length ? 'DERIVED' : 'LIVE'} />
-                        </div>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                          <Stat dense label="Completeness" value={pct(researchRow.dataCompleteness.score, 0)} kind="LIVE" note={researchRow.dataCompleteness.tier} />
-                          <Stat dense label="Lead confidence" value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 1)} kind={researchLeadView?.confKind ?? 'PLACEHOLDER'} note={researchLeadView?.live != null ? 'Live confidence in payload' : 'Derived from board math or precision history'} />
-                          <Stat dense label="Books" value={researchLeadView?.books == null ? '-' : n(researchLeadView.books, 0)} kind={researchLeadView?.booksKind ?? 'PLACEHOLDER'} note={researchLeadView?.live != null ? 'Live line depth' : 'No live consensus line'} />
-                          <Stat dense label="Minutes band" value={researchMinutesBandWidth == null ? '-' : n(researchMinutesBandWidth, 1)} kind={researchMinutesBandWidth == null ? 'PLACEHOLDER' : researchMinutesBandWidth >= 6 ? 'DERIVED' : 'LIVE'} note={researchMinutesBandWidth == null ? 'Floor/ceiling missing' : `${n(researchRow.playerContext.projectedMinutesFloor, 1)} to ${n(researchRow.playerContext.projectedMinutesCeiling, 1)}`} />
-                        </div>
-                        <div className="mt-4 space-y-3">
-                          {researchCautionDrivers.length ? (
-                            researchCautionDrivers.map((driver) => (
-                              <div key={driver} className="rounded-2xl border border-amber-400/15 bg-amber-400/8 px-4 py-3 text-sm text-amber-50/90">
-                                {driver}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/8 px-4 py-4 text-sm text-emerald-50/90">
-                              No major caution flags are surfacing beyond normal slate variance in the current payload.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Recent form interpretation</div>
-                            <div className="mt-1 text-lg font-semibold text-white">Season baseline versus the current sample</div>
-                          </div>
-                          <Badge label={researchRecentReads.length ? 'DERIVED' : 'PLACEHOLDER'} kind={researchRecentReads.length ? 'DERIVED' : 'PLACEHOLDER'} />
-                        </div>
-                        <div className="mt-4 space-y-3">
-                          {researchRecentReads.length ? (
-                            researchRecentReads.map((item) => (
-                              <div key={item.view.market} className="rounded-[24px] border border-white/8 bg-black/20 p-4">
-                                <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div className="flex flex-wrap gap-2">
-                                    <Pill label={item.view.label} tone="amber" />
-                                    <Badge label={item.kind} kind={item.kind} />
-                                  </div>
-                                  <div className="text-right text-xs text-zinc-500">{item.view.source}</div>
-                                </div>
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                                  <Stat dense label="L10 avg" value={n(item.recentAverage, 1)} kind={item.recentAverage == null ? 'PLACEHOLDER' : 'LIVE'} note="Current sample" />
-                                  <Stat dense label="Season avg" value={n(item.seasonAverage, 1)} kind={item.seasonAverage == null ? 'PLACEHOLDER' : 'LIVE'} note="Season baseline" />
-                                  <Stat dense label="Trend" value={signed(item.trend, 1)} kind={item.trend == null ? 'PLACEHOLDER' : 'DERIVED'} note={item.note} />
-                                  <Stat dense label="Opp delta" value={signed(item.opponentDelta, 1)} kind={item.opponentDelta == null ? 'PLACEHOLDER' : 'LIVE'} note="Opponent-specific context" />
-                                </div>
-                                <div className="mt-4 rounded-2xl border border-white/8 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-300">
-                                  Recent 5: <span className="font-mono text-xs text-zinc-200">{item.recentFive}</span>
+                      {showResearchContext ? (
+                        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Support and caution</div>
+                            <div className="mt-1 text-lg font-semibold text-[var(--text)]">What is helping and what still needs restraint</div>
+                            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Support</div>
+                                <div className="mt-3 space-y-2">
+                                  {researchSupportDrivers.length ? (
+                                    researchSupportDrivers.map((driver) => (
+                                      <div key={driver} className="rounded-2xl border border-[color:rgba(47,125,90,0.16)] bg-[color:rgba(47,125,90,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
+                                        {driver}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm text-[var(--text-2)]">
+                                      The board does not yet have strong support drivers beyond the current visible market read.
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            <div className="rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                              Recent-form interpretation appears once the dossier has enough live or derived market context to rank.
+                              <div>
+                                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Caution</div>
+                                <div className="mt-3 space-y-2">
+                                  {researchCautionDrivers.length ? (
+                                    researchCautionDrivers.map((driver) => (
+                                      <div key={driver} className="rounded-2xl border border-[color:rgba(180,74,74,0.16)] bg-[color:rgba(180,74,74,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
+                                        {driver}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="rounded-2xl border border-[color:rgba(47,125,90,0.16)] bg-[color:rgba(47,125,90,0.08)] px-3.5 py-3 text-sm text-[var(--text)]">
+                                      No major caution flags are surfacing beyond normal slate variance in the current payload.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Matchup and role context</div>
-                            <div className="mt-1 text-lg font-semibold text-white">Opponent read, defender note, and teammate context</div>
                           </div>
-                          <Badge label={teamMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={teamMatchup ? 'LIVE' : 'PLACEHOLDER'} />
+
+                          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Model vs line</div>
+                            <div className="mt-1 text-lg font-semibold text-[var(--text)]">How the board is framing the lead market</div>
+                            <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">{researchModelVsLineExplanation}</p>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                              <Stat dense showKind={false} label="Live line" value={researchLeadView?.live == null ? '-' : n(researchLeadView.live)} kind={researchLeadView?.liveLineKind ?? 'PLACEHOLDER'} note={researchLeadView ? `${researchLeadView.label} market line` : 'Lead market unavailable'} />
+                              <Stat dense showKind={false} label="Fair line" value={researchLeadView?.fair == null ? '-' : n(researchLeadView.fair)} kind={researchLeadView?.fairKind ?? 'PLACEHOLDER'} note="Board fair line" />
+                              <Stat dense showKind={false} label="Projection" value={researchLeadView?.proj == null ? '-' : n(researchLeadView.proj)} kind={researchLeadView?.projKind ?? 'PLACEHOLDER'} note="Board projection" />
+                            </div>
+                          </div>
+
+                          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Recent pattern</div>
+                            <div className="mt-1 text-lg font-semibold text-[var(--text)]">Season baseline versus the current sample</div>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <Stat dense showKind={false} label="L10 avg" value={n(researchLeadView ? researchRow.last10Average[researchLeadView.market] : null, 1)} kind={researchLeadView ? 'LIVE' : 'PLACEHOLDER'} note="Current sample" />
+                              <Stat dense showKind={false} label="Season avg" value={n(researchLeadView ? researchRow.seasonAverage[researchLeadView.market] : null, 1)} kind={researchLeadView ? 'LIVE' : 'PLACEHOLDER'} note="Season baseline" />
+                              <Stat dense showKind={false} label="Trend" value={signed(researchLeadTrend, 1)} kind={researchLeadTrend == null ? 'PLACEHOLDER' : 'DERIVED'} note={trendRead(researchLeadTrend)} />
+                              <Stat dense showKind={false} label="Opp delta" value={signed(researchLeadOpponentDelta, 1)} kind={researchLeadOpponentDelta == null ? 'PLACEHOLDER' : 'LIVE'} note="Opponent-specific context" />
+                            </div>
+                            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3.5">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--muted)]">Recent 5</div>
+                                <div className="text-xs font-medium text-[var(--text-2)]">
+                                  Avg {researchLeadRecentAverage == null ? '-' : n(researchLeadRecentAverage, 1)}
+                                </div>
+                              </div>
+                              {researchLeadRecentValues.length ? (
+                                <div className="mt-3 grid grid-cols-5 gap-2">
+                                  {researchLeadRecentValues.map((value, index) => (
+                                    <div key={`${researchRow.playerId}:${researchLeadView?.market ?? 'lead'}:${index}`} className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2 py-2 text-center text-sm font-semibold text-[var(--text)]">
+                                      {n(value, 0)}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="mt-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-3 py-3 text-sm text-[var(--text-2)]">
+                                  Recent-game values are not available for the current lead market yet.
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Matchup and role</div>
+                            <div className="mt-1 text-lg font-semibold text-[var(--text)]">Opponent read, defender note, and teammate context</div>
+                            <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">{researchMatchupRead}</p>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                              <Stat dense showKind={false} label="Team L10" value={n(researchTeamMarketLast10, 1)} kind={researchTeamMarketLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.teamCode} ${researchLeadView.label}` : 'Team sample'} />
+                              <Stat dense showKind={false} label="Opp allowed L10" value={n(researchOpponentMarketAllowedLast10, 1)} kind={researchOpponentMarketAllowedLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.opponentCode} ${researchLeadView.label} allowed` : 'Opponent sample'} />
+                              <Stat dense showKind={false} label="Season record" value={researchSeasonRecord ?? '-'} kind={researchSeasonRecord ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} overall`} />
+                              <Stat dense showKind={false} label="Last 10 record" value={researchLast10Record ?? '-'} kind={researchLast10Record ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} recent`} />
+                            </div>
+                            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                              Teammates:{' '}
+                              {researchRow.playerContext.teammateCore.length
+                                ? researchRow.playerContext.teammateCore
+                                    .slice(0, 3)
+                                    .map((mate) => `${mate.playerName} (${n(mate.avgMinutesLast10, 1)})`)
+                                    .join(' | ')
+                                : '-'}
+                            </div>
+                          </div>
                         </div>
-                        <p className="mt-3 text-sm leading-6 text-zinc-300">{researchMatchupRead}</p>
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                          <Stat dense label="Team L10" value={n(researchTeamMarketLast10, 1)} kind={researchTeamMarketLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.teamCode} ${researchLeadView.label}` : 'Team sample'} />
-                          <Stat dense label="Opp allowed L10" value={n(researchOpponentMarketAllowedLast10, 1)} kind={researchOpponentMarketAllowedLast10 == null ? 'PLACEHOLDER' : 'LIVE'} note={researchLeadView ? `${researchRow.opponentCode} ${researchLeadView.label} allowed` : 'Opponent sample'} />
-                          <Stat dense label="Season record" value={researchSeasonRecord ?? '-'} kind={researchSeasonRecord ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} overall`} />
-                          <Stat dense label="Last10 record" value={researchLast10Record ?? '-'} kind={researchLast10Record ? 'LIVE' : 'PLACEHOLDER'} note={`${researchRow.teamCode} recent`} />
-                        </div>
-                        <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
-                          Teammates: {researchRow.playerContext.teammateCore.length ? researchRow.playerContext.teammateCore.slice(0, 3).map((mate) => `${mate.playerName} (${n(mate.avgMinutesLast10, 1)})`).join(' | ') : '-'}
-                        </div>
-                      </div>
+                      ) : (
+                        <p className="mt-4 text-sm leading-6 text-[var(--text-2)]">
+                          Keep the dossier focused on the recommendation until you want the fuller matchup, trend, and model explanation.
+                        </p>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -2677,7 +2823,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                     title={hasActiveSearch ? 'No player on the current slate matched that search.' : 'No research row is selected.'}
                     detail={
                       hasActiveSearch
-                        ? 'Try another player, team code, or matchup, or clear the search to restore the featured research queue.'
+                        ? 'Try another player, team code, or matchup, or clear the search to restore the strongest slate rows.'
                         : 'Pick a player from the left rail or use the active-slate search to open a full dossier.'
                     }
                     actionLabel={hasActiveSearch ? 'Clear search' : 'Search Active Players'}
