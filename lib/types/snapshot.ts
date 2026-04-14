@@ -116,6 +116,40 @@ export type SnapshotPrecisionSystemSummary = {
   allowFill?: boolean;
 };
 
+export type SnapshotPrecisionAuditStatus = "ACTIVE" | "LOCKED" | "SETTLED";
+
+export type SnapshotPrecisionAuditOutcome = "WIN" | "LOSS" | "PUSH";
+
+export type SnapshotPrecisionAuditEntry = {
+  playerId: string;
+  market: SnapshotMarket;
+  line: number | null;
+  actualValue: number | null;
+  status: SnapshotPrecisionAuditStatus;
+  outcome: SnapshotPrecisionAuditOutcome | null;
+};
+
+export type SnapshotPrecisionDashboard = {
+  label: string;
+  note: string;
+  auditNote: string;
+  promotedCount: number;
+  qualifiedCount: number;
+  activeCount: number;
+  lockedCount: number;
+  pendingCount: number;
+  settledCount: number;
+  wins: number;
+  losses: number;
+  pushes: number;
+  hitRate: number | null;
+  units: number | null;
+  roiPct: number | null;
+  averageConfidence: number | null;
+  averageBooksLive: number | null;
+  entries: SnapshotPrecisionAuditEntry[];
+};
+
 export type SnapshotUniversalSystemSummary = {
   label: string;
   replayRawAccuracy: number;
@@ -284,6 +318,7 @@ export type SnapshotBoardData = {
   precisionCard?: SnapshotPrecisionCardEntry[];
   precisionCardSummary?: SnapshotPrecisionCardSummary | null;
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
+  precisionDashboard?: SnapshotPrecisionDashboard | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
   boardFeed?: SnapshotBoardFeed | null;
 };

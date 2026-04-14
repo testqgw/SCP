@@ -5,6 +5,7 @@ import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState
 import type {
   SnapshotBoardFeedItem,
   SnapshotBoardViewData,
+  SnapshotPrecisionAuditEntry,
   SnapshotDashboardPrecisionSignal,
   SnapshotDashboardRow,
   SnapshotDashboardSignal,
@@ -13,8 +14,8 @@ import type {
   SnapshotPrecisionCardEntry,
 } from '@/lib/types/snapshot';
 
-type Tab = 'precision' | 'research' | 'scout' | 'tracking';
-type ViewKey = 'overview' | 'players' | 'feed' | 'tracker' | 'method';
+type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
+type ViewKey = 'overview' | 'precision' | 'players' | 'feed' | 'tracker' | 'method';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
@@ -32,28 +33,32 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 };
 
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
-  { id: 'precision', label: 'Overview', hint: 'Best board setups' },
+  { id: 'overview', label: 'Overview', hint: 'Best board setups' },
+  { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
 ];
 
 const TAB_TO_VIEW: Record<Tab, ViewKey> = {
-  precision: 'overview',
+  overview: 'overview',
+  precision: 'precision',
   research: 'players',
   scout: 'feed',
   tracking: 'tracker',
 };
 
 const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
-  overview: 'precision',
+  overview: 'overview',
+  precision: 'precision',
   players: 'research',
   feed: 'scout',
   tracker: 'tracking',
 };
 
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
-  { label: 'Overview', tab: 'precision' },
+  { label: 'Overview', tab: 'overview' },
+  { label: 'Precision Picks', tab: 'precision' },
   { label: 'Players', tab: 'research' },
   { label: 'Feed', tab: 'scout' },
   { label: 'Tracker', tab: 'tracking' },
@@ -436,6 +441,47 @@ function precisionQualificationReasons(view: View, promoted = false) {
   return reasons.slice(0, 4);
 }
 
+function precisionAuditLabel(entry: SnapshotPrecisionAuditEntry | null | undefined) {
+  if (!entry) return 'Pending board audit';
+  if (entry.status === 'ACTIVE') return 'Active';
+  if (entry.status === 'LOCKED') return 'Locked at tipoff';
+  if (entry.outcome === 'WIN') return 'Settled win';
+  if (entry.outcome === 'LOSS') return 'Settled loss';
+  if (entry.outcome === 'PUSH') return 'Settled push';
+  return 'Settled';
+}
+
+function precisionAuditTone(entry: SnapshotPrecisionAuditEntry | null | undefined): 'default' | 'cyan' | 'amber' {
+  if (!entry) return 'default';
+  if (entry.status === 'ACTIVE') return 'cyan';
+  if (entry.status === 'LOCKED') return 'amber';
+  return 'default';
+}
+
+function precisionAuditRead(entry: SnapshotPrecisionAuditEntry | null | undefined, market: SnapshotMarket) {
+  if (!entry) return 'This promoted pick is waiting for its first audit update.';
+  if (entry.status === 'ACTIVE') {
+    return 'Pregame-safe and still tracking before tipoff.';
+  }
+  if (entry.status === 'LOCKED') {
+    return 'Pregame tracking froze at tipoff. Settlement will post after the final stat closes.';
+  }
+  if (entry.actualValue == null) {
+    return 'The game settled, but the final stat has not posted into the board yet.';
+  }
+  const actualLabel = `${MARKET_LABELS[market]} ${n(entry.actualValue, 1)}`;
+  if (entry.outcome === 'WIN') {
+    return `${actualLabel} cleared the promoted precision line.`;
+  }
+  if (entry.outcome === 'LOSS') {
+    return `${actualLabel} missed the promoted precision line.`;
+  }
+  if (entry.outcome === 'PUSH') {
+    return `${actualLabel} landed exactly on the promoted precision line.`;
+  }
+  return `${actualLabel} is posted for audit review.`;
+}
+
 function feedReason(event: SnapshotBoardFeedItem) {
   return event.detail;
 }
@@ -739,7 +785,7 @@ function slugifyParam(value: string) {
 }
 
 function parseViewParam(value: string | null): ViewKey {
-  if (value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
+  if (value === 'precision' || value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
   if (value === 'lines') return 'tracker';
   return 'overview';
 }
@@ -749,7 +795,7 @@ function viewKeepsPlayerParam(view: ViewKey) {
 }
 
 function viewKeepsMatchupParam(view: ViewKey) {
-  return view !== 'method';
+  return view === 'overview' || view === 'players' || view === 'feed' || view === 'tracker';
 }
 
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
@@ -797,7 +843,7 @@ export default function NewDashboard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialView = parseViewParam(initialViewParam);
-  const initialTab = VIEW_TO_TAB[initialView] ?? 'precision';
+  const initialTab = VIEW_TO_TAB[initialView] ?? 'overview';
   const initialPlayerId = resolveInitialPlayerId(initialData.rows, initialPlayerParam);
   const initialPlayerRow = initialPlayerId
     ? initialData.rows.find((row) => row.playerId === initialPlayerId) ?? null
@@ -865,6 +911,14 @@ export default function NewDashboard({
         .filter((x): x is { entry: SnapshotPrecisionCardEntry; row: SnapshotDashboardRow; view: View } => x !== null)
         .sort((a, b) => a.entry.rank - b.entry.rank || (b.entry.selectionScore ?? 0) - (a.entry.selectionScore ?? 0)),
     [data.precisionCard, rowById],
+  );
+  const precisionDashboard = data.precisionDashboard ?? null;
+  const precisionAuditByKey = useMemo(
+    () =>
+      new Map(
+        (precisionDashboard?.entries ?? []).map((entry) => [`${entry.playerId}:${entry.market}`, entry] as const),
+      ),
+    [precisionDashboard],
   );
   const allViews = useMemo(() => data.rows.flatMap((row) => MARKETS.map((market) => viewFor(row, market))), [data.rows]);
   const featured = useMemo(() => {
@@ -1308,8 +1362,16 @@ export default function NewDashboard({
     setShowResearchContext(false);
   }, [researchRow?.playerId]);
   const tabSummary: Record<Tab, { detail: string; kind: Kind }> = {
+    overview: {
+      detail: featured ? `${featured.row.playerName} ${featured.label}` : 'Waiting for board read',
+      kind: featured ? 'LIVE' : 'PLACEHOLDER',
+    },
     precision: {
-      detail: precision.length ? `${n(precision.length, 0)} board picks ready` : 'No board picks yet',
+      detail: precisionDashboard
+        ? `${n(precisionDashboard.promotedCount, 0)} promoted | ${n(precisionDashboard.pendingCount, 0)} pending`
+        : precision.length
+          ? `${n(precision.length, 0)} promoted picks`
+          : 'No board picks yet',
       kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
@@ -1382,19 +1444,6 @@ export default function NewDashboard({
     () => new Set(precision.map(({ row, view }) => `${row.playerId}:${view.market}`)),
     [precision],
   );
-  const overviewPrecisionCards = useMemo(() => {
-    if (!precision.length) return [] as typeof precision;
-    const cards = precision.slice(0, 5);
-    if (
-      featured &&
-      cards[0] &&
-      cards[0].row.playerId === featured.row.playerId &&
-      cards[0].view.market === featured.market
-    ) {
-      return cards.slice(1);
-    }
-    return cards;
-  }, [featured, precision]);
   const nextBestNumbers = useMemo(() => {
     const seen = new Set<string>();
     const candidates = [...scoutViews, ...selectedMatchupViews, ...allViews].filter((view) => {
@@ -1414,11 +1463,6 @@ export default function NewDashboard({
     () => new Set(allViews.filter((view) => view.precision?.qualified).map((view) => view.row.playerId)).size,
     [allViews],
   );
-  const precisionLiveBookAverage = useMemo(() => {
-    const books = precision.map(({ view }) => view.books).filter((value): value is number => value != null);
-    if (!books.length) return null;
-    return Number((books.reduce((sum, value) => sum + value, 0) / books.length).toFixed(1));
-  }, [precision]);
   const precisionStatus = useMemo(() => {
     if (!precision.length) {
       return {
@@ -1454,10 +1498,18 @@ export default function NewDashboard({
       detail: `${n(qualifiedCount, 0)} qualified player-markets are still in the precision pool while live pricing catches up.`,
     };
   }, [precision, promotedPrecisionLiveCount, qualifiedCount, qualifiedPlayerCount]);
+  const precisionPerformanceNote =
+    precisionDashboard?.units != null
+      ? 'Flat units assume 1u stakes at -110 once a promoted pick settles.'
+      : 'Performance fills in as promoted picks settle after tipoff.';
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
-    precision: {
+    overview: {
       title: 'Overview workspace',
-      detail: 'Best pick, next best numbers, and matchup shortcuts stay grouped here.',
+      detail: 'Best pick, next best numbers, matchup shortcuts, and the day-long board feed stay grouped here.',
+    },
+    precision: {
+      title: 'Precision Picks',
+      detail: 'Only the promoted model-qualified picks live here, with audit status and current-slate performance.',
     },
     research: {
       title: 'Player research',
@@ -1568,7 +1620,7 @@ export default function NewDashboard({
     urlNavigationModeRef.current = 'push';
     setMatchupSelection(matchupKey, { highlight: true });
     setHeaderView('overview');
-    setTab('precision');
+    setTab('overview');
     setHeaderSearchOpen(false);
     scrollToView('overview', { matchupKey });
   };
@@ -1940,7 +1992,7 @@ export default function NewDashboard({
             </div>
           ) : null}
 
-          {tab === 'precision' ? (
+          {tab === 'overview' ? (
             <>
           <section ref={overviewRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="xl:col-span-7">
@@ -2100,131 +2152,6 @@ export default function NewDashboard({
               note={boardPulseNote}
             />
           </div>
-
-          <section className="mt-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:mt-6 md:p-6">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 sm:p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision status</div>
-                  <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Is the precision engine active right now?</h2>
-                </div>
-                <Pill label={precisionStatus.label} tone={precisionStatus.tone} />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--text)]">{precisionStatus.summary}</p>
-              <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">{precisionStatus.detail}</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <Stat
-                  dense
-                  label="Promoted picks"
-                  value={n(precision.length, 0)}
-                  kind={precision.length ? 'MODEL' : 'PLACEHOLDER'}
-                  note="Selections currently promoted by the precision rules"
-                />
-                <Stat
-                  dense
-                  label="Live promoted"
-                  value={n(promotedPrecisionLiveCount, 0)}
-                  kind={promotedPrecisionLiveCount ? 'LIVE' : 'PLACEHOLDER'}
-                  note="Promoted picks that still have a live book line"
-                />
-                <Stat
-                  dense
-                  label="Qualified markets"
-                  value={n(qualifiedCount, 0)}
-                  kind={qualifiedCount ? 'DERIVED' : 'PLACEHOLDER'}
-                  note="All player-markets that currently clear the precision rules"
-                />
-                <Stat
-                  dense
-                  label="Qualified players"
-                  value={n(qualifiedPlayerCount, 0)}
-                  kind={qualifiedPlayerCount ? 'DERIVED' : 'PLACEHOLDER'}
-                  note="Players represented in the qualified precision pool"
-                />
-                <Stat
-                  dense
-                  label="Books avg"
-                  value={precisionLiveBookAverage == null ? '-' : n(precisionLiveBookAverage)}
-                  kind={precisionLiveBookAverage == null ? 'PLACEHOLDER' : 'LIVE'}
-                  note="Average live book depth across promoted precision picks"
-                />
-              </div>
-              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
-                Lead precision pick:{' '}
-                <span className="font-semibold text-[var(--text)]">
-                  {precision[0] ? `${precision[0].row.playerName} ${recommendationHeadline(precision[0].view)}` : 'Waiting for promoted lead'}
-                </span>
-                {' '}| Last board refresh {ts(data.lastUpdatedAt)}
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision picks</div>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Promoted board selections that cleared the rules</h2>
-                <p className="mt-1 text-sm text-[var(--text-2)]">The board read stays on top. This section keeps the rest of the promoted precision group separate from broader board reads.</p>
-              </div>
-              <div className="text-xs text-[var(--text-2)] sm:text-sm">
-                {precision.length
-                  ? `${n(precision.length, 0)} promoted selection${precision.length === 1 ? '' : 's'} today`
-                  : 'Waiting for the first promoted precision selection'}
-              </div>
-            </div>
-            {overviewPrecisionCards.length ? (
-              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
-                {overviewPrecisionCards.map(({ entry, row, view }, index) => {
-                  const isPromotedLead = index === 0 && (!featured || precision[0]?.entry.playerId !== featured.row.playerId || precision[0]?.entry.market !== featured.market);
-                  const cardReasons = precisionQualificationReasons(view, isPromotedLead);
-                  return (
-                    <button
-                      key={`${entry.playerId}:${entry.market}:precision-pick`}
-                      type="button"
-                      onClick={() => setResearch(row.playerId)}
-                      className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${CARD_BUTTON_CLASS}`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap gap-2">
-                            <Badge label={`#${entry.rank}`} kind="DERIVED" />
-                            <Pill label={isPromotedLead ? 'Precision pick' : 'Precision qualified'} tone={isPromotedLead ? 'cyan' : 'amber'} />
-                            <Pill label={view.label} tone="amber" />
-                          </div>
-                          <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{row.playerName}</div>
-                          <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(row)}</div>
-                          <div className="mt-2 text-base font-semibold text-[var(--text)]">{recommendationHeadline(view)}</div>
-                        </div>
-                        <div className="text-right text-xs text-[var(--text-2)]">
-                          <div>{booksLiveLabel(view.books) ?? 'Books pending'}</div>
-                        </div>
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                        <CompactMetric label="Line" value={view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)} compact />
-                        <CompactMetric label="Projection" value={view.proj == null ? '-' : n(view.proj)} compact />
-                        <CompactMetric label="Gap" value={gapRead(view.edge)} compact />
-                        <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 0)} compact />
-                      </div>
-                      <div className="mt-4">
-                        <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Why it qualified</div>
-                        <div className="mt-2 grid gap-2">
-                          {cardReasons.map((reason) => (
-                            <div key={reason} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-5 text-[var(--text-2)]">
-                              {reason}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
-                {precision.length
-                  ? "Today's board read above is the only promoted precision selection right now."
-                  : 'Promoted precision selections will appear here once the board has enough qualifying live numbers.'}
-              </div>
-            )}
-          </section>
 
           <section className="mt-4 scroll-mt-28 outline-none md:mt-6 md:scroll-mt-32">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
@@ -2508,7 +2435,7 @@ export default function NewDashboard({
             </>
           ) : null}
 
-          {tab !== 'precision' ? (
+          {tab !== 'overview' ? (
           <section ref={workspaceRef} tabIndex={-1} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:p-6 md:scroll-mt-32">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2523,7 +2450,131 @@ export default function NewDashboard({
                 </div>
               </div>
             </div>
-          {tab === 'research' ? (
+          {tab === 'precision' ? (
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Precision Picks</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Only the promoted picks that cleared the precision rules</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      {precisionDashboard?.note ??
+                        'Only picks that passed the precision selection rules. No general board reads, no fallback picks, and no non-qualified players.'}
+                    </p>
+                    <div className="mt-3 text-sm text-[var(--text-2)]">
+                      Pregame only. Picks freeze at tipoff.
+                    </div>
+                  </div>
+                  <Pill label={precisionStatus.label} tone={precisionStatus.tone} />
+                </div>
+                <p className="mt-4 text-sm leading-6 text-[var(--text)]">{precisionStatus.summary}</p>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">{precisionStatus.detail}</p>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                  <span className="font-semibold text-[var(--text)]">Audit note:</span> {precisionDashboard?.auditNote ?? 'Promoted picks come only from the precision selection pipeline and freeze at tipoff.'}
+                </div>
+                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                  Lead precision pick:{' '}
+                  <span className="font-semibold text-[var(--text)]">
+                    {precision[0] ? `${precision[0].row.playerName} ${recommendationHeadline(precision[0].view)}` : 'Waiting for promoted lead'}
+                  </span>
+                  {' '}| Last board refresh {ts(data.lastUpdatedAt)}
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-10">
+                <Stat dense label="Active picks" value={n(precisionDashboard?.activeCount ?? precision.length, 0)} kind={(precisionDashboard?.activeCount ?? precision.length) ? 'LIVE' : 'PLACEHOLDER'} note="Pregame promoted picks still tracking" />
+                <Stat dense label="Pending" value={n(precisionDashboard?.pendingCount ?? precision.length, 0)} kind={(precisionDashboard?.pendingCount ?? precision.length) ? 'DERIVED' : 'PLACEHOLDER'} note="Promoted picks waiting on settlement" />
+                <Stat dense label="Settled" value={n(precisionDashboard?.settledCount ?? 0, 0)} kind={precisionDashboard?.settledCount ? 'LIVE' : 'PLACEHOLDER'} note="Promoted picks already graded today" />
+                <Stat dense label="Wins" value={n(precisionDashboard?.wins ?? 0, 0)} kind={precisionDashboard?.wins ? 'LIVE' : 'PLACEHOLDER'} note="Settled promoted picks that cleared" />
+                <Stat dense label="Losses" value={n(precisionDashboard?.losses ?? 0, 0)} kind={precisionDashboard?.losses ? 'DERIVED' : 'PLACEHOLDER'} note="Settled promoted picks that missed" />
+                <Stat dense label="Hit rate" value={precisionDashboard?.hitRate == null ? '-' : pct(precisionDashboard.hitRate, 1)} kind={precisionDashboard?.hitRate == null ? 'PLACEHOLDER' : 'MODEL'} note="Wins / losses on graded promoted picks" />
+                <Stat dense label="Flat units" value={precisionDashboard?.units == null ? '-' : signed(precisionDashboard.units, 2)} kind={precisionDashboard?.units == null ? 'PLACEHOLDER' : precisionDashboard.units >= 0 ? 'LIVE' : 'DERIVED'} note={precisionPerformanceNote} />
+                <Stat dense label="ROI" value={precisionDashboard?.roiPct == null ? '-' : pct(precisionDashboard.roiPct, 1)} kind={precisionDashboard?.roiPct == null ? 'PLACEHOLDER' : precisionDashboard.roiPct >= 0 ? 'LIVE' : 'DERIVED'} note="Flat-stake ROI on settled promoted picks" />
+                <Stat dense label="Avg confidence" value={precisionDashboard?.averageConfidence == null ? '-' : pct(precisionDashboard.averageConfidence, 1)} kind={precisionDashboard?.averageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current promoted pool average" />
+                <Stat dense label="Avg books live" value={precisionDashboard?.averageBooksLive == null ? '-' : n(precisionDashboard.averageBooksLive)} kind={precisionDashboard?.averageBooksLive == null ? 'PLACEHOLDER' : 'LIVE'} note="Average book depth across promoted picks" />
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+                <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Active precision picks</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Promoted picks with visible audit status</h3>
+                    <p className="mt-1 text-sm text-[var(--text-2)]">Each card shows the promoted recommendation, why it qualified, and whether it is still active, locked at tipoff, or already settled.</p>
+                  </div>
+                  <div className="text-sm text-[var(--text-2)]">
+                    {precision.length ? `${n(precision.length, 0)} promoted pick${precision.length === 1 ? '' : 's'} in the pool` : 'Waiting for the first promoted pick'}
+                  </div>
+                </div>
+                {precision.length ? (
+                  <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    {precision.map(({ entry, row, view }) => {
+                      const audit = precisionAuditByKey.get(`${entry.playerId}:${entry.market}`) ?? null;
+                      const cardReasons = precisionQualificationReasons(view, false);
+                      return (
+                        <button
+                          key={`${entry.playerId}:${entry.market}:precision-page`}
+                          type="button"
+                          onClick={() => setResearch(row.playerId)}
+                          className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${CARD_BUTTON_CLASS}`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge label={`#${entry.rank}`} kind="DERIVED" />
+                                <Pill label="Precision pick" tone="cyan" />
+                                <Pill label={view.label} tone="amber" />
+                                <Pill label={precisionAuditLabel(audit)} tone={precisionAuditTone(audit)} />
+                              </div>
+                              <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{row.playerName}</div>
+                              <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(row)}</div>
+                              <div className="mt-2 text-base font-semibold text-[var(--text)]">{recommendationHeadline(view)}</div>
+                            </div>
+                            <div className="text-right text-xs text-[var(--text-2)]">
+                              <div>{booksLiveLabel(view.books) ?? 'Books pending'}</div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                            <CompactMetric label="Line" value={audit?.line == null ? (view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)) : n(audit.line)} compact />
+                            <CompactMetric label="Projection" value={view.proj == null ? '-' : n(view.proj)} compact />
+                            <CompactMetric label="Gap" value={gapRead(view.edge)} compact />
+                            <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 0)} compact />
+                            <CompactMetric label="Books" value={view.books == null ? '-' : n(view.books, 0)} compact />
+                            <CompactMetric label={audit?.status === 'SETTLED' ? 'Actual' : 'Status'} value={audit?.status === 'SETTLED' ? (audit.actualValue == null ? '-' : n(audit.actualValue, 1)) : precisionAuditLabel(audit)} compact />
+                          </div>
+
+                          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)]">
+                            {precisionAuditRead(audit, view.market)}
+                          </div>
+
+                          <div className="mt-4">
+                            <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Why it qualified</div>
+                            <div className="mt-2 grid gap-2">
+                              {cardReasons.map((reason) => (
+                                <div key={reason} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-5 text-[var(--text-2)]">
+                                  {reason}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <EmptyState
+                      eyebrow="Precision Picks"
+                      title="No promoted precision picks are loaded yet."
+                      detail="As soon as the pipeline has enough qualifying pregame-safe numbers, the promoted picks will appear here with their audit status."
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : tab === 'research' ? (
             <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.92fr_1.58fr]">
               <div className="space-y-4">
                 <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">

@@ -85,6 +85,9 @@ import type {
   SnapshotBoardFeedStatus,
   SnapshotBoardViewData,
   SnapshotDataCompleteness,
+  SnapshotPrecisionDashboard,
+  SnapshotPrecisionAuditEntry,
+  SnapshotPrecisionAuditOutcome,
   SnapshotDashboardDataCompleteness,
   SnapshotDashboardGameIntel,
   SnapshotDashboardModelLine,
@@ -1546,6 +1549,243 @@ function buildSnapshotBoardFeed(input: {
   };
 }
 
+function actualValueFromGameLog(
+  log: {
+    points: number | null;
+    rebounds: number | null;
+    assists: number | null;
+    threes: number | null;
+  },
+  market: SnapshotMarket,
+): number | null {
+  const points = toStat(log.points);
+  const rebounds = toStat(log.rebounds);
+  const assists = toStat(log.assists);
+  const threes = toStat(log.threes);
+  const sumValues = (...values: Array<number | null>) =>
+    values.every((value) => value != null) ? round(values.reduce((sum, value) => sum + (value ?? 0), 0), 2) : null;
+
+  if (market === "PTS") return points;
+  if (market === "REB") return rebounds;
+  if (market === "AST") return assists;
+  if (market === "THREES") return threes;
+  if (market === "PRA") return sumValues(points, rebounds, assists);
+  if (market === "PA") return sumValues(points, assists);
+  if (market === "PR") return sumValues(points, rebounds);
+  if (market === "RA") return sumValues(rebounds, assists);
+  return null;
+}
+
+function resolvePrecisionOutcome(
+  side: SnapshotModelSide,
+  line: number | null,
+  actualValue: number | null,
+): SnapshotPrecisionAuditOutcome | null {
+  if (side === "NEUTRAL" || line == null || actualValue == null) return null;
+  if (actualValue === line) return "PUSH";
+  if (side === "OVER") return actualValue > line ? "WIN" : "LOSS";
+  return actualValue < line ? "WIN" : "LOSS";
+}
+
+async function buildSnapshotPrecisionDashboard(input: {
+  dateEt: string;
+  data: SnapshotBoardData;
+  matchupStartMsByKey: Map<string, number | null>;
+  matchupFinalByKey: Map<string, boolean>;
+  nowMs: number;
+}): Promise<SnapshotPrecisionDashboard> {
+  const label = "Precision Picks";
+  const note =
+    "Only picks that passed the precision selection rules. No general board reads, no fallback picks, and no non-qualified players.";
+  const auditNote = "Promoted picks come only from the precision selection pipeline and freeze at tipoff.";
+  const rowByPlayerId = new Map(input.data.rows.map((row) => [row.playerId, row] as const));
+  const precisionEntries = (input.data.precisionCard ?? [])
+    .map((entry) => {
+      const row = rowByPlayerId.get(entry.playerId);
+      if (!row) return null;
+      return {
+        entry,
+        row,
+        snapshot: buildBoardFeedSnapshot(row, entry.market, entry),
+      };
+    })
+    .filter(
+      (
+        value,
+      ): value is {
+        entry: SnapshotPrecisionCardEntry;
+        row: SnapshotRow;
+        snapshot: BoardFeedMarketSnapshot;
+      } => value != null,
+    )
+    .sort((left, right) => left.entry.rank - right.entry.rank);
+
+  if (precisionEntries.length === 0) {
+    return {
+      label,
+      note,
+      auditNote,
+      promotedCount: 0,
+      qualifiedCount: 0,
+      activeCount: 0,
+      lockedCount: 0,
+      pendingCount: 0,
+      settledCount: 0,
+      wins: 0,
+      losses: 0,
+      pushes: 0,
+      hitRate: null,
+      units: null,
+      roiPct: null,
+      averageConfidence: null,
+      averageBooksLive: null,
+      entries: [],
+    };
+  }
+
+  const playerIds = Array.from(new Set(precisionEntries.map(({ entry }) => entry.playerId)));
+  const actualLogs =
+    playerIds.length > 0
+      ? await prisma.playerGameLog.findMany({
+          where: {
+            gameDateEt: input.dateEt,
+            playerId: { in: playerIds },
+          },
+          select: {
+            playerId: true,
+            played: true,
+            points: true,
+            rebounds: true,
+            assists: true,
+            threes: true,
+          },
+        })
+      : [];
+  const actualLogByPlayerId = new Map(actualLogs.map((log) => [log.playerId, log] as const));
+
+  const audits: SnapshotPrecisionAuditEntry[] = precisionEntries.map(({ entry, row, snapshot }) => {
+    const actualLog = actualLogByPlayerId.get(entry.playerId) ?? null;
+    const actualValue =
+      actualLog && actualLog.played !== false ? actualValueFromGameLog(actualLog, entry.market) : null;
+    const matchupStartMs = input.matchupStartMsByKey.get(row.matchupKey) ?? null;
+    const matchupFinal = input.matchupFinalByKey.get(row.matchupKey) ?? false;
+    const started = matchupStartMs != null && matchupStartMs <= input.nowMs;
+    const line = entry.lockedLine ?? snapshot.line ?? snapshot.fairLine ?? null;
+    const outcome = matchupFinal ? resolvePrecisionOutcome(snapshot.side, line, actualValue) : null;
+    const status =
+      (actualValue != null || actualLog?.played === false) && matchupFinal
+        ? "SETTLED"
+        : started
+          ? "LOCKED"
+          : "ACTIVE";
+
+    return {
+      playerId: entry.playerId,
+      market: entry.market,
+      line,
+      actualValue,
+      status,
+      outcome,
+    };
+  });
+
+  const settledEntries = audits.filter((entry) => entry.status === "SETTLED");
+  const wins = settledEntries.filter((entry) => entry.outcome === "WIN").length;
+  const losses = settledEntries.filter((entry) => entry.outcome === "LOSS").length;
+  const pushes = settledEntries.filter((entry) => entry.outcome === "PUSH").length;
+  const gradedCount = wins + losses + pushes;
+  const averageConfidenceValues = precisionEntries
+    .map(({ snapshot }) => snapshot.confidence)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  const averageBooksLiveValues = precisionEntries
+    .map(({ snapshot }) => snapshot.booksLive)
+    .filter((value): value is number => value != null && Number.isFinite(value));
+  const units = gradedCount > 0 ? round(wins * 0.91 - losses, 2) : null;
+
+  return {
+    label,
+    note,
+    auditNote,
+    promotedCount: precisionEntries.length,
+    qualifiedCount: precisionEntries.length,
+    activeCount: audits.filter((entry) => entry.status === "ACTIVE").length,
+    lockedCount: audits.filter((entry) => entry.status === "LOCKED").length,
+    pendingCount: audits.filter((entry) => entry.status !== "SETTLED").length,
+    settledCount: settledEntries.length,
+    wins,
+    losses,
+    pushes,
+    hitRate: wins + losses > 0 ? round((wins / (wins + losses)) * 100, 1) : null,
+    units,
+    roiPct: units != null && gradedCount > 0 ? round((units / gradedCount) * 100, 1) : null,
+    averageConfidence:
+      averageConfidenceValues.length > 0
+        ? round(
+            averageConfidenceValues.reduce((sum, value) => sum + value, 0) / averageConfidenceValues.length,
+            1,
+          )
+        : null,
+    averageBooksLive:
+      averageBooksLiveValues.length > 0
+        ? round(averageBooksLiveValues.reduce((sum, value) => sum + value, 0) / averageBooksLiveValues.length, 1)
+        : null,
+    entries: audits,
+  };
+}
+
+async function withSnapshotPrecisionDashboard(
+  data: SnapshotBoardData,
+  input: {
+    dateEt: string;
+    matchupStartMsByKey?: Map<string, number | null>;
+    matchupFinalByKey?: Map<string, boolean>;
+    nowMs?: number;
+  },
+): Promise<SnapshotBoardData> {
+  const nowMs = input.nowMs ?? Date.now();
+  let matchupStartMsByKey = input.matchupStartMsByKey ?? null;
+  let matchupFinalByKey = input.matchupFinalByKey ?? null;
+
+  if (!matchupStartMsByKey || !matchupFinalByKey) {
+    const games = await prisma.game.findMany({
+      where: { gameDateEt: input.dateEt },
+      select: {
+        status: true,
+        commenceTimeUtc: true,
+        awayTeam: { select: { abbreviation: true } },
+        homeTeam: { select: { abbreviation: true } },
+      },
+    });
+    if (!matchupStartMsByKey) {
+      matchupStartMsByKey = new Map(
+        games.map((game) => [
+          `${game.awayTeam.abbreviation}@${game.homeTeam.abbreviation}`,
+          game.commenceTimeUtc?.getTime() ?? null,
+        ] as const),
+      );
+    }
+    if (!matchupFinalByKey) {
+      matchupFinalByKey = new Map(
+        games.map((game) => [
+          `${game.awayTeam.abbreviation}@${game.homeTeam.abbreviation}`,
+          Boolean(game.status && /final/i.test(game.status)),
+        ] as const),
+      );
+    }
+  }
+
+  return {
+    ...data,
+    precisionDashboard: await buildSnapshotPrecisionDashboard({
+      dateEt: input.dateEt,
+      data,
+      matchupStartMsByKey,
+      matchupFinalByKey: matchupFinalByKey ?? new Map(),
+      nowMs,
+    }),
+  };
+}
+
 function formatEmpiricalHitRateSummary(input: {
   weightedCurrentLineOverRate?: number | null;
   l10CurrentLineOverRate?: number | null;
@@ -2956,13 +3196,15 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
   if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
-    return toSnapshotBoardViewData(persistedBoard.data);
+    return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
   }
-  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt, true));
+  return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
 }
 
 export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
-  return toSnapshotBoardViewData(await getSnapshotBoardData(dateEt, bustCache));
+  return toSnapshotBoardViewData(
+    await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+  );
 }
 
 export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
