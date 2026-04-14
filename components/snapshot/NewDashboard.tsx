@@ -1406,6 +1406,54 @@ export default function NewDashboard({
     });
     return rankViews(candidates).slice(0, 6);
   }, [allViews, precisionCardKeys, scoutViews, selectedMatchupViews]);
+  const promotedPrecisionLiveCount = useMemo(
+    () => precision.filter(({ view }) => view.live != null).length,
+    [precision],
+  );
+  const qualifiedPlayerCount = useMemo(
+    () => new Set(allViews.filter((view) => view.precision?.qualified).map((view) => view.row.playerId)).size,
+    [allViews],
+  );
+  const precisionLiveBookAverage = useMemo(() => {
+    const books = precision.map(({ view }) => view.books).filter((value): value is number => value != null);
+    if (!books.length) return null;
+    return Number((books.reduce((sum, value) => sum + value, 0) / books.length).toFixed(1));
+  }, [precision]);
+  const precisionStatus = useMemo(() => {
+    if (!precision.length) {
+      return {
+        label: 'Waiting for picks',
+        tone: 'default' as const,
+        summary: 'No promoted precision selections are loaded yet.',
+        detail: 'The board will promote a precision pick as soon as enough qualifying pregame-safe numbers are available.',
+      };
+    }
+
+    if (promotedPrecisionLiveCount === precision.length) {
+      return {
+        label: 'Active',
+        tone: 'cyan' as const,
+        summary: `${n(precision.length, 0)} promoted precision selections are loaded and every promoted pick still has a live number.`,
+        detail: `${n(qualifiedCount, 0)} qualified player-markets across ${n(qualifiedPlayerCount, 0)} players are active on the board right now.`,
+      };
+    }
+
+    if (promotedPrecisionLiveCount > 0) {
+      return {
+        label: 'Partial live',
+        tone: 'amber' as const,
+        summary: `${n(promotedPrecisionLiveCount, 0)} of ${n(precision.length, 0)} promoted precision selections still have live pricing.`,
+        detail: `${n(qualifiedCount, 0)} qualified player-markets remain tracked while the rest wait on live book depth.`,
+      };
+    }
+
+    return {
+      label: 'Qualified only',
+      tone: 'amber' as const,
+      summary: `${n(precision.length, 0)} promoted precision selections are loaded, but live book lines are thin right now.`,
+      detail: `${n(qualifiedCount, 0)} qualified player-markets are still in the precision pool while live pricing catches up.`,
+    };
+  }, [precision, promotedPrecisionLiveCount, qualifiedCount, qualifiedPlayerCount]);
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     precision: {
       title: 'Overview workspace',
@@ -2054,7 +2102,63 @@ export default function NewDashboard({
           </div>
 
           <section className="mt-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:mt-6 md:p-6">
-            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision status</div>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--text)]">Is the precision engine active right now?</h2>
+                </div>
+                <Pill label={precisionStatus.label} tone={precisionStatus.tone} />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text)]">{precisionStatus.summary}</p>
+              <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">{precisionStatus.detail}</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <Stat
+                  dense
+                  label="Promoted picks"
+                  value={n(precision.length, 0)}
+                  kind={precision.length ? 'MODEL' : 'PLACEHOLDER'}
+                  note="Selections currently promoted by the precision rules"
+                />
+                <Stat
+                  dense
+                  label="Live promoted"
+                  value={n(promotedPrecisionLiveCount, 0)}
+                  kind={promotedPrecisionLiveCount ? 'LIVE' : 'PLACEHOLDER'}
+                  note="Promoted picks that still have a live book line"
+                />
+                <Stat
+                  dense
+                  label="Qualified markets"
+                  value={n(qualifiedCount, 0)}
+                  kind={qualifiedCount ? 'DERIVED' : 'PLACEHOLDER'}
+                  note="All player-markets that currently clear the precision rules"
+                />
+                <Stat
+                  dense
+                  label="Qualified players"
+                  value={n(qualifiedPlayerCount, 0)}
+                  kind={qualifiedPlayerCount ? 'DERIVED' : 'PLACEHOLDER'}
+                  note="Players represented in the qualified precision pool"
+                />
+                <Stat
+                  dense
+                  label="Books avg"
+                  value={precisionLiveBookAverage == null ? '-' : n(precisionLiveBookAverage)}
+                  kind={precisionLiveBookAverage == null ? 'PLACEHOLDER' : 'LIVE'}
+                  note="Average live book depth across promoted precision picks"
+                />
+              </div>
+              <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                Lead precision pick:{' '}
+                <span className="font-semibold text-[var(--text)]">
+                  {precision[0] ? `${precision[0].row.playerName} ${recommendationHeadline(precision[0].view)}` : 'Waiting for promoted lead'}
+                </span>
+                {' '}| Last board refresh {ts(data.lastUpdatedAt)}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision picks</div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Promoted board selections that cleared the rules</h2>
