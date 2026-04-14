@@ -321,7 +321,7 @@ type View = {
 };
 
 type PrecisionStateSummary = {
-  label: 'Precision pick' | 'Precision qualified' | 'Not a precision pick';
+  label: 'Precision pick' | 'Precision qualified' | 'Board read only';
   tone: 'default' | 'cyan' | 'amber';
   kind: Kind;
   summary: string;
@@ -409,6 +409,31 @@ function cleanReasonLine(value: string | null | undefined) {
   const sentence = firstSentence(value);
   if (!sentence) return null;
   return sentence.length > 150 ? `${sentence.slice(0, 147).trimEnd()}...` : sentence;
+}
+
+function precisionQualificationReasons(view: View, promoted = false) {
+  const reasons: string[] = [];
+  const basisLabel = view.live != null ? 'live line' : view.fair != null ? 'board fair line' : 'current board basis';
+
+  if (promoted) {
+    reasons.push('This is the current promoted board selection.');
+  }
+  if (view.edge != null) {
+    reasons.push(`Projection sits ${gapRead(view.edge)} the ${basisLabel}.`);
+  }
+  if (view.books != null) {
+    reasons.push(`${booksCountLabel(view.books)} are contributing to the current number.`);
+  }
+  if (view.conf != null) {
+    reasons.push(`Confidence is ${pct(view.conf, 0)} on ${view.label}.`);
+  }
+
+  const precisionReason = cleanReasonLine((view.precision?.reasons ?? [])[0] ?? null);
+  if (precisionReason) {
+    reasons.push(precisionReason);
+  }
+
+  return reasons.slice(0, 4);
 }
 
 function feedReason(event: SnapshotBoardFeedItem) {
@@ -1138,7 +1163,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
   const researchPrecisionState = useMemo<PrecisionStateSummary>(() => {
     if (!researchRow || !researchLeadView) {
       return {
-        label: 'Not a precision pick',
+        label: 'Board read only',
         tone: 'default',
         kind: 'LIVE',
         summary: 'Open a player and the board will show whether the current read is promoted, qualified, or just a broader board lean.',
@@ -1199,7 +1224,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     }
 
     return {
-      label: 'Not a precision pick',
+      label: 'Board read only',
       tone: 'default',
       kind: 'LIVE',
       summary: 'This player has a usable board read, but the current lead market is not one of the promoted precision spots right now.',
@@ -1264,23 +1289,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     if (!liveBookViews.length) return null;
     return Number((liveBookViews.reduce((sum, view) => sum + (view.books ?? 0), 0) / liveBookViews.length).toFixed(1));
   }, [allViews]);
-  const topOpportunities = useMemo(() => {
-    const picks: View[] = [];
-    const seen = new Set<string>();
-    const push = (view: View | null | undefined) => {
-      if (!view) return;
-      const key = `${view.row.playerId}:${view.market}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      picks.push(view);
-    };
-
-    precision.forEach(({ view }) => push(view));
-    scoutViews.forEach((view) => push(view));
-    selectedMatchupViews.forEach((view) => push(view));
-
-    return picks.filter((view) => view.live != null).slice(0, 6);
-  }, [precision, scoutViews, selectedMatchupViews]);
   const matchupExplorerSpots = useMemo(() => matchupBestSpots.slice(0, 3), [matchupBestSpots]);
   const boardFeedEvents = useMemo(() => data.boardFeed?.events ?? [], [data.boardFeed]);
   const liveFeedEvents = useMemo(() => boardFeedEvents.slice(0, 12), [boardFeedEvents]);
@@ -1329,30 +1337,49 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
     ].filter(Boolean);
     return parts.length ? parts.slice(0, 3).join(' | ') : null;
   }, [featured]);
-  const overviewPrecisionSupport = useMemo(() => {
-    if (!featured) return [] as string[];
-    return [
-      featured.precision?.qualified ? 'This number cleared the board qualification pass before it reached Overview.' : null,
-      featured.edge != null ? `Projection is ${gapRead(featured.edge)} the live line.` : null,
-      featured.books != null ? `${n(featured.books, 0)} books are contributing to the current consensus number.` : null,
-      firstSentence(featuredReasonList[1] ?? null),
-    ].filter((value): value is string => Boolean(value)).slice(0, 3);
-  }, [featured, featuredReasonList]);
+  const precisionCardKeys = useMemo(
+    () => new Set(precision.map(({ row, view }) => `${row.playerId}:${view.market}`)),
+    [precision],
+  );
+  const overviewPrecisionCards = useMemo(() => {
+    if (!precision.length) return [] as typeof precision;
+    const cards = precision.slice(0, 5);
+    if (
+      featured &&
+      cards[0] &&
+      cards[0].row.playerId === featured.row.playerId &&
+      cards[0].view.market === featured.market
+    ) {
+      return cards.slice(1);
+    }
+    return cards;
+  }, [featured, precision]);
+  const nextBestNumbers = useMemo(() => {
+    const seen = new Set<string>();
+    const candidates = [...scoutViews, ...selectedMatchupViews, ...allViews].filter((view) => {
+      if (view.live == null) return false;
+      const key = `${view.row.playerId}:${view.market}`;
+      if (precisionCardKeys.has(key) || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return rankViews(candidates).slice(0, 6);
+  }, [allViews, precisionCardKeys, scoutViews, selectedMatchupViews]);
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     precision: {
       title: 'Overview workspace',
       detail: 'Best pick, next best numbers, and matchup shortcuts stay grouped here.',
     },
     research: {
-      title: 'Players workspace',
-      detail: 'Search the slate on the left, then keep the selected player dossier open on the right.',
+      title: 'Player research',
+      detail: 'Search the slate on the left, then keep one selected player dossier open on the right.',
     },
     scout: {
-      title: 'Feed workspace',
+      title: 'Board feed',
       detail: 'The feed stays focused on persistent pregame changes and lock timing through the day.',
     },
     tracking: {
-      title: 'Tracker workspace',
+      title: 'Market tracker',
       detail: 'Use the tracker to sort the market numerically instead of jumping between card views.',
     },
   };
@@ -1824,7 +1851,9 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           ) : null}
 
-          <section className="mt-4 grid grid-cols-1 gap-4 md:mt-6 md:gap-6 xl:grid-cols-12">
+          {tab === 'precision' ? (
+            <>
+          <section ref={overviewRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="xl:col-span-7">
               {featured ? (
                 <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_34px_rgba(20,16,35,0.07)] sm:p-5 md:p-6">
@@ -1961,7 +1990,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 liveLines={n(liveCount, 0)}
                 feedItems={n(boardFeedEvents.length, 0)}
                 strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
-                bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
+                bestAlternative={nextBestNumbers[0] ? `${nextBestNumbers[0].row.playerName} ${nextBestNumbers[0].label}` : 'Waiting for the next live card'}
                 mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
                 booksLive={liveBookDepth == null ? '-' : n(liveBookDepth)}
                 note={boardPulseNote}
@@ -1969,20 +1998,103 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </div>
           </section>
 
-          <section ref={overviewRef} tabIndex={-1} className="mt-4 scroll-mt-28 outline-none md:mt-6 md:scroll-mt-32">
+          <div className="mt-4 md:hidden">
+            <BoardPulseCard
+              boardRefresh={ts(data.lastUpdatedAt)}
+              featuredUpdate={ts(latestBoardFeedEvent?.createdAt ?? featuredUpdatedAt)}
+              liveLines={n(liveCount, 0)}
+              feedItems={n(boardFeedEvents.length, 0)}
+              strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
+              bestAlternative={nextBestNumbers[0] ? `${nextBestNumbers[0].row.playerName} ${nextBestNumbers[0].label}` : 'Waiting for the next live card'}
+              mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
+              booksLive={liveBookDepth == null ? '-' : n(liveBookDepth)}
+              note={boardPulseNote}
+            />
+          </div>
+
+          <section className="mt-4 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:mt-6 md:p-6">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top opportunities</div>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Best live numbers on the board</h2>
-                <p className="mt-1 text-sm text-[var(--text-2)]">Best actionable plays right now.</p>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision picks</div>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Promoted board selections that cleared the rules</h2>
+                <p className="mt-1 text-sm text-[var(--text-2)]">The board read stays on top. This section keeps the rest of the promoted precision group separate from broader board reads.</p>
               </div>
               <div className="text-xs text-[var(--text-2)] sm:text-sm">
-                {topOpportunities.length ? `${n(topOpportunities.length, 0)} live cards ready to open` : 'Waiting for a broader set of live book lines'}
+                {precision.length
+                  ? `${n(precision.length, 0)} promoted selection${precision.length === 1 ? '' : 's'} today`
+                  : 'Waiting for the first promoted precision selection'}
               </div>
             </div>
-            {topOpportunities.length ? (
+            {overviewPrecisionCards.length ? (
+              <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {overviewPrecisionCards.map(({ entry, row, view }, index) => {
+                  const isPromotedLead = index === 0 && (!featured || precision[0]?.entry.playerId !== featured.row.playerId || precision[0]?.entry.market !== featured.market);
+                  const cardReasons = precisionQualificationReasons(view, isPromotedLead);
+                  return (
+                    <button
+                      key={`${entry.playerId}:${entry.market}:precision-pick`}
+                      type="button"
+                      onClick={() => setResearch(row.playerId)}
+                      className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${CARD_BUTTON_CLASS}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap gap-2">
+                            <Badge label={`#${entry.rank}`} kind="DERIVED" />
+                            <Pill label={isPromotedLead ? 'Precision pick' : 'Precision qualified'} tone={isPromotedLead ? 'cyan' : 'amber'} />
+                            <Pill label={view.label} tone="amber" />
+                          </div>
+                          <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{row.playerName}</div>
+                          <div className="mt-1 text-sm text-[var(--text-2)]">{matchup(row)}</div>
+                          <div className="mt-2 text-base font-semibold text-[var(--text)]">{recommendationHeadline(view)}</div>
+                        </div>
+                        <div className="text-right text-xs text-[var(--text-2)]">
+                          <div>{booksLiveLabel(view.books) ?? 'Books pending'}</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <CompactMetric label="Line" value={view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)} compact />
+                        <CompactMetric label="Projection" value={view.proj == null ? '-' : n(view.proj)} compact />
+                        <CompactMetric label="Gap" value={gapRead(view.edge)} compact />
+                        <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 0)} compact />
+                      </div>
+                      <div className="mt-4">
+                        <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Why it qualified</div>
+                        <div className="mt-2 grid gap-2">
+                          {cardReasons.map((reason) => (
+                            <div key={reason} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3.5 py-3 text-sm leading-5 text-[var(--text-2)]">
+                              {reason}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                {precision.length
+                  ? "Today's board read above is the only promoted precision selection right now."
+                  : 'Promoted precision selections will appear here once the board has enough qualifying live numbers.'}
+              </div>
+            )}
+          </section>
+
+          <section className="mt-4 scroll-mt-28 outline-none md:mt-6 md:scroll-mt-32">
+            <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Next best numbers</div>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Good board reads outside the promoted precision group</h2>
+                <p className="mt-1 text-sm text-[var(--text-2)]">Actionable live numbers that still deserve a look even though they are not the current promoted precision picks.</p>
+              </div>
+              <div className="text-xs text-[var(--text-2)] sm:text-sm">
+                {nextBestNumbers.length ? `${n(nextBestNumbers.length, 0)} live cards ready to open` : 'Waiting for a broader set of non-promoted live numbers'}
+              </div>
+            </div>
+            {nextBestNumbers.length ? (
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
-                {topOpportunities.map((view, index) => (
+                {nextBestNumbers.map((view, index) => (
                   <button
                     key={`${view.row.playerId}:${view.market}:top-opportunity`}
                     type="button"
@@ -1993,6 +2105,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                       <div className="min-w-0">
                         <div className="flex flex-wrap gap-2">
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
+                          <Pill label={view.precision?.qualified ? 'Precision qualified' : 'Board read only'} tone={view.precision?.qualified ? 'amber' : 'default'} />
                           <Pill label={view.label} tone="amber" />
                         </div>
                         <div className="mt-1.5 text-lg font-semibold leading-tight text-[var(--text)] md:text-[1.02rem]">{view.row.playerName}</div>
@@ -2017,28 +2130,14 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             ) : (
               <div className="mt-4">
                 <EmptyState
-                  eyebrow="Top opportunities"
-                  title="Live book lines have not stacked up enough to rank this strip yet."
-                  detail="The board will promote live cards here as soon as more current sportsbook numbers land. Until then, the featured signal remains the quickest way into the slate."
+                  eyebrow="Next best numbers"
+                  title="The board has not surfaced additional non-promoted live numbers yet."
+                  detail="As more live prices settle, this strip will separate the broader board reads from the promoted precision group above."
                   actionLabel="Refresh slate"
                   onAction={refreshSlate}
                 />
               </div>
             )}
-
-            <div className="mt-4 md:hidden">
-              <BoardPulseCard
-                boardRefresh={ts(data.lastUpdatedAt)}
-                featuredUpdate={ts(latestBoardFeedEvent?.createdAt ?? featuredUpdatedAt)}
-                liveLines={n(liveCount, 0)}
-                feedItems={n(boardFeedEvents.length, 0)}
-                strongestMarket={featured ? `${featured.row.playerName} ${featured.label}` : '-'}
-                bestAlternative={topOpportunities[1] ? `${topOpportunities[1].row.playerName} ${topOpportunities[1].label}` : 'Waiting for a second live card'}
-                mostActiveGame={selectedMatchup?.label ?? data.matchups[0]?.label ?? '-'}
-                booksLive={liveBookDepth == null ? '-' : n(liveBookDepth)}
-                note={boardPulseNote}
-              />
-            </div>
           </section>
 
           <section ref={matchupExplorerRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
@@ -2261,7 +2360,10 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
               </div>
             </div>
           </section>
+            </>
+          ) : null}
 
+          {tab !== 'precision' ? (
           <section ref={workspaceRef} tabIndex={-1} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:p-6 md:scroll-mt-32">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -2276,111 +2378,6 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                 </div>
               </div>
             </div>
-
-          {tab === 'precision' ? (
-            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
-              <div className="space-y-4">
-                {precision.length === 0 ? (
-                  <EmptyState
-                    eyebrow="Overview board"
-                    title="No overview picks are loaded on this slate."
-                    detail="The board still works, but the overview queue stays empty until a playable set of live numbers is available."
-                    actionLabel="Refresh slate"
-                    onAction={refreshSlate}
-                  />
-                ) : (
-                  precision.map(({ entry, row, view }, idx) => (
-                    <button
-                      key={`${entry.playerId}:${entry.market}`}
-                      type="button"
-                      onClick={() => setResearch(row.playerId)}
-                      className={`w-full rounded-[28px] border p-5 text-left ${CARD_BUTTON_CLASS} ${
-                        idx === 0
-                          ? 'border-cyan-400/25 bg-[linear-gradient(145deg,rgba(8,15,29,0.96),rgba(15,23,42,0.9))]'
-                          : 'border-white/10 bg-zinc-900/75'
-                      }`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap gap-2">
-                            {view.rank ? <Badge label={view.rank} kind="DERIVED" /> : null}
-                            <Pill label={view.label} tone="amber" />
-                            <Badge label={view.liveKind} kind={view.liveKind} />
-                          </div>
-                          <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{row.playerName}</div>
-                          <div className="mt-1 text-sm text-zinc-400">{matchup(row)}</div>
-                        </div>
-                        <RecommendationBox view={view} className="w-full sm:w-auto sm:min-w-[250px]" />
-                      </div>
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                        <Stat
-                          dense
-                          label="Line to play"
-                          value={view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)}
-                          kind={view.live == null ? view.fairKind : view.liveLineKind}
-                          note={view.live != null ? 'Current consensus line behind the call' : view.fair != null ? 'Model fair line until live books land' : view.note}
-                        />
-                        <Stat dense label="Projection" value={view.proj == null ? '-' : n(view.proj)} kind={view.projKind} note="Tonight projection from payload" />
-                        <Stat dense label="Model gap" value={view.edge == null ? '-' : gapRead(view.edge)} kind={view.edgeKind} note="Projection versus the current number" />
-                        <Stat dense label="Confidence" value={view.conf == null ? '-' : pct(view.conf, 0)} kind={view.confKind} note="Payload confidence or derived win probability" />
-                      </div>
-                      <div className="mt-4 text-sm text-zinc-300">
-                        {conciseLeadReason(view, view.precision?.reasons?.[0] ?? view.reasons[0] ?? null)}
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Precision pick</div>
-                      <div className="mt-1 text-lg font-semibold text-[var(--text)]">
-                        {featured ? `${featured.row.playerName} ${recommendationHeadline(featured)}` : "Waiting for today's lead"}
-                      </div>
-                    </div>
-                    <Badge label={featured?.precision?.qualified ? 'Qualified' : 'Board lead'} kind={featured?.precision?.qualified ? 'DERIVED' : 'LIVE'} />
-                  </div>
-                  <p className="mt-4 text-sm leading-6 text-[var(--text-2)]">
-                    {featured
-                      ? featuredWhyItMatters
-                      : 'When the board surfaces a lead, this block explains why it is the clearest current read.'}
-                  </p>
-                  {overviewPrecisionSupport.length ? (
-                    <div className="mt-4 space-y-3">
-                      {overviewPrecisionSupport.map((item) => (
-                        <div key={item} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)]">
-                          {item}
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-
-                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Overview support</div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
-                    Overview stays focused on the best board read, the next best live numbers, and the matchup shortcut that deserves the next click.
-                  </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <Stat dense label="Best pick" value={precision[0] ? recommendationHeadline(precision[0].view) : '-'} kind={precision[0] ? 'LIVE' : 'PLACEHOLDER'} note="Lead recommendation in the current queue" />
-                    <Stat dense label="Board feed" value={n(boardFeedEvents.length, 0)} kind={boardFeedEvents.length ? 'DERIVED' : 'PLACEHOLDER'} note="Pregame events captured today" />
-                    <Stat dense label="Live books avg" value={liveBookDepth == null ? '-' : n(liveBookDepth)} kind={liveBookDepth == null ? 'PLACEHOLDER' : 'LIVE'} note="Average books contributing to current lines" />
-                    <Stat dense label="Matchup focus" value={selectedMatchup?.label ?? '-'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} note="Game tied to the current explorer" />
-                  </div>
-                </div>
-
-                <MatchupsCard
-                  matchups={data.matchups}
-                  selectedKey={selectedMatchupKey}
-                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
-                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
-                />
-              </div>
-            </section>
-          ) : null}
           {tab === 'research' ? (
             <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.92fr_1.58fr]">
               <div className="space-y-4">
@@ -2672,7 +2669,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
                                         ? 'Precision pick'
                                         : v.precision?.qualified
                                           ? 'Precision qualified'
-                                          : 'Board read'}
+                                          : 'Board read only'}
                                     </td>
                                   </tr>
                                 ))}
@@ -3093,6 +3090,7 @@ export default function NewDashboard({ data: initialData }: { data: SnapshotBoar
             </section>
           ) : null}
           </section>
+          ) : null}
 
           <section ref={helpRef} id="methodology" tabIndex={-1} className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:scroll-mt-32">
             <div className="flex flex-wrap items-start justify-between gap-4">
