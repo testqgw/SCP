@@ -763,16 +763,57 @@ function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['resu
   };
 }
 
-export default function NewDashboard({ data: initialData }: { data: SnapshotBoardViewData }) {
+function resolveInitialPlayerId(rows: SnapshotDashboardRow[], value: string | null | undefined) {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  return rows.find((row) => row.playerId.toLowerCase() === normalized || slugifyParam(row.playerName) === normalized)?.playerId ?? null;
+}
+
+function resolveInitialMatchupKey(matchups: SnapshotBoardViewData['matchups'], value: string | null | undefined) {
+  if (!value) return null;
+  const normalized = value.toLowerCase();
+  return (
+    matchups.find(
+      (matchupItem) =>
+        matchupItem.key.toLowerCase() === normalized ||
+        slugifyParam(matchupItem.key) === normalized ||
+        slugifyParam(matchupItem.label) === normalized,
+    )?.key ?? null
+  );
+}
+
+export default function NewDashboard({
+  data: initialData,
+  initialViewParam = null,
+  initialPlayerParam = null,
+  initialMatchupParam = null,
+}: {
+  data: SnapshotBoardViewData;
+  initialViewParam?: string | null;
+  initialPlayerParam?: string | null;
+  initialMatchupParam?: string | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const initialView = parseViewParam(initialViewParam);
+  const initialTab = VIEW_TO_TAB[initialView] ?? 'precision';
+  const initialPlayerId = resolveInitialPlayerId(initialData.rows, initialPlayerParam);
+  const initialPlayerRow = initialPlayerId
+    ? initialData.rows.find((row) => row.playerId === initialPlayerId) ?? null
+    : null;
+  const resolvedInitialMatchupKey =
+    resolveInitialMatchupKey(initialData.matchups, initialMatchupParam) ??
+    initialPlayerRow?.matchupKey ??
+    initialData.matchups[0]?.key ??
+    null;
+  const initialPinnedMatchupKey = viewKeepsMatchupParam(initialView) ? resolvedInitialMatchupKey : null;
   const [data, setData] = useState(initialData);
-  const [tab, setTab] = useState<Tab>('precision');
-  const [headerView, setHeaderView] = useState<ViewKey>('overview');
-  const [pickedPlayer, setPickedPlayer] = useState<string | null>(null);
-  const [pinnedMatchupKey, setPinnedMatchupKey] = useState<string | null>(null);
-  const [selectedMatchupKey, setSelectedMatchupKey] = useState<string | null>(initialData.matchups[0]?.key ?? null);
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [headerView, setHeaderView] = useState<ViewKey>(initialView);
+  const [pickedPlayer, setPickedPlayer] = useState<string | null>(viewKeepsPlayerParam(initialView) ? initialPlayerId : null);
+  const [pinnedMatchupKey, setPinnedMatchupKey] = useState<string | null>(initialPinnedMatchupKey);
+  const [selectedMatchupKey, setSelectedMatchupKey] = useState<string | null>(initialPinnedMatchupKey ?? initialData.matchups[0]?.key ?? null);
   const [searchQuery, setSearchQuery] = useState('');
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
