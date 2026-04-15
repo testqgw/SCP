@@ -148,6 +148,9 @@ const DEFAULT_LIVE_MODEL_FILES = [
   path.join(process.cwd(), "exports", "kevin-durant-player-model-summary.json"),
   path.join(process.cwd(), "exports", "kawhi-leonard-player-model-summary.json"),
 ];
+const DEFAULT_PRIORITY_LIVE_MODEL_FILES = [
+  path.join(process.cwd(), "exports", "live-player-model-priority-replace-headroom-tight-v1-2026-04-14.json"),
+];
 const DEFAULT_PLAYER_OVERRIDE_ALLOWLIST_FILE = path.join(process.cwd(), "exports", "live-player-override-allowlist.json");
 const DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE = path.join(
   process.cwd(),
@@ -155,8 +158,10 @@ const DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE = path.join(
   "player-local-target-lift-manifest.json",
 );
 const EXTRA_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PLAYER_MODEL_FILES";
+const EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PRIORITY_PLAYER_MODEL_FILES";
 
 let cachedModelMap: Map<string, Map<SnapshotMarket, ModelVariant>> | null = null;
+let cachedPriorityModelMap: Map<string, Map<SnapshotMarket, ModelVariant>> | null = null;
 let cachedAllowlistConfig:
   | {
       filePath: string;
@@ -326,6 +331,19 @@ function resolveConfiguredLiveModelFiles(): string[] {
   return [...new Set([...DEFAULT_LIVE_MODEL_FILES, ...extras])];
 }
 
+function resolveConfiguredPriorityLiveModelFiles(): string[] {
+  const configured = process.env[EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV]?.trim();
+  if (!configured) return DEFAULT_PRIORITY_LIVE_MODEL_FILES;
+
+  const extras = configured
+    .split(/[,\r\n;]+/)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => path.resolve(value));
+
+  return [...new Set([...DEFAULT_PRIORITY_LIVE_MODEL_FILES, ...extras])];
+}
+
 function loadAllowlistSet(): Set<string> {
   const filePath = resolveAllowlistFilePath();
   if (cachedAllowlistConfig?.filePath === filePath) {
@@ -379,6 +397,30 @@ function loadModelMap(): Map<string, Map<SnapshotMarket, ModelVariant>> {
   }
 
   cachedModelMap = map;
+  return map;
+}
+
+function loadPriorityModelMap(): Map<string, Map<SnapshotMarket, ModelVariant>> {
+  if (cachedPriorityModelMap) return cachedPriorityModelMap;
+
+  const map = new Map<string, Map<SnapshotMarket, ModelVariant>>();
+  for (const filePath of resolveConfiguredPriorityLiveModelFiles()) {
+    if (!fs.existsSync(filePath)) continue;
+    try {
+      const payload = parseJsonFile<PlayerModelSummaryFile>(filePath);
+      for (const model of payload.playerModels ?? []) {
+        const playerKey = normalizePlayerKey(model.playerName);
+        if (!playerKey) continue;
+        const marketMap = map.get(playerKey) ?? new Map<SnapshotMarket, ModelVariant>();
+        marketMap.set(model.market, model.model);
+        map.set(playerKey, marketMap);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  cachedPriorityModelMap = map;
   return map;
 }
 
@@ -1034,6 +1076,13 @@ export function predictLivePlayerModelSide(input: PredictLivePlayerSideInput): S
     lineGap: input.projectedValue - input.line,
     absLineGap: Math.abs(input.projectedValue - input.line),
   };
+
+  // Priority replacement models intentionally run before the manifest layer so
+  // curated headroom challengers can displace older player-local rules.
+  const priorityPlayerModel = loadPriorityModelMap().get(playerKey)?.get(input.market);
+  if (priorityPlayerModel) {
+    return predictVariant(priorityPlayerModel, row);
+  }
 
   const customProjectionOverride = applyCustomPlayerOverride(input.playerName ?? "", input.market, row, projectionSide);
   if (customProjectionOverride) return customProjectionOverride;
