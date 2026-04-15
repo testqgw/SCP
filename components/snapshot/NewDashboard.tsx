@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   SnapshotBoardFeedItem,
   SnapshotBoardViewData,
@@ -17,6 +17,8 @@ import type {
 type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'players' | 'feed' | 'tracker' | 'method';
 type TrackerSort = 'gap' | 'confidence' | 'books';
+type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
+type TrackerBooksFilter = 'all' | '3plus' | '5plus';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
@@ -508,6 +510,35 @@ function feedStatusTone(event: Pick<SnapshotBoardFeedItem, 'status'>): 'amber' |
   return event.status === 'PREGAME' ? 'amber' : 'cyan';
 }
 
+function feedEventTypeLabel(eventType: SnapshotBoardFeedItem['eventType']) {
+  if (eventType === 'SURFACED') return 'Surfaced';
+  if (eventType === 'LOCKED') return 'Locked';
+  if (eventType === 'DROPPED') return 'Dropped';
+  return 'Moved';
+}
+
+function feedEventTypeTone(eventType: SnapshotBoardFeedItem['eventType']): 'default' | 'cyan' | 'amber' {
+  if (eventType === 'SURFACED') return 'cyan';
+  if (eventType === 'LOCKED') return 'amber';
+  return 'default';
+}
+
+function trackerRowKey(view: Pick<View, 'row' | 'market'>) {
+  return `${view.row.playerId}:${view.market}`;
+}
+
+function trackerStatusLabel(status: TrackerStatusFilter) {
+  if (status === 'locked') return 'Locked';
+  if (status === 'fair') return 'Fair only';
+  return 'Pregame';
+}
+
+function trackerStatusTone(status: TrackerStatusFilter): 'default' | 'cyan' | 'amber' {
+  if (status === 'locked') return 'amber';
+  if (status === 'pregame') return 'cyan';
+  return 'default';
+}
+
 function CompactMetric({
   label,
   value,
@@ -868,6 +899,11 @@ export default function NewDashboard({
   const [urlReady, setUrlReady] = useState(false);
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
   const [trackerSort, setTrackerSort] = useState<TrackerSort>('gap');
+  const [trackerSearchQuery, setTrackerSearchQuery] = useState('');
+  const [trackerMarketFilter, setTrackerMarketFilter] = useState<'ALL' | SnapshotMarket>('ALL');
+  const [trackerStatusFilter, setTrackerStatusFilter] = useState<TrackerStatusFilter>('all');
+  const [trackerBooksFilter, setTrackerBooksFilter] = useState<TrackerBooksFilter>('all');
+  const [expandedTrackerKey, setExpandedTrackerKey] = useState<string | null>(null);
   const [showResearchMarkets, setShowResearchMarkets] = useState(false);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -882,6 +918,7 @@ export default function NewDashboard({
   const urlNavigationModeRef = useRef<'push' | 'replace'>('replace');
   const highlightTimeoutRef = useRef<number | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
+  const deferredTrackerSearchQuery = useDeferredValue(trackerSearchQuery.trim().toLowerCase());
 
   useEffect(() => {
     setData(initialData);
@@ -1021,7 +1058,7 @@ export default function NewDashboard({
     () => allViews.filter((v) => isActionableView(v)).sort((a, b) => b.score - a.score).slice(0, 8),
     [allViews],
   );
-  const trackViews = useMemo(() => {
+  const trackerBaseViews = useMemo(() => {
     const views = allViews.filter((v) => v.live != null || v.fair != null || v.edge != null);
     views.sort((a, b) => {
       if (trackerSort === 'confidence') {
@@ -1032,7 +1069,7 @@ export default function NewDashboard({
       }
       return Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || (b.conf ?? -1) - (a.conf ?? -1) || b.score - a.score;
     });
-    return views.slice(0, 18);
+    return views;
   }, [allViews, trackerSort]);
   const selectedMatchup = useMemo(
     () => (selectedMatchupKey ? data.matchups.find((m) => m.key === selectedMatchupKey) ?? null : null),
@@ -1383,8 +1420,8 @@ export default function NewDashboard({
       kind: data.boardFeed?.events?.length ? 'DERIVED' : 'PLACEHOLDER',
     },
     tracking: {
-      detail: trackViews.length ? `${n(trackViews.length, 0)} tracker rows` : 'No tracker rows yet',
-      kind: trackViews.length ? 'DERIVED' : 'PLACEHOLDER',
+      detail: trackerBaseViews.length ? `${n(trackerBaseViews.length, 0)} tracker rows` : 'No tracker rows yet',
+      kind: trackerBaseViews.length ? 'DERIVED' : 'PLACEHOLDER',
     },
   };
   const liveBookDepth = useMemo(() => {
@@ -1414,6 +1451,77 @@ export default function NewDashboard({
     });
     return counts;
   }, [boardFeedEvents]);
+  const latestBoardFeedEventByKey = useMemo(() => {
+    const map = new Map<string, SnapshotBoardFeedItem>();
+    boardFeedEvents.forEach((event) => {
+      const key = `${event.playerId}:${event.market}`;
+      if (!map.has(key)) {
+        map.set(key, event);
+      }
+    });
+    return map;
+  }, [boardFeedEvents]);
+  const trackViews = useMemo(() => {
+    return trackerBaseViews
+      .filter((view) => {
+        if (trackerMarketFilter !== 'ALL' && view.market !== trackerMarketFilter) {
+          return false;
+        }
+        if (trackerBooksFilter === '3plus' && (view.books ?? 0) < 3) {
+          return false;
+        }
+        if (trackerBooksFilter === '5plus' && (view.books ?? 0) < 5) {
+          return false;
+        }
+        const latestEvent = latestBoardFeedEventByKey.get(trackerRowKey(view)) ?? null;
+        const trackerStatus: TrackerStatusFilter =
+          latestEvent?.status === 'LOCKED' || latestEvent?.status === 'FINAL'
+            ? 'locked'
+            : view.live != null
+              ? 'pregame'
+              : 'fair';
+        if (trackerStatusFilter !== 'all' && trackerStatus !== trackerStatusFilter) {
+          return false;
+        }
+        if (!deferredTrackerSearchQuery) {
+          return true;
+        }
+        return [view.row.playerName, view.row.teamCode, view.row.opponentCode, view.row.matchupKey, view.label]
+          .join(' ')
+          .toLowerCase()
+          .includes(deferredTrackerSearchQuery);
+      })
+      .slice(0, 18);
+  }, [
+    deferredTrackerSearchQuery,
+    latestBoardFeedEventByKey,
+    trackerBaseViews,
+    trackerBooksFilter,
+    trackerMarketFilter,
+    trackerStatusFilter,
+  ]);
+  const trackerSummary = useMemo(() => {
+    const summary = { live: 0, locked: 0, fair: 0 };
+    trackViews.forEach((view) => {
+      const latestEvent = latestBoardFeedEventByKey.get(trackerRowKey(view)) ?? null;
+      if (latestEvent?.status === 'LOCKED' || latestEvent?.status === 'FINAL') {
+        summary.locked += 1;
+        return;
+      }
+      if (view.live != null) {
+        summary.live += 1;
+        return;
+      }
+      summary.fair += 1;
+    });
+    return summary;
+  }, [latestBoardFeedEventByKey, trackViews]);
+  useEffect(() => {
+    if (!expandedTrackerKey) return;
+    if (!trackViews.some((view) => trackerRowKey(view) === expandedTrackerKey)) {
+      setExpandedTrackerKey(null);
+    }
+  }, [expandedTrackerKey, trackViews]);
   const latestBoardFeedEvent = boardFeedEvents[0] ?? null;
   const featuredReasonList = useMemo(() => {
     if (!featured) return [] as string[];
@@ -3027,79 +3135,112 @@ export default function NewDashboard({
             </section>
           ) : null}
           {tab === 'scout' ? (
-            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.35fr_0.85fr]">
-              <div className="space-y-3">
-                {boardFeedEvents.length === 0 ? (
-                  <EmptyState
-                    eyebrow="Board feed"
-                    title="No pregame board events are available yet."
-                    detail="This workspace fills as playable numbers surface, move materially, drop, and then lock at tipoff."
-                    actionLabel="Refresh slate"
-                    onAction={refreshSlate}
-                  />
-                ) : (
-                  boardFeedEvents.map((event, i) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      onClick={() => setResearch(event.playerId)}
-                      className={`w-full rounded-[28px] border border-white/10 bg-zinc-900/75 p-5 text-left ${CARD_BUTTON_CLASS}`}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap gap-2">
-                            <Badge label={`#${i + 1}`} kind="DERIVED" />
-                            <Pill label={feedEventTitle(event)} tone="amber" />
-                            <Pill label={feedStatusLabel(event)} tone={feedStatusTone(event)} />
-                          </div>
-                          <div className="mt-3 text-2xl font-semibold tracking-tight text-white">{event.playerName}</div>
-                          <div className="mt-1 text-sm text-zinc-400">
-                            {MARKET_LABELS[event.market]} | {event.matchupKey.replace('@', ' @ ')} - {event.gameTimeEt}
-                          </div>
-                          <div className="mt-2 text-sm text-zinc-300">{feedReason(event)}</div>
-                        </div>
-                        <div className={`w-full rounded-[20px] border px-4 py-3 text-left sm:w-auto sm:min-w-[250px] ${SIDE_CLASS[event.side]}`}>
-                          <div className="text-[10px] uppercase tracking-[0.18em] opacity-60">Pregame snapshot</div>
-                          <div className="mt-2 text-xl font-semibold tracking-tight">{event.recommendation}</div>
-                          <div className="mt-1 text-xs opacity-80">{relativeTime(event.createdAt, now)}</div>
-                        </div>
-                      </div>
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Board feed</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Persistent pregame changes only</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      The feed stores surfaced, moved, dropped, and locked events through the day. Once tipoff hits, the market freezes and stays historical.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-2)]">
+                    Latest event <span className="font-semibold text-[var(--text)]">{latestBoardFeedEvent ? relativeTime(latestBoardFeedEvent.createdAt, now) : 'Waiting for feed activity'}</span>
+                  </div>
+                </div>
+              </div>
 
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                        <Stat
-                          dense
-                          label="Line to play"
-                          value={event.line == null ? (event.fairLine == null ? '-' : n(event.fairLine)) : n(event.line)}
-                          kind={event.line == null ? (event.fairLine == null ? 'PLACEHOLDER' : 'MODEL') : 'LIVE'}
-                          note={event.line != null ? 'Last tracked pregame line' : event.fairLine != null ? 'Model fair line fallback' : 'No pregame line captured'}
-                        />
-                        <Stat dense label="Projection" value={event.projection == null ? '-' : n(event.projection)} kind={event.projection == null ? 'PLACEHOLDER' : 'MODEL'} note="Projection saved with the event" />
-                        <Stat dense label="Gap" value={event.gap == null ? '-' : gapRead(event.gap)} kind={event.gap == null ? 'PLACEHOLDER' : 'DERIVED'} note="Projection vs pregame line" />
-                        <Stat dense label="Confidence" value={event.confidence == null ? '-' : pct(event.confidence, 0)} kind={event.confidence == null ? 'PLACEHOLDER' : 'DERIVED'} note="Confidence at the time of the event" />
-                        <Stat dense label="Books live" value={booksLiveLabel(event.booksLive) ?? '-'} kind={event.booksLive == null ? 'PLACEHOLDER' : 'LIVE'} note="Consensus books seen pregame" />
-                      </div>
-                    </button>
-                  ))
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <Stat dense label="Events today" value={n(boardFeedEvents.length, 0)} kind={boardFeedEvents.length ? 'LIVE' : 'PLACEHOLDER'} note="Persistent pregame events stored today" />
+                <Stat dense label="Surfaced" value={n(boardFeedSummary.surfaced, 0)} kind={boardFeedSummary.surfaced ? 'DERIVED' : 'PLACEHOLDER'} note="New playable numbers" />
+                <Stat dense label="Moved" value={n(boardFeedSummary.moved, 0)} kind={boardFeedSummary.moved ? 'DERIVED' : 'PLACEHOLDER'} note="Material pregame changes" />
+                <Stat dense label="Locked" value={n(boardFeedSummary.locked, 0)} kind={boardFeedSummary.locked ? 'LIVE' : 'PLACEHOLDER'} note="Frozen at tipoff" />
+              </div>
+
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Timeline</div>
+                      <div className="mt-1 text-lg font-semibold text-[var(--text)]">Newest pregame events first</div>
+                    </div>
+                    <div className="text-sm text-[var(--text-2)]">
+                      {boardFeedEvents.length ? `${n(boardFeedEvents.length, 0)} logged event${boardFeedEvents.length === 1 ? '' : 's'}` : 'Waiting for the first event'}
+                    </div>
+                  </div>
+                </div>
+                {boardFeedEvents.length === 0 ? (
+                  <div className="p-5 sm:p-6">
+                    <EmptyState
+                      eyebrow="Board feed"
+                      title="No pregame board events are available yet."
+                      detail="This workspace fills as playable numbers surface, move materially, drop, and then lock at tipoff."
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                ) : (
+                  <div className="relative max-h-[920px] overflow-auto px-4 py-2 sm:px-6">
+                    <div className="absolute bottom-0 left-[72px] top-0 hidden w-px bg-[color:rgba(109,74,255,0.18)] sm:block" />
+                    {boardFeedEvents.map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => setResearch(event.playerId)}
+                        className={`${ACTION_CLASS} relative grid w-full gap-3 border-b border-[color:rgba(216,204,186,0.68)] px-0 py-4 text-left last:border-b-0 sm:grid-cols-[56px_18px_minmax(0,1fr)] sm:items-start sm:gap-4`}
+                      >
+                        <div className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] sm:text-right">
+                          {relativeTime(event.createdAt, now)}
+                        </div>
+                        <div className="relative hidden h-full sm:block">
+                          <span className="absolute left-1/2 top-1.5 h-3 w-3 -translate-x-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Pill label={feedEventTypeLabel(event.eventType)} tone={feedEventTypeTone(event.eventType)} />
+                                <Pill label={feedStatusLabel(event)} tone={feedStatusTone(event)} />
+                              </div>
+                              <div className="mt-2 text-base font-semibold text-[var(--text)] sm:text-lg">{feedEventTitle(event)}</div>
+                              <div className="mt-1 text-sm text-[var(--text-2)]">
+                                {event.playerName} | {MARKET_LABELS[event.market]} | {event.matchupKey.replace('@', ' @ ')} - {event.gameTimeEt}
+                              </div>
+                            </div>
+                            <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold ${SIDE_CLASS[event.side]}`}>
+                              {event.recommendation}
+                            </span>
+                          </div>
+                          <div className="mt-2 text-sm leading-6 text-[var(--text-2)]">{feedReason(event)}</div>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--text-2)]">
+                            <span>Line {event.line == null ? (event.fairLine == null ? '-' : n(event.fairLine)) : n(event.line)}</span>
+                            <span>Projection {event.projection == null ? '-' : n(event.projection)}</span>
+                            <span>Gap {event.gap == null ? '-' : gapRead(event.gap)}</span>
+                            <span>Conf {event.confidence == null ? '-' : pct(event.confidence, 0)}</span>
+                            <span>{booksLiveLabel(event.booksLive) ?? 'Books pending'}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Feed summary</div>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <Stat dense label="Events" value={n(boardFeedEvents.length, 0)} kind={boardFeedEvents.length ? 'LIVE' : 'PLACEHOLDER'} note="Pregame events stored today" />
-                    <Stat dense label="Surfaced" value={n(boardFeedSummary.surfaced, 0)} kind={boardFeedSummary.surfaced ? 'DERIVED' : 'PLACEHOLDER'} note="New pregame numbers tracked" />
-                    <Stat dense label="Moved" value={n(boardFeedSummary.moved, 0)} kind={boardFeedSummary.moved ? 'DERIVED' : 'PLACEHOLDER'} note="Material pregame changes" />
-                    <Stat dense label="Locked" value={n(boardFeedSummary.locked, 0)} kind={boardFeedSummary.locked ? 'LIVE' : 'PLACEHOLDER'} note="Markets frozen at tipoff" />
-                  </div>
-                </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
+              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                <MatchupsCard
+                  matchups={data.matchups}
+                  selectedKey={selectedMatchupKey}
+                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
+                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
+                />
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Feed context</div>
-                      <div className="mt-1 text-lg font-semibold text-white">Selected matchup pulse</div>
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selected matchup pulse</div>
+                      <div className="mt-1 text-lg font-semibold text-[var(--text)]">Keep one game anchored while you scan the feed</div>
                     </div>
-                    <Badge label={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} kind={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} />
+                    <Badge label={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} />
                   </div>
                   {selectedMatchup ? (
                     <>
@@ -3108,65 +3249,122 @@ export default function NewDashboard({
                         <Pill label={selectedMatchup.gameTimeEt} />
                         {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
                       </div>
-                      <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-zinc-300">
+                      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                         {selectedMatchupLead
-                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is still the clearest current board lead for this matchup. Feed history beside it stays frozen once tipoff hits.`
+                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is still the clearest current board lead for this matchup, while the feed preserves the pregame history around it.`
                           : 'No clear lead spot is surfaced for the selected game yet.'}
                       </div>
                       <div className="mt-4 grid grid-cols-2 gap-3">
-                        <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
+                        <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in this matchup" />
                         <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets currently priced" />
-                        <Stat dense label="Pregame events" value={n(boardFeedEvents.filter((event) => event.matchupKey === selectedMatchup.key).length, 0)} kind={boardFeedEvents.some((event) => event.matchupKey === selectedMatchup.key) ? 'DERIVED' : 'PLACEHOLDER'} note="Events stored for this matchup" />
-                        <Stat dense label="Last event" value={ts(latestBoardFeedEvent?.createdAt)} kind={latestBoardFeedEvent ? 'LIVE' : 'PLACEHOLDER'} note="Most recent stored feed event" />
+                        <Stat dense label="Pregame events" value={n(boardFeedEvents.filter((event) => event.matchupKey === selectedMatchup.key).length, 0)} kind={boardFeedEvents.some((event) => event.matchupKey === selectedMatchup.key) ? 'DERIVED' : 'PLACEHOLDER'} note="Events stored for this game" />
+                        <Stat dense label="Last event" value={ts(latestBoardFeedEvent?.createdAt)} kind={latestBoardFeedEvent ? 'LIVE' : 'PLACEHOLDER'} note="Most recent board feed event" />
                       </div>
                     </>
                   ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                      Select a matchup in the lens above to keep this sidebar anchored to one game while you scan the board feed.
+                    <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                      Select a matchup in the lens above to keep this view anchored to one game while you scan the board feed.
                     </div>
                   )}
                 </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Support note</div>
-                  <p className="mt-3 text-sm leading-6 text-zinc-300">
-                    The board feed is now stored across refreshes and only tracks pregame changes. Once a game tips,
-                    that player-market locks and stays historical instead of mutating off live-play movement.
-                  </p>
-                </div>
-                <MatchupsCard
-                  matchups={data.matchups}
-                  selectedKey={selectedMatchupKey}
-                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
-                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
-                />
               </div>
             </section>
           ) : null}
           {tab === 'tracking' ? (
-            <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[1.55fr_0.85fr]">
-              <div className="overflow-hidden rounded-[28px] border border-white/10 bg-zinc-900/75">
-                <div className="flex items-center justify-between gap-3 border-b border-white/8 px-5 py-4">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Market tracker</div>
-                    <div className="mt-1 text-lg font-semibold text-white">Current live lines sorted for the next read</div>
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Market tracker</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Sort live numbers numerically</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      Compare the current line, board projection, gap, confidence, and book depth in one table. Click any row to open the recommendation, context, and saved pregame state inline.
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label htmlFor="tracker-sort" className="text-xs font-medium text-zinc-400">Sort</label>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-2)]">
+                    Last board refresh <span className="font-semibold text-[var(--text)]">{boardRefreshRelative}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(4,minmax(0,0.8fr))]">
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Search player</span>
+                    <input
+                      value={trackerSearchQuery}
+                      onChange={(event) => setTrackerSearchQuery(event.target.value)}
+                      placeholder="Search player, team, or matchup"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Sort</span>
                     <select
-                      id="tracker-sort"
                       value={trackerSort}
                       onChange={(event) => setTrackerSort(event.target.value as TrackerSort)}
-                      className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400/30"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="gap">Biggest gap</option>
                       <option value="confidence">Highest confidence</option>
                       <option value="books">Most books live</option>
                     </select>
-                  </div>
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Market</span>
+                    <select
+                      value={trackerMarketFilter}
+                      onChange={(event) => setTrackerMarketFilter(event.target.value as 'ALL' | SnapshotMarket)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="ALL">All markets</option>
+                      {MARKETS.map((market) => (
+                        <option key={market} value={market}>
+                          {MARKET_LABELS[market]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Status</span>
+                    <select
+                      value={trackerStatusFilter}
+                      onChange={(event) => setTrackerStatusFilter(event.target.value as TrackerStatusFilter)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="all">All statuses</option>
+                      <option value="pregame">Pregame</option>
+                      <option value="locked">Locked</option>
+                      <option value="fair">Fair only</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Books</span>
+                    <select
+                      value={trackerBooksFilter}
+                      onChange={(event) => setTrackerBooksFilter(event.target.value as TrackerBooksFilter)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="all">All books</option>
+                      <option value="3plus">3+ books</option>
+                      <option value="5plus">5+ books</option>
+                    </select>
+                  </label>
                 </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <Stat dense label="Visible rows" value={n(trackViews.length, 0)} kind={trackViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows after current filters" />
+                <Stat dense label="Pregame" value={n(trackerSummary.live, 0)} kind={trackerSummary.live ? 'LIVE' : 'PLACEHOLDER'} note="Live-priced tracker rows" />
+                <Stat dense label="Locked" value={n(trackerSummary.locked, 0)} kind={trackerSummary.locked ? 'DERIVED' : 'PLACEHOLDER'} note="Rows frozen at tipoff" />
+                <Stat dense label="Fair only" value={n(trackerSummary.fair, 0)} kind={trackerSummary.fair ? 'MODEL' : 'PLACEHOLDER'} note="Projection vs fair line fallback" />
+                <Stat dense label="Avg books live" value={liveBookDepth == null ? '-' : n(liveBookDepth)} kind={liveBookDepth == null ? 'PLACEHOLDER' : 'LIVE'} note="Across currently priced board views" />
+              </div>
+
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-white/5 text-zinc-400">
+                    <thead className="sticky top-0 z-10 bg-[var(--surface-2)] text-[var(--text-2)]">
                       <tr>
                         <th className="px-4 py-3 text-left font-medium">Player</th>
                         <th className="px-4 py-3 text-left font-medium">Market</th>
@@ -3174,114 +3372,195 @@ export default function NewDashboard({
                         <th className="px-4 py-3 text-right font-medium">Projection</th>
                         <th className="px-4 py-3 text-right font-medium">Gap</th>
                         <th className="px-4 py-3 text-right font-medium">Confidence</th>
-                        <th className="px-4 py-3 text-right font-medium">Books live</th>
-                        <th className="px-4 py-3 text-right font-medium">Trend</th>
+                        <th className="px-4 py-3 text-right font-medium">Books</th>
+                        <th className="px-4 py-3 text-right font-medium">Updated</th>
+                        <th className="px-4 py-3 text-right font-medium">Open</th>
                       </tr>
                     </thead>
                     <tbody>
                       {trackViews.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-6 text-sm text-zinc-400">
-                            No tracker rows are available yet. Refresh the slate or return to Overview while live lines load.
+                          <td colSpan={9} className="px-4 py-6">
+                            <EmptyState
+                              eyebrow="Market tracker"
+                              title="No tracker rows match the current filters."
+                              detail="Try clearing the search or widening the market and status filters."
+                              actionLabel="Refresh slate"
+                              onAction={refreshSlate}
+                            />
                           </td>
                         </tr>
                       ) : (
-                        trackViews.map((v, i) => (
-                          <tr key={`${v.row.playerId}:${v.market}`} className="border-t border-white/8 hover:bg-white/5">
-                            <td className="px-4 py-4">
-                              <button type="button" onClick={() => setResearch(v.row.playerId)} className="text-left">
-                                <div className="flex items-center gap-2">
-                                  <Badge label={`#${i + 1}`} kind="DERIVED" />
-                                  <span className="font-semibold text-white">{v.row.playerName}</span>
-                                </div>
-                                <div className="mt-1 text-xs text-zinc-500">
-                                  {v.row.matchupKey.replace('@', ' @ ')} | {v.row.gameTimeEt}
-                                </div>
-                              </button>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="font-semibold text-white">{v.label}</div>
-                              <div className="mt-1 text-xs text-zinc-500">{marketRead(v)}</div>
-                            </td>
-                            <td className="px-4 py-4 text-right text-white">
-                              <div>{v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}</div>
-                              <div className="mt-1 text-xs text-zinc-500">{v.live == null ? 'Fair fallback' : 'Live consensus'}</div>
-                            </td>
-                            <td className="px-4 py-4 text-right text-white">
-                              {v.proj == null ? '-' : n(v.proj)}
-                            </td>
-                            <td className={`px-4 py-4 text-right ${v.edge == null ? 'text-zinc-400' : v.edge > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                              {v.edge == null ? '-' : gapRead(v.edge)}
-                            </td>
-                            <td className="px-4 py-4 text-right text-white">
-                              {v.conf == null ? '-' : pct(v.conf, 0)}
-                            </td>
-                            <td className="px-4 py-4 text-right text-white">
-                              {v.books == null ? '-' : n(v.books, 0)}
-                            </td>
-                            <td className={`px-4 py-4 text-right ${v.row.trendVsSeason[v.market] == null ? 'text-zinc-400' : (v.row.trendVsSeason[v.market] ?? 0) > 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-                              {signed(v.row.trendVsSeason[v.market], 1)}
-                            </td>
-                          </tr>
-                        ))
+                        trackViews.map((v, i) => {
+                          const rowKey = trackerRowKey(v);
+                          const latestEvent = latestBoardFeedEventByKey.get(rowKey) ?? null;
+                          const rowStatus: TrackerStatusFilter =
+                            latestEvent?.status === 'LOCKED' || latestEvent?.status === 'FINAL'
+                              ? 'locked'
+                              : v.live != null
+                                ? 'pregame'
+                                : 'fair';
+                          const rowExpanded = expandedTrackerKey === rowKey;
+                          const updatedAt = v.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
+                          const rowReason = latestEvent ? feedReason(latestEvent) : conciseLeadReason(v, v.reasons[0] ?? v.note);
+                          const rowTrend = v.row.trendVsSeason[v.market];
+
+                          return (
+                            <Fragment key={rowKey}>
+                              <tr
+                                tabIndex={0}
+                                aria-expanded={rowExpanded}
+                                onClick={() => setExpandedTrackerKey((current) => (current === rowKey ? null : rowKey))}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault();
+                                    setExpandedTrackerKey((current) => (current === rowKey ? null : rowKey));
+                                  }
+                                }}
+                                className={`cursor-pointer border-t border-[color:rgba(216,204,186,0.68)] transition ${
+                                  rowExpanded ? 'bg-[color:rgba(109,74,255,0.06)]' : 'hover:bg-[var(--surface-2)]'
+                                }`}
+                              >
+                                <td className="px-4 py-4 align-top">
+                                  <div className="flex items-start gap-3">
+                                    <Badge label={`#${i + 1}`} kind="DERIVED" />
+                                    <div className="min-w-0">
+                                      <div className="font-semibold text-[var(--text)]">{v.row.playerName}</div>
+                                      <div className="mt-1 text-xs text-[var(--text-2)]">
+                                        {v.row.matchupKey.replace('@', ' @ ')} | {v.row.gameTimeEt}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 align-top">
+                                  <div className="font-semibold text-[var(--text)]">{v.label}</div>
+                                  <div className="mt-1 flex flex-wrap gap-2">
+                                    <Pill label={trackerStatusLabel(rowStatus)} tone={trackerStatusTone(rowStatus)} />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text)]">
+                                  <div>{v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}</div>
+                                  <div className="mt-1 text-xs text-[var(--text-2)]">{v.live == null ? 'Fair fallback' : 'Live consensus'}</div>
+                                </td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
+                                <td className={`px-4 py-4 text-right align-top ${v.edge == null ? 'text-[var(--muted)]' : v.edge > 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
+                                  {v.edge == null ? '-' : gapRead(v.edge)}
+                                </td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text)]">{v.conf == null ? '-' : pct(v.conf, 0)}</td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text)]">
+                                  <div>{relativeTime(updatedAt, now)}</div>
+                                  <div className="mt-1 text-xs text-[var(--text-2)]">{ts(updatedAt)}</div>
+                                </td>
+                                <td className="px-4 py-4 text-right align-top text-[var(--text-2)]">{rowExpanded ? '−' : '+'}</td>
+                              </tr>
+                              {rowExpanded ? (
+                                <tr className="border-t border-[color:rgba(216,204,186,0.38)] bg-[color:rgba(109,74,255,0.05)]">
+                                  <td colSpan={9} className="px-4 py-4 sm:px-5">
+                                    <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+                                      <div className="space-y-4">
+                                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <Pill label={recommendationHeadline(v)} tone={v.side === 'UNDER' ? 'amber' : 'cyan'} />
+                                            {latestEvent ? <Pill label={feedEventTypeLabel(latestEvent.eventType)} tone={feedEventTypeTone(latestEvent.eventType)} /> : null}
+                                          </div>
+                                          <div className="mt-3 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Recommendation</div>
+                                          <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">{rowReason}</p>
+                                        </div>
+                                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                                          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Context</div>
+                                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+                                              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Matchup</div>
+                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{v.row.matchupKey.replace('@', ' @ ')}</div>
+                                            </div>
+                                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+                                              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Lineup status</div>
+                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{v.row.playerContext.lineupStatus ?? 'Waiting for lineup note'}</div>
+                                            </div>
+                                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+                                              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Trend</div>
+                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{signed(rowTrend, 1)}</div>
+                                            </div>
+                                            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+                                              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Status</div>
+                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{trackerStatusLabel(rowStatus)}</div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <div className="space-y-4">
+                                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                          <CompactMetric label="Current line" value={v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)} />
+                                          <CompactMetric label="Fair line" value={v.fair == null ? '-' : n(v.fair)} />
+                                          <CompactMetric label="Projection" value={v.proj == null ? '-' : n(v.proj)} />
+                                          <CompactMetric label="Gap" value={v.edge == null ? '-' : gapRead(v.edge)} />
+                                          <CompactMetric label="Books" value={booksLiveLabel(v.books) ?? '-'} />
+                                          <CompactMetric label="Updated" value={relativeTime(updatedAt, now)} />
+                                        </div>
+                                        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                                          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Tracker note</div>
+                                          <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                                            This expanded row uses the saved pregame event status, current live consensus or fair fallback, and the board projection. Book-by-book line history is not stored in SnapshotBoardData yet, so the table stays honest about that limitation.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : null}
+                            </Fragment>
+                          );
+                        })
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracker summary</div>
-                  <div className="mt-4 grid grid-cols-2 gap-3">
-                    <Stat dense label="Live rows" value={n(data.rows.length, 0)} kind="LIVE" note="Board rows in play" />
-                    <Stat dense label="Market views" value={n(allViews.length, 0)} kind="DERIVED" note="All row-market contexts" />
-                    <Stat dense label="Live lines" value={n(liveCount, 0)} kind="LIVE" note="Markets with sportsbook lines" />
-                    <Stat dense label="Board picks" value={n(qualifiedCount, 0)} kind="DERIVED" note="Precision-qualified views" />
-                  </div>
-                </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Tracker context</div>
-                      <div className="mt-1 text-lg font-semibold text-white">Selected matchup pulse</div>
-                    </div>
-                    <Badge label={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} kind={selectedMatchup ? 'DERIVED' : 'PLACEHOLDER'} />
-                  </div>
-                  {selectedMatchup ? (
-                    <>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Pill label={selectedMatchup.label} tone="cyan" />
-                        {selectedMatchupLead ? <Pill label={`${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label}`} tone="amber" /> : null}
-                        {!selectedMatchupLead && selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
-                        <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets priced right now" />
-                        <Stat dense label="Board picks" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-qualified views" />
-                        <Stat dense label="Last refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/20 px-4 py-4 text-sm text-zinc-400">
-                      Select a matchup in the lens above to keep the tracker centered on one game while you compare numbers.
-                    </div>
-                  )}
-                </div>
-                <div className="rounded-[28px] border border-white/10 bg-zinc-900/75 p-5">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">Current limitation</div>
-                  <p className="mt-3 text-sm leading-6 text-zinc-300">
-                    SnapshotBoardData does not include full historical sportsbook movement. The tracker therefore sorts the
-                    current live line, the board projection, and the current gap instead of pretending to show a full
-                    intraday tape.
-                  </p>
-                </div>
+              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                 <MatchupsCard
                   matchups={data.matchups}
                   selectedKey={selectedMatchupKey}
                   highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
                   onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
                 />
+                <div className="space-y-4">
+                  <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Tracker context</div>
+                        <div className="mt-1 text-lg font-semibold text-[var(--text)]">Selected matchup pulse</div>
+                      </div>
+                      <Badge label={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} />
+                    </div>
+                    {selectedMatchup ? (
+                      <>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Pill label={selectedMatchup.label} tone="cyan" />
+                          {selectedMatchupLead ? <Pill label={`${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label}`} tone="amber" /> : null}
+                          {!selectedMatchupLead && selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
+                          <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets priced right now" />
+                          <Stat dense label="Board picks" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-qualified views" />
+                          <Stat dense label="Last refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                        Select a matchup in the lens above to keep the tracker centered on one game while you compare numbers.
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Current limitation</div>
+                    <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
+                      SnapshotBoardData does not include full sportsbook tape or book-by-book history. The tracker is intentionally limited to the current live line, fair fallback, projection, gap, confidence, and stored pregame feed state.
+                    </p>
+                  </div>
+                </div>
               </div>
             </section>
           ) : null}
