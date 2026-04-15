@@ -1,9 +1,10 @@
 {
-  "version": "2026-04-15-player-local-target-lift-v14-five-player-recovery-61-floor",
-  "generatedAt": "2026-04-15T03:21:23.0989370-04:00",
-  "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\player-local-target-lift-source-v13-live.json",
+  "version": "2026-04-15-player-local-target-lift-v15-five-player-61-no-down-repair",
+  "generatedAt": "2026-04-15T11:39:24.9028793-04:00",
+  "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\player-local-target-lift-source-current-2026-04-15.json",
   "methodology": {
     "targetPolicy": "Players below 60 full raw target 60. Players already at or above 60 full raw target 70.",
+    "repairPass": "Manual five-player beam mix repair requiring 61+ full/14d/30d raw accuracy with no full, 14d, or 30d regression versus the active live manifest.",
     "minManifestRows": 120,
     "minRecent14dRows": 8,
     "minRecent30dRows": 12,
@@ -4296,57 +4297,54 @@
     {
       "playerKey": "nickeil alexander walker",
       "playerName": "Nickeil Alexander-Walker",
-      "label": "train_best_threshold_by_market_v1",
+      "label": "beam_recent_safe_market_mix_v1",
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 21.11,
-          "lowAction": "OVER",
-          "highAction": "favored"
+          "feature": "minutesVolatility",
+          "threshold": 3.95,
+          "lowAction": "baseline",
+          "highAction": "OVER"
         },
         "REB": {
-          "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 0.6,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "UNDER"
         },
         "AST": {
           "kind": "threshold",
-          "feature": "underPrice",
-          "threshold": -137,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "expectedMinutes",
+          "threshold": 32.78,
+          "lowAction": "OVER",
+          "highAction": "favored"
         },
         "THREES": {
           "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -145,
-          "lowAction": "baseline",
-          "highAction": "UNDER"
+          "feature": "absLineGap",
+          "threshold": 0.55,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
         },
         "PRA": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 26.12,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "feature": "lineGap",
+          "threshold": 0.59,
+          "lowAction": "projection",
+          "highAction": "favored"
         },
         "PA": {
           "kind": "threshold",
           "feature": "projectedValue",
-          "threshold": 23.45,
-          "lowAction": "OVER",
-          "highAction": "baseline"
+          "threshold": 24.67,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
         },
         "PR": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 23.45,
-          "lowAction": "baseline",
-          "highAction": "UNDER"
+          "feature": "priceAbsLean",
+          "threshold": 0.008,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
         },
         "RA": {
           "kind": "threshold",
@@ -4360,57 +4358,51 @@
     {
       "playerKey": "desmond bane",
       "playerName": "Desmond Bane",
-      "label": "train_best_threshold_by_market_v1",
+      "label": "beam_recent_safe_market_mix_v1",
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
           "kind": "threshold",
           "feature": "projectedValue",
-          "threshold": 19.54,
+          "threshold": 19.87,
           "lowAction": "OVER",
           "highAction": "UNDER"
         },
         "REB": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 34.27,
+          "feature": "absLineGap",
+          "threshold": 0.46,
           "lowAction": "liveRaw",
           "highAction": "UNDER"
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 4.81,
-          "lowAction": "liveRaw",
-          "highAction": "baseline"
+          "feature": "expectedMinutes",
+          "threshold": 34.72,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
         },
         "THREES": {
           "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -175,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "minutesVolatility",
+          "threshold": 4.87,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
         },
         "PRA": {
           "kind": "threshold",
           "feature": "underPrice",
-          "threshold": -124,
+          "threshold": -122,
           "lowAction": "OVER",
-          "highAction": "UNDER"
+          "highAction": "favored"
         },
         "PA": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 33.99,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "OVER"
         },
         "PR": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 24.09,
-          "lowAction": "favored",
-          "highAction": "UNDER"
+          "kind": "source",
+          "source": "favored"
         },
         "RA": {
           "kind": "threshold",
@@ -4424,7 +4416,7 @@
     {
       "playerKey": "moses moody",
       "playerName": "Moses Moody",
-      "label": "train_best_threshold_by_market_v1",
+      "label": "beam_recent_safe_market_mix_v1",
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
@@ -4436,10 +4428,10 @@
         },
         "REB": {
           "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -115,
+          "feature": "minutesVolatility",
+          "threshold": 6.77,
           "lowAction": "UNDER",
-          "highAction": "final"
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "threshold",
@@ -4450,17 +4442,17 @@
         },
         "THREES": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 22.67,
+          "feature": "projectedValue",
+          "threshold": 1.68,
           "lowAction": "OVER",
-          "highAction": "projection"
+          "highAction": "liveRaw"
         },
         "PRA": {
           "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 2.05,
-          "lowAction": "OVER",
-          "highAction": "baseline"
+          "feature": "minutesVolatility",
+          "threshold": 5.95,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
         },
         "PA": {
           "kind": "threshold",
@@ -4471,10 +4463,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.95,
-          "lowAction": "projection",
-          "highAction": "baseline"
+          "feature": "lineGap",
+          "threshold": -0.65,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
         },
         "RA": {
           "kind": "threshold",
@@ -4488,15 +4480,15 @@
     {
       "playerKey": "john konchar",
       "playerName": "John Konchar",
-      "label": "train_best_threshold_by_market_v1",
+      "label": "beam_recent_safe_market_mix_v1",
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -129,
-          "lowAction": "projection",
-          "highAction": "UNDER"
+          "feature": "priceLean",
+          "threshold": 0,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
         },
         "REB": {
           "kind": "threshold",
@@ -4511,56 +4503,69 @@
           "threshold": 4.32,
           "lowAction": "liveRaw",
           "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
         }
       }
     },
     {
       "playerKey": "lauri markkanen",
       "playerName": "Lauri Markkanen",
-      "label": "train_best_threshold_by_market_v1",
+      "label": "beam_recent_safe_market_mix_v1",
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -117.5,
-          "lowAction": "favored",
-          "highAction": "OVER"
+          "kind": "source",
+          "source": "favored"
         },
         "REB": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 31,
-          "lowAction": "favored",
-          "highAction": "OVER"
-        },
-        "AST": {
-          "kind": "threshold",
-          "feature": "underPrice",
-          "threshold": 105,
+          "feature": "projectedValue",
+          "threshold": 7.04,
           "lowAction": "projection",
           "highAction": "UNDER"
         },
+        "AST": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.53,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
         "THREES": {
           "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": -137,
+          "feature": "expectedMinutes",
+          "threshold": 34.9,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "favored"
         },
         "PRA": {
           "kind": "threshold",
           "feature": "projectedValue",
-          "threshold": 35.53,
-          "lowAction": "favored",
-          "highAction": "UNDER"
+          "threshold": 32.02,
+          "lowAction": "OVER",
+          "highAction": "projection"
         },
         "PA": {
           "kind": "threshold",
           "feature": "projectedValue",
-          "threshold": 27.6,
+          "threshold": 25.44,
           "lowAction": "OVER",
-          "highAction": "favored"
+          "highAction": "liveRaw"
         },
         "PR": {
           "kind": "threshold",
