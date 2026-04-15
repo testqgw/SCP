@@ -1,0 +1,4582 @@
+{
+  "version": "2026-04-15-player-local-target-lift-v14-five-player-recovery-61-floor",
+  "generatedAt": "2026-04-15T03:21:23.0989370-04:00",
+  "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\player-local-target-lift-source-v13-live.json",
+  "methodology": {
+    "targetPolicy": "Players below 60 full raw target 60. Players already at or above 60 full raw target 70.",
+    "minManifestRows": 120,
+    "minRecent14dRows": 8,
+    "minRecent30dRows": 12,
+    "guardedBelowFloorMinRows": 100,
+    "guardedBelowFloorMinFullDelta": 4,
+    "mergeBaseManifest": true,
+    "preserveBaseManifestEntries": false,
+    "manualBelowFloorPromotions": [
+      "john konchar"
+    ]
+  },
+  "entries": [
+    {
+      "playerKey": "malik monk",
+      "playerName": "Malik Monk",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.71,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 21.07,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.96,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.88,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 20.36,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.88,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 7.81,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 5.11,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "dillon brooks",
+      "playerName": "Dillon Brooks",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 19.87,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 1.66,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.29,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 27.94,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.69,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "bennedict mathurin",
+      "playerName": "Bennedict Mathurin",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.91,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.91,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.66,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 1.71,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.87,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.87,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.46,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.1,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "landry shamet",
+      "playerName": "Landry Shamet",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 9.81,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.97,
+          "lowAction": "baseline",
+          "highAction": "favored"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.58,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.18,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.63,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.63,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.63,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.33,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "cason wallace",
+      "playerName": "Cason Wallace",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.88,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.92,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.89,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.39,
+          "lowAction": "baseline",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.39,
+          "lowAction": "projection",
+          "highAction": "baseline"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.89,
+          "lowAction": "baseline",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.95,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 26.49,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "anthony black",
+      "playerName": "Anthony Black",
+      "label": "train_best_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "coby white",
+      "playerName": "Coby White",
+      "label": "train_best_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "ryan rollins",
+      "playerName": "Ryan Rollins",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "mitchell robinson",
+      "playerName": "Mitchell Robinson",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "kentavious caldwell pope",
+      "playerName": "Kentavious Caldwell-Pope",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "pascal siakam",
+      "playerName": "Pascal Siakam",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 22.01,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 6.22,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.26,
+          "lowAction": "baseline",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.01,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 31.68,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 25.55,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 28.77,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 29.59,
+          "lowAction": "favored",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen johnson",
+      "playerName": "Jalen Johnson",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 21.45,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 35.86,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 2.59,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 35.89,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 2.59,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.14,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 36.9,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 2.59,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "isaiah jackson",
+      "playerName": "Isaiah Jackson",
+      "label": "train_best_projection_bench_guard_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PRA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.8,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "dylan harper",
+      "playerName": "Dylan Harper",
+      "label": "train_best_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "luke kornet",
+      "playerName": "Luke Kornet",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.15,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.82,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.05,
+          "lowAction": "OVER",
+          "highAction": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.96,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.15,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "nikola vucevic",
+      "playerName": "Nikola Vučević",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -120,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.86,
+          "lowAction": "UNDER",
+          "highAction": "favored"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.34,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -110,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -125,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 28.35,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -123,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 12.67,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "peyton watson",
+      "playerName": "Peyton Watson",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 7.15,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.01,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.88,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.07,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.055,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "olivier maxence prosper",
+      "playerName": "Olivier-Maxence Prosper",
+      "label": "train_best_threshold_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.67,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -119.5,
+          "lowAction": "baseline",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.39,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 16.65,
+          "lowAction": "baseline",
+          "highAction": "projection"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.62,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 4.53,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "aaron wiggins",
+      "playerName": "Aaron Wiggins",
+      "label": "train_best_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen smith",
+      "playerName": "Jalen Smith",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "kel el ware",
+      "playerName": "Kel'el Ware",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.1,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.024,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.5,
+          "lowAction": "final",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.41,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.93,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -121,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.93,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.82,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "collin sexton",
+      "playerName": "Collin Sexton",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 16.02,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.9,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.176,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.23,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 20.86,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -117,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -125,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.78,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "bobby portis",
+      "playerName": "Bobby Portis",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "sandro mamukelashvili",
+      "playerName": "Sandro Mamukelashvili",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "final"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "patrick williams",
+      "playerName": "Patrick Williams",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.011,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.37,
+          "lowAction": "UNDER",
+          "highAction": "favored"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.48,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 20.95,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.27,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -116,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 19.31,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.59,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "zion williamson",
+      "playerName": "Zion Williamson",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.24,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 6.09,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 4.12,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.24,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 26.38,
+          "lowAction": "baseline",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.44,
+          "lowAction": "favored",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.039,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "donovan clingan",
+      "playerName": "Donovan Clingan",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "jordan clarkson",
+      "playerName": "Jordan Clarkson",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen williams",
+      "playerName": "Jalen Williams",
+      "label": "train_best_action_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "REB": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "AST": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "THREES": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "nic claxton",
+      "playerName": "Nic Claxton",
+      "label": "baseline_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "will richard",
+      "playerName": "Will Richard",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "jake laravia",
+      "playerName": "Jake LaRavia",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "collin murray boyles",
+      "playerName": "Collin Murray-Boyles",
+      "label": "train_best_bench_wing_combo_router_guarded_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.61,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 19.34,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -0.11,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 19.34,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 8.53,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.75,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 20.27,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.05,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "scoot henderson",
+      "playerName": "Scoot Henderson",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "jevon carter",
+      "playerName": "Jevon Carter",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.62,
+          "lowAction": "projection",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 1.69,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.78,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": 0.166,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 19.45,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 13.55,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 13.55,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 4.56,
+          "lowAction": "final",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "drake powell",
+      "playerName": "Drake Powell",
+      "label": "favored_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "favored"
+        }
+      }
+    },
+    {
+      "playerKey": "daniel gafford",
+      "playerName": "Daniel Gafford",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "jonathan kuminga",
+      "playerName": "Jonathan Kuminga",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "ayo dosunmu",
+      "playerName": "Ayo Dosunmu",
+      "label": "train_best_action_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "REB": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "austin reaves",
+      "playerName": "Austin Reaves",
+      "label": "projection_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "kyle filipowski",
+      "playerName": "Kyle Filipowski",
+      "label": "train_best_action_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "REB": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PRA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "zach lavine",
+      "playerName": "Zach LaVine",
+      "label": "train_best_action_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "bones hyland",
+      "playerName": "Bones Hyland",
+      "label": "train_best_guard_combo_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "THREES": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 14.2,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.8,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 16.88,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "andrew nembhard",
+      "playerName": "Andrew Nembhard",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 15.14,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 17.34,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 9.66,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.29,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.13,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.8,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.44,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.3,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "jaden ivey",
+      "playerName": "Jaden Ivey",
+      "label": "train_best_low_minute_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 11.26,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 16.8,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.28,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.82,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 15.35,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 2.29,
+          "lowAction": "favored",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.12,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.63,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "nikola jovic",
+      "playerName": "Nikola Jović",
+      "label": "train_best_threshold_by_market_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 6.55,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -128,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.83,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "isaiah stewart",
+      "playerName": "Isaiah Stewart",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 8.98,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.79,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 1.49,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 21.74,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.94,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.23,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "terance mann",
+      "playerName": "Terance Mann",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.35,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.41,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.65,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": 0.215,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 14.03,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 1.87,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.12,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.93,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "devin booker",
+      "playerName": "Devin Booker",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.91,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 4.03,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.19,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.26,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.9,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.9,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.9,
+          "lowAction": "baseline",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.25,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "mark williams",
+      "playerName": "Mark Williams",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 25.77,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.92,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.1,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 25.31,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 25.31,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 20.18,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.39,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "norman powell",
+      "playerName": "Norman Powell",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.99,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.49,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.55,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 27.46,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -0.46,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.99,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 4.43,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 5.15,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "scottie barnes",
+      "playerName": "Scottie Barnes",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 34.88,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.61,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.58,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.3,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 33.72,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 32.83,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 28.21,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 35.2,
+          "lowAction": "final",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "andre drummond",
+      "playerName": "Andre Drummond",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.02,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.291,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.19,
+          "lowAction": "OVER",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.026,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.19,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.19,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.19,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 14.55,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "isaiah joe",
+      "playerName": "Isaiah Joe",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": 0.021,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -6.38,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 12.47,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.102,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.021,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.508,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.77,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "jordan miller",
+      "playerName": "Jordan Miller",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": 0,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.043,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.59,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 8.41,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.043,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 27.33,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.033,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.81,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.129,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": 0.028,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 3.16,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 16.89,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 18.43,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.14,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.21,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.021,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.024,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 1.09,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 1.97,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.23,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.83,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.9,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 1.33,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "justin edwards",
+      "playerName": "Justin Edwards",
+      "label": "train_best_low_minute_guard_router_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.86,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.55,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 7.42,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "ben saraf",
+      "playerName": "Ben Saraf",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.44,
+          "lowAction": "baseline",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 1.79,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.89,
+          "lowAction": "favored",
+          "highAction": "projection"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.28,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.44,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.88,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.95,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.88,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "kenrich williams",
+      "playerName": "Kenrich Williams",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 13.16,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 11.19,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.86,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 9.74,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 14.76,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 9.47,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.62,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 7.58,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "kasparas jakucionis",
+      "playerName": "Kasparas Jakučionis",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 8,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -0.61,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -147.5,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 16.99,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 7.98,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -120.5,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 14.82,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 14.44,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "johnny furphy",
+      "playerName": "Johnny Furphy",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 14.2,
+          "lowAction": "baseline",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 6.49,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 6.6,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.19,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.19,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 6.75,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.19,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen pickett",
+      "playerName": "Jalen Pickett",
+      "label": "train_best_action_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "final"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "tidjane salaun",
+      "playerName": "Tidjane Salaün",
+      "label": "train_best_action_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "julian strawther",
+      "playerName": "Julian Strawther",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "jett howard",
+      "playerName": "Jett Howard",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.124,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -2.35,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.241,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 5.71,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.13,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 10.96,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.033,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "sidy cissoko",
+      "playerName": "Sidy Cissoko",
+      "label": "train_best_guard_combo_router_guarded_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PRA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.023,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.73,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "keegan murray",
+      "playerName": "Keegan Murray",
+      "label": "train_best_low_minute_guard_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.73,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 34.32,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 30.73,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 6.4,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 22.15,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 15.09,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "gui santos",
+      "playerName": "Gui Santos",
+      "label": "train_best_mixed_market_bias_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.14,
+          "lowAction": "OVER",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 10.37,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.068,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.137,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.61,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -3.97,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.61,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.074,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "deni avdija",
+      "playerName": "Deni Avdija",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.97,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -136.5,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.096,
+          "lowAction": "OVER",
+          "highAction": "final"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.13,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 4.35,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 35.53,
+          "lowAction": "favored",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.01,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "sion james",
+      "playerName": "Sion James",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.3,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.19,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 26.48,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 25.46,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.3,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.23,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 26.48,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 24.34,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "rui hachimura",
+      "playerName": "Rui Hachimura",
+      "label": "final_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "final"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "final"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "final"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "final"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "final"
+        }
+      }
+    },
+    {
+      "playerKey": "cam spencer",
+      "playerName": "Cam Spencer",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 20.48,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -117,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.32,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "adem bona",
+      "playerName": "Adem Bona",
+      "label": "train_best_guard_combo_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "REB": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.75,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "priceLean",
+          "threshold": -0.025,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.4,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "saddiq bey",
+      "playerName": "Saddiq Bey",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.75,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 28.87,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.18,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 28.87,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.53,
+          "lowAction": "projection",
+          "highAction": "final"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 8.35,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.22,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 28.87,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "kyshawn george",
+      "playerName": "Kyshawn George",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "dorian finney smith",
+      "playerName": "Dorian Finney-Smith",
+      "label": "train_best_hub_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.84,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.44,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 2.15,
+          "lowAction": "projection",
+          "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.62,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.84,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 15.84,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 16.53,
+          "lowAction": "liveRaw",
+          "highAction": "favored"
+        }
+      }
+    },
+    {
+      "playerKey": "ty jerome",
+      "playerName": "Ty Jerome",
+      "label": "train_best_guard_combo_router_guarded_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "AST": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 1.03,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 17.86,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "buddy hield",
+      "playerName": "Buddy Hield",
+      "label": "train_best_guard_combo_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.22,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.18,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "bruce brown",
+      "playerName": "Bruce Brown",
+      "label": "train_best_starter_state_combo_guard_router_guarded_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.29,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 13.13,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        }
+      }
+    },
+    {
+      "playerKey": "darius garland",
+      "playerName": "Darius Garland",
+      "label": "train_best_starter_state_combo_guard_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.47,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.35,
+          "lowAction": "favored",
+          "highAction": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.02,
+          "lowAction": "baseline",
+          "highAction": "liveRaw"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 21.35,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 9.73,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "demar derozan",
+      "playerName": "DeMar DeRozan",
+      "label": "final_all_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "final"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "final"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "final"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "final"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "final"
+        }
+      }
+    },
+    {
+      "playerKey": "cj mccollum",
+      "playerName": "CJ McCollum",
+      "label": "train_best_guard_combo_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.92,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.49,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.6,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        }
+      }
+    },
+    {
+      "playerKey": "payton pritchard",
+      "playerName": "Payton Pritchard",
+      "label": "final_all_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "final"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "final"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "final"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "final"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "final"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "final"
+        }
+      }
+    },
+    {
+      "playerKey": "klay thompson",
+      "playerName": "Klay Thompson",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "khris middleton",
+      "playerName": "Khris Middleton",
+      "label": "train_best_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "AST": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "THREES": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "favored"
+        }
+      }
+    },
+    {
+      "playerKey": "donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "label": "train_best_bench_wing_combo_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": -0.53,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 29.66,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.89,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 21.78,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 17.11,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.77,
+          "lowAction": "UNDER",
+          "highAction": "liveRaw"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31.81,
+          "lowAction": "UNDER",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "kevin huerter",
+      "playerName": "Kevin Huerter",
+      "label": "train_best_projection_bench_guard_router_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "PR": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "PTS": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.45,
+          "lowAction": "projection",
+          "highAction": "favored"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.06,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 2.17,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "isaiah collier",
+      "playerName": "Isaiah Collier",
+      "label": "train_best_projection_bench_guard_router_v1",
+      "targetRawAccuracy": 70,
+      "markets": {
+        "PRA": {
+          "kind": "source",
+          "source": "baseline"
+        },
+        "RA": {
+          "kind": "source",
+          "source": "favored"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.37,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 7.74,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        }
+      }
+    },
+    {
+      "playerKey": "nickeil alexander walker",
+      "playerName": "Nickeil Alexander-Walker",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 21.11,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.6,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -137,
+          "lowAction": "liveRaw",
+          "highAction": "OVER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -145,
+          "lowAction": "baseline",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 26.12,
+          "lowAction": "liveRaw",
+          "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 23.45,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 23.45,
+          "lowAction": "baseline",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.49,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "desmond bane",
+      "playerName": "Desmond Bane",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 19.54,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 34.27,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 4.81,
+          "lowAction": "liveRaw",
+          "highAction": "baseline"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -175,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -124,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.99,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 24.09,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 33.99,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "moses moody",
+      "playerName": "Moses Moody",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.03,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -115,
+          "lowAction": "UNDER",
+          "highAction": "final"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": 137.5,
+          "lowAction": "OVER",
+          "highAction": "liveRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 22.67,
+          "lowAction": "OVER",
+          "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 2.05,
+          "lowAction": "OVER",
+          "highAction": "baseline"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.69,
+          "lowAction": "projection",
+          "highAction": "OVER"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 5.95,
+          "lowAction": "projection",
+          "highAction": "baseline"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 23.76,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "john konchar",
+      "playerName": "John Konchar",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -129,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "lineGap",
+          "threshold": 0.27,
+          "lowAction": "final",
+          "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 4.32,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        }
+      }
+    },
+    {
+      "playerKey": "lauri markkanen",
+      "playerName": "Lauri Markkanen",
+      "label": "train_best_threshold_by_market_v1",
+      "targetRawAccuracy": 60,
+      "markets": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -117.5,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "REB": {
+          "kind": "threshold",
+          "feature": "expectedMinutes",
+          "threshold": 31,
+          "lowAction": "favored",
+          "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": 105,
+          "lowAction": "projection",
+          "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -137,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 35.53,
+          "lowAction": "favored",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 27.6,
+          "lowAction": "OVER",
+          "highAction": "favored"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 33.29,
+          "lowAction": "liveRaw",
+          "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -110.5,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
+        }
+      }
+    }
+  ]
+}
