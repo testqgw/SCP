@@ -1,0 +1,532 @@
+{
+  "generatedAt": "2026-04-15T18:15:53.131Z",
+  "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-04-14-current.json",
+  "from": "2025-10-23",
+  "to": "2026-04-14",
+  "filters": {
+    "minActualMinutes": 15
+  },
+  "runtime": {
+    "playerOverrideMode": "on",
+    "playerOverrideAllowlistFile": null,
+    "playerModelFiles": null,
+    "routerMode": "off",
+    "routerModelFile": null,
+    "routerPackFile": null,
+    "qualificationSettingsFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-qualification-settings.json",
+    "praRawFeatureMode": "on",
+    "praRawFeatureModelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-pra-raw-feature-live.json",
+    "praRawFeatureModelLabel": "raw_feature_pra_core_tight_v2",
+    "praRawFeatureModelVersion": "2026-03-26-pra-raw-v1"
+  },
+  "metricPriority": [
+    "rawAccuracy",
+    "blendedAccuracy",
+    "coveragePct"
+  ],
+  "metricDefinitions": {
+    "rawAccuracy": "Resolved live-quality raw accuracy: player override when present, else universal raw side, else baseline.",
+    "strictRawAccuracy": "Strict live-quality raw accuracy: player override when present, else universal raw side, with unresolved rows scoring as misses.",
+    "qualifiedAccuracy": "Accuracy on rows where the live board used a non-baseline side after qualification and player overrides.",
+    "blendedAccuracy": "Final live board accuracy after qualification fallback to baseline and any curated player override.",
+    "legacyUniversalRawAccuracy": "Legacy universal-only raw accuracy before player overrides, retained to reconcile older metric family comparisons.",
+    "legacyUniversalBlendedAccuracy": "Legacy universal-only blended accuracy before player overrides, retained for comparison against prior branch files."
+  },
+  "settings": {
+    "minBucketLateAccuracy": 56,
+    "minBucketSamples": 0,
+    "minLeafAccuracy": 67,
+    "minLeafCount": 0,
+    "minProjectionWinProbability": 0,
+    "minProjectionPriceEdge": 0,
+    "marketOverrides": {
+      "PTS": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0,
+        "minProjectionWinProbability": 0,
+        "minProjectionPriceEdge": 0,
+        "archetypeOverrides": {
+          "CENTER": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 56
+          },
+          "SCORE_FIRST_LEAD_GUARD": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 58
+          },
+          "WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 55
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 63,
+            "minLeafAccuracy": 58
+          },
+          "SCORING_GUARD_CREATOR": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_LOW_USAGE_WING": {
+            "minBucketLateAccuracy": 55,
+            "minLeafAccuracy": 55
+          },
+          "BENCH_SHOOTING_GUARD": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 60
+          },
+          "BENCH_TRADITIONAL_GUARD": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 60
+          },
+          "CONNECTOR_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 57
+          },
+          "JUMBO_CREATOR_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_WING": {
+            "minLeafAccuracy": 57
+          },
+          "BENCH_SPACER_SCORER": {
+            "minLeafAccuracy": 56.5
+          }
+        }
+      },
+      "REB": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "BENCH_WING": {
+            "minBucketLateAccuracy": 52,
+            "minLeafAccuracy": 52.5
+          },
+          "BENCH_LOW_USAGE_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "CONNECTOR_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          },
+          "CENTER": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 54
+          },
+          "SCORE_FIRST_LEAD_GUARD": {
+            "minBucketLateAccuracy": 55.5,
+            "minLeafAccuracy": 53.5
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 60,
+            "minLeafAccuracy": 64
+          },
+          "ELITE_SHOOTING_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          },
+          "BENCH_VOLUME_SCORER": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          }
+        }
+      },
+      "AST": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "CENTER": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 57
+          },
+          "BENCH_SHOOTING_GUARD": {
+            "minBucketLateAccuracy": 60,
+            "minLeafAccuracy": 62
+          },
+          "BENCH_TRADITIONAL_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_SPACER_SCORER": {
+            "minBucketLateAccuracy": 55,
+            "minLeafAccuracy": 55.5
+          },
+          "BENCH_STRETCH_BIG": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_TRADITIONAL_BIG": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 56
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 52,
+            "minLeafAccuracy": 55
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 56
+          },
+          "BENCH_PASS_FIRST_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "TWO_WAY_MARKET_WING": {
+            "minBucketLateAccuracy": 60,
+            "minLeafAccuracy": 62
+          }
+        }
+      },
+      "THREES": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "SCORE_FIRST_LEAD_GUARD": {
+            "minBucketLateAccuracy": 58
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          },
+          "CONNECTOR_WING": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_VOLUME_SCORER": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 58
+          },
+          "STRETCH_RIM_PROTECTOR_CENTER": {
+            "minBucketLateAccuracy": 54.5,
+            "minLeafAccuracy": 56
+          }
+        }
+      },
+      "PRA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 58,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "SCORING_GUARD_CREATOR": {
+            "minBucketLateAccuracy": 56
+          },
+          "SCORE_FIRST_LEAD_GUARD": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 60
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 55,
+            "minLeafAccuracy": 55
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 57
+          },
+          "BENCH_CREATOR_SCORER": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          },
+          "BENCH_WING": {
+            "minBucketLateAccuracy": 50
+          }
+        }
+      },
+      "PA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 67,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "BENCH_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "BENCH_LOW_USAGE_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "CONNECTOR_WING": {
+            "minBucketLateAccuracy": 54
+          },
+          "WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "BENCH_REBOUNDING_SCORER": {
+            "minBucketLateAccuracy": 58,
+            "minLeafAccuracy": 59
+          },
+          "BENCH_SPACER_SCORER": {
+            "minBucketLateAccuracy": 60,
+            "minLeafAccuracy": 70
+          },
+          "BENCH_SHOOTING_GUARD": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 65
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 49,
+            "minLeafAccuracy": 58
+          },
+          "CENTER": {
+            "minBucketLateAccuracy": 46,
+            "minLeafAccuracy": 57
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 52,
+            "minLeafAccuracy": 69
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 67
+          },
+          "BENCH_VOLUME_SCORER": {
+            "minBucketLateAccuracy": 57,
+            "minLeafAccuracy": 60
+          }
+        }
+      },
+      "PR": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 60,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "BENCH_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "BENCH_STRETCH_BIG": {
+            "minBucketLateAccuracy": 50
+          },
+          "BENCH_CREATOR_SCORER": {
+            "minBucketLateAccuracy": 54.5
+          },
+          "BENCH_SHOOTING_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          },
+          "BENCH_LOW_USAGE_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 60
+          },
+          "BENCH_VOLUME_SCORER": {
+            "minBucketLateAccuracy": 56
+          },
+          "CENTER": {
+            "minBucketLateAccuracy": 47
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 57,
+            "minLeafAccuracy": 62
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 62,
+            "minLeafAccuracy": 60
+          },
+          "CONNECTOR_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 56
+          },
+          "WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 58
+          }
+        }
+      },
+      "RA": {
+        "minBucketLateAccuracy": 56,
+        "minBucketSamples": 0,
+        "minLeafAccuracy": 67,
+        "minLeafCount": 0,
+        "archetypeOverrides": {
+          "BENCH_REBOUNDING_SCORER": {
+            "minBucketLateAccuracy": 52,
+            "minLeafAccuracy": 53.5
+          },
+          "POINT_FORWARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 67
+          },
+          "SCORING_GUARD_CREATOR": {
+            "minBucketLateAccuracy": 51,
+            "minLeafAccuracy": 64
+          },
+          "BENCH_VOLUME_SCORER": {
+            "minBucketLateAccuracy": 56
+          },
+          "BENCH_WING": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 54
+          },
+          "BENCH_TRADITIONAL_GUARD": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 62
+          },
+          "BENCH_PASS_FIRST_GUARD": {
+            "minBucketLateAccuracy": 56,
+            "minLeafAccuracy": 67
+          },
+          "CENTER": {
+            "minBucketLateAccuracy": 55,
+            "minLeafAccuracy": 54
+          },
+          "LEAD_GUARD": {
+            "minBucketLateAccuracy": 48,
+            "minLeafAccuracy": 54
+          },
+          "SPOTUP_WING": {
+            "minBucketLateAccuracy": 54,
+            "minLeafAccuracy": 62
+          },
+          "TWO_WAY_MARKET_WING": {
+            "minBucketLateAccuracy": 56
+          }
+        }
+      }
+    }
+  },
+  "overall": {
+    "samples": 106492,
+    "rawAccuracy": 64.94,
+    "strictRawAccuracy": 64.84,
+    "qualifiedAccuracy": 65.11,
+    "qualifiedPicks": 103270,
+    "coveragePct": 96.97,
+    "blendedAccuracy": 64.8,
+    "legacyUniversalRawAccuracy": 55.95,
+    "legacyUniversalBlendedAccuracy": 56.28,
+    "legacyUniversalCoveragePct": 64.3
+  },
+  "byMarket": {
+    "PTS": {
+      "samples": 16670,
+      "rawAccuracy": 65.54,
+      "strictRawAccuracy": 65.51,
+      "qualifiedAccuracy": 65.75,
+      "qualifiedPicks": 16405,
+      "coveragePct": 98.41,
+      "blendedAccuracy": 65.52,
+      "legacyUniversalRawAccuracy": 54.85,
+      "legacyUniversalBlendedAccuracy": 54.94,
+      "legacyUniversalCoveragePct": 70.74
+    },
+    "REB": {
+      "samples": 16374,
+      "rawAccuracy": 65.01,
+      "strictRawAccuracy": 64.79,
+      "qualifiedAccuracy": 65.09,
+      "qualifiedPicks": 16072,
+      "coveragePct": 98.16,
+      "blendedAccuracy": 65,
+      "legacyUniversalRawAccuracy": 54.49,
+      "legacyUniversalBlendedAccuracy": 55.52,
+      "legacyUniversalCoveragePct": 55.83
+    },
+    "AST": {
+      "samples": 16086,
+      "rawAccuracy": 64.36,
+      "strictRawAccuracy": 64.16,
+      "qualifiedAccuracy": 64.46,
+      "qualifiedPicks": 15680,
+      "coveragePct": 97.48,
+      "blendedAccuracy": 64.28,
+      "legacyUniversalRawAccuracy": 56.18,
+      "legacyUniversalBlendedAccuracy": 57.17,
+      "legacyUniversalCoveragePct": 70.45
+    },
+    "THREES": {
+      "samples": 10587,
+      "rawAccuracy": 65.58,
+      "strictRawAccuracy": 65.43,
+      "qualifiedAccuracy": 65.81,
+      "qualifiedPicks": 10112,
+      "coveragePct": 95.51,
+      "blendedAccuracy": 65.31,
+      "legacyUniversalRawAccuracy": 58.04,
+      "legacyUniversalBlendedAccuracy": 59.04,
+      "legacyUniversalCoveragePct": 75.02
+    },
+    "PRA": {
+      "samples": 11788,
+      "rawAccuracy": 64.35,
+      "strictRawAccuracy": 64.34,
+      "qualifiedAccuracy": 64.6,
+      "qualifiedPicks": 11479,
+      "coveragePct": 97.38,
+      "blendedAccuracy": 64.37,
+      "legacyUniversalRawAccuracy": 55.52,
+      "legacyUniversalBlendedAccuracy": 55.99,
+      "legacyUniversalCoveragePct": 60.43
+    },
+    "PA": {
+      "samples": 11651,
+      "rawAccuracy": 65.26,
+      "strictRawAccuracy": 65.22,
+      "qualifiedAccuracy": 65.48,
+      "qualifiedPicks": 11149,
+      "coveragePct": 95.69,
+      "blendedAccuracy": 64.85,
+      "legacyUniversalRawAccuracy": 56.78,
+      "legacyUniversalBlendedAccuracy": 56.05,
+      "legacyUniversalCoveragePct": 56.12
+    },
+    "PR": {
+      "samples": 11773,
+      "rawAccuracy": 64.6,
+      "strictRawAccuracy": 64.55,
+      "qualifiedAccuracy": 64.85,
+      "qualifiedPicks": 11360,
+      "coveragePct": 96.49,
+      "blendedAccuracy": 64.56,
+      "legacyUniversalRawAccuracy": 56.45,
+      "legacyUniversalBlendedAccuracy": 55.96,
+      "legacyUniversalCoveragePct": 61.47
+    },
+    "RA": {
+      "samples": 11563,
+      "rawAccuracy": 64.81,
+      "strictRawAccuracy": 64.77,
+      "qualifiedAccuracy": 64.89,
+      "qualifiedPicks": 11013,
+      "coveragePct": 95.24,
+      "blendedAccuracy": 64.4,
+      "legacyUniversalRawAccuracy": 56.44,
+      "legacyUniversalBlendedAccuracy": 56.42,
+      "legacyUniversalCoveragePct": 63.69
+    }
+  }
+}

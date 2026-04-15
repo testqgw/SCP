@@ -1,0 +1,335 @@
+[
+  {
+    "playerKey": "jamaree bouyea",
+    "playerName": "Jamaree Bouyea",
+    "label": "favored_all_v1",
+    "rows": 6,
+    "fullNet": 6,
+    "r14": 6,
+    "r30": 6
+  },
+  {
+    "playerKey": "khaman maluach",
+    "playerName": "Khaman Maluach",
+    "label": "favored_all_v1",
+    "rows": 19,
+    "fullNet": 5,
+    "r14": 5,
+    "r30": 5
+  },
+  {
+    "playerKey": "cormac ryan",
+    "playerName": "Cormac Ryan",
+    "label": "favored_all_v1",
+    "rows": 16,
+    "fullNet": 5,
+    "r14": 5,
+    "r30": 5
+  },
+  {
+    "playerKey": "lucas williamson",
+    "playerName": "Lucas Williamson",
+    "label": "favored_all_v1",
+    "rows": 13,
+    "fullNet": 4,
+    "r14": 4,
+    "r30": 4
+  },
+  {
+    "playerKey": "lj cryer",
+    "playerName": "LJ Cryer",
+    "label": "favored_all_v1",
+    "rows": 4,
+    "fullNet": 4,
+    "r14": 4,
+    "r30": 4
+  },
+  {
+    "playerKey": "rayj dennis",
+    "playerName": "RayJ Dennis",
+    "label": "favored_all_v1",
+    "rows": 9,
+    "fullNet": 4,
+    "r14": 4,
+    "r30": 4
+  },
+  {
+    "playerKey": "jonathan isaac",
+    "playerName": "Jonathan Isaac",
+    "label": "favored_all_v1",
+    "rows": 18,
+    "fullNet": 4,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "tyson etienne",
+    "playerName": "Tyson Etienne",
+    "label": "favored_all_v1",
+    "rows": 12,
+    "fullNet": 3,
+    "r14": 3,
+    "r30": 3
+  },
+  {
+    "playerKey": "walker kessler",
+    "playerName": "Walker Kessler",
+    "label": "projection_all_v1",
+    "rows": 12,
+    "fullNet": 3,
+    "r14": 3,
+    "r30": 3
+  },
+  {
+    "playerKey": "marjon beauchamp",
+    "playerName": "MarJon Beauchamp",
+    "label": "favored_all_v1",
+    "rows": 7,
+    "fullNet": 3,
+    "r14": 3,
+    "r30": 3
+  },
+  {
+    "playerKey": "christian koloko",
+    "playerName": "Christian Koloko",
+    "label": "projection_all_v1",
+    "rows": 12,
+    "fullNet": 3,
+    "r14": 1,
+    "r30": 2
+  },
+  {
+    "playerKey": "james wiseman",
+    "playerName": "James Wiseman",
+    "label": "projection_all_v1",
+    "rows": 3,
+    "fullNet": 2,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "chris paul",
+    "playerName": "Chris Paul",
+    "label": "projection_all_v1",
+    "rows": 5,
+    "fullNet": 2,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "tony bradley",
+    "playerName": "Tony Bradley",
+    "label": "projection_all_v1",
+    "rows": 16,
+    "fullNet": 2,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "julian phillips",
+    "playerName": "Julian Phillips",
+    "label": "projection_all_v1",
+    "rows": 6,
+    "fullNet": 2,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "lachlan olbrich",
+    "playerName": "Lachlan Olbrich",
+    "label": "favored_all_v1",
+    "rows": 10,
+    "fullNet": 2,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "bradley beal",
+    "playerName": "Bradley Beal",
+    "label": "projection_all_v1",
+    "rows": 15,
+    "fullNet": 2,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "chaz lanier",
+    "playerName": "Chaz Lanier",
+    "label": "projection_all_v1",
+    "rows": 7,
+    "fullNet": 2,
+    "r14": 0,
+    "r30": 0
+  },
+  {
+    "playerKey": "chaney johnson",
+    "playerName": "Chaney Johnson",
+    "label": "projection_all_v1",
+    "rows": 1,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "moussa cisse",
+    "playerName": "Moussa Cisse",
+    "label": "projection_all_v1",
+    "rows": 1,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "joe ingles",
+    "playerName": "Joe Ingles",
+    "label": "favored_all_v1",
+    "rows": 2,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "taj gibson",
+    "playerName": "Taj Gibson",
+    "label": "projection_all_v1",
+    "rows": 2,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "blake hinson",
+    "playerName": "Blake Hinson",
+    "label": "favored_all_v1",
+    "rows": 8,
+    "fullNet": 1,
+    "r14": 2,
+    "r30": 2
+  },
+  {
+    "playerKey": "chris boucher",
+    "playerName": "Chris Boucher",
+    "label": "projection_all_v1",
+    "rows": 3,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "mason plumlee",
+    "playerName": "Mason Plumlee",
+    "label": "baseline_all_v1",
+    "rows": 7,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "adou thiero",
+    "playerName": "Adou Thiero",
+    "label": "baseline_all_v1",
+    "rows": 3,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "jamison battle",
+    "playerName": "Jamison Battle",
+    "label": "projection_all_v1",
+    "rows": 3,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "josh oduro",
+    "playerName": "Josh Oduro",
+    "label": "projection_all_v1",
+    "rows": 3,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "xavier tillman",
+    "playerName": "Xavier Tillman",
+    "label": "baseline_all_v1",
+    "rows": 3,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "jae sean tate",
+    "playerName": "Jae'Sean Tate",
+    "label": "projection_all_v1",
+    "rows": 4,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "joan beringer",
+    "playerName": "Joan Beringer",
+    "label": "favored_all_v1",
+    "rows": 19,
+    "fullNet": 1,
+    "r14": 3,
+    "r30": 3
+  },
+  {
+    "playerKey": "nate williams",
+    "playerName": "Nate Williams",
+    "label": "favored_all_v1",
+    "rows": 5,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "kj simpson",
+    "playerName": "KJ Simpson",
+    "label": "projection_all_v1",
+    "rows": 9,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "toby okani",
+    "playerName": "Toby Okani",
+    "label": "projection_all_v1",
+    "rows": 12,
+    "fullNet": 1,
+    "r14": 1,
+    "r30": 1
+  },
+  {
+    "playerKey": "trayce jackson davis",
+    "playerName": "Trayce Jackson-Davis",
+    "label": "projection_all_v1",
+    "rows": 12,
+    "fullNet": 1,
+    "r14": 0,
+    "r30": 0
+  },
+  {
+    "playerKey": "gary harris",
+    "playerName": "Gary Harris",
+    "label": "projection_all_v1",
+    "rows": 15,
+    "fullNet": 1,
+    "r14": -2,
+    "r30": -2
+  },
+  {
+    "playerKey": "kobe bufkin",
+    "playerName": "Kobe Bufkin",
+    "label": "projection_all_v1",
+    "rows": 9,
+    "fullNet": 1,
+    "r14": -1,
+    "r30": -1
+  }
+]
