@@ -159,6 +159,7 @@ const DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE = path.join(
 );
 const EXTRA_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PLAYER_MODEL_FILES";
 const EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PRIORITY_PLAYER_MODEL_FILES";
+const EXTRA_PRIORITY_PLAYER_MODEL_FILES_MODE_ENV = "SNAPSHOT_LIVE_PRIORITY_PLAYER_MODEL_FILES_MODE";
 
 let cachedModelMap: Map<string, Map<SnapshotMarket, ModelVariant>> | null = null;
 let cachedPriorityModelMap: Map<string, Map<SnapshotMarket, ModelVariant>> | null = null;
@@ -183,6 +184,11 @@ function parseJsonFile<T>(filePath: string): T {
 export type LivePlayerOverrideMode = "on" | "off" | "allowlist";
 export type LivePlayerOverrideRuntimeMeta = {
   mode: LivePlayerOverrideMode;
+  playerModelFiles: string[];
+  playerModelFileSignatures: Record<string, string | null>;
+  priorityPlayerModelFiles: string[];
+  priorityPlayerModelFileSignatures: Record<string, string | null>;
+  priorityPlayerModelFilesMode: "default" | "append" | "replace";
   joelMode: "on" | "off";
   javonMode: "on" | "off";
   jaMode: "on" | "off";
@@ -287,10 +293,39 @@ function resolvePlayerLocalRecoveryManifestFilePath(): string {
   return override ? path.resolve(override) : DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE;
 }
 
+function buildFileSignature(filePath: string | null | undefined): string | null {
+  if (!filePath) return null;
+  try {
+    const stat = fs.statSync(filePath);
+    return `${stat.size}:${Math.floor(stat.mtimeMs)}`;
+  } catch {
+    return null;
+  }
+}
+
+function resolveConfiguredPriorityLiveModelFilesMode(): "default" | "append" | "replace" {
+  const configured = process.env[EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV]?.trim();
+  if (!configured) return "default";
+  return process.env[EXTRA_PRIORITY_PLAYER_MODEL_FILES_MODE_ENV]?.trim().toLowerCase() === "replace"
+    ? "replace"
+    : "append";
+}
+
 export function getLivePlayerOverrideRuntimeMeta(): LivePlayerOverrideRuntimeMeta {
   const manifestFile = resolvePlayerLocalRecoveryManifestFilePath();
+  const playerModelFiles = resolveConfiguredLiveModelFiles();
+  const priorityPlayerModelFiles = resolveConfiguredPriorityLiveModelFiles();
   return {
     mode: resolveLivePlayerOverrideMode(),
+    playerModelFiles,
+    playerModelFileSignatures: Object.fromEntries(
+      playerModelFiles.map((filePath) => [filePath, buildFileSignature(filePath)]),
+    ),
+    priorityPlayerModelFiles,
+    priorityPlayerModelFileSignatures: Object.fromEntries(
+      priorityPlayerModelFiles.map((filePath) => [filePath, buildFileSignature(filePath)]),
+    ),
+    priorityPlayerModelFilesMode: resolveConfiguredPriorityLiveModelFilesMode(),
     joelMode: isJoelPlayerOverrideEnabled() ? "on" : "off",
     javonMode: isJavonPlayerOverrideEnabled() ? "on" : "off",
     jaMode: isJaPlayerOverrideEnabled() ? "on" : "off",
@@ -307,14 +342,7 @@ export function getLivePlayerOverrideRuntimeMeta(): LivePlayerOverrideRuntimeMet
     playerLocalRecoveryClusterMode: isPlayerLocalRecoveryClusterEnabled() ? "on" : "off",
     playerLocalRecoveryManifestMode: isPlayerLocalRecoveryManifestEnabled() ? "on" : "off",
     playerLocalRecoveryManifestFile: manifestFile,
-    playerLocalRecoveryManifestSignature: (() => {
-      try {
-        const stat = fs.statSync(manifestFile);
-        return `${stat.size}:${Math.floor(stat.mtimeMs)}`;
-      } catch {
-        return null;
-      }
-    })(),
+    playerLocalRecoveryManifestSignature: buildFileSignature(manifestFile),
   };
 }
 
@@ -334,12 +362,17 @@ function resolveConfiguredLiveModelFiles(): string[] {
 function resolveConfiguredPriorityLiveModelFiles(): string[] {
   const configured = process.env[EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV]?.trim();
   if (!configured) return DEFAULT_PRIORITY_LIVE_MODEL_FILES;
+  const configuredMode = process.env[EXTRA_PRIORITY_PLAYER_MODEL_FILES_MODE_ENV]?.trim().toLowerCase();
 
   const extras = configured
     .split(/[,\r\n;]+/)
     .map((value) => value.trim())
     .filter(Boolean)
     .map((value) => path.resolve(value));
+
+  if (configuredMode === "replace") {
+    return [...new Set(extras)];
+  }
 
   return [...new Set([...DEFAULT_PRIORITY_LIVE_MODEL_FILES, ...extras])];
 }

@@ -92,6 +92,7 @@ export type LivePraRawFeatureRuntimeMeta = {
   mode: "on" | "off";
   enabled: boolean;
   filePath: string;
+  fileSignature: string | null;
   loaded: boolean;
   label: string | null;
   version: string | null;
@@ -167,10 +168,19 @@ export function getLivePraRawFeatureRuntimeMeta(): LivePraRawFeatureRuntimeMeta 
   const mode = resolveMode();
   const filePath = resolveLivePraRawFeatureModelFilePath();
   const artifact = mode === "off" ? null : loadArtifact();
+  const fileSignature = (() => {
+    try {
+      const stat = fs.statSync(filePath);
+      return `${stat.size}:${Math.floor(stat.mtimeMs)}`;
+    } catch {
+      return null;
+    }
+  })();
   return {
     mode,
     enabled: mode === "on" && artifact != null,
     filePath,
+    fileSignature,
     loaded: artifact != null,
     label: artifact?.label ?? null,
     version: artifact?.version ?? null,
