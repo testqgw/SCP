@@ -3977,6 +3977,22 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     if (!matchup) {
       continue;
     }
+    const rowKey = getSnapshotBoardRowKey({
+      matchupKey: matchup.matchupKey,
+      playerId: player.id,
+    });
+    const persistedRow = persistedRowMap.get(rowKey) ?? null;
+    const startedMatchupTime = startedMatchupTimesByKey.get(matchup.matchupKey) ?? null;
+    if (isTodayEt && startedMatchupTime != null) {
+      if (persistedRow && hasSnapshotRowRuntime(persistedRow)) {
+        builtRowKeys.add(rowKey);
+        rowsWithSortKeys.push({
+          sortTime: startedMatchupTime,
+          row: toBoardSnapshotRow(persistedRow),
+        });
+      }
+      continue;
+    }
 
     const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
     const logsChronological = logsForPlayer.slice().reverse();
@@ -5331,7 +5347,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       },
       gameIntel,
     });
-    const rowKey = getSnapshotBoardRowKey(computedRow);
     builtRowKeys.add(rowKey);
     rowsWithSortKeys.push({
       sortTime: matchup.gameTimeUtc?.getTime() ?? Number.MAX_SAFE_INTEGER,
