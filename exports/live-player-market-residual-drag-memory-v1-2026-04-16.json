@@ -1,8 +1,8 @@
 {
-  "version": "2026-04-16-residual-drag-memory-v2",
-  "generatedAt": "2026-04-16T18:05:00Z",
-  "label": "stable_negative_cell_veto_pack_v2",
-  "note": "Player-market baseline veto cells selected from honest walk-forward drag pockets where baseline beat the promoted stack and the broader pack improved full-season walk-forward plus 30d and 14d honest holdouts.",
+  "version": "2026-04-16-residual-drag-memory-v3",
+  "generatedAt": "2026-04-16T23:20:00Z",
+  "label": "strict_stale_cell_prune_pack_v3",
+  "note": "Player-market baseline veto cells selected from honest walk-forward stale routing pockets where baseline beat the promoted non-baseline path with stable full-season drag and nonnegative 30d/14d holdout deltas.",
   "entries": [
     {
       "playerKey": "nickeil alexander walker",
@@ -75,6 +75,273 @@
       "playerName": "Jalen Suggs",
       "markets": {
         "REB": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "sion james",
+      "playerName": "Sion James",
+      "markets": {
+        "PR": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "dylan harper",
+      "playerName": "Dylan Harper",
+      "markets": {
+        "REB": {
+          "source": "baseline"
+        },
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "ryan rollins",
+      "playerName": "Ryan Rollins",
+      "markets": {
+        "PRA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "desmond bane",
+      "playerName": "Desmond Bane",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen johnson",
+      "playerName": "Jalen Johnson",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "isaiah joe",
+      "playerName": "Isaiah Joe",
+      "markets": {
+        "REB": {
+          "source": "baseline"
+        },
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "deni avdija",
+      "playerName": "Deni Avdija",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "demar derozan",
+      "playerName": "DeMar DeRozan",
+      "markets": {
+        "PTS": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "donte divincenzo",
+      "playerName": "Donte DiVincenzo",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "sam hauser",
+      "playerName": "Sam Hauser",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "austin reaves",
+      "playerName": "Austin Reaves",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "p.j. washington",
+      "playerName": "P.J. Washington",
+      "markets": {
+        "PR": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen smith",
+      "playerName": "Jalen Smith",
+      "markets": {
+        "PRA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "cade cunningham",
+      "playerName": "Cade Cunningham",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "daniss jenkins",
+      "playerName": "Daniss Jenkins",
+      "markets": {
+        "PRA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "og anunoby",
+      "playerName": "OG Anunoby",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "harrison barnes",
+      "playerName": "Harrison Barnes",
+      "markets": {
+        "PTS": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "jeremiah fears",
+      "playerName": "Jeremiah Fears",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "dominick barlow",
+      "playerName": "Dominick Barlow",
+      "markets": {
+        "PRA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "kyle kuzma",
+      "playerName": "Kyle Kuzma",
+      "markets": {
+        "PRA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "james harden",
+      "playerName": "James Harden",
+      "markets": {
+        "RA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "scottie barnes",
+      "playerName": "Scottie Barnes",
+      "markets": {
+        "REB": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "khris middleton",
+      "playerName": "Khris Middleton",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "mark williams",
+      "playerName": "Mark Williams",
+      "markets": {
+        "PTS": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "bobby portis",
+      "playerName": "Bobby Portis",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "malik monk",
+      "playerName": "Malik Monk",
+      "markets": {
+        "REB": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "keyonte george",
+      "playerName": "Keyonte George",
+      "markets": {
+        "REB": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "alex sarr",
+      "playerName": "Alex Sarr",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "cameron johnson",
+      "playerName": "Cameron Johnson",
+      "markets": {
+        "THREES": {
           "source": "baseline"
         }
       }
