@@ -297,7 +297,7 @@
         },
         "AST": {
           "kind": "source",
-          "source": "liveRaw"
+          "source": "projection"
         },
         "THREES": {
           "kind": "source",
@@ -349,11 +349,11 @@
         },
         "PA": {
           "kind": "source",
-          "source": "liveRaw"
+          "source": "projection"
         },
         "PR": {
           "kind": "source",
-          "source": "liveRaw"
+          "source": "projection"
         },
         "RA": {
           "kind": "source",
@@ -865,7 +865,7 @@
       "markets": {
         "PTS": {
           "kind": "source",
-          "source": "favored"
+          "source": "projection"
         },
         "REB": {
           "kind": "source",
@@ -1246,6 +1246,10 @@
           "kind": "source",
           "source": "baseline"
         },
+        "PR": {
+          "kind": "source",
+          "source": "projection"
+        },
         "RA": {
           "kind": "source",
           "source": "liveRaw"
@@ -1259,11 +1263,8 @@
       "targetRawAccuracy": 70,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 11.44,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "source",
+          "source": "projection"
         },
         "REB": {
           "kind": "threshold",
@@ -9531,11 +9532,8 @@
           "highAction": "liveRaw"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 5.42,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "kind": "source",
+          "source": "projection"
         }
       }
     },
@@ -12468,11 +12466,8 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 2.75,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "source",
+          "source": "projection"
         },
         "REB": {
           "kind": "threshold",
