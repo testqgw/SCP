@@ -1,10 +1,10 @@
 {
-  "version": "2026-04-16-v22-klay-threes-over-pack",
-  "generatedAt": "2026-04-16T19:22:04.536Z",
+  "version": "2026-04-16-donte-pra-final-safe-push",
+  "generatedAt": "2026-04-16T23:07:50.3210797Z",
   "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\_tmp_manifest_strict_stale_rules.json",
   "methodology": {
     "baseVersion": "2026-04-15-player-local-target-lift-v20-fullboard-maxnet-minrows-1",
-    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts.",
+    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then add a Donte DiVincenzo PRA route to final.",
     "pruneCount": 75,
     "selection": "Top 75 by combined full + 30d + 14d delta-vs-baseline score among strict stale rules.",
     "recentWindowsGuard": "must be nonpositive vs baseline on full, 30d, and 14d with minimum sample thresholds"
@@ -4078,6 +4078,10 @@
           "threshold": -0.128,
           "lowAction": "projection",
           "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "source",
+          "source": "final"
         }
       }
     },

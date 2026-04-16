@@ -8,6 +8,7 @@ type RuntimeSourceName = "liveRaw" | "projection" | "baseline" | "favored" | "fi
 type RuntimeActionName = RuntimeSourceName | "OVER" | "UNDER";
 type RuntimeNumericFeature =
   | "expectedMinutes"
+  | "projectedMinutes"
   | "minutesVolatility"
   | "starterRateLast10"
   | "projectedValue"
@@ -614,6 +615,7 @@ function runtimeManifestActionSide(row: LivePlayerModelRow, action: RuntimeActio
 function runtimeManifestFeatureValue(row: LivePlayerModelRow, feature: RuntimeNumericFeature): number | null {
   switch (feature) {
     case "expectedMinutes":
+    case "projectedMinutes":
       return row.expectedMinutes;
     case "minutesVolatility":
       return row.minutesVolatility;
