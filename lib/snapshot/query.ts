@@ -113,8 +113,6 @@ import type {
   SnapshotPrecisionPickSignal,
   SnapshotPrimaryDefender,
   SnapshotPtsSignal,
-  SnapshotRecentSafeMarketPolicy,
-  SnapshotRecentSafeSystemSummary,
   SnapshotRow,
   SnapshotStatLog,
   SnapshotTeammateCore,
@@ -285,30 +283,7 @@ type SnapshotBoardCacheEntry = {
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 let cachedPlayerPositions: { data: CachedPlayerPosition[]; expiresAt: number } | null = null;
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
-const SNAPSHOT_BOARD_PAYLOAD_VERSION = "recent-safe-primary-v2";
-
-const RECENT_SAFE_MARKET_POLICY: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy> = {
-  PTS: "player_override_or_universal_qualified",
-  REB: "player_override_only",
-  AST: "player_override_or_universal_qualified",
-  THREES: "player_override_or_universal_qualified",
-  PRA: "player_override_only",
-  PA: "off",
-  PR: "player_override_or_universal_qualified",
-  RA: "player_override_or_universal_qualified",
-};
-
-const RECENT_SAFE_SYSTEM_SUMMARY: SnapshotRecentSafeSystemSummary = {
-  label: "Honest Safe Board",
-  validationRawAccuracy: 66.55,
-  honest14dRawAccuracy: 60.38,
-  honest30dRawAccuracy: 62.04,
-  latestFoldRawAccuracy: 60.14,
-  coveragePct: 50.21,
-  marketPolicy: RECENT_SAFE_MARKET_POLICY,
-  note:
-    "Validated on February 16, 2026 through March 15, 2026, then held out on March 16, 2026 through April 14, 2026. This is now the primary board mode because it is the first honest source-aware pack that stays above 60% on the last 14 days, the last 30 days, and the latest walk-forward fold while still covering about half the board. Keeps only the player-override and stable universal-qualified source pockets that held up out of sample.",
-};
+const SNAPSHOT_BOARD_PAYLOAD_VERSION = "full-board-primary-v1";
 
 type PersistedSnapshotBoardSetting = {
   sourceSignal: string;
@@ -516,23 +491,6 @@ function resolveBinarySide(
   return value === "OVER" || value === "UNDER" ? value : null;
 }
 
-function recentSafePolicyAllowsSource(
-  policy: SnapshotRecentSafeMarketPolicy,
-  source: SnapshotBoardMarketSource,
-): boolean {
-  if (policy === "off") return false;
-  if (policy === "player_override_only") return source === "player_override";
-  return source === "player_override" || source === "universal_qualified";
-}
-
-function hasSnapshotRowRuntime(row: SnapshotRow): boolean {
-  return MARKETS.every((market) => row.marketRuntime?.[market] != null);
-}
-
-function hasPersistedRecentSafeData(data: SnapshotBoardData): boolean {
-  return Boolean(data.recentSafeSystem) && data.rows.every((row) => hasSnapshotRowRuntime(row));
-}
-
 type SnapshotMarketRuntimeBuildInput = {
   market: SnapshotMarket;
   playerName: string;
@@ -663,7 +621,6 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
     source,
     playerOverrideEngaged,
     universalQualifiedEngaged,
-    recentSafeEligible: recentSafePolicyAllowsSource(RECENT_SAFE_MARKET_POLICY[input.market], source),
     signalGrade,
   };
 }
@@ -3378,7 +3335,7 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     select: { value: true },
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
-  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data) && hasPersistedRecentSafeData(persistedBoard.data)) {
+  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
     return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
   }
   return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
@@ -4005,7 +3962,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const persistedRow = persistedRowMap.get(rowKey) ?? null;
     const startedMatchupTime = startedMatchupTimesByKey.get(matchup.matchupKey) ?? null;
     if (isTodayEt && startedMatchupTime != null) {
-      if (persistedRow && hasSnapshotRowRuntime(persistedRow)) {
+      if (persistedRow) {
         builtRowKeys.add(rowKey);
         rowsWithSortKeys.push({
           sortTime: startedMatchupTime,
@@ -5384,7 +5341,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   if (isTodayEt && persistedRowMap.size > 0) {
     persistedRowMap.forEach((row, rowKey) => {
       if (builtRowKeys.has(rowKey)) return;
-      if (!hasSnapshotRowRuntime(row)) return;
       const sortTime = startedMatchupTimesByKey.get(row.matchupKey);
       if (sortTime == null) return;
       rowsWithSortKeys.push({
@@ -5461,7 +5417,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
-    recentSafeSystem: RECENT_SAFE_SYSTEM_SUMMARY,
   };
   const boardFeed = buildSnapshotBoardFeed({
     dateEt,

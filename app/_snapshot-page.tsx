@@ -17,7 +17,6 @@ export default async function SnapshotPage({ searchParams }: SnapshotPageProps) 
     <NewDashboard
       data={data}
       initialViewParam={typeof params?.view === "string" ? params.view : null}
-      initialModeParam={typeof params?.mode === "string" ? params.mode : null}
       initialPlayerParam={typeof params?.player === "string" ? params.player : null}
       initialMatchupParam={typeof params?.matchup === "string" ? params.matchup : null}
     />

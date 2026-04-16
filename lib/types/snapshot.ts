@@ -66,14 +66,7 @@ export type SnapshotPaSignal = SnapshotPtsSignal;
 export type SnapshotPrSignal = SnapshotPtsSignal;
 export type SnapshotRaSignal = SnapshotPtsSignal;
 
-export type SnapshotBoardMode = "full" | "recent-safe";
-
 export type SnapshotBoardMarketSource = "player_override" | "universal_qualified" | "baseline";
-
-export type SnapshotRecentSafeMarketPolicy =
-  | "off"
-  | "player_override_only"
-  | "player_override_or_universal_qualified";
 
 export type SnapshotPropSignalGrade = {
   market: "PTS" | "REB" | "AST";
@@ -91,19 +84,7 @@ export type SnapshotMarketRuntime = {
   source: SnapshotBoardMarketSource;
   playerOverrideEngaged: boolean;
   universalQualifiedEngaged: boolean;
-  recentSafeEligible: boolean;
   signalGrade?: SnapshotPropSignalGrade | null;
-};
-
-export type SnapshotRecentSafeSystemSummary = {
-  label: string;
-  validationRawAccuracy: number;
-  honest14dRawAccuracy: number;
-  honest30dRawAccuracy: number;
-  latestFoldRawAccuracy: number;
-  coveragePct: number;
-  marketPolicy: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy>;
-  note?: string;
 };
 
 export type SnapshotPrecisionPickSignal = {
@@ -362,7 +343,6 @@ export type SnapshotBoardData = {
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   precisionDashboard?: SnapshotPrecisionDashboard | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
-  recentSafeSystem?: SnapshotRecentSafeSystemSummary | null;
   boardFeed?: SnapshotBoardFeed | null;
 };
 
