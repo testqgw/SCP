@@ -191,14 +191,15 @@ export type SnapshotPrecisionDashboard = {
 
 export type SnapshotUniversalSystemSummary = {
   label: string;
-  replayRawAccuracy: number;
-  replayQualifiedAccuracy: number | null;
-  replayBlendedAccuracy: number;
-  replayCoveragePct: number;
-  walkForwardRawAccuracy: number;
-  walkForwardQualifiedAccuracy: number | null;
-  walkForwardBlendedAccuracy: number;
-  walkForwardCoveragePct: number;
+  honest14dRawAccuracy: number;
+  honest14dBlendedAccuracy: number;
+  honest14dCoveragePct: number;
+  honest30dRawAccuracy: number;
+  honest30dBlendedAccuracy: number;
+  honest30dCoveragePct: number;
+  latestFoldRawAccuracy: number;
+  latestFoldBlendedAccuracy: number;
+  latestFoldCoveragePct: number;
   note?: string;
 };
 

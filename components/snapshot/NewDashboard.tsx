@@ -1018,6 +1018,7 @@ export default function NewDashboard({
   }, []);
 
   const recentSafeSystem = data.recentSafeSystem ?? null;
+  const universalSystem = data.universalSystem ?? null;
   const allRowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
   const boardRows = useMemo(
     () =>
@@ -1252,7 +1253,7 @@ export default function NewDashboard({
   const selectedMatchupHomeAllowed = selectedMatchupTeamStats && selectedMatchupFocusMarket
     ? selectedMatchupTeamStats.homeLast10Allowed[selectedMatchupFocusMarket]
     : null;
-  const boardModelNote = firstSentence(boardMode === 'recent-safe' ? recentSafeSystem?.note : data.universalSystem?.note);
+  const boardModelNote = firstSentence(boardMode === 'recent-safe' ? recentSafeSystem?.note : universalSystem?.note);
   const featuredMarketAverageLast10 = featured ? featured.row.last10Average[featured.market] : null;
   const featuredMarketAverageSeason = featured ? featured.row.seasonAverage[featured.market] : null;
   const featuredMarketTrend = featured ? featured.row.trendVsSeason[featured.market] : null;
@@ -1302,7 +1303,9 @@ export default function NewDashboard({
       ? recentSafeSystem
         ? `Honest 14d ${pct(recentSafeSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(recentSafeSystem.honest30dRawAccuracy, 2)} | Coverage ${pct(recentSafeSystem.coveragePct, 2)}`
         : 'Only the validated recent-safe source pockets are shown in this board mode.'
-      : 'Shows the full board, including baseline reads, broader universal-qualified pockets, and every live market that made the payload.';
+      : universalSystem
+        ? `Honest 14d ${pct(universalSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(universalSystem.honest30dRawAccuracy, 2)} | Latest fold ${pct(universalSystem.latestFoldRawAccuracy, 2)}`
+        : 'Honest recent holdout metrics are not loaded for the full board yet.';
   const boardModeCountLabel =
     boardMode === 'recent-safe'
       ? `${n(allViews.length, 0)} current recent-safe views`
