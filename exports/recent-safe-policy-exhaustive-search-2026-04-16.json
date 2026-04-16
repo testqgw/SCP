@@ -1,0 +1,830 @@
+{
+  "totalRows": {
+    "pre": 67418,
+    "validation": 17426,
+    "hold30": 21648,
+    "hold14": 9104,
+    "latestFold": 7586
+  },
+  "candidateCount": 62445,
+  "topValidationCoverage": [
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 47311,
+        "accuracyPct": 64.33,
+        "coveragePct": 70.18
+      },
+      "validation": {
+        "picks": 12173,
+        "accuracyPct": 64.44,
+        "coveragePct": 69.86
+      },
+      "hold30": {
+        "picks": 15232,
+        "accuracyPct": 59.54,
+        "coveragePct": 70.36
+      },
+      "hold14": {
+        "picks": 6400,
+        "accuracyPct": 57.42,
+        "coveragePct": 70.3
+      },
+      "latestFold": {
+        "picks": 5340,
+        "accuracyPct": 56.97,
+        "coveragePct": 70.39
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46988,
+        "accuracyPct": 64.26,
+        "coveragePct": 69.7
+      },
+      "validation": {
+        "picks": 12095,
+        "accuracyPct": 64.44,
+        "coveragePct": 69.41
+      },
+      "hold30": {
+        "picks": 15147,
+        "accuracyPct": 59.56,
+        "coveragePct": 69.97
+      },
+      "hold14": {
+        "picks": 6365,
+        "accuracyPct": 57.42,
+        "coveragePct": 69.91
+      },
+      "latestFold": {
+        "picks": 5311,
+        "accuracyPct": 56.96,
+        "coveragePct": 70.01
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46988,
+        "accuracyPct": 64.34,
+        "coveragePct": 69.7
+      },
+      "validation": {
+        "picks": 12093,
+        "accuracyPct": 64.39,
+        "coveragePct": 69.4
+      },
+      "hold30": {
+        "picks": 15148,
+        "accuracyPct": 59.61,
+        "coveragePct": 69.97
+      },
+      "hold14": {
+        "picks": 6365,
+        "accuracyPct": 57.49,
+        "coveragePct": 69.91
+      },
+      "latestFold": {
+        "picks": 5311,
+        "accuracyPct": 57.01,
+        "coveragePct": 70.01
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46841,
+        "accuracyPct": 64.2,
+        "coveragePct": 69.48
+      },
+      "validation": {
+        "picks": 12066,
+        "accuracyPct": 64.4,
+        "coveragePct": 69.24
+      },
+      "hold30": {
+        "picks": 15142,
+        "accuracyPct": 59.62,
+        "coveragePct": 69.95
+      },
+      "hold14": {
+        "picks": 6363,
+        "accuracyPct": 57.54,
+        "coveragePct": 69.89
+      },
+      "latestFold": {
+        "picks": 5310,
+        "accuracyPct": 57.06,
+        "coveragePct": 70
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46665,
+        "accuracyPct": 64.27,
+        "coveragePct": 69.22
+      },
+      "validation": {
+        "picks": 12015,
+        "accuracyPct": 64.39,
+        "coveragePct": 68.95
+      },
+      "hold30": {
+        "picks": 15063,
+        "accuracyPct": 59.63,
+        "coveragePct": 69.58
+      },
+      "hold14": {
+        "picks": 6330,
+        "accuracyPct": 57.49,
+        "coveragePct": 69.53
+      },
+      "latestFold": {
+        "picks": 5282,
+        "accuracyPct": 57,
+        "coveragePct": 69.63
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46518,
+        "accuracyPct": 64.13,
+        "coveragePct": 69
+      },
+      "validation": {
+        "picks": 11988,
+        "accuracyPct": 64.4,
+        "coveragePct": 68.79
+      },
+      "hold30": {
+        "picks": 15057,
+        "accuracyPct": 59.63,
+        "coveragePct": 69.55
+      },
+      "hold14": {
+        "picks": 6328,
+        "accuracyPct": 57.54,
+        "coveragePct": 69.51
+      },
+      "latestFold": {
+        "picks": 5281,
+        "accuracyPct": 57.05,
+        "coveragePct": 69.62
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46518,
+        "accuracyPct": 64.21,
+        "coveragePct": 69
+      },
+      "validation": {
+        "picks": 11986,
+        "accuracyPct": 64.35,
+        "coveragePct": 68.78
+      },
+      "hold30": {
+        "picks": 15058,
+        "accuracyPct": 59.69,
+        "coveragePct": 69.56
+      },
+      "hold14": {
+        "picks": 6328,
+        "accuracyPct": 57.6,
+        "coveragePct": 69.51
+      },
+      "latestFold": {
+        "picks": 5281,
+        "accuracyPct": 57.11,
+        "coveragePct": 69.62
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46195,
+        "accuracyPct": 64.14,
+        "coveragePct": 68.52
+      },
+      "validation": {
+        "picks": 11908,
+        "accuracyPct": 64.35,
+        "coveragePct": 68.33
+      },
+      "hold30": {
+        "picks": 14973,
+        "accuracyPct": 59.71,
+        "coveragePct": 69.17
+      },
+      "hold14": {
+        "picks": 6293,
+        "accuracyPct": 57.6,
+        "coveragePct": 69.12
+      },
+      "latestFold": {
+        "picks": 5252,
+        "accuracyPct": 57.1,
+        "coveragePct": 69.23
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "universal_qualified_only"
+      },
+      "pre": {
+        "picks": 46076,
+        "accuracyPct": 63.77,
+        "coveragePct": 68.34
+      },
+      "validation": {
+        "picks": 11833,
+        "accuracyPct": 63.92,
+        "coveragePct": 67.9
+      },
+      "hold30": {
+        "picks": 14883,
+        "accuracyPct": 58.99,
+        "coveragePct": 68.75
+      },
+      "hold14": {
+        "picks": 6257,
+        "accuracyPct": 56.78,
+        "coveragePct": 68.73
+      },
+      "latestFold": {
+        "picks": 5223,
+        "accuracyPct": 56.29,
+        "coveragePct": 68.85
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "universal_qualified_only",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 45877,
+        "accuracyPct": 63.64,
+        "coveragePct": 68.05
+      },
+      "validation": {
+        "picks": 11808,
+        "accuracyPct": 63.72,
+        "coveragePct": 67.76
+      },
+      "hold30": {
+        "picks": 14756,
+        "accuracyPct": 58.77,
+        "coveragePct": 68.16
+      },
+      "hold14": {
+        "picks": 6198,
+        "accuracyPct": 56.57,
+        "coveragePct": 68.08
+      },
+      "latestFold": {
+        "picks": 5172,
+        "accuracyPct": 56.05,
+        "coveragePct": 68.18
+      }
+    }
+  ],
+  "topValidationProduct": [
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 47311,
+        "accuracyPct": 64.33,
+        "coveragePct": 70.18
+      },
+      "validation": {
+        "picks": 12173,
+        "accuracyPct": 64.44,
+        "coveragePct": 69.86
+      },
+      "hold30": {
+        "picks": 15232,
+        "accuracyPct": 59.54,
+        "coveragePct": 70.36
+      },
+      "hold14": {
+        "picks": 6400,
+        "accuracyPct": 57.42,
+        "coveragePct": 70.3
+      },
+      "latestFold": {
+        "picks": 5340,
+        "accuracyPct": 56.97,
+        "coveragePct": 70.39
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46988,
+        "accuracyPct": 64.26,
+        "coveragePct": 69.7
+      },
+      "validation": {
+        "picks": 12095,
+        "accuracyPct": 64.44,
+        "coveragePct": 69.41
+      },
+      "hold30": {
+        "picks": 15147,
+        "accuracyPct": 59.56,
+        "coveragePct": 69.97
+      },
+      "hold14": {
+        "picks": 6365,
+        "accuracyPct": 57.42,
+        "coveragePct": 69.91
+      },
+      "latestFold": {
+        "picks": 5311,
+        "accuracyPct": 56.96,
+        "coveragePct": 70.01
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46988,
+        "accuracyPct": 64.34,
+        "coveragePct": 69.7
+      },
+      "validation": {
+        "picks": 12093,
+        "accuracyPct": 64.39,
+        "coveragePct": 69.4
+      },
+      "hold30": {
+        "picks": 15148,
+        "accuracyPct": 59.61,
+        "coveragePct": 69.97
+      },
+      "hold14": {
+        "picks": 6365,
+        "accuracyPct": 57.49,
+        "coveragePct": 69.91
+      },
+      "latestFold": {
+        "picks": 5311,
+        "accuracyPct": 57.01,
+        "coveragePct": 70.01
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46841,
+        "accuracyPct": 64.2,
+        "coveragePct": 69.48
+      },
+      "validation": {
+        "picks": 12066,
+        "accuracyPct": 64.4,
+        "coveragePct": 69.24
+      },
+      "hold30": {
+        "picks": 15142,
+        "accuracyPct": 59.62,
+        "coveragePct": 69.95
+      },
+      "hold14": {
+        "picks": 6363,
+        "accuracyPct": 57.54,
+        "coveragePct": 69.89
+      },
+      "latestFold": {
+        "picks": 5310,
+        "accuracyPct": 57.06,
+        "coveragePct": 70
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46665,
+        "accuracyPct": 64.27,
+        "coveragePct": 69.22
+      },
+      "validation": {
+        "picks": 12015,
+        "accuracyPct": 64.39,
+        "coveragePct": 68.95
+      },
+      "hold30": {
+        "picks": 15063,
+        "accuracyPct": 59.63,
+        "coveragePct": 69.58
+      },
+      "hold14": {
+        "picks": 6330,
+        "accuracyPct": 57.49,
+        "coveragePct": 69.53
+      },
+      "latestFold": {
+        "picks": 5282,
+        "accuracyPct": 57,
+        "coveragePct": 69.63
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46518,
+        "accuracyPct": 64.13,
+        "coveragePct": 69
+      },
+      "validation": {
+        "picks": 11988,
+        "accuracyPct": 64.4,
+        "coveragePct": 68.79
+      },
+      "hold30": {
+        "picks": 15057,
+        "accuracyPct": 59.63,
+        "coveragePct": 69.55
+      },
+      "hold14": {
+        "picks": 6328,
+        "accuracyPct": 57.54,
+        "coveragePct": 69.51
+      },
+      "latestFold": {
+        "picks": 5281,
+        "accuracyPct": 57.05,
+        "coveragePct": 69.62
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46518,
+        "accuracyPct": 64.21,
+        "coveragePct": 69
+      },
+      "validation": {
+        "picks": 11986,
+        "accuracyPct": 64.35,
+        "coveragePct": 68.78
+      },
+      "hold30": {
+        "picks": 15058,
+        "accuracyPct": 59.69,
+        "coveragePct": 69.56
+      },
+      "hold14": {
+        "picks": 6328,
+        "accuracyPct": 57.6,
+        "coveragePct": 69.51
+      },
+      "latestFold": {
+        "picks": 5281,
+        "accuracyPct": 57.11,
+        "coveragePct": 69.62
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "universal_qualified_only",
+        "THREES": "universal_qualified_only",
+        "PRA": "both",
+        "PA": "universal_qualified_only",
+        "PR": "both",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 46195,
+        "accuracyPct": 64.14,
+        "coveragePct": 68.52
+      },
+      "validation": {
+        "picks": 11908,
+        "accuracyPct": 64.35,
+        "coveragePct": 68.33
+      },
+      "hold30": {
+        "picks": 14973,
+        "accuracyPct": 59.71,
+        "coveragePct": 69.17
+      },
+      "hold14": {
+        "picks": 6293,
+        "accuracyPct": 57.6,
+        "coveragePct": 69.12
+      },
+      "latestFold": {
+        "picks": 5252,
+        "accuracyPct": 57.1,
+        "coveragePct": 69.23
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "both",
+        "RA": "universal_qualified_only"
+      },
+      "pre": {
+        "picks": 46076,
+        "accuracyPct": 63.77,
+        "coveragePct": 68.34
+      },
+      "validation": {
+        "picks": 11833,
+        "accuracyPct": 63.92,
+        "coveragePct": 67.9
+      },
+      "hold30": {
+        "picks": 14883,
+        "accuracyPct": 58.99,
+        "coveragePct": 68.75
+      },
+      "hold14": {
+        "picks": 6257,
+        "accuracyPct": 56.78,
+        "coveragePct": 68.73
+      },
+      "latestFold": {
+        "picks": 5223,
+        "accuracyPct": 56.29,
+        "coveragePct": 68.85
+      }
+    },
+    {
+      "policy": {
+        "PTS": "both",
+        "REB": "both",
+        "AST": "both",
+        "THREES": "both",
+        "PRA": "both",
+        "PA": "both",
+        "PR": "universal_qualified_only",
+        "RA": "both"
+      },
+      "pre": {
+        "picks": 45877,
+        "accuracyPct": 63.64,
+        "coveragePct": 68.05
+      },
+      "validation": {
+        "picks": 11808,
+        "accuracyPct": 63.72,
+        "coveragePct": 67.76
+      },
+      "hold30": {
+        "picks": 14756,
+        "accuracyPct": 58.77,
+        "coveragePct": 68.16
+      },
+      "hold14": {
+        "picks": 6198,
+        "accuracyPct": 56.57,
+        "coveragePct": 68.08
+      },
+      "latestFold": {
+        "picks": 5172,
+        "accuracyPct": 56.05,
+        "coveragePct": 68.18
+      }
+    }
+  ],
+  "honest60Count": 12999,
+  "honest60FoldCount": 10992,
+  "bestHonest60Coverage": {
+    "policy": {
+      "PTS": "both",
+      "REB": "player_override_only",
+      "AST": "both",
+      "THREES": "both",
+      "PRA": "player_override_only",
+      "PA": "both",
+      "PR": "player_override_only",
+      "RA": "both"
+    },
+    "pre": {
+      "picks": 35553,
+      "accuracyPct": 66.15,
+      "coveragePct": 52.74
+    },
+    "validation": {
+      "picks": 9047,
+      "accuracyPct": 66.61,
+      "coveragePct": 51.92
+    },
+    "hold30": {
+      "picks": 11081,
+      "accuracyPct": 61.73,
+      "coveragePct": 51.19
+    },
+    "hold14": {
+      "picks": 4653,
+      "accuracyPct": 60,
+      "coveragePct": 51.11
+    },
+    "latestFold": {
+      "picks": 3860,
+      "accuracyPct": 59.61,
+      "coveragePct": 50.88
+    }
+  },
+  "bestHonest60FoldCoverage": {
+    "policy": {
+      "PTS": "both",
+      "REB": "player_override_only",
+      "AST": "both",
+      "THREES": "both",
+      "PRA": "player_override_only",
+      "PA": "player_override_only",
+      "PR": "both",
+      "RA": "both"
+    },
+    "pre": {
+      "picks": 35397,
+      "accuracyPct": 66.22,
+      "coveragePct": 52.5
+    },
+    "validation": {
+      "picks": 8942,
+      "accuracyPct": 66.53,
+      "coveragePct": 51.31
+    },
+    "hold30": {
+      "picks": 10954,
+      "accuracyPct": 62,
+      "coveragePct": 50.6
+    },
+    "hold14": {
+      "picks": 4566,
+      "accuracyPct": 60.36,
+      "coveragePct": 50.15
+    },
+    "latestFold": {
+      "picks": 3797,
+      "accuracyPct": 60.13,
+      "coveragePct": 50.05
+    }
+  }
+}

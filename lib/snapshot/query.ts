@@ -285,7 +285,7 @@ type SnapshotBoardCacheEntry = {
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 let cachedPlayerPositions: { data: CachedPlayerPosition[]; expiresAt: number } | null = null;
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
-const SNAPSHOT_BOARD_PAYLOAD_VERSION = "recent-safe-runtime-v1";
+const SNAPSHOT_BOARD_PAYLOAD_VERSION = "recent-safe-primary-v2";
 
 const RECENT_SAFE_MARKET_POLICY: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy> = {
   PTS: "player_override_or_universal_qualified",
@@ -299,14 +299,15 @@ const RECENT_SAFE_MARKET_POLICY: Record<SnapshotMarket, SnapshotRecentSafeMarket
 };
 
 const RECENT_SAFE_SYSTEM_SUMMARY: SnapshotRecentSafeSystemSummary = {
-  label: "Recent Safe Mid Coverage",
+  label: "Honest Safe Board",
   validationRawAccuracy: 66.55,
   honest14dRawAccuracy: 60.38,
   honest30dRawAccuracy: 62.04,
+  latestFoldRawAccuracy: 60.14,
   coveragePct: 50.21,
   marketPolicy: RECENT_SAFE_MARKET_POLICY,
   note:
-    "Validated on February 16, 2026 through March 15, 2026, then held out on March 16, 2026 through April 14, 2026. Keeps only the player-override and stable universal-qualified source pockets that held up out of sample.",
+    "Validated on February 16, 2026 through March 15, 2026, then held out on March 16, 2026 through April 14, 2026. This is now the primary board mode because it is the first honest source-aware pack that stays above 60% on the last 14 days, the last 30 days, and the latest walk-forward fold while still covering about half the board. Keeps only the player-override and stable universal-qualified source pockets that held up out of sample.",
 };
 
 type PersistedSnapshotBoardSetting = {

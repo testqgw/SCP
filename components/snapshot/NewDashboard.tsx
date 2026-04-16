@@ -894,7 +894,7 @@ function parseViewParam(value: string | null): ViewKey {
 }
 
 function parseModeParam(value: string | null): SnapshotBoardMode {
-  return value === 'recent-safe' ? 'recent-safe' : 'full';
+  return value === 'full' ? 'full' : 'recent-safe';
 }
 
 function viewKeepsPlayerParam(view: ViewKey) {
@@ -1297,19 +1297,19 @@ export default function NewDashboard({
     (featured
       ? `${recommendationHeadline(featured)} is leading the board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
-  const boardModeLabel = boardMode === 'recent-safe' ? recentSafeSystem?.label ?? 'Recent Safe' : 'Full board';
+  const boardModeLabel = boardMode === 'recent-safe' ? recentSafeSystem?.label ?? 'Honest Safe Board' : 'Full board';
   const boardModeDetail =
     boardMode === 'recent-safe'
       ? recentSafeSystem
-        ? `Honest 14d ${pct(recentSafeSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(recentSafeSystem.honest30dRawAccuracy, 2)} | Coverage ${pct(recentSafeSystem.coveragePct, 2)}`
+        ? `Honest 14d ${pct(recentSafeSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(recentSafeSystem.honest30dRawAccuracy, 2)} | Latest fold ${pct(recentSafeSystem.latestFoldRawAccuracy, 2)} | Coverage ${pct(recentSafeSystem.coveragePct, 2)}`
         : 'Only the validated recent-safe source pockets are shown in this board mode.'
       : universalSystem
         ? `Honest 14d ${pct(universalSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(universalSystem.honest30dRawAccuracy, 2)} | Latest fold ${pct(universalSystem.latestFoldRawAccuracy, 2)}`
         : 'Honest recent holdout metrics are not loaded for the full board yet.';
   const boardModeCountLabel =
     boardMode === 'recent-safe'
-      ? `${n(allViews.length, 0)} current recent-safe views`
-      : `${n(allViews.length, 0)} current board views`;
+      ? `${n(allViews.length, 0)} current honest-safe views`
+      : `${n(allViews.length, 0)} current full-board views`;
   const researchWhyInteresting = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player and the board will explain why that slate row is worth a deeper look.';
@@ -1952,7 +1952,7 @@ export default function NewDashboard({
     const keepPlayer = viewKeepsPlayerParam(headerView);
     const keepMatchup = viewKeepsMatchupParam(headerView);
 
-    if (boardMode !== 'full') {
+    if (boardMode !== 'recent-safe') {
       params.set('mode', boardMode);
     }
     if (headerView !== 'overview' || (keepPlayer && encodedPlayer) || (keepMatchup && encodedMatchup)) {
@@ -2256,6 +2256,17 @@ export default function NewDashboard({
               <div className="inline-flex w-full rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1 sm:w-auto">
                 <button
                   type="button"
+                  onClick={() => setBoardModeSelection('recent-safe')}
+                  className={`${ACTION_CLASS} min-h-10 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-none ${
+                    boardMode === 'recent-safe'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  Honest Safe
+                </button>
+                <button
+                  type="button"
                   onClick={() => setBoardModeSelection('full')}
                   className={`${ACTION_CLASS} min-h-10 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-none ${
                     boardMode === 'full'
@@ -2265,22 +2276,11 @@ export default function NewDashboard({
                 >
                   Full board
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setBoardModeSelection('recent-safe')}
-                  className={`${ACTION_CLASS} min-h-10 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-none ${
-                    boardMode === 'recent-safe'
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                  }`}
-                >
-                  Recent Safe
-                </button>
               </div>
             </div>
             {boardMode === 'recent-safe' ? (
               <div className="mt-3 rounded-xl border border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)] px-3.5 py-3 text-sm text-[var(--text-2)]">
-                This mode uses the validated source mix only. Precision picks stay available, but the main board hides markets that did not hold up out of sample.
+                This is the primary board because it is the first honest source-aware mode that stayed above 60% on the recent holdouts. Precision picks stay available, but the main board hides markets that did not hold up out of sample.
               </div>
             ) : null}
           </section>

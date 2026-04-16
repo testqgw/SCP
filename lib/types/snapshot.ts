@@ -100,6 +100,7 @@ export type SnapshotRecentSafeSystemSummary = {
   validationRawAccuracy: number;
   honest14dRawAccuracy: number;
   honest30dRawAccuracy: number;
+  latestFoldRawAccuracy: number;
   coveragePct: number;
   marketPolicy: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy>;
   note?: string;
