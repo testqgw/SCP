@@ -120,6 +120,22 @@ type PlayerLocalRecoveryManifestPayload = {
   entries?: PlayerLocalRecoveryManifestEntry[];
 };
 
+type PlayerMarketResidualDragMemoryRule = {
+  source: RuntimeSourceName;
+};
+
+type PlayerMarketResidualDragMemoryEntry = {
+  playerKey?: string | null;
+  playerName?: string | null;
+  markets?: Partial<Record<SnapshotMarket, PlayerMarketResidualDragMemoryRule>>;
+};
+
+type PlayerMarketResidualDragMemoryPayload = {
+  version?: string | null;
+  generatedAt?: string | null;
+  entries?: PlayerMarketResidualDragMemoryEntry[];
+};
+
 type PredictLivePlayerSideInput = {
   playerName: string | null;
   market: SnapshotMarket;
@@ -157,6 +173,11 @@ const DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE = path.join(
   "exports",
   "player-local-target-lift-manifest.json",
 );
+const DEFAULT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_FILE = path.join(
+  process.cwd(),
+  "exports",
+  "live-player-market-residual-drag-memory-v1-2026-04-16.json",
+);
 const EXTRA_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PLAYER_MODEL_FILES";
 const EXTRA_PRIORITY_PLAYER_MODEL_FILES_ENV = "SNAPSHOT_LIVE_PRIORITY_PLAYER_MODEL_FILES";
 const EXTRA_PRIORITY_PLAYER_MODEL_FILES_MODE_ENV = "SNAPSHOT_LIVE_PRIORITY_PLAYER_MODEL_FILES_MODE";
@@ -173,6 +194,12 @@ let cachedPlayerLocalRecoveryManifest:
   | {
       filePath: string;
       entriesByPlayerKey: Map<string, Map<SnapshotMarket, PlayerLocalRecoveryManifestRule>>;
+    }
+  | null = null;
+let cachedPlayerMarketResidualDragMemory:
+  | {
+      filePath: string;
+      entriesByPlayerKey: Map<string, Map<SnapshotMarket, PlayerMarketResidualDragMemoryRule>>;
     }
   | null = null;
 
@@ -206,6 +233,9 @@ export type LivePlayerOverrideRuntimeMeta = {
   playerLocalRecoveryManifestMode: "on" | "off";
   playerLocalRecoveryManifestFile: string;
   playerLocalRecoveryManifestSignature: string | null;
+  playerMarketResidualDragMemoryMode: "on" | "off";
+  playerMarketResidualDragMemoryFile: string;
+  playerMarketResidualDragMemorySignature: string | null;
 };
 
 export function normalizeLivePlayerOverrideKey(value: string | null | undefined): string {
@@ -283,6 +313,10 @@ function isPlayerLocalRecoveryManifestEnabled(): boolean {
   return process.env.SNAPSHOT_PLAYER_LOCAL_RECOVERY_MANIFEST_MODE?.trim().toLowerCase() === "on";
 }
 
+function isPlayerMarketResidualDragMemoryEnabled(): boolean {
+  return process.env.SNAPSHOT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_MODE?.trim().toLowerCase() !== "off";
+}
+
 function resolveAllowlistFilePath(): string {
   const override = process.env.SNAPSHOT_LIVE_PLAYER_OVERRIDE_ALLOWLIST_FILE?.trim();
   return override ? path.resolve(override) : DEFAULT_PLAYER_OVERRIDE_ALLOWLIST_FILE;
@@ -291,6 +325,11 @@ function resolveAllowlistFilePath(): string {
 function resolvePlayerLocalRecoveryManifestFilePath(): string {
   const override = process.env.SNAPSHOT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE?.trim();
   return override ? path.resolve(override) : DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE;
+}
+
+function resolvePlayerMarketResidualDragMemoryFilePath(): string {
+  const override = process.env.SNAPSHOT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_FILE?.trim();
+  return override ? path.resolve(override) : DEFAULT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_FILE;
 }
 
 function buildFileSignature(filePath: string | null | undefined): string | null {
@@ -313,6 +352,7 @@ function resolveConfiguredPriorityLiveModelFilesMode(): "default" | "append" | "
 
 export function getLivePlayerOverrideRuntimeMeta(): LivePlayerOverrideRuntimeMeta {
   const manifestFile = resolvePlayerLocalRecoveryManifestFilePath();
+  const dragMemoryFile = resolvePlayerMarketResidualDragMemoryFilePath();
   const playerModelFiles = resolveConfiguredLiveModelFiles();
   const priorityPlayerModelFiles = resolveConfiguredPriorityLiveModelFiles();
   return {
@@ -343,6 +383,9 @@ export function getLivePlayerOverrideRuntimeMeta(): LivePlayerOverrideRuntimeMet
     playerLocalRecoveryManifestMode: isPlayerLocalRecoveryManifestEnabled() ? "on" : "off",
     playerLocalRecoveryManifestFile: manifestFile,
     playerLocalRecoveryManifestSignature: buildFileSignature(manifestFile),
+    playerMarketResidualDragMemoryMode: isPlayerMarketResidualDragMemoryEnabled() ? "on" : "off",
+    playerMarketResidualDragMemoryFile: dragMemoryFile,
+    playerMarketResidualDragMemorySignature: buildFileSignature(dragMemoryFile),
   };
 }
 
@@ -492,6 +535,41 @@ function loadPlayerLocalRecoveryManifest(): Map<string, Map<SnapshotMarket, Play
   return entriesByPlayerKey;
 }
 
+function loadPlayerMarketResidualDragMemory(): Map<string, Map<SnapshotMarket, PlayerMarketResidualDragMemoryRule>> {
+  const filePath = resolvePlayerMarketResidualDragMemoryFilePath();
+  if (cachedPlayerMarketResidualDragMemory?.filePath === filePath) {
+    return cachedPlayerMarketResidualDragMemory.entriesByPlayerKey;
+  }
+
+  const entriesByPlayerKey = new Map<string, Map<SnapshotMarket, PlayerMarketResidualDragMemoryRule>>();
+  if (fs.existsSync(filePath)) {
+    try {
+      const payload = parseJsonFile<PlayerMarketResidualDragMemoryPayload>(filePath);
+      for (const entry of payload.entries ?? []) {
+        const playerKey = normalizePlayerKey(entry.playerKey ?? entry.playerName ?? null);
+        if (!playerKey || !entry.markets) continue;
+        const marketRules = new Map<SnapshotMarket, PlayerMarketResidualDragMemoryRule>();
+        for (const market of Object.keys(entry.markets) as SnapshotMarket[]) {
+          const rule = entry.markets[market];
+          if (!rule) continue;
+          marketRules.set(market, rule);
+        }
+        if (marketRules.size > 0) {
+          entriesByPlayerKey.set(playerKey, marketRules);
+        }
+      }
+    } catch {
+      // Ignore malformed drag-memory files and fall back to an empty map.
+    }
+  }
+
+  cachedPlayerMarketResidualDragMemory = {
+    filePath,
+    entriesByPlayerKey,
+  };
+  return entriesByPlayerKey;
+}
+
 function impliedProbability(odds: number | null): number | null {
   if (odds == null || !Number.isFinite(odds) || odds === 0) return null;
   if (odds < 0) {
@@ -581,6 +659,17 @@ function applyPlayerLocalRecoveryManifest(
   return value <= rule.threshold
     ? runtimeManifestActionSide(row, rule.lowAction)
     : runtimeManifestActionSide(row, rule.highAction);
+}
+
+function applyPlayerMarketResidualDragMemory(
+  playerKey: string,
+  market: SnapshotMarket,
+  row: LivePlayerModelRow,
+): Side | null {
+  if (!isPlayerMarketResidualDragMemoryEnabled()) return null;
+  const rule = loadPlayerMarketResidualDragMemory().get(playerKey)?.get(market);
+  if (!rule) return null;
+  return runtimeManifestSourceSide(row, rule.source);
 }
 
 function getFeature(row: LivePlayerModelRow, feature: FeatureName): number | null {
@@ -1109,6 +1198,11 @@ export function predictLivePlayerModelSide(input: PredictLivePlayerSideInput): S
     lineGap: input.projectedValue - input.line,
     absLineGap: Math.abs(input.projectedValue - input.line),
   };
+
+  // Residual drag memory is a narrow baseline veto layer for player-markets
+  // where the live override repeatedly lost to baseline in honest training.
+  const residualDragMemoryOverride = applyPlayerMarketResidualDragMemory(playerKey, input.market, row);
+  if (residualDragMemoryOverride) return residualDragMemoryOverride;
 
   // Priority replacement models intentionally run before the manifest layer so
   // curated headroom challengers can displace older player-local rules.

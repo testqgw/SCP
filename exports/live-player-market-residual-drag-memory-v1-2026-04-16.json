@@ -1,0 +1,29 @@
+{
+  "version": "2026-04-16-residual-drag-memory-v1",
+  "generatedAt": "2026-04-16T16:45:00Z",
+  "label": "narrow_honest_positive_veto_pack_v1",
+  "note": "Player-market baseline veto cells selected from pre-2026-02-15 training because the live override underperformed baseline and the narrow pack stayed positive across validation, 30d, 14d, and latest-12d honest windows.",
+  "entries": [
+    {
+      "playerKey": "nickeil alexander walker",
+      "playerName": "Nickeil Alexander-Walker",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        },
+        "RA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "derik queen",
+      "playerName": "Derik Queen",
+      "markets": {
+        "RA": {
+          "source": "baseline"
+        }
+      }
+    }
+  ]
+}

@@ -3408,6 +3408,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         : `pra-raw-feature:${promotedPraRuntime.mode}`,
       `player-overrides:${playerOverrideRuntime.mode}:${playerOverrideRuntime.joelMode}:${playerOverrideRuntime.javonMode}:${playerOverrideRuntime.jaMode}:${playerOverrideRuntime.naeMode}:${playerOverrideRuntime.coleMode}:${playerOverrideRuntime.dejounteMode}:${playerOverrideRuntime.devinMode}:${playerOverrideRuntime.aaronMode}:${playerOverrideRuntime.sabonisMode}:${playerOverrideRuntime.taureanMode}:${playerOverrideRuntime.tristanMode}:${playerOverrideRuntime.marcusMode}:${playerOverrideRuntime.kyleMode}`,
       `player-local-manifest:${playerOverrideRuntime.playerLocalRecoveryManifestMode}:${playerOverrideRuntime.playerLocalRecoveryManifestSignature ?? "none"}`,
+      `player-market-drag-memory:${playerOverrideRuntime.playerMarketResidualDragMemoryMode}:${playerOverrideRuntime.playerMarketResidualDragMemorySignature ?? "none"}`,
     ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
