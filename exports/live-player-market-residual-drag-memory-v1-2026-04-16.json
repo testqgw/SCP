@@ -1,8 +1,8 @@
 {
-  "version": "2026-04-16-residual-drag-memory-v3",
-  "generatedAt": "2026-04-16T23:20:00Z",
-  "label": "strict_stale_cell_prune_pack_v3",
-  "note": "Player-market baseline veto cells selected from honest walk-forward stale routing pockets where baseline beat the promoted non-baseline path with stable full-season drag and nonnegative 30d/14d holdout deltas.",
+  "version": "2026-04-16-residual-drag-memory-v4",
+  "generatedAt": "2026-04-16T23:55:00Z",
+  "label": "strict_stale_cell_prune_pack_v4_leftover_completion",
+  "note": "Player-market baseline veto cells selected from honest walk-forward stale routing pockets where baseline beat the promoted non-baseline path with stable full-season drag and nonnegative 30d/14d holdout deltas, plus a small leftover-market completion pack for players whose override coverage left one stable uncovered sinkhole.",
   "entries": [
     {
       "playerKey": "nickeil alexander walker",
@@ -342,6 +342,42 @@
       "playerName": "Cameron Johnson",
       "markets": {
         "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "donovan clingan",
+      "playerName": "Donovan Clingan",
+      "markets": {
+        "PR": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "baylor scheierman",
+      "playerName": "Baylor Scheierman",
+      "markets": {
+        "PR": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "rui hachimura",
+      "playerName": "Rui Hachimura",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "onyeka okongwu",
+      "playerName": "Onyeka Okongwu",
+      "markets": {
+        "PTS": {
           "source": "baseline"
         }
       }
