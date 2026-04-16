@@ -3,6 +3,8 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
+  SnapshotBoardMarketSource,
+  SnapshotBoardMode,
   SnapshotBoardFeedItem,
   SnapshotBoardViewData,
   SnapshotPrecisionAuditEntry,
@@ -12,6 +14,8 @@ import type {
   SnapshotMarket,
   SnapshotModelSide,
   SnapshotPrecisionCardEntry,
+  SnapshotRecentSafeMarketPolicy,
+  SnapshotRecentSafeSystemSummary,
 } from '@/lib/types/snapshot';
 
 type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
@@ -714,17 +718,57 @@ function leadViewFromViews(views: View[]) {
   return views.find((view) => view.live != null) ?? views.find((view) => isActionableView(view)) ?? views[0] ?? null;
 }
 
-function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: SnapshotPrecisionCardEntry | null = null): View {
+function recentSafePolicyAllowsSource(
+  policy: SnapshotRecentSafeMarketPolicy,
+  source: SnapshotBoardMarketSource | null | undefined,
+) {
+  if (policy === 'off' || source == null) return false;
+  if (policy === 'player_override_only') return source === 'player_override';
+  return source === 'player_override' || source === 'universal_qualified';
+}
+
+function marketRuntimeFor(row: SnapshotDashboardRow, market: SnapshotMarket) {
+  return row.marketRuntime?.[market] ?? null;
+}
+
+function isMarketAllowedInMode(
+  row: SnapshotDashboardRow,
+  market: SnapshotMarket,
+  mode: SnapshotBoardMode,
+  recentSafeSystem: SnapshotRecentSafeSystemSummary | null,
+) {
+  if (mode === 'full') return true;
+  const runtime = marketRuntimeFor(row, market);
+  const policy = recentSafeSystem?.marketPolicy[market] ?? 'off';
+  return Boolean(runtime && recentSafePolicyAllowsSource(policy, runtime.source));
+}
+
+function runtimeSourceLabel(source: SnapshotBoardMarketSource | null | undefined) {
+  if (source === 'player_override') return 'Player override runtime';
+  if (source === 'universal_qualified') return 'Universal qualified runtime';
+  return 'Baseline runtime';
+}
+
+function viewFor(
+  row: SnapshotDashboardRow,
+  market: SnapshotMarket,
+  entry: SnapshotPrecisionCardEntry | null = null,
+  mode: SnapshotBoardMode = 'full',
+): View {
   const liveSignal = signal(row, market);
   const precision = entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null;
+  const runtime = marketRuntimeFor(row, market);
   const fair = row.modelLines[market].fairLine;
   const live = liveSignal?.marketLine ?? null;
   const proj = row.projectedTonight[market];
   const basis = live ?? fair;
   const usesComputedSide = !(precision?.qualified && precision.side !== 'NEUTRAL') && basis != null && proj != null;
+  const usesRuntimeSide = !entry && mode === 'recent-safe' && runtime != null;
   const side: SnapshotModelSide =
     precision?.qualified && precision.side !== 'NEUTRAL'
       ? precision.side
+      : usesRuntimeSide
+        ? runtime.finalSide
       : usesComputedSide
         ? proj > basis
           ? 'OVER'
@@ -766,10 +810,24 @@ function viewFor(row: SnapshotDashboardRow, market: SnapshotMarket, entry: Snaps
     edgeKind: edge != null ? (usesDerivedEdge ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
     confKind: conf != null ? (usesDerivedConfidence ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
     booksKind: liveBooks != null ? 'LIVE' : 'PLACEHOLDER',
-    sideKind: usesComputedSide ? 'DERIVED' : 'LIVE',
+    sideKind: usesRuntimeSide ? 'LIVE' : usesComputedSide ? 'DERIVED' : 'LIVE',
     rank: entry ? `#${entry.rank}` : null,
-    source: entry ? `Precision rank #${entry.rank}` : live != null ? 'Live consensus' : fair != null ? 'Fair line only' : 'No line yet',
-    note: live != null ? `${liveBooks ?? 0} books live` : fair != null ? 'Fair line only until live consensus lands' : 'No market line available yet',
+    source: entry
+      ? `Precision rank #${entry.rank}`
+      : usesRuntimeSide
+        ? runtimeSourceLabel(runtime.source)
+        : live != null
+          ? 'Live consensus'
+          : fair != null
+            ? 'Fair line only'
+            : 'No line yet',
+    note: usesRuntimeSide
+      ? `${runtimeSourceLabel(runtime.source)} kept this market in the recent-safe board.`
+      : live != null
+        ? `${liveBooks ?? 0} books live`
+        : fair != null
+          ? 'Fair line only until live consensus lands'
+          : 'No market line available yet',
     score,
     reasons,
     precision,
@@ -821,6 +879,10 @@ function parseViewParam(value: string | null): ViewKey {
   return 'overview';
 }
 
+function parseModeParam(value: string | null): SnapshotBoardMode {
+  return value === 'recent-safe' ? 'recent-safe' : 'full';
+}
+
 function viewKeepsPlayerParam(view: ViewKey) {
   return view === 'players';
 }
@@ -862,11 +924,13 @@ function resolveInitialMatchupKey(matchups: SnapshotBoardViewData['matchups'], v
 export default function NewDashboard({
   data: initialData,
   initialViewParam = null,
+  initialModeParam = null,
   initialPlayerParam = null,
   initialMatchupParam = null,
 }: {
   data: SnapshotBoardViewData;
   initialViewParam?: string | null;
+  initialModeParam?: string | null;
   initialPlayerParam?: string | null;
   initialMatchupParam?: string | null;
 }) {
@@ -874,6 +938,7 @@ export default function NewDashboard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialView = parseViewParam(initialViewParam);
+  const initialBoardMode = parseModeParam(initialModeParam);
   const initialTab = VIEW_TO_TAB[initialView] ?? 'overview';
   const initialPlayerId = resolveInitialPlayerId(initialData.rows, initialPlayerParam);
   const initialPlayerRow = initialPlayerId
@@ -886,6 +951,7 @@ export default function NewDashboard({
     null;
   const initialPinnedMatchupKey = viewKeepsMatchupParam(initialView) ? resolvedInitialMatchupKey : null;
   const [data, setData] = useState(initialData);
+  const [boardMode, setBoardMode] = useState<SnapshotBoardMode>(initialBoardMode);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [headerView, setHeaderView] = useState<ViewKey>(initialView);
   const [pickedPlayer, setPickedPlayer] = useState<string | null>(viewKeepsPlayerParam(initialView) ? initialPlayerId : null);
@@ -937,17 +1003,28 @@ export default function NewDashboard({
     };
   }, []);
 
-  const rowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
+  const recentSafeSystem = data.recentSafeSystem ?? null;
+  const allRowById = useMemo(() => new Map(data.rows.map((row) => [row.playerId, row] as const)), [data.rows]);
+  const boardRows = useMemo(
+    () =>
+      boardMode === 'full'
+        ? data.rows
+        : data.rows.filter((row) =>
+            MARKETS.some((market) => isMarketAllowedInMode(row, market, boardMode, recentSafeSystem)),
+          ),
+    [boardMode, data.rows, recentSafeSystem],
+  );
+  const rowById = useMemo(() => new Map(boardRows.map((row) => [row.playerId, row] as const)), [boardRows]);
   const precision = useMemo(
     () =>
       (data.precisionCard ?? [])
         .map((entry) => {
-          const row = rowById.get(entry.playerId);
+          const row = allRowById.get(entry.playerId);
           return row ? { entry, row, view: viewFor(row, entry.market, entry) } : null;
         })
         .filter((x): x is { entry: SnapshotPrecisionCardEntry; row: SnapshotDashboardRow; view: View } => x !== null)
         .sort((a, b) => a.entry.rank - b.entry.rank || (b.entry.selectionScore ?? 0) - (a.entry.selectionScore ?? 0)),
-    [data.precisionCard, rowById],
+    [allRowById, data.precisionCard],
   );
   const precisionDashboard = data.precisionDashboard ?? null;
   const precisionAuditByKey = useMemo(
@@ -957,26 +1034,38 @@ export default function NewDashboard({
       ),
     [precisionDashboard],
   );
-  const allViews = useMemo(() => data.rows.flatMap((row) => MARKETS.map((market) => viewFor(row, market))), [data.rows]);
+  const allViews = useMemo(
+    () =>
+      boardRows.flatMap((row) =>
+        MARKETS.filter((market) => isMarketAllowedInMode(row, market, boardMode, recentSafeSystem)).map((market) =>
+          viewFor(row, market, null, boardMode),
+        ),
+      ),
+    [boardMode, boardRows, recentSafeSystem],
+  );
   const featured = useMemo(() => {
-    const lead = precision[0]?.view;
-    if (lead) return lead;
+    if (boardMode === 'full') {
+      const lead = precision[0]?.view;
+      if (lead) return lead;
+    }
     return (
       allViews
         .filter((v) => v.live != null || v.precision?.qualified || v.conf != null || v.edge != null)
         .sort((a, b) => b.score - a.score || (b.conf ?? 0) - (a.conf ?? 0) || a.row.playerName.localeCompare(b.row.playerName))[0] ?? null
     );
-  }, [allViews, precision]);
+  }, [allViews, boardMode, precision]);
   const slatePlayers = useMemo(() => {
     const ids = new Set<string>();
     const out: SnapshotDashboardRow[] = [];
-    precision.forEach(({ row }) => {
-      if (!ids.has(row.playerId)) {
-        ids.add(row.playerId);
-        out.push(row);
-      }
-    });
-    data.rows
+    if (boardMode === 'full') {
+      precision.forEach(({ row }) => {
+        if (!ids.has(row.playerId)) {
+          ids.add(row.playerId);
+          out.push(row);
+        }
+      });
+    }
+    boardRows
       .slice()
       .sort((a, b) => b.dataCompleteness.score - a.dataCompleteness.score || a.playerName.localeCompare(b.playerName))
       .forEach((row) => {
@@ -986,7 +1075,7 @@ export default function NewDashboard({
         }
       });
     return out;
-  }, [data.rows, precision]);
+  }, [boardMode, boardRows, precision]);
   const researchRows = useMemo(() => slatePlayers.slice(0, 12), [slatePlayers]);
   const searchResults = useMemo(() => {
     if (!deferredSearchQuery) return [];
@@ -1023,7 +1112,11 @@ export default function NewDashboard({
   const researchListCards = useMemo(
     () =>
       researchListRows.map((row) => {
-        const views = rankViews(MARKETS.map((market) => viewFor(row, market)));
+        const views = rankViews(
+          MARKETS.filter((market) => isMarketAllowedInMode(row, market, boardMode, recentSafeSystem)).map((market) =>
+            viewFor(row, market, null, boardMode),
+          ),
+        );
         return {
           row,
           leadView: leadViewFromViews(views),
@@ -1034,11 +1127,18 @@ export default function NewDashboard({
           (b.leadView?.conf ?? -1) - (a.leadView?.conf ?? -1) ||
           a.row.playerName.localeCompare(b.row.playerName),
       ),
-    [researchListRows],
+    [boardMode, recentSafeSystem, researchListRows],
   );
   const researchViews = useMemo(
-    () => (researchRow ? rankViews(MARKETS.map((market) => viewFor(researchRow, market))) : []),
-    [researchRow],
+    () =>
+      researchRow
+        ? rankViews(
+            MARKETS.filter((market) => isMarketAllowedInMode(researchRow, market, boardMode, recentSafeSystem)).map((market) =>
+              viewFor(researchRow, market, null, boardMode),
+            ),
+          )
+        : [],
+    [boardMode, recentSafeSystem, researchRow],
   );
   const researchLiveViews = useMemo(() => researchViews.filter((view) => view.live != null), [researchViews]);
   const researchLeadView = useMemo(() => leadViewFromViews(researchViews), [researchViews]);
@@ -1076,8 +1176,8 @@ export default function NewDashboard({
     [data.matchups, selectedMatchupKey],
   );
   const selectedMatchupRows = useMemo(
-    () => (selectedMatchupKey ? data.rows.filter((row) => row.matchupKey === selectedMatchupKey) : []),
-    [data.rows, selectedMatchupKey],
+    () => (selectedMatchupKey ? boardRows.filter((row) => row.matchupKey === selectedMatchupKey) : []),
+    [boardRows, selectedMatchupKey],
   );
   const selectedMatchupTeamStats = useMemo(
     () => (selectedMatchupKey ? data.teamMatchups.find((m) => m.matchupKey === selectedMatchupKey) ?? null : null),
@@ -1120,7 +1220,7 @@ export default function NewDashboard({
   const matchupQualifiedCount = selectedMatchupViews.filter((v) => v.precision?.qualified).length;
   const liveCount = allViews.filter((v) => v.live != null).length;
   const qualifiedCount = allViews.filter((v) => v.precision?.qualified).length;
-  const hasBoardRows = data.rows.length > 0;
+  const hasBoardRows = boardRows.length > 0;
   const featuredUpdatedAt = featured?.row.gameIntel.generatedAt ?? data.lastUpdatedAt ?? null;
   const boardRefreshRelative = relativeTime(data.lastUpdatedAt, now);
   const selectedMatchupLead = matchupBestSpots[0] ?? null;
@@ -1138,7 +1238,7 @@ export default function NewDashboard({
   const selectedMatchupHomeAllowed = selectedMatchupTeamStats && selectedMatchupFocusMarket
     ? selectedMatchupTeamStats.homeLast10Allowed[selectedMatchupFocusMarket]
     : null;
-  const boardModelNote = firstSentence(data.universalSystem?.note);
+  const boardModelNote = firstSentence(boardMode === 'recent-safe' ? recentSafeSystem?.note : data.universalSystem?.note);
   const featuredMarketAverageLast10 = featured ? featured.row.last10Average[featured.market] : null;
   const featuredMarketAverageSeason = featured ? featured.row.seasonAverage[featured.market] : null;
   const featuredMarketTrend = featured ? featured.row.trendVsSeason[featured.market] : null;
@@ -1182,6 +1282,17 @@ export default function NewDashboard({
     (featured
       ? `${recommendationHeadline(featured)} is leading the board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
+  const boardModeLabel = boardMode === 'recent-safe' ? recentSafeSystem?.label ?? 'Recent Safe' : 'Full board';
+  const boardModeDetail =
+    boardMode === 'recent-safe'
+      ? recentSafeSystem
+        ? `Honest 14d ${pct(recentSafeSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(recentSafeSystem.honest30dRawAccuracy, 2)} | Coverage ${pct(recentSafeSystem.coveragePct, 2)}`
+        : 'Only the validated recent-safe source pockets are shown in this board mode.'
+      : 'Shows the full board, including baseline reads, broader universal-qualified pockets, and every live market that made the payload.';
+  const boardModeCountLabel =
+    boardMode === 'recent-safe'
+      ? `${n(allViews.length, 0)} current recent-safe views`
+      : `${n(allViews.length, 0)} current board views`;
   const researchWhyInteresting = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player and the board will explain why that slate row is worth a deeper look.';
@@ -1430,7 +1541,14 @@ export default function NewDashboard({
     return Number((liveBookViews.reduce((sum, view) => sum + (view.books ?? 0), 0) / liveBookViews.length).toFixed(1));
   }, [allViews]);
   const matchupExplorerSpots = useMemo(() => matchupBestSpots.slice(0, 3), [matchupBestSpots]);
-  const boardFeedEvents = useMemo(() => data.boardFeed?.events ?? [], [data.boardFeed]);
+  const boardFeedEvents = useMemo(() => {
+    const events = data.boardFeed?.events ?? [];
+    if (boardMode === 'full') return events;
+    return events.filter((event) => {
+      const row = rowById.get(event.playerId);
+      return row ? isMarketAllowedInMode(row, event.market, boardMode, recentSafeSystem) : false;
+    });
+  }, [boardMode, data.boardFeed, recentSafeSystem, rowById]);
   const liveFeedEvents = useMemo(() => boardFeedEvents.slice(0, 12), [boardFeedEvents]);
   const liveFeedBuckets = useMemo(() => {
     const grouped = new Map<string, SnapshotBoardFeedItem[]>();
@@ -1709,6 +1827,11 @@ export default function NewDashboard({
     scrollToSection(workspaceRef, 'smooth');
     window.setTimeout(() => searchInputRef.current?.focus(), 220);
   };
+  const setBoardModeSelection = (nextMode: SnapshotBoardMode) => {
+    if (nextMode === boardMode) return;
+    urlNavigationModeRef.current = 'push';
+    setBoardMode(nextMode);
+  };
   const setResearch = (playerId: string, options?: { scroll?: boolean }) => {
     urlNavigationModeRef.current = 'push';
     const row = rowById.get(playerId);
@@ -1749,6 +1872,7 @@ export default function NewDashboard({
   useEffect(() => {
     const currentSearch = searchParams.toString();
     const nextView = parseViewParam(searchParams.get('view'));
+    const nextMode = parseModeParam(searchParams.get('mode'));
     const nextTab = VIEW_TO_TAB[nextView];
     const nextPlayer = searchParams.get('player');
     const nextMatchup = searchParams.get('matchup');
@@ -1765,6 +1889,7 @@ export default function NewDashboard({
 
     setHeaderSearchOpen(false);
     setHeaderView(nextView);
+    setBoardMode(nextMode);
     if (nextTab) {
       setTab(nextTab);
     }
@@ -1810,6 +1935,9 @@ export default function NewDashboard({
     const keepPlayer = viewKeepsPlayerParam(headerView);
     const keepMatchup = viewKeepsMatchupParam(headerView);
 
+    if (boardMode !== 'full') {
+      params.set('mode', boardMode);
+    }
     if (headerView !== 'overview' || (keepPlayer && encodedPlayer) || (keepMatchup && encodedMatchup)) {
       params.set('view', headerView);
     }
@@ -1834,7 +1962,7 @@ export default function NewDashboard({
       }
       router.replace(href, { scroll: false });
     });
-  }, [headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, router, searchParams, urlReady]);
+  }, [boardMode, headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, router, searchParams, urlReady]);
 
   useEffect(() => {
     if (pickedPlayer && !rowById.has(pickedPlayer)) {
@@ -2099,6 +2227,46 @@ export default function NewDashboard({
               <div className="mt-2 text-sm text-[var(--text-2)]">{refreshNotice.detail}</div>
             </div>
           ) : null}
+
+          <section className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board mode</div>
+                <div className="mt-1 text-sm font-semibold text-[var(--text)]">{boardModeLabel}</div>
+                <div className="mt-1 text-sm text-[var(--text-2)]">{boardModeDetail}</div>
+                <div className="mt-1 text-xs text-[var(--muted)]">{boardModeCountLabel}</div>
+              </div>
+              <div className="inline-flex w-full rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-1 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setBoardModeSelection('full')}
+                  className={`${ACTION_CLASS} min-h-10 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-none ${
+                    boardMode === 'full'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  Full board
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBoardModeSelection('recent-safe')}
+                  className={`${ACTION_CLASS} min-h-10 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-none ${
+                    boardMode === 'recent-safe'
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                  }`}
+                >
+                  Recent Safe
+                </button>
+              </div>
+            </div>
+            {boardMode === 'recent-safe' ? (
+              <div className="mt-3 rounded-xl border border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)] px-3.5 py-3 text-sm text-[var(--text-2)]">
+                This mode uses the validated source mix only. Precision picks stay available, but the main board hides markets that did not hold up out of sample.
+              </div>
+            ) : null}
+          </section>
 
           {tab === 'overview' ? (
             <>

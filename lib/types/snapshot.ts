@@ -66,6 +66,34 @@ export type SnapshotPaSignal = SnapshotPtsSignal;
 export type SnapshotPrSignal = SnapshotPtsSignal;
 export type SnapshotRaSignal = SnapshotPtsSignal;
 
+export type SnapshotBoardMode = "full" | "recent-safe";
+
+export type SnapshotBoardMarketSource = "player_override" | "universal_qualified" | "baseline";
+
+export type SnapshotRecentSafeMarketPolicy =
+  | "off"
+  | "player_override_only"
+  | "player_override_or_universal_qualified";
+
+export type SnapshotMarketRuntime = {
+  baselineSide: SnapshotModelSide;
+  finalSide: SnapshotModelSide;
+  source: SnapshotBoardMarketSource;
+  playerOverrideEngaged: boolean;
+  universalQualifiedEngaged: boolean;
+  recentSafeEligible: boolean;
+};
+
+export type SnapshotRecentSafeSystemSummary = {
+  label: string;
+  validationRawAccuracy: number;
+  honest14dRawAccuracy: number;
+  honest30dRawAccuracy: number;
+  coveragePct: number;
+  marketPolicy: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy>;
+  note?: string;
+};
+
 export type SnapshotPrecisionPickSignal = {
   side: SnapshotModelSide;
   qualified?: boolean;
@@ -269,6 +297,7 @@ export type SnapshotRow = {
   paSignal: SnapshotPtsSignal | null;
   prSignal: SnapshotPtsSignal | null;
   raSignal: SnapshotPtsSignal | null;
+  marketRuntime?: Partial<Record<SnapshotMarket, SnapshotMarketRuntime>>;
   precisionSignals?: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>>;
   recentLogs: SnapshotStatLog[];
   analysisLogs: SnapshotStatLog[];
@@ -320,6 +349,7 @@ export type SnapshotBoardData = {
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   precisionDashboard?: SnapshotPrecisionDashboard | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
+  recentSafeSystem?: SnapshotRecentSafeSystemSummary | null;
   boardFeed?: SnapshotBoardFeed | null;
 };
 
@@ -435,6 +465,7 @@ export type SnapshotDashboardRow = Pick<
   paSignal: SnapshotDashboardSignal | null;
   prSignal: SnapshotDashboardSignal | null;
   raSignal: SnapshotDashboardSignal | null;
+  marketRuntime?: Partial<Record<SnapshotMarket, SnapshotMarketRuntime>>;
   precisionSignals?: Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>>;
   dataCompleteness: SnapshotDashboardDataCompleteness;
   playerContext: SnapshotDashboardPlayerContext;

@@ -49,11 +49,12 @@ import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRece
 import {
   evaluateLiveUniversalModelSide,
   inspectLiveUniversalModelSide,
+  type PredictLiveUniversalSideInput,
 } from "@/lib/snapshot/liveUniversalSideModels";
-  import {
-    getLivePlayerOverrideRuntimeMeta,
-    predictLivePlayerModelSide,
-  } from "@/lib/snapshot/livePlayerSideModels";
+import {
+  getLivePlayerOverrideRuntimeMeta,
+  predictLivePlayerModelSide,
+} from "@/lib/snapshot/livePlayerSideModels";
 import {
   getLivePraRawFeatureRuntimeMeta,
   predictLivePraRawFeatureSide,
@@ -82,6 +83,7 @@ import type {
   SnapshotBoardFeed,
   SnapshotBoardFeedEventType,
   SnapshotBoardFeedItem,
+  SnapshotBoardMarketSource,
   SnapshotBoardFeedStatus,
   SnapshotBoardViewData,
   SnapshotDataCompleteness,
@@ -100,6 +102,7 @@ import type {
   SnapshotIntelItem,
   SnapshotIntelModule,
   SnapshotMarket,
+  SnapshotMarketRuntime,
   SnapshotMatchupOption,
   SnapshotPrecisionCardEntry,
   SnapshotModelSide,
@@ -108,6 +111,8 @@ import type {
   SnapshotPrecisionPickSignal,
   SnapshotPrimaryDefender,
   SnapshotPtsSignal,
+  SnapshotRecentSafeMarketPolicy,
+  SnapshotRecentSafeSystemSummary,
   SnapshotRow,
   SnapshotStatLog,
   SnapshotTeammateCore,
@@ -278,7 +283,29 @@ type SnapshotBoardCacheEntry = {
 const snapshotBoardCache = new Map<string, SnapshotBoardCacheEntry>();
 let cachedPlayerPositions: { data: CachedPlayerPosition[]; expiresAt: number } | null = null;
 const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
-const SNAPSHOT_BOARD_PAYLOAD_VERSION = "modal-preload-v2";
+const SNAPSHOT_BOARD_PAYLOAD_VERSION = "recent-safe-runtime-v1";
+
+const RECENT_SAFE_MARKET_POLICY: Record<SnapshotMarket, SnapshotRecentSafeMarketPolicy> = {
+  PTS: "player_override_or_universal_qualified",
+  REB: "player_override_only",
+  AST: "player_override_or_universal_qualified",
+  THREES: "player_override_or_universal_qualified",
+  PRA: "player_override_only",
+  PA: "off",
+  PR: "player_override_or_universal_qualified",
+  RA: "player_override_or_universal_qualified",
+};
+
+const RECENT_SAFE_SYSTEM_SUMMARY: SnapshotRecentSafeSystemSummary = {
+  label: "Recent Safe Mid Coverage",
+  validationRawAccuracy: 66.55,
+  honest14dRawAccuracy: 60.38,
+  honest30dRawAccuracy: 62.04,
+  coveragePct: 50.21,
+  marketPolicy: RECENT_SAFE_MARKET_POLICY,
+  note:
+    "Validated on February 16, 2026 through March 15, 2026, then held out on March 16, 2026 through April 14, 2026. Keeps only the player-override and stable universal-qualified source pockets that held up out of sample.",
+};
 
 type PersistedSnapshotBoardSetting = {
   sourceSignal: string;
@@ -484,6 +511,140 @@ function resolveBinarySide(
   value: SnapshotModelSide | null | undefined,
 ): "OVER" | "UNDER" | null {
   return value === "OVER" || value === "UNDER" ? value : null;
+}
+
+function recentSafePolicyAllowsSource(
+  policy: SnapshotRecentSafeMarketPolicy,
+  source: SnapshotBoardMarketSource,
+): boolean {
+  if (policy === "off") return false;
+  if (policy === "player_override_only") return source === "player_override";
+  return source === "player_override" || source === "universal_qualified";
+}
+
+function hasSnapshotRowRuntime(row: SnapshotRow): boolean {
+  return MARKETS.every((market) => row.marketRuntime?.[market] != null);
+}
+
+function hasPersistedRecentSafeData(data: SnapshotBoardData): boolean {
+  return Boolean(data.recentSafeSystem) && data.rows.every((row) => hasSnapshotRowRuntime(row));
+}
+
+type SnapshotMarketRuntimeBuildInput = {
+  market: SnapshotMarket;
+  playerName: string;
+  signal: SnapshotPtsSignal | null;
+  modelSide: SnapshotModelSide;
+  universalInput: PredictLiveUniversalSideInput;
+  expectedMinutes: number | null;
+  minutesVolatility: number | null;
+  starterRateLast10: number | null;
+  praPromotionContext?: {
+    projectionSide: "OVER" | "UNDER" | null;
+    favoredSide: "OVER" | "UNDER" | "NEUTRAL";
+    openingTeamSpread: number | null;
+    openingTotal: number | null;
+    lineupTimingConfidence: number | null;
+    completenessScore: number | null;
+    pointsProjection: number | null;
+    reboundsProjection: number | null;
+    assistProjection: number | null;
+    threesProjection: number | null;
+    lineGap: number | null;
+    absLineGap: number | null;
+  } | null;
+};
+
+function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): SnapshotMarketRuntime {
+  const baselineSide = input.signal?.baselineSide ?? input.modelSide;
+  let finalSide: SnapshotModelSide = baselineSide;
+  let source: SnapshotBoardMarketSource = "baseline";
+  let playerOverrideEngaged = false;
+  let universalQualifiedEngaged = false;
+
+  const rawDecision = inspectLiveUniversalModelSide(input.universalInput);
+  const liveDecision = evaluateLiveUniversalModelSide(input.universalInput);
+  const resolvedBaselineSide = resolveBinarySide(baselineSide) ?? "NEUTRAL";
+  const resolvedLiveSide = resolveBinarySide(liveDecision.side) ?? resolvedBaselineSide;
+  const playerOverrideSide = predictLivePlayerModelSide({
+    playerName: input.playerName,
+    market: input.market,
+    projectedValue: input.universalInput.projectedValue,
+    line: input.universalInput.line,
+    overPrice: input.universalInput.overPrice,
+    underPrice: input.universalInput.underPrice,
+    rawSide: resolveBinarySide(rawDecision.rawSide) ?? resolvedBaselineSide,
+    finalSide: resolvedLiveSide,
+    baselineSide: resolvedBaselineSide,
+    expectedMinutes: input.expectedMinutes,
+    minutesVolatility: input.minutesVolatility,
+    starterRateLast10: input.starterRateLast10,
+  });
+
+  if (playerOverrideSide === "OVER" || playerOverrideSide === "UNDER") {
+    finalSide = playerOverrideSide;
+    source = "player_override";
+    playerOverrideEngaged = true;
+  } else if (liveDecision.side === "OVER" || liveDecision.side === "UNDER") {
+    finalSide = liveDecision.side;
+    source = "universal_qualified";
+    universalQualifiedEngaged = true;
+  }
+
+  const praControlSide = resolveBinarySide(rawDecision.rawSide) ?? resolvedBaselineSide;
+  if (
+    input.market === "PRA" &&
+    !playerOverrideEngaged &&
+    input.praPromotionContext &&
+    input.praPromotionContext.projectionSide != null &&
+    resolvedBaselineSide !== "NEUTRAL" &&
+    praControlSide !== "NEUTRAL" &&
+    input.praPromotionContext.lineGap != null &&
+    input.praPromotionContext.absLineGap != null
+  ) {
+    const promotedPra = predictLivePraRawFeatureSide({
+      market: "PRA",
+      projectedValue: input.universalInput.projectedValue,
+      line: input.universalInput.line,
+      overPrice: input.universalInput.overPrice,
+      underPrice: input.universalInput.underPrice,
+      projectionSide: input.praPromotionContext.projectionSide,
+      baselineSide: resolvedBaselineSide,
+      controlSide: praControlSide,
+      universalSide: resolveBinarySide(rawDecision.rawSide),
+      playerSide: null,
+      favoredSide: input.praPromotionContext.favoredSide,
+      archetype: rawDecision.archetype?.trim() || "UNKNOWN",
+      modelKind: rawDecision.modelKind?.trim() || "UNKNOWN",
+      expectedMinutes: input.expectedMinutes,
+      minutesVolatility: input.minutesVolatility,
+      starterRateLast10: input.starterRateLast10,
+      openingTeamSpread: input.praPromotionContext.openingTeamSpread,
+      openingTotal: input.praPromotionContext.openingTotal,
+      lineupTimingConfidence: input.praPromotionContext.lineupTimingConfidence,
+      completenessScore: input.praPromotionContext.completenessScore,
+      pointsProjection: input.praPromotionContext.pointsProjection,
+      reboundsProjection: input.praPromotionContext.reboundsProjection,
+      assistProjection: input.praPromotionContext.assistProjection,
+      threesProjection: input.praPromotionContext.threesProjection,
+      lineGap: input.praPromotionContext.lineGap,
+      absLineGap: input.praPromotionContext.absLineGap,
+    });
+    if (promotedPra && promotedPra.changedFromControl) {
+      finalSide = promotedPra.selectedSide;
+      source = promotedPra.selectedSide === resolvedBaselineSide ? "baseline" : "universal_qualified";
+      universalQualifiedEngaged = source === "universal_qualified";
+    }
+  }
+
+  return {
+    baselineSide,
+    finalSide,
+    source,
+    playerOverrideEngaged,
+    universalQualifiedEngaged,
+    recentSafeEligible: recentSafePolicyAllowsSource(RECENT_SAFE_MARKET_POLICY[input.market], source),
+  };
 }
 
 function impliedProbabilityFromAmerican(odds: number | null): number | null {
@@ -693,6 +854,7 @@ function toDashboardSnapshotRow(row: SnapshotRow): SnapshotDashboardRow {
     paSignal: toDashboardSignal(row.paSignal),
     prSignal: toDashboardSignal(row.prSignal),
     raSignal: toDashboardSignal(row.raSignal),
+    marketRuntime: row.marketRuntime,
     precisionSignals: toDashboardPrecisionSignals(row.precisionSignals),
     dataCompleteness: toDashboardDataCompleteness(row.dataCompleteness),
     playerContext: toDashboardPlayerContext(row.playerContext),
@@ -3195,7 +3357,7 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     select: { value: true },
   });
   const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
-  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
+  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data) && hasPersistedRecentSafeData(persistedBoard.data)) {
     return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
   }
   return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
@@ -4814,6 +4976,57 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         });
       }
     });
+    const marketSignals: Record<SnapshotMarket, SnapshotPtsSignal | null> = {
+      PTS: ptsSignal,
+      REB: rebSignal,
+      AST: astSignal,
+      THREES: threesSignal,
+      PRA: praSignal,
+      PA: paSignal,
+      PR: prSignal,
+      RA: raSignal,
+    };
+    const marketRuntime = Object.fromEntries(
+      MARKETS.map((market) => {
+        const universalInput = buildPrecisionCardInputForMarket(market);
+        return [
+          market,
+          buildSnapshotMarketRuntime({
+            market,
+            playerName: player.fullName,
+            signal: marketSignals[market],
+            modelSide: modelLines[market].modelSide,
+            universalInput,
+            expectedMinutes: minutesProfile.expected,
+            minutesVolatility,
+            starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+            praPromotionContext:
+              market === "PRA"
+                ? {
+                    projectionSide: deriveProjectionSide(projectedTonight.PRA, praMarketLine?.line ?? null),
+                    favoredSide: deriveFavoredSide(praMarketLine?.overPrice ?? null, praMarketLine?.underPrice ?? null),
+                    openingTeamSpread,
+                    openingTotal,
+                    lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+                    completenessScore: dataCompleteness.score,
+                    pointsProjection: projectedTonight.PTS,
+                    reboundsProjection: projectedTonight.REB,
+                    assistProjection: projectedTonight.AST,
+                    threesProjection: projectedTonight.THREES,
+                    lineGap:
+                      projectedTonight.PRA == null || praMarketLine?.line == null
+                        ? null
+                        : round(projectedTonight.PRA - praMarketLine.line, 4),
+                    absLineGap:
+                      projectedTonight.PRA == null || praMarketLine?.line == null
+                        ? null
+                        : Math.abs(round(projectedTonight.PRA - praMarketLine.line, 4)),
+                  }
+                : null,
+          }),
+        ] as const;
+      }),
+    ) as Partial<Record<SnapshotMarket, SnapshotMarketRuntime>>;
 
     const gameIntel = buildGameIntel({
       dateEt,
@@ -5080,6 +5293,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       paSignal,
       prSignal,
       raSignal,
+      marketRuntime,
       precisionSignals,
       recentLogs: last10Logs,
       analysisLogs: logsForPlayer,
@@ -5128,6 +5342,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   if (isTodayEt && persistedRowMap.size > 0) {
     persistedRowMap.forEach((row, rowKey) => {
       if (builtRowKeys.has(rowKey)) return;
+      if (!hasSnapshotRowRuntime(row)) return;
       const sortTime = startedMatchupTimesByKey.get(row.matchupKey);
       if (sortTime == null) return;
       rowsWithSortKeys.push({
@@ -5204,6 +5419,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
+    recentSafeSystem: RECENT_SAFE_SYSTEM_SUMMARY,
   };
   const boardFeed = buildSnapshotBoardFeed({
     dateEt,
