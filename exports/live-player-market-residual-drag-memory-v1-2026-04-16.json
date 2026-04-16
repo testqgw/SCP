@@ -1,13 +1,16 @@
 {
-  "version": "2026-04-16-residual-drag-memory-v1",
-  "generatedAt": "2026-04-16T16:45:00Z",
-  "label": "narrow_honest_positive_veto_pack_v1",
-  "note": "Player-market baseline veto cells selected from pre-2026-02-15 training because the live override underperformed baseline and the narrow pack stayed positive across validation, 30d, 14d, and latest-12d honest windows.",
+  "version": "2026-04-16-residual-drag-memory-v2",
+  "generatedAt": "2026-04-16T18:05:00Z",
+  "label": "stable_negative_cell_veto_pack_v2",
+  "note": "Player-market baseline veto cells selected from honest walk-forward drag pockets where baseline beat the promoted stack and the broader pack improved full-season walk-forward plus 30d and 14d honest holdouts.",
   "entries": [
     {
       "playerKey": "nickeil alexander walker",
       "playerName": "Nickeil Alexander-Walker",
       "markets": {
+        "PTS": {
+          "source": "baseline"
+        },
         "PA": {
           "source": "baseline"
         },
@@ -21,6 +24,60 @@
       "playerName": "Derik Queen",
       "markets": {
         "RA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "precious achiuwa",
+      "playerName": "Precious Achiuwa",
+      "markets": {
+        "THREES": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "draymond green",
+      "playerName": "Draymond Green",
+      "markets": {
+        "PA": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "tyrese maxey",
+      "playerName": "Tyrese Maxey",
+      "markets": {
+        "PTS": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "john konchar",
+      "playerName": "John Konchar",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "dillon brooks",
+      "playerName": "Dillon Brooks",
+      "markets": {
+        "AST": {
+          "source": "baseline"
+        }
+      }
+    },
+    {
+      "playerKey": "jalen suggs",
+      "playerName": "Jalen Suggs",
+      "markets": {
+        "REB": {
           "source": "baseline"
         }
       }
