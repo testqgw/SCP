@@ -1,6 +1,6 @@
 {
-  "version": "2026-04-16-player-local-target-lift-v21-stale-prune-75",
-  "generatedAt": "2026-04-16T18:38:38.389Z",
+  "version": "2026-04-16-v22-klay-threes-over-pack",
+  "generatedAt": "2026-04-16T19:22:04.536Z",
   "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\_tmp_manifest_strict_stale_rules.json",
   "methodology": {
     "baseVersion": "2026-04-15-player-local-target-lift-v20-fullboard-maxnet-minrows-1",
@@ -1862,11 +1862,8 @@
       "targetRawAccuracy": 70,
       "markets": {
         "THREES": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 15.46,
-          "lowAction": "liveRaw",
-          "highAction": "baseline"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "threshold",
@@ -1961,11 +1958,8 @@
           "highAction": "liveRaw"
         },
         "THREES": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 32.8,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "threshold",
@@ -3939,8 +3933,8 @@
           "source": "final"
         },
         "THREES": {
-          "kind": "source",
-          "source": "final"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "source",
@@ -3979,8 +3973,8 @@
           "source": "liveRaw"
         },
         "THREES": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "source",
@@ -4518,8 +4512,8 @@
           "source": "favored"
         },
         "THREES": {
-          "kind": "source",
-          "source": "favored"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "source",
@@ -5629,8 +5623,8 @@
       "targetRawAccuracy": 60,
       "markets": {
         "THREES": {
-          "kind": "source",
-          "source": "favored"
+          "kind": "action",
+          "action": "OVER"
         },
         "PRA": {
           "kind": "source",
@@ -10125,11 +10119,8 @@
       "targetRawAccuracy": 70,
       "markets": {
         "THREES": {
-          "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": 0.155,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "OVER"
         },
         "REB": {
           "kind": "threshold",
