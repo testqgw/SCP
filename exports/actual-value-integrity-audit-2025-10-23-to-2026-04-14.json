@@ -1,0 +1,218 @@
+{
+  "generatedAt": "2026-04-16T04:04:40.678Z",
+  "sourceTable": "player_game_logs",
+  "downstreamNote": "Projection/backtest actualValue is derived from PlayerGameLog points, rebounds, and assists, so this audit covers the source that feeds those actualValue fields.",
+  "from": "2025-10-23",
+  "to": "2026-04-14",
+  "totalPlayedRows": 8138,
+  "hardThresholds": {
+    "pointsAbove70": 1,
+    "reboundsAbove25": 0,
+    "assistsAbove20": 1,
+    "minutesAbove53": 0
+  },
+  "shareThresholds": {
+    "highPointShareRows": 1,
+    "highReboundShareRows": 4,
+    "highAssistShareRows": 5
+  },
+  "hardAnomalyRowCount": 2,
+  "hardAnomalyRows": [
+    {
+      "playerName": "Bam Adebayo",
+      "teamCode": "MIA",
+      "gameDateEt": "2026-03-10",
+      "externalGameId": "0022500938",
+      "points": 83,
+      "rebounds": 9,
+      "assists": 3,
+      "minutes": 41.9,
+      "teamPoints": 150,
+      "teamRebounds": 48,
+      "teamAssists": 31,
+      "pointSharePct": 55.33,
+      "reboundSharePct": 18.75,
+      "assistSharePct": 9.68,
+      "flags": [
+        "points>70",
+        "pointShare>=55%"
+      ]
+    },
+    {
+      "playerName": "Ryan Nembhard",
+      "teamCode": "DAL",
+      "gameDateEt": "2026-04-12",
+      "externalGameId": "0022501193",
+      "points": 15,
+      "rebounds": 9,
+      "assists": 23,
+      "minutes": 38.28333333333333,
+      "teamPoints": 149,
+      "teamRebounds": 57,
+      "teamAssists": 35,
+      "pointSharePct": 10.07,
+      "reboundSharePct": 15.79,
+      "assistSharePct": 65.71,
+      "flags": [
+        "assists>20",
+        "assistShare>=55%"
+      ]
+    }
+  ],
+  "shareWatchRowCount": 8,
+  "shareWatchRows": [
+    {
+      "playerName": "Shai Gilgeous-Alexander",
+      "teamCode": "OKC",
+      "gameDateEt": "2026-03-09",
+      "externalGameId": "0022500933",
+      "points": 35,
+      "rebounds": 9,
+      "assists": 15,
+      "minutes": 38.95,
+      "teamPoints": 129,
+      "teamRebounds": 37,
+      "teamAssists": 27,
+      "pointSharePct": 27.13,
+      "reboundSharePct": 24.32,
+      "assistSharePct": 55.56,
+      "flags": [
+        "assistShare>=55%"
+      ]
+    },
+    {
+      "playerName": "Bam Adebayo",
+      "teamCode": "MIA",
+      "gameDateEt": "2026-03-21",
+      "externalGameId": "0022501027",
+      "points": 32,
+      "rebounds": 21,
+      "assists": 4,
+      "minutes": 45.01666666666667,
+      "teamPoints": 122,
+      "teamRebounds": 41,
+      "teamAssists": 31,
+      "pointSharePct": 26.23,
+      "reboundSharePct": 51.22,
+      "assistSharePct": 12.9,
+      "flags": [
+        "reboundShare>=45%"
+      ]
+    },
+    {
+      "playerName": "Nikola Jokić",
+      "teamCode": "DEN",
+      "gameDateEt": "2026-03-25",
+      "externalGameId": "0022501059",
+      "points": 23,
+      "rebounds": 21,
+      "assists": 19,
+      "minutes": 37.81666666666667,
+      "teamPoints": 142,
+      "teamRebounds": 45,
+      "teamAssists": 36,
+      "pointSharePct": 16.2,
+      "reboundSharePct": 46.67,
+      "assistSharePct": 52.78,
+      "flags": [
+        "reboundShare>=45%"
+      ]
+    },
+    {
+      "playerName": "Luka Dončić",
+      "teamCode": "LAL",
+      "gameDateEt": "2026-02-24",
+      "externalGameId": "0022500840",
+      "points": 22,
+      "rebounds": 9,
+      "assists": 15,
+      "minutes": 37.86666666666667,
+      "teamPoints": 109,
+      "teamRebounds": 39,
+      "teamAssists": 24,
+      "pointSharePct": 20.18,
+      "reboundSharePct": 23.08,
+      "assistSharePct": 62.5,
+      "flags": [
+        "assistShare>=55%"
+      ]
+    },
+    {
+      "playerName": "Julian Reese",
+      "teamCode": "WAS",
+      "gameDateEt": "2026-03-05",
+      "externalGameId": "0022500900",
+      "points": 18,
+      "rebounds": 20,
+      "assists": 2,
+      "minutes": 38.45,
+      "teamPoints": 112,
+      "teamRebounds": 43,
+      "teamAssists": 22,
+      "pointSharePct": 16.07,
+      "reboundSharePct": 46.51,
+      "assistSharePct": 9.09,
+      "flags": [
+        "reboundShare>=45%"
+      ]
+    },
+    {
+      "playerName": "Jalen Brunson",
+      "teamCode": "NYK",
+      "gameDateEt": "2026-03-04",
+      "externalGameId": "0022500893",
+      "points": 16,
+      "rebounds": 3,
+      "assists": 15,
+      "minutes": 38.6,
+      "teamPoints": 100,
+      "teamRebounds": 48,
+      "teamAssists": 23,
+      "pointSharePct": 16,
+      "reboundSharePct": 6.25,
+      "assistSharePct": 65.22,
+      "flags": [
+        "assistShare>=55%"
+      ]
+    },
+    {
+      "playerName": "Rudy Gobert",
+      "teamCode": "MIN",
+      "gameDateEt": "2026-02-24",
+      "externalGameId": "0022500841",
+      "points": 10,
+      "rebounds": 19,
+      "assists": 4,
+      "minutes": 35.71,
+      "teamPoints": 124,
+      "teamRebounds": 41,
+      "teamAssists": 26,
+      "pointSharePct": 8.06,
+      "reboundSharePct": 46.34,
+      "assistSharePct": 15.38,
+      "flags": [
+        "reboundShare>=45%"
+      ]
+    },
+    {
+      "playerName": "Josh Giddey",
+      "teamCode": "CHI",
+      "gameDateEt": "2026-03-19",
+      "externalGameId": "0022501011",
+      "points": 9,
+      "rebounds": 6,
+      "assists": 19,
+      "minutes": 36.68,
+      "teamPoints": 110,
+      "teamRebounds": 47,
+      "teamAssists": 27,
+      "pointSharePct": 8.18,
+      "reboundSharePct": 12.77,
+      "assistSharePct": 70.37,
+      "flags": [
+        "assistShare>=55%"
+      ]
+    }
+  ],
+  "verdict": "Integrity risk looks narrow and isolated. The source table is not broadly poisoned, but the few hard-anomaly rows should be corrected or excluded before using great-game examples as literal box-score evidence."
+}

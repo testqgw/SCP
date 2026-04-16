@@ -13,6 +13,7 @@ import type {
   SnapshotDashboardSignal,
   SnapshotMarket,
   SnapshotModelSide,
+  SnapshotPropSignalGrade,
   SnapshotPrecisionCardEntry,
   SnapshotRecentSafeMarketPolicy,
   SnapshotRecentSafeSystemSummary,
@@ -328,6 +329,7 @@ type View = {
   note: string;
   score: number;
   reasons: string[];
+  signalGrade: SnapshotPropSignalGrade | null;
   precision: SnapshotDashboardPrecisionSignal | null;
 };
 
@@ -350,6 +352,16 @@ function booksCountLabel(books: number | null | undefined) {
   if (books == null || Number.isNaN(books)) return null;
   const rounded = Math.max(0, Math.round(books));
   return `${rounded} ${rounded === 1 ? 'book' : 'books'}`;
+}
+
+function signalGradeValue(signalGrade: SnapshotPropSignalGrade | null | undefined) {
+  if (!signalGrade) return '-';
+  return `${signalGrade.grade} / ${n(signalGrade.scorePct, 0)}%`;
+}
+
+function signalGradeNote(signalGrade: SnapshotPropSignalGrade | null | undefined) {
+  if (!signalGrade) return 'Great-game signal is only available for PTS, REB, and AST when runtime context is present.';
+  return `${signalGrade.matchedSignals}/${signalGrade.totalSignals} validated breakout signals matched. ${signalGrade.summary}`;
 }
 
 function gapRead(value: number | null | undefined, digits = 1) {
@@ -784,6 +796,7 @@ function viewFor(
   const edge = usesDerivedEdge ? Number((proj - basis).toFixed(1)) : precision?.projectionPriceEdge ?? null;
   const liveBooks = live != null && (liveSignal?.sportsbookCount ?? 0) > 0 ? (liveSignal?.sportsbookCount ?? null) : null;
   const reasons = [...(precision?.reasons ?? []).slice(0, 2), ...(liveSignal?.passReasons ?? []).slice(0, 2)].filter(Boolean);
+  const signalGrade = runtime?.signalGrade ?? null;
   const score =
     (entry?.selectionScore ?? precision?.selectionScore ?? 0) +
     (conf ?? 0) * 0.35 +
@@ -830,6 +843,7 @@ function viewFor(
           : 'No market line available yet',
     score,
     reasons,
+    signalGrade,
     precision,
   };
 }
@@ -2293,12 +2307,13 @@ export default function NewDashboard({
                     <RecommendationBox view={featured} title="Best play" size="hero" className="hidden w-full sm:w-auto sm:min-w-[260px] md:block md:min-w-[290px]" />
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
+                  <div className="mt-3 grid grid-cols-3 gap-2 md:hidden">
                     <CompactMetric label="Model gap" value={gapRead(featured.edge)} compact />
+                    <CompactMetric label="Signal" value={signalGradeValue(featured.signalGrade)} compact />
                     <CompactMetric label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} compact />
                   </div>
 
-                  <div className="mt-4 hidden grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3 md:grid xl:grid-cols-4">
+                  <div className="mt-4 hidden grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3 md:grid xl:grid-cols-5">
                     <Stat
                       dense
                       label="Line to play"
@@ -2309,6 +2324,7 @@ export default function NewDashboard({
                     />
                     <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" showKind={false} />
                     <Stat dense label="Model gap" value={gapRead(featured.edge)} kind={featured.edgeKind} note={gapNote(featured)} showKind={false} />
+                    <Stat dense label="Signal grade" value={signalGradeValue(featured.signalGrade)} kind={featured.signalGrade ? 'DERIVED' : 'PLACEHOLDER'} note={signalGradeNote(featured.signalGrade)} showKind={false} />
                     <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} kind={featured.confKind} note="Payload confidence" showKind={false} />
                   </div>
 
@@ -2810,10 +2826,11 @@ export default function NewDashboard({
                             </div>
                           </div>
 
-                          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+                          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
                             <CompactMetric label="Line" value={audit?.line == null ? (view.live == null ? (view.fair == null ? '-' : n(view.fair)) : n(view.live)) : n(audit.line)} compact />
                             <CompactMetric label="Projection" value={view.proj == null ? '-' : n(view.proj)} compact />
                             <CompactMetric label="Gap" value={gapRead(view.edge)} compact />
+                            <CompactMetric label="Signal" value={signalGradeValue(view.signalGrade)} compact />
                             <CompactMetric label="Conf" value={view.conf == null ? '-' : pct(view.conf, 0)} compact />
                             <CompactMetric label="Books" value={view.books == null ? '-' : n(view.books, 0)} compact />
                             <CompactMetric label={audit?.status === 'SETTLED' ? 'Actual' : 'Status'} value={audit?.status === 'SETTLED' ? (audit.actualValue == null ? '-' : n(audit.actualValue, 1)) : precisionAuditLabel(audit)} compact />
@@ -3036,7 +3053,7 @@ export default function NewDashboard({
                         ) : null}
                       </div>
 
-                      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
                         <Stat
                           dense
                           showKind={false}
@@ -3068,6 +3085,14 @@ export default function NewDashboard({
                           value={researchLeadView?.conf == null ? '-' : pct(researchLeadView.conf, 0)}
                           kind={researchLeadView?.confKind ?? 'PLACEHOLDER'}
                           note={researchLeadView ? researchLeadView.source : 'Confidence unavailable'}
+                        />
+                        <Stat
+                          dense
+                          showKind={false}
+                          label="Signal grade"
+                          value={signalGradeValue(researchLeadView?.signalGrade)}
+                          kind={researchLeadView?.signalGrade ? 'DERIVED' : 'PLACEHOLDER'}
+                          note={signalGradeNote(researchLeadView?.signalGrade)}
                         />
                         <Stat
                           dense
@@ -3113,6 +3138,7 @@ export default function NewDashboard({
                                   <th className="px-4 py-3 text-right font-medium">Projection</th>
                                   <th className="px-4 py-3 text-right font-medium">Gap</th>
                                   <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                                  <th className="px-4 py-3 text-right font-medium">Signal</th>
                                   <th className="px-4 py-3 text-right font-medium">Books</th>
                                   <th className="px-4 py-3 text-left font-medium">Precision</th>
                                 </tr>
@@ -3135,6 +3161,7 @@ export default function NewDashboard({
                                     <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
                                     <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.edge == null ? '-' : gapRead(v.edge)}</td>
                                     <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.conf == null ? '-' : pct(v.conf, 0)}</td>
+                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{signalGradeValue(v.signalGrade)}</td>
                                     <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
                                     <td className="px-4 py-3 text-[var(--text-2)]">
                                       {researchTopPrecision?.entry.market === v.market
@@ -3658,11 +3685,12 @@ export default function NewDashboard({
                                         </div>
                                       </div>
                                       <div className="space-y-4">
-                                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                           <CompactMetric label="Current line" value={v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)} />
                                           <CompactMetric label="Fair line" value={v.fair == null ? '-' : n(v.fair)} />
                                           <CompactMetric label="Projection" value={v.proj == null ? '-' : n(v.proj)} />
                                           <CompactMetric label="Gap" value={v.edge == null ? '-' : gapRead(v.edge)} />
+                                          <CompactMetric label="Signal" value={signalGradeValue(v.signalGrade)} />
                                           <CompactMetric label="Books" value={booksLiveLabel(v.books) ?? '-'} />
                                           <CompactMetric label="Updated" value={relativeTime(updatedAt, now)} />
                                         </div>

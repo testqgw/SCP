@@ -75,6 +75,16 @@ export type SnapshotRecentSafeMarketPolicy =
   | "player_override_only"
   | "player_override_or_universal_qualified";
 
+export type SnapshotPropSignalGrade = {
+  market: "PTS" | "REB" | "AST";
+  grade: "A" | "B" | "C" | "D";
+  scorePct: number;
+  matchedSignals: number;
+  totalSignals: number;
+  summary: string;
+  reasons: string[];
+};
+
 export type SnapshotMarketRuntime = {
   baselineSide: SnapshotModelSide;
   finalSide: SnapshotModelSide;
@@ -82,6 +92,7 @@ export type SnapshotMarketRuntime = {
   playerOverrideEngaged: boolean;
   universalQualifiedEngaged: boolean;
   recentSafeEligible: boolean;
+  signalGrade?: SnapshotPropSignalGrade | null;
 };
 
 export type SnapshotRecentSafeSystemSummary = {

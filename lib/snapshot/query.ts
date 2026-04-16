@@ -77,6 +77,7 @@ import {
 import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
+import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
 import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
@@ -107,6 +108,7 @@ import type {
   SnapshotPrecisionCardEntry,
   SnapshotModelSide,
   SnapshotMetricRecord,
+  SnapshotPropSignalGrade,
   SnapshotPlayerLookupData,
   SnapshotPrecisionPickSignal,
   SnapshotPrimaryDefender,
@@ -537,6 +539,11 @@ type SnapshotMarketRuntimeBuildInput = {
   modelSide: SnapshotModelSide;
   universalInput: PredictLiveUniversalSideInput;
   expectedMinutes: number | null;
+  l5MinutesAvg: number | null;
+  l5MarketDeltaAvg: number | null;
+  opponentAllowance: number | null;
+  opponentAllowanceDelta: number | null;
+  opponentPositionAllowance: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
   praPromotionContext?: {
@@ -637,6 +644,18 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
     }
   }
 
+  const signalGrade: SnapshotPropSignalGrade | null = buildPropSignalGrade({
+    market: input.market,
+    projectedValue: input.universalInput.projectedValue,
+    line: input.universalInput.line,
+    expectedMinutes: input.expectedMinutes,
+    l5MinutesAvg: input.l5MinutesAvg,
+    l5MarketDeltaAvg: input.l5MarketDeltaAvg,
+    opponentAllowance: input.opponentAllowance,
+    opponentAllowanceDelta: input.opponentAllowanceDelta,
+    opponentPositionAllowance: input.opponentPositionAllowance,
+  });
+
   return {
     baselineSide,
     finalSide,
@@ -644,6 +663,7 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
     playerOverrideEngaged,
     universalQualifiedEngaged,
     recentSafeEligible: recentSafePolicyAllowsSource(RECENT_SAFE_MARKET_POLICY[input.market], source),
+    signalGrade,
   };
 }
 
@@ -4127,6 +4147,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         : null;
     const seasonMinutesAvg = average(logsChronological.map((log) => log.minutes));
     const minutesLast10Avg = playerProfile?.minutesLast10Avg ?? average(last10Logs.map((log) => log.minutes));
+    const minutesLast5Avg = average(last5Logs.map((log) => log.minutes));
     const minutesVolatility =
       playerProfile?.minutesVolatility ?? standardDeviation(last10Logs.map((log) => log.minutes));
     const missingFrontcourtLoad = computeMissingFrontcourtLoad(teammateSynergy?.missingCoreAverage ?? null);
@@ -5014,6 +5035,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
             modelSide: modelLines[market].modelSide,
             universalInput,
             expectedMinutes: minutesProfile.expected,
+            l5MinutesAvg: minutesLast5Avg,
+            l5MarketDeltaAvg: null,
+            opponentAllowance: opponentAllowance[market],
+            opponentAllowanceDelta: opponentAllowanceDelta[market],
+            opponentPositionAllowance: null,
             minutesVolatility,
             starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
             praPromotionContext:
