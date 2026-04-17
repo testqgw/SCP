@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "refresh:full": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts full",
     "refresh:delta": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts delta",
     "season:backfill": "tsx --env-file=.env.local --env-file=.env scripts/backfill-season-stats.ts",
