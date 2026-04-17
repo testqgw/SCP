@@ -245,62 +245,6 @@ function EmptyState({
   );
 }
 
-function MatchupsCard({
-  matchups,
-  selectedKey,
-  highlightedKey,
-  onSelect,
-}: {
-  matchups: SnapshotBoardViewData['matchups'];
-  selectedKey?: string | null;
-  highlightedKey?: string | null;
-  onSelect?: (matchupKey: string) => void;
-}) {
-  return (
-    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Top matchups</div>
-        <Badge label={matchups.length ? 'LIVE' : 'PLACEHOLDER'} kind={matchups.length ? 'LIVE' : 'PLACEHOLDER'} />
-      </div>
-      {matchups.length ? (
-        <div className="mt-4 space-y-3">
-          {matchups.slice(0, 4).map((m) => (
-            <button
-              key={m.key}
-              type="button"
-              onClick={onSelect ? () => onSelect(m.key) : undefined}
-              className={`w-full rounded-2xl border px-4 py-3 text-left ${
-                onSelect ? ACTION_CLASS : ''
-              } ${
-                selectedKey === m.key
-                  ? 'border-[color:rgba(109,74,255,0.32)] bg-[var(--accent-soft)] shadow-[0_10px_24px_rgba(109,74,255,0.10)]'
-                  : onSelect
-                    ? 'border-[var(--border)] bg-[var(--surface-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
-                    : 'border-[var(--border)] bg-[var(--surface-2)]'
-              } ${
-                highlightedKey === m.key ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : ''
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-[var(--text)]">{m.label}</div>
-                  <div className="mt-1 text-xs text-[var(--text-2)]">{m.gameTimeEt}</div>
-                </div>
-                {selectedKey === m.key ? <Badge label="Selected" kind="DERIVED" /> : null}
-              </div>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
-          Matchup windows will appear here as soon as the slate loads. Until then, the board stays usable through the
-          featured card and research tabs.
-        </div>
-      )}
-    </div>
-  );
-}
-
 type View = {
   row: SnapshotDashboardRow;
   market: SnapshotMarket;
@@ -937,7 +881,6 @@ export default function NewDashboard({
   const [trackerStatusFilter, setTrackerStatusFilter] = useState<TrackerStatusFilter>('all');
   const [trackerBooksFilter, setTrackerBooksFilter] = useState<TrackerBooksFilter>('all');
   const [expandedTrackerKey, setExpandedTrackerKey] = useState<string | null>(null);
-  const [showResearchMarkets, setShowResearchMarkets] = useState(false);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
@@ -1120,10 +1063,6 @@ export default function NewDashboard({
     () => (selectedMatchupKey ? data.matchups.find((m) => m.key === selectedMatchupKey) ?? null : null),
     [data.matchups, selectedMatchupKey],
   );
-  const selectedMatchupRows = useMemo(
-    () => (selectedMatchupKey ? boardRows.filter((row) => row.matchupKey === selectedMatchupKey) : []),
-    [boardRows, selectedMatchupKey],
-  );
   const selectedMatchupTeamStats = useMemo(
     () => (selectedMatchupKey ? data.teamMatchups.find((m) => m.matchupKey === selectedMatchupKey) ?? null : null),
     [data.teamMatchups, selectedMatchupKey],
@@ -1161,8 +1100,6 @@ export default function NewDashboard({
     }
     return spots;
   }, [selectedMatchupViews]);
-  const matchupLiveCount = selectedMatchupViews.filter((v) => v.live != null).length;
-  const matchupQualifiedCount = selectedMatchupViews.filter((v) => v.precision?.qualified).length;
   const liveCount = allViews.filter((v) => v.live != null).length;
   const qualifiedCount = allViews.filter((v) => v.precision?.qualified).length;
   const hasBoardRows = boardRows.length > 0;
@@ -1445,7 +1382,6 @@ export default function NewDashboard({
   ]);
 
   useEffect(() => {
-    setShowResearchMarkets(false);
     setShowResearchContext(false);
   }, [researchRow?.playerId]);
   const tabSummary: Record<Tab, { detail: string; kind: Kind }> = {
@@ -1706,8 +1642,10 @@ export default function NewDashboard({
       if (!element) return;
       const headerHeight = headerRef.current?.getBoundingClientRect().height ?? 0;
       const top = Math.max(0, window.scrollY + element.getBoundingClientRect().top - headerHeight - 12);
-      window.scrollTo({ top, behavior });
       const focusTarget = focusRef?.current ?? element;
+      if (Math.abs(window.scrollY - top) > 12) {
+        window.scrollTo({ top, behavior });
+      }
       const focusDelay = behavior === 'smooth' ? 220 : 0;
       window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), focusDelay);
     }, 0);
@@ -1739,6 +1677,10 @@ export default function NewDashboard({
     }
   };
   const activateTab = (nextTab: Tab) => {
+    if (nextTab === tab && headerView === TAB_TO_VIEW[nextTab]) {
+      setHeaderSearchOpen(false);
+      return;
+    }
     urlNavigationModeRef.current = 'push';
     setHeaderSearchOpen(false);
     setHeaderView(TAB_TO_VIEW[nextTab]);
@@ -1770,7 +1712,8 @@ export default function NewDashboard({
     setTab('research');
     setHeaderSearchOpen(false);
     flashTarget('player', playerId);
-    if (options?.scroll !== false) {
+    const shouldScroll = options?.scroll ?? (tab !== 'research' || headerView !== 'players');
+    if (shouldScroll) {
       scrollToView('players');
     }
   };
@@ -2993,76 +2936,64 @@ export default function NewDashboard({
                     </div>
 
                     <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">All markets</div>
-                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">Open the full player market table only when you need it</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowResearchMarkets((value) => !value)}
-                          className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
-                        >
-                          {showResearchMarkets ? 'Hide markets' : 'See all markets'}
-                        </button>
-                      </div>
-                      {showResearchMarkets ? (
-                        researchLiveViews.length ? (
-                          <div className="mt-4 overflow-x-auto rounded-[22px] border border-[var(--border)] bg-[var(--surface)]">
-                            <table className="min-w-full text-sm">
-                              <thead className="bg-[var(--surface-2)] text-[var(--text-2)]">
-                                <tr>
-                                  <th className="px-4 py-3 text-left font-medium">Market</th>
-                                  <th className="px-4 py-3 text-right font-medium">Line</th>
-                                  <th className="px-4 py-3 text-right font-medium">Projection</th>
-                                  <th className="px-4 py-3 text-right font-medium">Gap</th>
-                                  <th className="px-4 py-3 text-right font-medium">Confidence</th>
-                                  <th className="px-4 py-3 text-right font-medium">Signal</th>
-                                  <th className="px-4 py-3 text-right font-medium">Books</th>
-                                  <th className="px-4 py-3 text-left font-medium">Precision</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {researchLiveViews.map((v) => (
-                                  <tr
-                                    key={`${v.row.playerId}:${v.market}`}
-                                    className={`border-t border-[var(--border)] ${
-                                      researchLeadView?.market === v.market ? 'bg-[color:rgba(109,74,255,0.06)]' : 'bg-[var(--surface)]'
-                                    }`}
-                                  >
-                                    <td className="px-4 py-3">
-                                      <div className="font-semibold text-[var(--text)]">{v.label}</div>
-                                      <div className="text-xs text-[var(--text-2)]">
-                                        {researchLeadView?.market === v.market ? 'Lead market' : marketRead(v)}
-                                      </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.live == null ? '-' : n(v.live)}</td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.edge == null ? '-' : gapRead(v.edge)}</td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.conf == null ? '-' : pct(v.conf, 0)}</td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{signalGradeValue(v.signalGrade)}</td>
-                                    <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
-                                    <td className="px-4 py-3 text-[var(--text-2)]">
-                                      {researchTopPrecision?.entry.market === v.market
-                                        ? 'Precision pick'
-                                        : v.precision?.qualified
-                                          ? 'Precision qualified'
-                                          : 'Board read only'}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <div className="mt-4 rounded-[22px] border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
-                            No live player prop lines are available for this player right now. Model-only rows stay hidden until a real book line lands.
-                          </div>
-                        )
-                      ) : (
-                        <p className="mt-4 text-sm leading-6 text-[var(--text-2)]">
-                          Keep the full matrix collapsed unless you need to compare every live market for this player.
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">All markets</div>
+                        <div className="mt-1 text-lg font-semibold text-[var(--text)]">Every live player market stays open by default</div>
+                        <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
+                          Compare the full live player-market table without opening another panel first.
                         </p>
+                      </div>
+                      {researchLiveViews.length ? (
+                        <div className="mt-4 overflow-x-auto rounded-[22px] border border-[var(--border)] bg-[var(--surface)]">
+                          <table className="min-w-full text-sm">
+                            <thead className="bg-[var(--surface-2)] text-[var(--text-2)]">
+                              <tr>
+                                <th className="px-4 py-3 text-left font-medium">Market</th>
+                                <th className="px-4 py-3 text-right font-medium">Line</th>
+                                <th className="px-4 py-3 text-right font-medium">Projection</th>
+                                <th className="px-4 py-3 text-right font-medium">Gap</th>
+                                <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                                <th className="px-4 py-3 text-right font-medium">Signal</th>
+                                <th className="px-4 py-3 text-right font-medium">Books</th>
+                                <th className="px-4 py-3 text-left font-medium">Precision</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {researchLiveViews.map((v) => (
+                                <tr
+                                  key={`${v.row.playerId}:${v.market}`}
+                                  className={`border-t border-[var(--border)] ${
+                                    researchLeadView?.market === v.market ? 'bg-[color:rgba(109,74,255,0.06)]' : 'bg-[var(--surface)]'
+                                  }`}
+                                >
+                                  <td className="px-4 py-3">
+                                    <div className="font-semibold text-[var(--text)]">{v.label}</div>
+                                    <div className="text-xs text-[var(--text-2)]">
+                                      {researchLeadView?.market === v.market ? 'Lead market' : marketRead(v)}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.live == null ? '-' : n(v.live)}</td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.edge == null ? '-' : gapRead(v.edge)}</td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.conf == null ? '-' : pct(v.conf, 0)}</td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{signalGradeValue(v.signalGrade)}</td>
+                                  <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
+                                  <td className="px-4 py-3 text-[var(--text-2)]">
+                                    {researchTopPrecision?.entry.market === v.market
+                                      ? 'Precision pick'
+                                      : v.precision?.qualified
+                                        ? 'Precision qualified'
+                                        : 'Board read only'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-[22px] border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
+                          No live player prop lines are available for this player right now. Model-only rows stay hidden until a real book line lands.
+                        </div>
                       )}
                     </div>
 
@@ -3301,47 +3232,6 @@ export default function NewDashboard({
                 )}
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <MatchupsCard
-                  matchups={data.matchups}
-                  selectedKey={selectedMatchupKey}
-                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
-                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
-                />
-                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selected matchup pulse</div>
-                      <div className="mt-1 text-lg font-semibold text-[var(--text)]">Keep one game anchored while you scan the feed</div>
-                    </div>
-                    <Badge label={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} />
-                  </div>
-                  {selectedMatchup ? (
-                    <>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Pill label={selectedMatchup.label} tone="cyan" />
-                        <Pill label={selectedMatchup.gameTimeEt} />
-                        {selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
-                      </div>
-                      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                        {selectedMatchupLead
-                          ? `${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label} is still the clearest current board lead for this matchup, while the feed preserves the pregame history around it.`
-                          : 'No clear lead spot is surfaced for the selected game yet.'}
-                      </div>
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in this matchup" />
-                        <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets currently priced" />
-                        <Stat dense label="Pregame events" value={n(boardFeedEvents.filter((event) => event.matchupKey === selectedMatchup.key).length, 0)} kind={boardFeedEvents.some((event) => event.matchupKey === selectedMatchup.key) ? 'DERIVED' : 'PLACEHOLDER'} note="Events stored for this game" />
-                        <Stat dense label="Last event" value={ts(latestBoardFeedEvent?.createdAt)} kind={latestBoardFeedEvent ? 'LIVE' : 'PLACEHOLDER'} note="Most recent board feed event" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
-                      Select a matchup in the lens above to keep this view anchored to one game while you scan the board feed.
-                    </div>
-                  )}
-                </div>
-              </div>
             </section>
           ) : null}
           {tab === 'tracking' ? (
@@ -3593,49 +3483,11 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <MatchupsCard
-                  matchups={data.matchups}
-                  selectedKey={selectedMatchupKey}
-                  highlightedKey={highlightTarget?.kind === 'matchup' ? highlightTarget.key : null}
-                  onSelect={(matchupKey) => setMatchupSelection(matchupKey, { highlight: true })}
-                />
-                <div className="space-y-4">
-                  <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Tracker context</div>
-                        <div className="mt-1 text-lg font-semibold text-[var(--text)]">Selected matchup pulse</div>
-                      </div>
-                      <Badge label={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} kind={selectedMatchup ? 'LIVE' : 'PLACEHOLDER'} />
-                    </div>
-                    {selectedMatchup ? (
-                      <>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <Pill label={selectedMatchup.label} tone="cyan" />
-                          {selectedMatchupLead ? <Pill label={`${selectedMatchupLead.row.playerName} ${selectedMatchupLead.label}`} tone="amber" /> : null}
-                          {!selectedMatchupLead && selectedMatchupFocusLabel ? <Pill label={`Focus ${selectedMatchupFocusLabel}`} tone="amber" /> : null}
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <Stat dense label="Player rows" value={n(selectedMatchupRows.length, 0)} kind={selectedMatchupRows.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows in the selected game" />
-                          <Stat dense label="Live lines" value={n(matchupLiveCount, 0)} kind={matchupLiveCount ? 'LIVE' : 'PLACEHOLDER'} note="Markets priced right now" />
-                          <Stat dense label="Board picks" value={n(matchupQualifiedCount, 0)} kind={matchupQualifiedCount ? 'DERIVED' : 'PLACEHOLDER'} note="Precision-qualified views" />
-                          <Stat dense label="Last refresh" value={ts(data.lastUpdatedAt)} kind={data.lastUpdatedAt ? 'LIVE' : 'PLACEHOLDER'} note={boardRefreshRelative} />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 text-sm text-[var(--text-2)]">
-                        Select a matchup in the lens above to keep the tracker centered on one game while you compare numbers.
-                      </div>
-                    )}
-                  </div>
-                  <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Current limitation</div>
-                    <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
-                      SnapshotBoardData does not include full sportsbook tape or book-by-book history. The tracker is intentionally limited to the current live line, fair fallback, projection, gap, confidence, and stored pregame feed state.
-                    </p>
-                  </div>
-                </div>
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Current limitation</div>
+                <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
+                  SnapshotBoardData does not include full sportsbook tape or book-by-book history. The tracker is intentionally limited to the current live line, fair fallback, projection, gap, confidence, and stored pregame feed state.
+                </p>
               </div>
             </section>
           ) : null}

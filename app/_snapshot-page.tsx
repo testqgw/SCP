@@ -1,6 +1,6 @@
 import NewDashboard from "@/components/snapshot/NewDashboard";
 import { getInitialSnapshotBoardViewData } from "@/lib/snapshot/query";
-import { getTodayEtDateString } from "@/lib/snapshot/time";
+import { getSnapshotBoardDateString } from "@/lib/snapshot/time";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,7 @@ type SnapshotPageProps = {
 
 export default async function SnapshotPage({ searchParams }: SnapshotPageProps) {
   const params = searchParams ? await searchParams : undefined;
-  const dateEt = getTodayEtDateString();
+  const dateEt = getSnapshotBoardDateString();
   const data = await getInitialSnapshotBoardViewData(dateEt);
 
   return (

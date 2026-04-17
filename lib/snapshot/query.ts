@@ -40,6 +40,7 @@ import {
   buildAdaptivePrecisionFloorPick,
   buildShortfallPrecisionRescuePick,
   buildPrecision80Pick,
+  comparePrecisionSignals,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
   selectPrecisionCardWithTopOff,
@@ -78,7 +79,7 @@ import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/li
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
-import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
+import { formatUtcToEt, getSnapshotBoardDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotBoardData,
   SnapshotBoardFeed,
@@ -366,7 +367,7 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
 }
 
 function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
-  if (dateEt !== getTodayEtDateString()) return false;
+  if (dateEt !== getSnapshotBoardDateString()) return false;
   const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
   if (!hasSlateGames) return false;
   const targetCardCount = PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6;
@@ -408,6 +409,24 @@ function isPrecisionCardRowStillEligible(row: SnapshotRow | null | undefined): b
   return true;
 }
 
+function compareStabilizedPrecisionEntries(
+  left: SnapshotPrecisionCardEntry,
+  right: SnapshotPrecisionCardEntry,
+): number {
+  const leftSignal = left.precisionSignal;
+  const rightSignal = right.precisionSignal;
+  if (leftSignal && rightSignal) {
+    const signalComparison = comparePrecisionSignals(leftSignal, rightSignal, "dynamic-edge-first");
+    if (signalComparison !== 0) return signalComparison;
+  }
+
+  const leftScore = left.selectionScore ?? leftSignal?.selectionScore ?? Number.NEGATIVE_INFINITY;
+  const rightScore = right.selectionScore ?? rightSignal?.selectionScore ?? Number.NEGATIVE_INFINITY;
+  if (rightScore !== leftScore) return rightScore - leftScore;
+
+  return getSnapshotPrecisionCardEntryKey(left).localeCompare(getSnapshotPrecisionCardEntryKey(right));
+}
+
 function stabilizePrecisionCardForToday(
   persistedBoard: PersistedSnapshotBoardSetting | null,
   currentRows: SnapshotRow[],
@@ -420,34 +439,39 @@ function stabilizePrecisionCardForToday(
   }
 
   const rowByPlayerId = new Map(currentRows.map((row) => [row.playerId, row] as const));
-  const seenEntryKeys = new Set<string>();
-  const stabilizedEntries: SnapshotPrecisionCardEntry[] = [];
+  const mergedEntries = new Map<string, SnapshotPrecisionCardEntry>();
 
-  const pushEntry = (entry: SnapshotPrecisionCardEntry): void => {
-    if (stabilizedEntries.length >= targetCardCount) return;
+  const mergeEntry = (entry: SnapshotPrecisionCardEntry): void => {
     const entryKey = getSnapshotPrecisionCardEntryKey(entry);
-    if (seenEntryKeys.has(entryKey)) return;
-    seenEntryKeys.add(entryKey);
-    stabilizedEntries.push({
+    const currentRow = rowByPlayerId.get(entry.playerId);
+    if (!isPrecisionCardRowStillEligible(currentRow)) return;
+    const currentSignal = currentRow?.precisionSignals?.[entry.market] ?? null;
+    const normalizedEntry: SnapshotPrecisionCardEntry = {
       ...entry,
-      rank: stabilizedEntries.length + 1,
-    });
+      selectionScore: currentSignal?.selectionScore ?? entry.selectionScore ?? null,
+      precisionSignal: currentSignal ?? entry.precisionSignal ?? null,
+    };
+    const existing = mergedEntries.get(entryKey);
+    if (!existing || compareStabilizedPrecisionEntries(normalizedEntry, existing) < 0) {
+      mergedEntries.set(entryKey, normalizedEntry);
+    }
   };
 
   persistedPrecisionCard.forEach((entry) => {
-    const currentRow = rowByPlayerId.get(entry.playerId);
-    if (!isPrecisionCardRowStillEligible(currentRow)) return;
-    pushEntry({
-      ...entry,
-      precisionSignal: entry.precisionSignal ?? currentRow?.precisionSignals?.[entry.market] ?? null,
-    });
+    mergeEntry(entry);
   });
 
   nextPrecisionCard.forEach((entry) => {
-    const currentRow = rowByPlayerId.get(entry.playerId);
-    if (!isPrecisionCardRowStillEligible(currentRow)) return;
-    pushEntry(entry);
+    mergeEntry(entry);
   });
+
+  const stabilizedEntries = Array.from(mergedEntries.values())
+    .sort(compareStabilizedPrecisionEntries)
+    .slice(0, targetCardCount)
+    .map((entry, index) => ({
+      ...entry,
+      rank: index + 1,
+    }));
 
   return stabilizedEntries.length > 0 ? stabilizedEntries : nextPrecisionCard;
 }
@@ -1613,7 +1637,7 @@ function buildSnapshotBoardFeed(input: {
         nextEvents.push(
           createBoardFeedItem({
             eventType: "LOCKED",
-            status: input.dateEt === getTodayEtDateString() ? "LOCKED" : "FINAL",
+            status: input.dateEt === getSnapshotBoardDateString() ? "LOCKED" : "FINAL",
             createdAt: input.eventTime,
             snapshot: previous,
             detail: "Pregame tracking stopped at tipoff. Final pregame snapshot kept.",
@@ -2771,7 +2795,7 @@ async function resolveSnapshotPlayer(input: {
 }
 
 async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): Promise<SnapshotRow | null> {
-  const isTodayEt = dateEt === getTodayEtDateString();
+  const isTodayEt = dateEt === getSnapshotBoardDateString();
   const seasonStartDateEt = getSeasonStartDateEt(dateEt);
   const [player, lineupSetting] = await Promise.all([
     prisma.player.findUnique({
@@ -3348,7 +3372,7 @@ export async function getSnapshotBoardViewData(dateEt: string, bustCache = false
 }
 
 export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
-  const isTodayEt = dateEt === getTodayEtDateString();
+  const isTodayEt = dateEt === getSnapshotBoardDateString();
   const nowMs = Date.now();
   const [games, latestGameWrite, latestDataWrite, lineupSetting, refreshSetting] = await Promise.all([
     prisma.game.findMany({

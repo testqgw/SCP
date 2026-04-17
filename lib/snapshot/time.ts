@@ -1,12 +1,13 @@
 const EASTERN_TZ = "America/New_York";
+const PACIFIC_TZ = "America/Los_Angeles";
 
 function pad(value: number): string {
   return value.toString().padStart(2, "0");
 }
 
-export function getTodayEtDateString(reference = new Date()): string {
+function getDateStringForTimezone(timeZone: string, reference = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: EASTERN_TZ,
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -16,6 +17,18 @@ export function getTodayEtDateString(reference = new Date()): string {
   const month = parts.find((part) => part.type === "month")?.value ?? "01";
   const day = parts.find((part) => part.type === "day")?.value ?? "01";
   return `${year}-${month}-${day}`;
+}
+
+export function getTodayEtDateString(reference = new Date()): string {
+  return getDateStringForTimezone(EASTERN_TZ, reference);
+}
+
+export function getTodayPtDateString(reference = new Date()): string {
+  return getDateStringForTimezone(PACIFIC_TZ, reference);
+}
+
+export function getSnapshotBoardDateString(reference = new Date()): string {
+  return getTodayPtDateString(reference);
 }
 
 export function formatUtcToEt(utcDate: Date | null): string {

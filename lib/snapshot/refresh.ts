@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { isCronAuthorized } from "@/lib/auth/guard";
 import { fetchRotowireLineups, parseStoredRotowireLineupSnapshot } from "@/lib/lineups/rotowire";
-import { etDateShift, getTodayEtDateString } from "@/lib/snapshot/time";
+import { etDateShift, getSnapshotBoardDateString } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
 import { NbaDataClient } from "@/lib/nba/client";
 import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "@/lib/sportsdata/types";
@@ -96,7 +96,7 @@ async function storeLineupsSnapshot(
 
   const canReuseFreshSnapshot =
     options?.allowFreshReuse === true &&
-    dateEt === getTodayEtDateString() &&
+    dateEt === getSnapshotBoardDateString() &&
     existing?.updatedAt != null &&
     Date.now() - existing.updatedAt.getTime() <= FAST_REFRESH_LINEUP_REUSE_TTL_MS;
 
@@ -847,7 +847,7 @@ function evaluateQualityInput(data: { logs: NormalizedPlayerGameStat[]; games: N
 
 export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions): Promise<RefreshResult> {
   const startedAt = Date.now();
-  const dateEt = getTodayEtDateString();
+  const dateEt = getSnapshotBoardDateString();
   const staleThreshold = new Date(Date.now() - 10 * 60 * 1000);
   const visitCooldownThreshold = new Date(Date.now() - VISIT_REFRESH_COOLDOWN_MS);
   const runType = mode === "FULL" ? "FULL" : "DELTA";

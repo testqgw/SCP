@@ -4,7 +4,7 @@ import {
   type RotowireLineupSnapshot,
 } from "@/lib/lineups/rotowire";
 import { prisma } from "@/lib/prisma";
-import { getTodayEtDateString } from "@/lib/snapshot/time";
+import { getSnapshotBoardDateString } from "@/lib/snapshot/time";
 
 type MaybeRefreshTodayLineupSnapshotInput = {
   dateEt: string;
@@ -29,7 +29,7 @@ export async function maybeRefreshTodayLineupSnapshot(
   input: MaybeRefreshTodayLineupSnapshotInput,
 ): Promise<MaybeRefreshTodayLineupSnapshotResult> {
   const parsedSnapshot = parseStoredRotowireLineupSnapshot(input.currentValue, input.dateEt);
-  if (input.dateEt !== getTodayEtDateString()) {
+  if (input.dateEt !== getSnapshotBoardDateString()) {
     return {
       snapshot: parsedSnapshot,
       updatedAt: input.currentUpdatedAt,

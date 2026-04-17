@@ -47,7 +47,7 @@ import {
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
-import { formatUtcToEt, getTodayEtDateString } from "@/lib/snapshot/time";
+import { formatUtcToEt, getSnapshotBoardDateString } from "@/lib/snapshot/time";
 import type {
   SnapshotDataCompleteness,
   SnapshotGameIntel,
@@ -613,7 +613,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
         };
 
   const seasonStartDateEt = getSeasonStartDateEt(dateEt);
-  const isTodayEt = dateEt === getTodayEtDateString();
+  const isTodayEt = dateEt === getSnapshotBoardDateString();
 
   const [
     logsForPlayer,

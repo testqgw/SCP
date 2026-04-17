@@ -1,6 +1,6 @@
 ﻿import { NextResponse } from 'next/server';
 import { getInitialSnapshotBoardViewData, getSnapshotBoardViewData } from '@/lib/snapshot/query';
-import { getTodayEtDateString } from '@/lib/snapshot/time';
+import { getSnapshotBoardDateString } from '@/lib/snapshot/time';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ function isValidEtDate(value: string | null): value is string {
 export async function GET(request: Request): Promise<NextResponse> {
   try {
     const { searchParams } = new URL(request.url);
-    const dateEt = isValidEtDate(searchParams.get('date')) ? (searchParams.get('date') as string) : getTodayEtDateString();
+    const dateEt = isValidEtDate(searchParams.get('date')) ? (searchParams.get('date') as string) : getSnapshotBoardDateString();
     const bypassResponseCache = searchParams.has('refresh') || searchParams.has('t');
     const rebuildBoard = searchParams.get('rebuild') === '1';
     const result = rebuildBoard
