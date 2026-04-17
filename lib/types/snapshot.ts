@@ -390,18 +390,17 @@ export type SnapshotDashboardSignal = Pick<
   "marketLine" | "sportsbookCount" | "side" | "confidence" | "passReasons"
 >;
 
-export type SnapshotDashboardPrecisionSignal = Pick<
-  SnapshotPrecisionPickSignal,
-  | "side"
-  | "qualified"
-  | "historicalAccuracy"
-  | "projectionWinProbability"
-  | "projectionPriceEdge"
-  | "selectionScore"
-  | "selectorFamily"
-  | "selectorTier"
-  | "reasons"
->;
+export type SnapshotDashboardPrecisionSignal = {
+  side: SnapshotModelSide;
+  qualified?: boolean;
+  historicalAccuracy: number | null;
+  projectionWinProbability: number | null;
+  projectionPriceEdge: number | null;
+  selectionScore: number | null;
+  selectorFamily?: string | null;
+  selectorTier?: string | null;
+  reasons?: string[];
+};
 
 export type SnapshotDashboardModelLine = Pick<SnapshotModelLine, "fairLine" | "modelSide">;
 

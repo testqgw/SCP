@@ -112,6 +112,22 @@ function pct(v: number | null | undefined, d = 1) {
   return v == null || Number.isNaN(v) ? '-' : `${n(v, d)}%`;
 }
 
+function meaningfulHistoricalAccuracy(precision: SnapshotDashboardPrecisionSignal | null | undefined) {
+  const historicalAccuracy = precision?.historicalAccuracy;
+  return historicalAccuracy != null && historicalAccuracy > 0 ? historicalAccuracy : null;
+}
+
+function resolveViewConfidence(
+  precision: SnapshotDashboardPrecisionSignal | null | undefined,
+  liveSignal: SnapshotDashboardSignal | null | undefined,
+) {
+  if (precision?.projectionWinProbability != null) {
+    return precision.projectionWinProbability * 100;
+  }
+
+  return meaningfulHistoricalAccuracy(precision) ?? liveSignal?.confidence ?? null;
+}
+
 function ts(v: string | null) {
   if (!v) return '-';
   const d = new Date(v);
@@ -698,9 +714,7 @@ function viewFor(
             : 'NEUTRAL'
         : liveSignal?.side ?? row.modelLines[market].modelSide;
   const usesDerivedConfidence = precision?.projectionWinProbability != null;
-  const conf = usesDerivedConfidence
-    ? precision.projectionWinProbability! * 100
-    : precision?.historicalAccuracy ?? liveSignal?.confidence ?? null;
+  const conf = resolveViewConfidence(precision, liveSignal);
   const usesDerivedEdge = proj != null && basis != null;
   const edge = usesDerivedEdge ? Number((proj - basis).toFixed(1)) : precision?.projectionPriceEdge ?? null;
   const liveBooks = live != null && (liveSignal?.sportsbookCount ?? 0) > 0 ? (liveSignal?.sportsbookCount ?? null) : null;

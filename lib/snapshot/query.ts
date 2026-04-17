@@ -747,6 +747,25 @@ function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): Snapsh
   };
 }
 
+function getMeaningfulPrecisionHistoricalAccuracy(
+  signal: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy"> | null | undefined,
+): number | null {
+  if (!signal) return null;
+  return signal.historicalAccuracy > 0 ? signal.historicalAccuracy : null;
+}
+
+function resolveSnapshotDisplayConfidence(input: {
+  precisionSignal?: Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "historicalAccuracy"> | null;
+  liveSignal?: Pick<SnapshotPtsSignal, "confidence"> | null;
+}): number | null {
+  const precisionSignal = input.precisionSignal ?? null;
+  if (precisionSignal?.projectionWinProbability != null) {
+    return precisionSignal.projectionWinProbability * 100;
+  }
+
+  return getMeaningfulPrecisionHistoricalAccuracy(precisionSignal) ?? input.liveSignal?.confidence ?? null;
+}
+
 function toDashboardPrecisionSignal(
   signal: SnapshotPrecisionPickSignal | null | undefined,
 ): SnapshotDashboardPrecisionSignal | null {
@@ -754,7 +773,7 @@ function toDashboardPrecisionSignal(
   return {
     side: signal.side,
     qualified: signal.qualified,
-    historicalAccuracy: signal.historicalAccuracy,
+    historicalAccuracy: getMeaningfulPrecisionHistoricalAccuracy(signal),
     projectionWinProbability: signal.projectionWinProbability,
     projectionPriceEdge: signal.projectionPriceEdge ?? null,
     selectionScore: signal.selectionScore ?? null,
@@ -1424,10 +1443,7 @@ function buildBoardFeedSnapshot(
             ? "UNDER"
             : "NEUTRAL"
         : liveSignal?.side ?? row.modelLines[market].modelSide;
-  const confidence =
-    precision?.projectionWinProbability != null
-      ? precision.projectionWinProbability * 100
-      : precision?.historicalAccuracy ?? liveSignal?.confidence ?? null;
+  const confidence = resolveSnapshotDisplayConfidence({ precisionSignal: precision, liveSignal });
   const gap = projection != null && basis != null ? round(projection - basis, 1) : precision?.projectionPriceEdge ?? null;
   const booksLive = line != null && (liveSignal?.sportsbookCount ?? 0) > 0 ? liveSignal?.sportsbookCount ?? null : null;
   const reasons = [...(precision?.reasons ?? []).slice(0, 2), ...(liveSignal?.passReasons ?? []).slice(0, 2)].filter(Boolean);
