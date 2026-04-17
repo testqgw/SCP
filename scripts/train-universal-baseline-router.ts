@@ -1,4 +1,5 @@
 import path from "node:path";
+import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import {
   trainUniversalBaselineRouter,
@@ -98,8 +99,7 @@ function parseArgs(): Args {
 }
 
 function readJsonl<T>(filePath: string): T[] {
-  const fs = require("node:fs") as typeof import("node:fs");
-  const content = fs.readFileSync(path.resolve(filePath), "utf8").trim();
+  const content = readFileSync(path.resolve(filePath), "utf8").trim();
   if (!content) return [];
   return content.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line) as T);
 }
