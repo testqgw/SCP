@@ -6316,6 +6316,10 @@
           "lowAction": "UNDER",
           "highAction": "projection"
         },
+        "AST": {
+          "kind": "source",
+          "source": "liveRaw"
+        },
         "PRA": {
           "kind": "threshold",
           "feature": "lineGap",
@@ -6331,11 +6335,8 @@
           "highAction": "liveRaw"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 32.42,
-          "lowAction": "UNDER",
-          "highAction": "projection"
+          "kind": "source",
+          "source": "projection"
         },
         "PTS": {
           "kind": "threshold",
@@ -6352,11 +6353,8 @@
           "highAction": "projection"
         },
         "PA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 24.55,
-          "lowAction": "UNDER",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
