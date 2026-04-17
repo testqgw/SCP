@@ -1,14 +1,4 @@
 import type { NextRequest } from "next/server";
-import { COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
-
-export async function isSessionAuthenticated(request: NextRequest): Promise<boolean> {
-  const token = request.cookies.get(COOKIE_NAME)?.value;
-  if (!token) {
-    return false;
-  }
-  const payload = await verifySessionToken(token);
-  return Boolean(payload);
-}
 
 export function isCronAuthorized(request: NextRequest): boolean {
   const configuredSecret = process.env.CRON_SECRET;

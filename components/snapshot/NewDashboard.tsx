@@ -908,6 +908,7 @@ export default function NewDashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [headerSearchOpen, setHeaderSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isManualRefreshDisabled, setIsManualRefreshDisabled] = useState(false);
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [urlReady, setUrlReady] = useState(false);
@@ -1889,7 +1890,7 @@ export default function NewDashboard({
   }, [data.matchups, featured?.row.matchupKey, selectedMatchupKey]);
 
   const refreshSlate = async () => {
-    if (isRefreshing) return;
+    if (isRefreshing || isManualRefreshDisabled) return;
     setIsRefreshing(true);
     setRefreshNotice({
       kind: 'DERIVED',
@@ -1905,6 +1906,17 @@ export default function NewDashboard({
         body: JSON.stringify({ mode: 'DELTA', source: 'manual' }),
       });
       const refreshPayload = (await refreshResponse.json().catch(() => null)) as RefreshResponse | null;
+      if (refreshResponse.status === 403) {
+        const message =
+          refreshPayload && !refreshPayload.ok ? refreshPayload.error : 'Manual refresh is disabled on this deployment.';
+        setIsManualRefreshDisabled(true);
+        setRefreshNotice({
+          kind: 'PLACEHOLDER',
+          title: 'Manual refresh disabled',
+          detail: message,
+        });
+        return;
+      }
       if (!refreshResponse.ok || refreshPayload == null || !refreshPayload.ok) {
         throw new Error(refreshPayload && !refreshPayload.ok ? refreshPayload.error : 'Manual slate refresh failed.');
       }
@@ -1941,6 +1953,8 @@ export default function NewDashboard({
       setIsRefreshing(false);
     }
   };
+  const refreshActionLabel = isManualRefreshDisabled ? undefined : 'Refresh slate';
+  const refreshAction = isManualRefreshDisabled ? undefined : refreshSlate;
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
@@ -2039,17 +2053,24 @@ export default function NewDashboard({
                   <button
                     type="button"
                     onClick={refreshSlate}
-                    disabled={isRefreshing}
+                    disabled={isRefreshing || isManualRefreshDisabled}
                     className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-medium sm:min-h-11 sm:px-4 sm:py-2.5 sm:text-sm ${
                       isRefreshing
                         ? 'cursor-wait bg-[color:rgba(183,129,44,0.12)] text-[var(--warning)]'
-                        : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
+                        : isManualRefreshDisabled
+                          ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
+                          : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
                     }`}
                   >
-                    <span className="sm:hidden">{isRefreshing ? 'Refreshing' : 'Refresh'}</span>
-                    <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh slate'}</span>
+                    <span className="sm:hidden">{isRefreshing ? 'Refreshing' : isManualRefreshDisabled ? 'Disabled' : 'Refresh'}</span>
+                    <span className="hidden sm:inline">
+                      {isRefreshing ? 'Refreshing...' : isManualRefreshDisabled ? 'Refresh disabled' : 'Refresh slate'}
+                    </span>
                   </button>
-                  <Badge label={isRefreshing ? 'Updated' : 'Live'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
+                  <Badge
+                    label={isRefreshing ? 'Updated' : isManualRefreshDisabled ? 'Refresh off' : 'Live'}
+                    kind={isRefreshing ? 'DERIVED' : isManualRefreshDisabled ? 'PLACEHOLDER' : 'LIVE'}
+                  />
                 </div>
               </div>
               <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-px px-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -2269,8 +2290,8 @@ export default function NewDashboard({
                       ? 'As soon as a precision-card entry or high-signal live market is available, the lead recommendation will anchor here.'
                       : 'The board will promote the strongest slate recommendation here once SnapshotBoardData finishes loading.'
                   }
-                  actionLabel="Refresh slate"
-                  onAction={refreshSlate}
+                  actionLabel={refreshActionLabel}
+                  onAction={refreshAction}
                 />
               )}
             </div>
@@ -2356,8 +2377,8 @@ export default function NewDashboard({
                   eyebrow="Next best numbers"
                   title="The board has not surfaced additional non-promoted live numbers yet."
                   detail="As more live prices settle, this strip will separate the broader board reads from the promoted precision group above."
-                  actionLabel="Refresh slate"
-                  onAction={refreshSlate}
+                  actionLabel={refreshActionLabel}
+                  onAction={refreshAction}
                 />
               </div>
             )}
@@ -2497,8 +2518,8 @@ export default function NewDashboard({
                       eyebrow="Matchup explorer"
                       title="No matchup windows are loaded yet."
                       detail="Once the slate payload lands, this card will let you scan the board one game at a time."
-                      actionLabel="Refresh slate"
-                      onAction={refreshSlate}
+                      actionLabel={refreshActionLabel}
+                      onAction={refreshAction}
                     />
                   </div>
                 )}
@@ -2575,8 +2596,8 @@ export default function NewDashboard({
                       eyebrow="Board feed"
                       title="No pregame feed events are logged yet."
                       detail="The feed starts filling once a pregame number surfaces, moves materially, drops, or locks at tipoff."
-                      actionLabel="Refresh slate"
-                      onAction={refreshSlate}
+                      actionLabel={refreshActionLabel}
+                      onAction={refreshAction}
                     />
                   </div>
                 )}
@@ -2719,8 +2740,8 @@ export default function NewDashboard({
                       eyebrow="Precision Picks"
                       title="No promoted precision picks are loaded yet."
                       detail="As soon as the pipeline has enough qualifying pregame-safe numbers, the promoted picks will appear here with their audit status."
-                      actionLabel="Refresh slate"
-                      onAction={refreshSlate}
+                      actionLabel={refreshActionLabel}
+                      onAction={refreshAction}
                     />
                   </div>
                 )}
@@ -3218,8 +3239,8 @@ export default function NewDashboard({
                       eyebrow="Board feed"
                       title="No pregame board events are available yet."
                       detail="This workspace fills as playable numbers surface, move materially, drop, and then lock at tipoff."
-                      actionLabel="Refresh slate"
-                      onAction={refreshSlate}
+                      actionLabel={refreshActionLabel}
+                      onAction={refreshAction}
                     />
                   </div>
                 ) : (
@@ -3386,8 +3407,8 @@ export default function NewDashboard({
                               eyebrow="Market tracker"
                               title="No tracker rows match the current filters."
                               detail="Try clearing the search or widening the market and status filters."
-                              actionLabel="Refresh slate"
-                              onAction={refreshSlate}
+                              actionLabel={refreshActionLabel}
+                              onAction={refreshAction}
                             />
                           </td>
                         </tr>
