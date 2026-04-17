@@ -4,6 +4,7 @@ import { runRefresh } from "@/lib/snapshot/refresh";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+// Manual refresh is opt-in; internal full/delta refresh stays CRON_SECRET-gated.
 function isManualRefreshEnabled(): boolean {
   return process.env.SNAPSHOT_ALLOW_MANUAL_REFRESH === "true";
 }
