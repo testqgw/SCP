@@ -1,5 +1,5 @@
 const EASTERN_TZ = "America/New_York";
-const PACIFIC_TZ = "America/Los_Angeles";
+export const SNAPSHOT_BOARD_TIMEZONE = "America/Los_Angeles";
 
 function pad(value: number): string {
   return value.toString().padStart(2, "0");
@@ -24,11 +24,13 @@ export function getTodayEtDateString(reference = new Date()): string {
 }
 
 export function getTodayPtDateString(reference = new Date()): string {
-  return getDateStringForTimezone(PACIFIC_TZ, reference);
+  return getSnapshotBoardDateString(reference);
 }
 
+// The board follows Pacific time so late West Coast games stay on the same slate night.
+// Upstream schedule, game logs, and health freshness dates remain ET elsewhere in the app.
 export function getSnapshotBoardDateString(reference = new Date()): string {
-  return getTodayPtDateString(reference);
+  return getDateStringForTimezone(SNAPSHOT_BOARD_TIMEZONE, reference);
 }
 
 export function formatUtcToEt(utcDate: Date | null): string {
