@@ -20,7 +20,7 @@ import { attachCurrentLineRecencyMetrics } from "../../lib/snapshot/currentLineR
 import {
   DEFAULT_UNIVERSAL_LIVE_QUALIFICATION_SETTINGS_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
-  DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH,
+  resolvePreferredUniversalLiveRowsRelativePath,
   resolveProjectPath,
 } from "../../lib/snapshot/universalArtifactPaths";
 import type { SnapshotMarket, SnapshotModelSide } from "../../lib/types/snapshot";
@@ -226,7 +226,7 @@ export const LIVE_QUALITY_MARKETS: Market[] = ["PTS", "REB", "AST", "THREES", "P
 const prisma = new PrismaClient();
 
 export function resolveDefaultLiveQualityRowsPath(): string {
-  const preferred = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH);
+  const preferred = resolveProjectPath(resolvePreferredUniversalLiveRowsRelativePath());
   return path.resolve(preferred ?? DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH);
 }
 
@@ -246,7 +246,7 @@ export function mean(values: Array<number | null | undefined>): number | null {
 
 export function resolveRowsFilePath(input?: string | null): string {
   if (input?.trim()) return path.resolve(input);
-  const preferred = resolveProjectPath(DEFAULT_UNIVERSAL_LIVE_ROWS_RELATIVE_PATH);
+  const preferred = resolveProjectPath(resolvePreferredUniversalLiveRowsRelativePath());
   return path.resolve(preferred);
 }
 

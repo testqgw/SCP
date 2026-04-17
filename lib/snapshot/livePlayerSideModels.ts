@@ -106,6 +106,13 @@ type PlayerLocalRecoveryManifestRule =
       threshold: number;
       lowAction: RuntimeActionName;
       highAction: RuntimeActionName;
+    }
+  | {
+      kind: "split";
+      feature: RuntimeNumericFeature;
+      threshold: number;
+      lowRule: PlayerLocalRecoveryManifestRule;
+      highRule: PlayerLocalRecoveryManifestRule;
     };
 
 type PlayerLocalRecoveryManifestEntry = {
@@ -640,6 +647,34 @@ function runtimeManifestFeatureValue(row: LivePlayerModelRow, feature: RuntimeNu
   }
 }
 
+function resolvePlayerLocalRecoveryManifestRuleSide(
+  row: LivePlayerModelRow,
+  rule: PlayerLocalRecoveryManifestRule,
+): Side {
+  if (rule.kind === "source") {
+    return runtimeManifestSourceSide(row, rule.source);
+  }
+  if (rule.kind === "action") {
+    return runtimeManifestActionSide(row, rule.action);
+  }
+  if (rule.kind === "threshold") {
+    const value = runtimeManifestFeatureValue(row, rule.feature);
+    if (value == null || !Number.isFinite(value)) {
+      return row.rawSide;
+    }
+    return value <= rule.threshold
+      ? runtimeManifestActionSide(row, rule.lowAction)
+      : runtimeManifestActionSide(row, rule.highAction);
+  }
+  const value = runtimeManifestFeatureValue(row, rule.feature);
+  if (value == null || !Number.isFinite(value)) {
+    return row.rawSide;
+  }
+  return value <= rule.threshold
+    ? resolvePlayerLocalRecoveryManifestRuleSide(row, rule.lowRule)
+    : resolvePlayerLocalRecoveryManifestRuleSide(row, rule.highRule);
+}
+
 function applyPlayerLocalRecoveryManifest(
   playerKey: string,
   market: SnapshotMarket,
@@ -648,19 +683,7 @@ function applyPlayerLocalRecoveryManifest(
   if (!isPlayerLocalRecoveryManifestEnabled()) return null;
   const rule = loadPlayerLocalRecoveryManifest().get(playerKey)?.get(market);
   if (!rule) return null;
-  if (rule.kind === "source") {
-    return runtimeManifestSourceSide(row, rule.source);
-  }
-  if (rule.kind === "action") {
-    return runtimeManifestActionSide(row, rule.action);
-  }
-  const value = runtimeManifestFeatureValue(row, rule.feature);
-  if (value == null || !Number.isFinite(value)) {
-    return row.rawSide;
-  }
-  return value <= rule.threshold
-    ? runtimeManifestActionSide(row, rule.lowAction)
-    : runtimeManifestActionSide(row, rule.highAction);
+  return resolvePlayerLocalRecoveryManifestRuleSide(row, rule);
 }
 
 function applyPlayerMarketResidualDragMemory(

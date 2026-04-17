@@ -1,10 +1,10 @@
 {
-  "version": "2026-04-16-donte-pra-final-safe-push",
-  "generatedAt": "2026-04-16T23:07:50.3210797Z",
+  "version": "2026-04-17-donte-depth3-split-router",
+  "generatedAt": "2026-04-17T01:39:01.129Z",
   "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\_tmp_manifest_strict_stale_rules.json",
   "methodology": {
     "baseVersion": "2026-04-15-player-local-target-lift-v20-fullboard-maxnet-minrows-1",
-    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then add a Donte DiVincenzo PRA route to final.",
+    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then promote a Donte DiVincenzo depth-3 split router.",
     "pruneCount": 75,
     "selection": "Top 75 by combined full + 30d + 14d delta-vs-baseline score among strict stale rules.",
     "recentWindowsGuard": "must be nonpositive vs baseline on full, 30d, and 14d with minimum sample thresholds"
@@ -4062,26 +4062,160 @@
     {
       "playerKey": "donte divincenzo",
       "playerName": "Donte DiVincenzo",
-      "label": "train_best_guard_combo_router_guarded_v1",
-      "targetRawAccuracy": 60,
+      "label": "donte_depth3_split_router_train_val_v1",
+      "targetRawAccuracy": 78,
       "markets": {
-        "PTS": {
-          "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.89,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+        "AST": {
+          "kind": "split",
+          "feature": "lineGap",
+          "threshold": 0.875,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "absLineGap",
+            "threshold": 0.59,
+            "lowAction": "baseline",
+            "highAction": "liveRaw"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "overPrice",
+            "threshold": -144.75,
+            "lowAction": "UNDER",
+            "highAction": "baseline"
+          }
         },
-        "REB": {
-          "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": -0.128,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+        "PA": {
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 29.31,
+            "lowAction": "projection",
+            "highAction": "UNDER"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "projectedValue",
+            "threshold": 18.505,
+            "lowAction": "OVER",
+            "highAction": "favored"
+          }
+        },
+        "PR": {
+          "kind": "split",
+          "feature": "projectedMinutes",
+          "threshold": 29.73,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 27.7,
+            "lowAction": "favored",
+            "highAction": "projection"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "minutesVolatility",
+            "threshold": 3.645,
+            "lowAction": "UNDER",
+            "highAction": "OVER"
+          }
         },
         "PRA": {
-          "kind": "source",
-          "source": "final"
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 2.3,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "minutesVolatility",
+            "threshold": 3.22,
+            "lowAction": "UNDER",
+            "highAction": "liveRaw"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 31.585,
+            "lowAction": "baseline",
+            "highAction": "OVER"
+          }
+        },
+        "PTS": {
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 3.55,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 29.31,
+            "lowAction": "projection",
+            "highAction": "UNDER"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "overPrice",
+            "threshold": -114.25,
+            "lowAction": "favored",
+            "highAction": "OVER"
+          }
+        },
+        "RA": {
+          "kind": "split",
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "projectedValue",
+            "threshold": 6.225,
+            "lowAction": "OVER",
+            "highAction": "baseline"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 29.205,
+            "lowAction": "baseline",
+            "highAction": "UNDER"
+          }
+        },
+        "REB": {
+          "kind": "split",
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "priceLean",
+            "threshold": 0.0159,
+            "lowAction": "projection",
+            "highAction": "UNDER"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 30.515,
+            "lowAction": "OVER",
+            "highAction": "baseline"
+          }
+        },
+        "THREES": {
+          "kind": "split",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "priceAbsLean",
+            "threshold": 0.0704,
+            "lowAction": "OVER",
+            "highAction": "baseline"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "projectedValue",
+            "threshold": 3.23,
+            "lowAction": "liveRaw",
+            "highAction": "UNDER"
+          }
         }
       }
     },
