@@ -11,6 +11,7 @@ type RuntimeNumericFeature =
   | "projectedMinutes"
   | "minutesVolatility"
   | "starterRateLast10"
+  | "line"
   | "projectedValue"
   | "overPrice"
   | "underPrice"
@@ -113,6 +114,15 @@ type PlayerLocalRecoveryManifestRule =
       threshold: number;
       lowRule: PlayerLocalRecoveryManifestRule;
       highRule: PlayerLocalRecoveryManifestRule;
+    }
+  | {
+      kind: "valueMap";
+      feature: RuntimeNumericFeature;
+      cases: Array<{
+        value: number;
+        rule: PlayerLocalRecoveryManifestRule;
+      }>;
+      defaultRule: PlayerLocalRecoveryManifestRule;
     };
 
 type PlayerLocalRecoveryManifestEntry = {
@@ -628,6 +638,8 @@ function runtimeManifestFeatureValue(row: LivePlayerModelRow, feature: RuntimeNu
       return row.minutesVolatility;
     case "starterRateLast10":
       return row.starterRateLast10;
+    case "line":
+      return row.line;
     case "projectedValue":
       return row.projectedValue;
     case "overPrice":
@@ -645,6 +657,10 @@ function runtimeManifestFeatureValue(row: LivePlayerModelRow, feature: RuntimeNu
     default:
       return null;
   }
+}
+
+function runtimeManifestExactValueMatch(left: number, right: number): boolean {
+  return Math.abs(left - right) <= 1e-9;
 }
 
 function resolvePlayerLocalRecoveryManifestRuleSide(
@@ -665,6 +681,16 @@ function resolvePlayerLocalRecoveryManifestRuleSide(
     return value <= rule.threshold
       ? runtimeManifestActionSide(row, rule.lowAction)
       : runtimeManifestActionSide(row, rule.highAction);
+  }
+  if (rule.kind === "valueMap") {
+    const value = runtimeManifestFeatureValue(row, rule.feature);
+    if (value == null || !Number.isFinite(value)) {
+      return row.rawSide;
+    }
+    const matchedCase = rule.cases.find((entry) => runtimeManifestExactValueMatch(value, entry.value));
+    return matchedCase
+      ? resolvePlayerLocalRecoveryManifestRuleSide(row, matchedCase.rule)
+      : resolvePlayerLocalRecoveryManifestRuleSide(row, rule.defaultRule);
   }
   const value = runtimeManifestFeatureValue(row, rule.feature);
   if (value == null || !Number.isFinite(value)) {

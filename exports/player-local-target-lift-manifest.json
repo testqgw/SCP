@@ -1,10 +1,10 @@
 {
-  "version": "2026-04-17-donte-depth3-split-router",
-  "generatedAt": "2026-04-17T01:39:01.129Z",
+  "version": "2026-04-17-donte-depth3-plus-donovan-center-over-bundle",
+  "generatedAt": "2026-04-17T01:54:25.287Z",
   "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\_tmp_manifest_strict_stale_rules.json",
   "methodology": {
     "baseVersion": "2026-04-15-player-local-target-lift-v20-fullboard-maxnet-minrows-1",
-    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then promote a Donte DiVincenzo depth-3 split router.",
+    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then promote a Donte DiVincenzo depth-3 split router plus the Donovan Clingan center-over bundle.",
     "pruneCount": 75,
     "selection": "Top 75 by combined full + 30d + 14d delta-vs-baseline score among strict stale rules.",
     "recentWindowsGuard": "must be nonpositive vs baseline on full, 30d, and 14d with minimum sample thresholds"
@@ -1219,40 +1219,445 @@
     {
       "playerKey": "donovan clingan",
       "playerName": "Donovan Clingan",
-      "label": "train_best_by_market_v1",
-      "targetRawAccuracy": 60,
+      "label": "donovan_exact_line_map_v2",
+      "targetRawAccuracy": 78,
       "markets": {
         "PTS": {
-          "kind": "source",
-          "source": "favored"
+          "kind": "split",
+          "feature": "projectedValue",
+          "threshold": 11.6,
+          "lowRule": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": -116,
+            "lowRule": {
+              "kind": "action",
+              "action": "OVER"
+            },
+            "highRule": {
+              "kind": "source",
+              "source": "liveRaw"
+            }
+          },
+          "highRule": {
+            "kind": "split",
+            "feature": "projectedMinutes",
+            "threshold": 28.77,
+            "lowRule": {
+              "kind": "source",
+              "source": "projection"
+            },
+            "highRule": {
+              "kind": "action",
+              "action": "UNDER"
+            }
+          }
         },
         "REB": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 4.72,
+          "lowRule": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 11.06,
+            "lowRule": {
+              "kind": "action",
+              "action": "OVER"
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -1.32,
+              "lowRule": {
+                "kind": "action",
+                "action": "OVER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            }
+          },
+          "highRule": {
+            "kind": "split",
+            "feature": "priceLean",
+            "threshold": -0.006006006006005982,
+            "lowRule": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -115,
+              "lowRule": {
+                "kind": "action",
+                "action": "OVER"
+              },
+              "highRule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -126,
+              "lowRule": {
+                "kind": "source",
+                "source": "baseline"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            }
+          }
         },
         "AST": {
-          "kind": "source",
-          "source": "favored"
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 4.755,
+          "lowRule": {
+            "kind": "split",
+            "feature": "overPrice",
+            "threshold": -162.5,
+            "lowRule": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -176.5,
+              "lowRule": {
+                "kind": "action",
+                "action": "UNDER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "absLineGap",
+              "threshold": 0.66,
+              "lowRule": {
+                "kind": "action",
+                "action": "UNDER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            }
+          },
+          "highRule": {
+            "kind": "split",
+            "feature": "projectedMinutes",
+            "threshold": 27.495,
+            "lowRule": {
+              "kind": "split",
+              "feature": "priceLean",
+              "threshold": -0.155131486125,
+              "lowRule": {
+                "kind": "action",
+                "action": "UNDER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "projectedMinutes",
+              "threshold": 28.61,
+              "lowRule": {
+                "kind": "action",
+                "action": "UNDER"
+              },
+              "highRule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            }
+          }
         },
         "THREES": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "split",
+          "feature": "minutesVolatility",
+          "threshold": 3.72,
+          "lowRule": {
+            "kind": "split",
+            "feature": "lineGap",
+            "threshold": -0.53,
+            "lowRule": {
+              "kind": "action",
+              "action": "OVER"
+            },
+            "highRule": {
+              "kind": "source",
+              "source": "final"
+            }
+          },
+          "highRule": {
+            "kind": "split",
+            "feature": "projectedMinutes",
+            "threshold": 27.34,
+            "lowRule": {
+              "kind": "source",
+              "source": "final"
+            },
+            "highRule": {
+              "kind": "action",
+              "action": "OVER"
+            }
+          }
         },
         "PRA": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 25.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            },
+            {
+              "value": 30.5,
+              "rule": {
+                "kind": "source",
+                "source": "final"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "underPrice",
+            "threshold": -118,
+            "lowRule": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 25.34,
+              "lowRule": {
+                "kind": "action",
+                "action": "OVER"
+              },
+              "highRule": {
+                "kind": "source",
+                "source": "final"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "projectedMinutes",
+              "threshold": 26.41,
+              "lowRule": {
+                "kind": "source",
+                "source": "final"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            }
+          }
         },
         "PA": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 12,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            },
+            {
+              "value": 17.5,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 4.95,
+            "lowRule": {
+              "kind": "split",
+              "feature": "lineGap",
+              "threshold": -0.27,
+              "lowRule": {
+                "kind": "action",
+                "action": "OVER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 13.54,
+              "lowRule": {
+                "kind": "source",
+                "source": "liveRaw"
+              },
+              "highRule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            }
+          }
         },
         "PR": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 20.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            },
+            {
+              "value": 21.5,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            },
+            {
+              "value": 23.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            },
+            {
+              "value": 24.5,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            },
+            {
+              "value": 26.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            },
+            {
+              "value": 27,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            },
+            {
+              "value": 27.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "minutesVolatility",
+            "threshold": 5.09,
+            "lowRule": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 22.14,
+              "lowRule": {
+                "kind": "action",
+                "action": "OVER"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "minutesVolatility",
+              "threshold": 6.28,
+              "lowRule": {
+                "kind": "source",
+                "source": "projection"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            }
+          }
         },
         "RA": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 15.5,
+              "rule": {
+                "kind": "source",
+                "source": "projection"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "projectedValue",
+            "threshold": 13.24,
+            "lowRule": {
+              "kind": "split",
+              "feature": "projectedValue",
+              "threshold": 12.72,
+              "lowRule": {
+                "kind": "source",
+                "source": "liveRaw"
+              },
+              "highRule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            },
+            "highRule": {
+              "kind": "split",
+              "feature": "overPrice",
+              "threshold": -128.5,
+              "lowRule": {
+                "kind": "split",
+                "feature": "projectedMinutes",
+                "threshold": 26.595,
+                "lowRule": {
+                  "kind": "source",
+                  "source": "projection"
+                },
+                "highRule": {
+                  "kind": "action",
+                  "action": "UNDER"
+                }
+              },
+              "highRule": {
+                "kind": "split",
+                "feature": "projectedMinutes",
+                "threshold": 27.99,
+                "lowRule": {
+                  "kind": "action",
+                  "action": "OVER"
+                },
+                "highRule": {
+                  "kind": "source",
+                  "source": "liveRaw"
+                }
+              }
+            }
+          }
         }
       }
     },
