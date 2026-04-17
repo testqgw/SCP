@@ -13,6 +13,7 @@ import type {
   SnapshotModelSide,
   SnapshotPropSignalGrade,
   SnapshotPrecisionCardEntry,
+  SnapshotPrecisionPickSignal,
 } from '@/lib/types/snapshot';
 
 type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
@@ -112,13 +113,35 @@ function pct(v: number | null | undefined, d = 1) {
   return v == null || Number.isNaN(v) ? '-' : `${n(v, d)}%`;
 }
 
-function meaningfulHistoricalAccuracy(precision: SnapshotDashboardPrecisionSignal | null | undefined) {
+type PrecisionConfidenceLike = {
+  historicalAccuracy?: number | null;
+  projectionWinProbability?: number | null;
+};
+
+function normalizePrecisionSignal(
+  precision: SnapshotDashboardPrecisionSignal | SnapshotPrecisionPickSignal | null | undefined,
+): SnapshotDashboardPrecisionSignal | null {
+  if (!precision) return null;
+  return {
+    side: precision.side,
+    qualified: precision.qualified,
+    historicalAccuracy: meaningfulHistoricalAccuracy(precision),
+    projectionWinProbability: precision.projectionWinProbability ?? null,
+    projectionPriceEdge: precision.projectionPriceEdge ?? null,
+    selectionScore: precision.selectionScore ?? null,
+    selectorFamily: precision.selectorFamily ?? null,
+    selectorTier: precision.selectorTier ?? null,
+    reasons: precision.reasons,
+  };
+}
+
+function meaningfulHistoricalAccuracy(precision: PrecisionConfidenceLike | null | undefined) {
   const historicalAccuracy = precision?.historicalAccuracy;
   return historicalAccuracy != null && historicalAccuracy > 0 ? historicalAccuracy : null;
 }
 
 function resolveViewConfidence(
-  precision: SnapshotDashboardPrecisionSignal | null | undefined,
+  precision: PrecisionConfidenceLike | null | undefined,
   liveSignal: SnapshotDashboardSignal | null | undefined,
 ) {
   if (precision?.projectionWinProbability != null) {
@@ -696,7 +719,7 @@ function viewFor(
   entry: SnapshotPrecisionCardEntry | null = null,
 ): View {
   const liveSignal = signal(row, market);
-  const precision = entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null;
+  const precision = normalizePrecisionSignal(entry?.precisionSignal ?? row.precisionSignals?.[market] ?? null);
   const runtime = marketRuntimeFor(row, market);
   const fair = row.modelLines[market].fairLine;
   const live = liveSignal?.marketLine ?? null;
