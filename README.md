@@ -1,7 +1,7 @@
 # NBA Player Prop Snapshot
 
 Private NBA betting intelligence dashboard with:
-- today-only edge board (US Eastern date boundary)
+- snapshot edge board (board date uses Pacific time)
 - last-5 and season over/under hit rates
 - bounce-back signal
 - opponent allowance vs position+usage archetype
@@ -22,7 +22,6 @@ Private NBA betting intelligence dashboard with:
 - Prisma + PostgreSQL
 - SportsDataIO ingestion
 - Vercel cron jobs
-- passcode gate using signed httpOnly cookie
 
 ## Setup
 1. Copy `.env.example` to `.env.local` and fill in values.
@@ -35,18 +34,33 @@ npx prisma db push --accept-data-loss
 ```bash
 npm run dev
 ```
-4. Open `http://localhost:3000/unlock` and enter your passcode.
 
-## Key Endpoints
-- `GET /api/snapshot/today`
-- `GET /api/snapshot/filters`
-- `GET /api/snapshot/player/:playerId`
+## Board Date Contract
+- The snapshot board date is defined by `getSnapshotBoardDateString()` in `lib/snapshot/time.ts`.
+- `getSnapshotBoardDateString()` uses `SNAPSHOT_BOARD_TIMEZONE = "America/Los_Angeles"`.
+- Board-date defaults in the root page and snapshot APIs flow through that helper.
+- Upstream game and log dates elsewhere in the app remain ET because the schedule and stat feeds are normalized that way.
+
+## Live Routes
+- `GET /`
+- `GET /api/health`
+- `GET /api/snapshot/board`
+- `GET /api/snapshot/player`
+- `GET /api/snapshot/player/logs`
+- `GET /api/snapshot/player/backtest`
+- `POST /api/refresh`
 - `POST /api/internal/refresh/full` (cron protected)
 - `POST /api/internal/refresh/delta` (cron protected)
-- `POST /api/internal/cleanup/lines` (cron protected)
-- `POST /api/auth/unlock`
-- `POST /api/auth/lock`
-- `GET /api/health`
+- `GET /api/internal/runtime-contract`
+- `GET /api/internal/debug-props`
+
+## Retired Routes
+- `/unlock`
+- `/api/auth/unlock`
+- `/api/auth/lock`
+- `/api/snapshot/today`
+- `/api/snapshot/filters`
+- `/api/internal/cleanup/lines`
 
 ## Manual Refresh Commands
 ```bash
@@ -56,6 +70,5 @@ npm run refresh:delta
 
 ## Notes
 - Vercel cron calls must include `CRON_SECRET` (`Authorization: Bearer <secret>`).
-- Snapshot API routes are gated by the session cookie set via `/api/auth/unlock`.
-- Low-confidence rows (`<58`) are stored but hidden by default in `GET /api/snapshot/today`.
+- Low-confidence rows (`<58`) are stored but hidden by default in the snapshot board payload.
 - Quality gate blocks snapshot publishing when sportsbook/line/stat integrity checks fail.
