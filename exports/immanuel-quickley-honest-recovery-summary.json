@@ -1,0 +1,543 @@
+{
+  "generatedAt": "2026-04-18T19:09:12.158Z",
+  "player": "Immanuel Quickley",
+  "rows": {
+    "full": 282,
+    "hold14d": 23,
+    "hold30d": 50
+  },
+  "runtimeAssumptions": {
+    "livePlayerOverrideMode": "on",
+    "playerLocalRecoveryManifestMode": "on",
+    "evaluationStyle": "Honest walk-forward replay using the current shipped live stack on fold holdouts only."
+  },
+  "baselineFinding": {
+    "currentManifest": {
+      "fullRawAccuracy": 67.73,
+      "hold14dRawAccuracy": 82.61,
+      "hold30dRawAccuracy": 74
+    },
+    "noManifest": {
+      "fullRawAccuracy": 52.48,
+      "hold14dRawAccuracy": 43.48,
+      "hold30dRawAccuracy": 44
+    },
+    "takeaway": "The current Quickley manifest is still helping on honest replay versus removing it entirely."
+  },
+  "foldRuleFrequency": {
+    "PTS": [
+      {
+        "signature": "threshold:absLineGap:currentRaw:finalNoOverride",
+        "count": 6,
+        "medianThreshold": 1.21
+      },
+      {
+        "signature": "threshold:absLineGap:currentRaw:projection",
+        "count": 1,
+        "medianThreshold": 1.57
+      },
+      {
+        "signature": "threshold:projectedValue:projection:currentRaw",
+        "count": 1,
+        "medianThreshold": 16.79
+      }
+    ],
+    "REB": [
+      {
+        "signature": "threshold:minutesVolatility:currentRaw:OVER",
+        "count": 2,
+        "medianThreshold": 2.86
+      },
+      {
+        "signature": "threshold:absLineGap:currentRaw:OVER",
+        "count": 1,
+        "medianThreshold": 0.24
+      },
+      {
+        "signature": "threshold:lineGap:OVER:currentRaw",
+        "count": 1,
+        "medianThreshold": -0.3
+      },
+      {
+        "signature": "threshold:projectedMinutes:currentRaw:OVER",
+        "count": 1,
+        "medianThreshold": 32.74
+      },
+      {
+        "signature": "threshold:projectedValue:OVER:currentRaw",
+        "count": 1,
+        "medianThreshold": 4.29
+      },
+      {
+        "signature": "threshold:projectedValue:OVER:UNDER",
+        "count": 1,
+        "medianThreshold": 4.2
+      }
+    ],
+    "AST": [
+      {
+        "signature": "threshold:projectedMinutes:baseline:currentRaw",
+        "count": 6,
+        "medianThreshold": 32.44
+      },
+      {
+        "signature": "threshold:projectedMinutes:baseline:UNDER",
+        "count": 1,
+        "medianThreshold": 32.87
+      },
+      {
+        "signature": "threshold:projectedMinutes:finalNoOverride:currentRaw",
+        "count": 1,
+        "medianThreshold": 32.22
+      }
+    ],
+    "THREES": [
+      {
+        "signature": "threshold:overPrice:currentRaw:OVER",
+        "count": 5,
+        "medianThreshold": -112.5
+      },
+      {
+        "signature": "threshold:projectedValue:OVER:currentRaw",
+        "count": 3,
+        "medianThreshold": 2.5
+      }
+    ],
+    "PRA": [
+      {
+        "signature": "threshold:underPrice:currentRaw:UNDER",
+        "count": 3,
+        "medianThreshold": -115
+      },
+      {
+        "signature": "threshold:minutesVolatility:OVER:UNDER",
+        "count": 2,
+        "medianThreshold": 3.48
+      },
+      {
+        "signature": "threshold:lineGap:favored:UNDER",
+        "count": 1,
+        "medianThreshold": 1.32
+      },
+      {
+        "signature": "threshold:lineGap:universalRaw:UNDER",
+        "count": 1,
+        "medianThreshold": 1.33
+      },
+      {
+        "signature": "threshold:minutesVolatility:projection:currentRaw",
+        "count": 1,
+        "medianThreshold": 2.88
+      }
+    ],
+    "PA": [
+      {
+        "signature": "threshold:priceAbsLean:universalRaw:favored",
+        "count": 5,
+        "medianThreshold": 0.013
+      },
+      {
+        "signature": "threshold:priceAbsLean:OVER:favored",
+        "count": 1,
+        "medianThreshold": 0.013
+      },
+      {
+        "signature": "threshold:projectedMinutes:favored:currentRaw",
+        "count": 1,
+        "medianThreshold": 31.22
+      },
+      {
+        "signature": "threshold:projectedMinutes:favored:universalRaw",
+        "count": 1,
+        "medianThreshold": 32.65
+      }
+    ],
+    "PR": [
+      {
+        "signature": "threshold:priceLean:universalRaw:currentRaw",
+        "count": 2,
+        "medianThreshold": -0.011
+      },
+      {
+        "signature": "threshold:projectedValue:currentRaw:universalRaw",
+        "count": 2,
+        "medianThreshold": 21.41
+      },
+      {
+        "signature": "threshold:absLineGap:UNDER:currentRaw",
+        "count": 1,
+        "medianThreshold": 0.5
+      },
+      {
+        "signature": "threshold:priceAbsLean:currentRaw:universalRaw",
+        "count": 1,
+        "medianThreshold": 0.011
+      },
+      {
+        "signature": "threshold:priceAbsLean:universalRaw:favored",
+        "count": 1,
+        "medianThreshold": 0.013
+      },
+      {
+        "signature": "threshold:projectedValue:OVER:universalRaw",
+        "count": 1,
+        "medianThreshold": 20.15
+      }
+    ],
+    "RA": [
+      {
+        "signature": "threshold:underPrice:baseline:OVER",
+        "count": 6,
+        "medianThreshold": -127
+      },
+      {
+        "signature": "threshold:projectedValue:OVER:favored",
+        "count": 2,
+        "medianThreshold": 10.62
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "label": "quickley_current_manifest_v1",
+      "description": "Current shipped Quickley manifest path from the live stack.",
+      "selectedRulesByMarket": {
+        "PTS": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "REB": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "AST": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "THREES": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PRA": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "currentRaw"
+        }
+      },
+      "full": {
+        "rows": 282,
+        "correct": 191,
+        "accuracy": 67.73,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 19,
+        "accuracy": 82.61,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 37,
+        "accuracy": 74,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      }
+    },
+    {
+      "label": "quickley_dynamic_fold_router_v1",
+      "description": "Per-fold train-selected honest router. This is a headroom probe, not a deployable production rule, because it changes the rule set across folds.",
+      "full": {
+        "rows": 282,
+        "correct": 191,
+        "accuracy": 67.73,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 19,
+        "accuracy": 82.61,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 37,
+        "accuracy": 74,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      }
+    },
+    {
+      "label": "quickley_no_manifest_v1",
+      "description": "Universal/raw control with Quickley-specific manifest removed.",
+      "selectedRulesByMarket": {
+        "PTS": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "REB": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "AST": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "THREES": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PRA": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "PR": {
+          "kind": "action",
+          "action": "currentRaw"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "currentRaw"
+        }
+      },
+      "full": {
+        "rows": 282,
+        "correct": 148,
+        "accuracy": 52.48,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 10,
+        "accuracy": 43.48,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 22,
+        "accuracy": 44,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      }
+    },
+    {
+      "label": "quickley_honest_pocket_hybrid_v1",
+      "description": "Conservative honest-pocket hybrid: keep the current Quickley manifest everywhere except REB->baseline, PRA->favored, PA->favored, and RA->finalNoOverride.",
+      "selectedRulesByMarket": {
+        "REB": {
+          "kind": "action",
+          "action": "baseline"
+        },
+        "PRA": {
+          "kind": "action",
+          "action": "favored"
+        },
+        "PA": {
+          "kind": "action",
+          "action": "favored"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "finalNoOverride"
+        }
+      },
+      "full": {
+        "rows": 282,
+        "correct": 180,
+        "accuracy": 63.83,
+        "changedRowsVsCurrent": 23,
+        "netRowsVsCurrent": -11,
+        "deltaVsCurrent": -3.9
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 19,
+        "accuracy": 82.61,
+        "changedRowsVsCurrent": 0,
+        "netRowsVsCurrent": 0,
+        "deltaVsCurrent": 0
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 34,
+        "accuracy": 68,
+        "changedRowsVsCurrent": 3,
+        "netRowsVsCurrent": -3,
+        "deltaVsCurrent": -6
+      }
+    },
+    {
+      "label": "quickley_consensus_router_v1",
+      "description": "Consensus router built from the most frequently selected honest train rules across folds (minimum 3 folds).",
+      "selectedRulesByMarket": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 1.21,
+          "lowAction": "currentRaw",
+          "highAction": "finalNoOverride"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedMinutes",
+          "threshold": 32.44,
+          "lowAction": "baseline",
+          "highAction": "currentRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -112.5,
+          "lowAction": "currentRaw",
+          "highAction": "OVER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -115,
+          "lowAction": "currentRaw",
+          "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.013,
+          "lowAction": "universalRaw",
+          "highAction": "favored"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -127,
+          "lowAction": "baseline",
+          "highAction": "OVER"
+        }
+      },
+      "full": {
+        "rows": 282,
+        "correct": 197,
+        "accuracy": 69.86,
+        "changedRowsVsCurrent": 48,
+        "netRowsVsCurrent": 6,
+        "deltaVsCurrent": 2.13
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 14,
+        "accuracy": 60.87,
+        "changedRowsVsCurrent": 7,
+        "netRowsVsCurrent": -5,
+        "deltaVsCurrent": -21.74
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 30,
+        "accuracy": 60,
+        "changedRowsVsCurrent": 11,
+        "netRowsVsCurrent": -7,
+        "deltaVsCurrent": -14
+      }
+    },
+    {
+      "label": "quickley_consensus_router_strict_v1",
+      "description": "Stricter consensus router built only from rules selected in at least 4 folds.",
+      "selectedRulesByMarket": {
+        "PTS": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 1.21,
+          "lowAction": "currentRaw",
+          "highAction": "finalNoOverride"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "projectedMinutes",
+          "threshold": 32.44,
+          "lowAction": "baseline",
+          "highAction": "currentRaw"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "overPrice",
+          "threshold": -112.5,
+          "lowAction": "currentRaw",
+          "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "priceAbsLean",
+          "threshold": 0.013,
+          "lowAction": "universalRaw",
+          "highAction": "favored"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -127,
+          "lowAction": "baseline",
+          "highAction": "OVER"
+        }
+      },
+      "full": {
+        "rows": 282,
+        "correct": 196,
+        "accuracy": 69.5,
+        "changedRowsVsCurrent": 47,
+        "netRowsVsCurrent": 5,
+        "deltaVsCurrent": 1.77
+      },
+      "hold14d": {
+        "rows": 23,
+        "correct": 14,
+        "accuracy": 60.87,
+        "changedRowsVsCurrent": 7,
+        "netRowsVsCurrent": -5,
+        "deltaVsCurrent": -21.74
+      },
+      "hold30d": {
+        "rows": 50,
+        "correct": 30,
+        "accuracy": 60,
+        "changedRowsVsCurrent": 11,
+        "netRowsVsCurrent": -7,
+        "deltaVsCurrent": -14
+      }
+    }
+  ],
+  "recommendation": {
+    "label": null,
+    "reason": "No deployable consensus candidate beat the current Quickley manifest across full honest replay while also staying non-negative on both 14d and 30d.",
+    "selectedRulesByMarket": null,
+    "boardReplayFile": "exports\\immanuel-quickley-honest-board-replay.json"
+  }
+}

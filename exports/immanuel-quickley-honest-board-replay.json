@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-04-18T19:09:11.801Z",
+  "player": "Immanuel Quickley",
+  "recommendedCandidate": null,
+  "windows": {
+    "full": {
+      "control": {
+        "samples": 75945,
+        "rawAccuracy": 66.81,
+        "strictRawAccuracy": 66.68,
+        "blendedAccuracy": 66.73,
+        "coveragePct": 96.02,
+        "qualifiedAccuracy": 67.16,
+        "qualifiedPicks": 72921
+      },
+      "candidate": {
+        "samples": 75945,
+        "rawAccuracy": 66.81,
+        "strictRawAccuracy": 66.68,
+        "blendedAccuracy": 66.73,
+        "coveragePct": 96.02,
+        "qualifiedAccuracy": 67.16,
+        "qualifiedPicks": 72921
+      },
+      "delta": {
+        "rawChangedRows": 0,
+        "rawNetRows": 0,
+        "finalChangedRows": 0,
+        "finalNetRows": 0
+      }
+    },
+    "hold14d": {
+      "control": {
+        "samples": 10731,
+        "rawAccuracy": 60.51,
+        "strictRawAccuracy": 60.35,
+        "blendedAccuracy": 60.63,
+        "coveragePct": 95.09,
+        "qualifiedAccuracy": 60.74,
+        "qualifiedPicks": 10204
+      },
+      "candidate": {
+        "samples": 10731,
+        "rawAccuracy": 60.51,
+        "strictRawAccuracy": 60.35,
+        "blendedAccuracy": 60.63,
+        "coveragePct": 95.09,
+        "qualifiedAccuracy": 60.74,
+        "qualifiedPicks": 10204
+      },
+      "delta": {
+        "rawChangedRows": 0,
+        "rawNetRows": 0,
+        "finalChangedRows": 0,
+        "finalNetRows": 0
+      }
+    },
+    "hold30d": {
+      "control": {
+        "samples": 22970,
+        "rawAccuracy": 61.62,
+        "strictRawAccuracy": 61.47,
+        "blendedAccuracy": 61.67,
+        "coveragePct": 95.42,
+        "qualifiedAccuracy": 61.92,
+        "qualifiedPicks": 21917
+      },
+      "candidate": {
+        "samples": 22970,
+        "rawAccuracy": 61.62,
+        "strictRawAccuracy": 61.47,
+        "blendedAccuracy": 61.67,
+        "coveragePct": 95.42,
+        "qualifiedAccuracy": 61.92,
+        "qualifiedPicks": 21917
+      },
+      "delta": {
+        "rawChangedRows": 0,
+        "rawNetRows": 0,
+        "finalChangedRows": 0,
+        "finalNetRows": 0
+      }
+    }
+  }
+}

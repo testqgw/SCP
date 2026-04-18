@@ -8226,29 +8226,60 @@
     {
       "playerKey": "immanuel quickley",
       "playerName": "Immanuel Quickley",
-      "label": "train_best_bench_wing_combo_router_v1",
-      "targetRawAccuracy": 60,
+      "label": "honest_pocket_hybrid_v6_exact_line_map_stack",
+      "targetRawAccuracy": 68,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": -0.51,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "kind": "split",
+          "feature": "absLineGap",
+          "threshold": 0.22,
+          "lowRule": {
+            "kind": "threshold",
+            "feature": "projectedMinutes",
+            "threshold": 32.4,
+            "lowAction": "projection",
+            "highAction": "favored"
+          },
+          "highRule": {
+            "kind": "threshold",
+            "feature": "lineGap",
+            "threshold": -0.51,
+            "lowAction": "OVER",
+            "highAction": "UNDER"
+          }
         },
         "REB": {
-          "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": -0.3,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "kind": "action",
+          "action": "baseline"
         },
         "AST": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 33.29,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 6.5,
+              "rule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "projectedMinutes",
+            "threshold": 32.87,
+            "lowRule": {
+              "kind": "action",
+              "action": "baseline"
+            },
+            "highRule": {
+              "kind": "threshold",
+              "feature": "expectedMinutes",
+              "threshold": 33.29,
+              "lowAction": "liveRaw",
+              "highAction": "UNDER"
+            }
+          }
         },
         "THREES": {
           "kind": "threshold",
@@ -8258,32 +8289,92 @@
           "highAction": "UNDER"
         },
         "PRA": {
-          "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": 1.43,
-          "lowAction": "favored",
-          "highAction": "UNDER"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 26.5,
+              "rule": {
+                "kind": "source",
+                "source": "favored"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "underPrice",
+            "threshold": -117,
+            "lowAction": "favored",
+            "highAction": "UNDER"
+          }
         },
         "PA": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 31.75,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 21.5,
+              "rule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            },
+            {
+              "value": 22.5,
+              "rule": {
+                "kind": "source",
+                "source": "baseline"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "action",
+            "action": "favored"
+          }
         },
         "PR": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 30.85,
-          "lowAction": "UNDER",
-          "highAction": "liveRaw"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 19.5,
+              "rule": {
+                "kind": "source",
+                "source": "baseline"
+              }
+            },
+            {
+              "value": 21.5,
+              "rule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "expectedMinutes",
+            "threshold": 30.85,
+            "lowAction": "UNDER",
+            "highAction": "liveRaw"
+          }
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 10.21,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 9.5,
+              "rule": {
+                "kind": "source",
+                "source": "baseline"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "action",
+            "action": "final"
+          }
         }
       }
     },
