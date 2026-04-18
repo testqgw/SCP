@@ -24,6 +24,8 @@ type TrackerBooksFilter = 'all' | '3plus' | '5plus';
 type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
+const TRACKER_PAGE_SIZE = 18;
+
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
@@ -917,6 +919,7 @@ export default function NewDashboard({
   const [trackerMarketFilter, setTrackerMarketFilter] = useState<'ALL' | SnapshotMarket>('ALL');
   const [trackerStatusFilter, setTrackerStatusFilter] = useState<TrackerStatusFilter>('all');
   const [trackerBooksFilter, setTrackerBooksFilter] = useState<TrackerBooksFilter>('all');
+  const [trackerPage, setTrackerPage] = useState(0);
   const [expandedTrackerKey, setExpandedTrackerKey] = useState<string | null>(null);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -1484,7 +1487,7 @@ export default function NewDashboard({
     });
     return map;
   }, [boardFeedEvents]);
-  const trackViews = useMemo(() => {
+  const trackerFilteredViews = useMemo(() => {
     return trackerBaseViews
       .filter((view) => {
         if (trackerMarketFilter !== 'ALL' && view.market !== trackerMarketFilter) {
@@ -1513,8 +1516,7 @@ export default function NewDashboard({
           .join(' ')
           .toLowerCase()
           .includes(deferredTrackerSearchQuery);
-      })
-      .slice(0, 18);
+      });
   }, [
     deferredTrackerSearchQuery,
     latestBoardFeedEventByKey,
@@ -1523,9 +1525,18 @@ export default function NewDashboard({
     trackerMarketFilter,
     trackerStatusFilter,
   ]);
+  const trackerPageCount = Math.max(1, Math.ceil(trackerFilteredViews.length / TRACKER_PAGE_SIZE));
+  const trackViews = useMemo(() => {
+    const start = trackerPage * TRACKER_PAGE_SIZE;
+    return trackerFilteredViews.slice(start, start + TRACKER_PAGE_SIZE);
+  }, [trackerFilteredViews, trackerPage]);
+  const trackerRangeStart = trackerFilteredViews.length === 0 ? 0 : trackerPage * TRACKER_PAGE_SIZE + 1;
+  const trackerRangeEnd = trackerFilteredViews.length === 0 ? 0 : trackerRangeStart + trackViews.length - 1;
+  const trackerPageDisplay = trackerFilteredViews.length === 0 ? 0 : trackerPage + 1;
+  const trackerPageTotalDisplay = trackerFilteredViews.length === 0 ? 0 : trackerPageCount;
   const trackerSummary = useMemo(() => {
     const summary = { live: 0, locked: 0, fair: 0 };
-    trackViews.forEach((view) => {
+    trackerFilteredViews.forEach((view) => {
       const latestEvent = latestBoardFeedEventByKey.get(trackerRowKey(view)) ?? null;
       if (latestEvent?.status === 'LOCKED' || latestEvent?.status === 'FINAL') {
         summary.locked += 1;
@@ -1538,7 +1549,13 @@ export default function NewDashboard({
       summary.fair += 1;
     });
     return summary;
-  }, [latestBoardFeedEventByKey, trackViews]);
+  }, [latestBoardFeedEventByKey, trackerFilteredViews]);
+  useEffect(() => {
+    setTrackerPage(0);
+  }, [deferredTrackerSearchQuery, trackerBooksFilter, trackerMarketFilter, trackerSort, trackerStatusFilter]);
+  useEffect(() => {
+    setTrackerPage((current) => Math.min(current, Math.max(trackerPageCount - 1, 0)));
+  }, [trackerPageCount]);
   useEffect(() => {
     if (!expandedTrackerKey) return;
     if (!trackViews.some((view) => trackerRowKey(view) === expandedTrackerKey)) {
@@ -3355,7 +3372,17 @@ export default function NewDashboard({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <Stat dense label="Visible rows" value={n(trackViews.length, 0)} kind={trackViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Rows after current filters" />
+                <Stat
+                  dense
+                  label="Matched rows"
+                  value={n(trackerFilteredViews.length, 0)}
+                  kind={trackerFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'}
+                  note={
+                    trackerFilteredViews.length
+                      ? `Showing ${n(trackerRangeStart, 0)}-${n(trackerRangeEnd, 0)} on page ${n(trackerPageDisplay, 0)} of ${n(trackerPageTotalDisplay, 0)}`
+                      : 'Rows after current filters'
+                  }
+                />
                 <Stat dense label="Pregame" value={n(trackerSummary.live, 0)} kind={trackerSummary.live ? 'LIVE' : 'PLACEHOLDER'} note="Live-priced tracker rows" />
                 <Stat dense label="Locked" value={n(trackerSummary.locked, 0)} kind={trackerSummary.locked ? 'DERIVED' : 'PLACEHOLDER'} note="Rows frozen at tipoff" />
                 <Stat dense label="Fair only" value={n(trackerSummary.fair, 0)} kind={trackerSummary.fair ? 'MODEL' : 'PLACEHOLDER'} note="Projection vs fair line fallback" />
@@ -3363,6 +3390,42 @@ export default function NewDashboard({
               </div>
 
               <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                  <div className="text-sm text-[var(--text-2)]">
+                    {trackerFilteredViews.length === 0
+                      ? 'No tracker rows match the current filters.'
+                      : `Showing ${n(trackerRangeStart, 0)}-${n(trackerRangeEnd, 0)} of ${n(trackerFilteredViews.length, 0)} tracker rows.`}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTrackerPage((current) => Math.max(current - 1, 0))}
+                      disabled={trackerPage === 0 || trackerFilteredViews.length === 0}
+                      className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
+                        trackerPage === 0 || trackerFilteredViews.length === 0
+                          ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                      }`}
+                    >
+                      Previous 18
+                    </button>
+                    <div className="min-w-[88px] text-center text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                      Page {n(trackerPageDisplay, 0)} / {n(trackerPageTotalDisplay, 0)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTrackerPage((current) => Math.min(current + 1, trackerPageCount - 1))}
+                      disabled={trackerPage >= trackerPageCount - 1 || trackerFilteredViews.length === 0}
+                      className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
+                        trackerPage >= trackerPageCount - 1 || trackerFilteredViews.length === 0
+                          ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                      }`}
+                    >
+                      Next 18
+                    </button>
+                  </div>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="sticky top-0 z-10 bg-[var(--surface-2)] text-[var(--text-2)]">
@@ -3394,6 +3457,7 @@ export default function NewDashboard({
                       ) : (
                         trackViews.map((v, i) => {
                           const rowKey = trackerRowKey(v);
+                          const trackerRank = trackerRangeStart + i;
                           const latestEvent = latestBoardFeedEventByKey.get(rowKey) ?? null;
                           const rowStatus: TrackerStatusFilter =
                             latestEvent?.status === 'LOCKED' || latestEvent?.status === 'FINAL'
@@ -3424,7 +3488,7 @@ export default function NewDashboard({
                               >
                                 <td className="px-4 py-4 align-top">
                                   <div className="flex items-start gap-3">
-                                    <Badge label={`#${i + 1}`} kind="DERIVED" />
+                                    <Badge label={`#${trackerRank}`} kind="DERIVED" />
                                     <div className="min-w-0">
                                       <div className="font-semibold text-[var(--text)]">{v.row.playerName}</div>
                                       <div className="mt-1 text-xs text-[var(--text-2)]">
