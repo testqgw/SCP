@@ -26,6 +26,7 @@ type Args = {
   models: string;
   out: string;
   minActualMinutes: number;
+  officialAuditFile: string | null;
 };
 
 type FeatureName =
@@ -147,12 +148,92 @@ type CandidateResult = {
   };
 };
 
+type HoldoutWindowKey = "walkForward" | "forward14d" | "forward30d";
+
+type HoldoutWindowAudit = {
+  label: HoldoutWindowKey;
+  evaluationStart: string;
+  evaluationEnd: string;
+  modelTrainThrough: string | null;
+  honestEligible: boolean;
+  overlapDetected: boolean;
+  reason: string;
+};
+
+type CandidateDecision = {
+  beatsControlWalkForwardRaw: boolean;
+  beatsControlForward14dRaw: boolean;
+  beatsControlForward30dRaw: boolean;
+  nonRegressiveWalkForwardBlended: boolean;
+  nonRegressiveForward14dBlended: boolean;
+  nonRegressiveForward30dBlended: boolean;
+  nonRegressiveWalkForwardCoverage: boolean;
+  nonRegressiveForward14dCoverage: boolean;
+  nonRegressiveForward30dCoverage: boolean;
+  honestWalkForwardWindow: boolean;
+  honestForward14dWindow: boolean;
+  honestForward30dWindow: boolean;
+  promotionEligibleSameCoverage: boolean;
+  classification: "promotion_safe" | "replay_only";
+  reason: string;
+};
+
+type CandidateReport = CandidateResult & {
+  decision: CandidateDecision;
+};
+
+type OfficialLiveAuditPayload = {
+  generatedAt?: string;
+  input?: string;
+  walkForward?: {
+    overall?: LiveQualityEvalSummary["overall"];
+    latestFold?: {
+      metrics?: LiveQualityEvalSummary["overall"];
+      testFrom?: string;
+      testTo?: string;
+    } | null;
+  };
+  honest14d?: {
+    from?: string | null;
+    to?: string | null;
+    overall?: LiveQualityEvalSummary["overall"];
+  };
+  honest30d?: {
+    from?: string | null;
+    to?: string | null;
+    overall?: LiveQualityEvalSummary["overall"];
+  };
+};
+
+type OfficialLiveBaseline = {
+  sourceFile: string;
+  generatedAt: string | null;
+  input: string | null;
+  walkForward: LiveQualityEvalSummary["overall"] | null;
+  latestFold: {
+    from: string | null;
+    to: string | null;
+    metrics: LiveQualityEvalSummary["overall"] | null;
+  } | null;
+  honest14d: {
+    from: string | null;
+    to: string | null;
+    overall: LiveQualityEvalSummary["overall"] | null;
+  } | null;
+  honest30d: {
+    from: string | null;
+    to: string | null;
+    overall: LiveQualityEvalSummary["overall"] | null;
+  } | null;
+};
+
 function parseArgs(): Args {
   const raw = process.argv.slice(2);
   let input: string | null = "exports/projection-backtest-allplayers-with-rows-runtime-context.json";
   let models = "exports/player-market-side-models-runtime-context-2025-10-23-to-2026-03-28.json";
   let out = path.join("exports", "live-quality-player-market-base-branch-summary.json");
   let minActualMinutes = 15;
+  let officialAuditFile: string | null = path.join("exports", "current-live-stack-audit.json");
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -195,6 +276,17 @@ function parseArgs(): Args {
       if (Number.isFinite(parsed) && parsed >= 0) minActualMinutes = parsed;
       continue;
     }
+    if ((token === "--official-audit-file" || token === "--official-live-audit-file") && next) {
+      officialAuditFile = next;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--official-audit-file=") || token.startsWith("--official-live-audit-file=")) {
+      officialAuditFile = token.includes("--official-live-audit-file=")
+        ? token.slice("--official-live-audit-file=".length)
+        : token.slice("--official-audit-file=".length);
+      continue;
+    }
   }
 
   return {
@@ -202,6 +294,7 @@ function parseArgs(): Args {
     models: path.resolve(models),
     out: path.resolve(out),
     minActualMinutes,
+    officialAuditFile: officialAuditFile == null ? null : path.resolve(officialAuditFile),
   };
 }
 
@@ -316,8 +409,169 @@ function countChangedRows(
         if (row.finalCorrect && !control.finalCorrect) netFinal += 1;
         else if (!row.finalCorrect && control.finalCorrect) netFinal -= 1;
       }
-    });
+  });
   return { raw, final, netRaw, netFinal };
+}
+
+function isIsoDate(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function buildHoldoutWindowAudit(
+  label: HoldoutWindowKey,
+  evaluationStart: string,
+  evaluationEnd: string,
+  modelTrainThrough: string | null,
+): HoldoutWindowAudit {
+  if (!isIsoDate(modelTrainThrough)) {
+    return {
+      label,
+      evaluationStart,
+      evaluationEnd,
+      modelTrainThrough: modelTrainThrough ?? null,
+      honestEligible: false,
+      overlapDetected: false,
+      reason: "Model file does not declare a usable training end date, so this window cannot be treated as holdout-clean.",
+    };
+  }
+
+  const honestEligible = modelTrainThrough < evaluationStart;
+  return {
+    label,
+    evaluationStart,
+    evaluationEnd,
+    modelTrainThrough,
+    honestEligible,
+    overlapDetected: !honestEligible,
+    reason: honestEligible
+      ? `Training ends on ${modelTrainThrough}, before this evaluation window starts on ${evaluationStart}.`
+      : `Training runs through ${modelTrainThrough}, which overlaps evaluation dates starting ${evaluationStart}.`,
+  };
+}
+
+function compareCandidates(left: CandidateResult, right: CandidateResult): number {
+  if (right.walkForward.rawAccuracy !== left.walkForward.rawAccuracy) {
+    return right.walkForward.rawAccuracy - left.walkForward.rawAccuracy;
+  }
+  if (right.forward30d.rawAccuracy !== left.forward30d.rawAccuracy) {
+    return right.forward30d.rawAccuracy - left.forward30d.rawAccuracy;
+  }
+  return right.walkForward.blendedAccuracy - left.walkForward.blendedAccuracy;
+}
+
+function buildCandidateDecision(
+  candidate: CandidateResult,
+  control: {
+    walkForward: LiveQualityEvalSummary["overall"];
+    forward14d: LiveQualityEvalSummary["overall"];
+    forward30d: LiveQualityEvalSummary["overall"];
+  },
+  holdoutAudit: {
+    walkForward: HoldoutWindowAudit;
+    forward14d: HoldoutWindowAudit;
+    forward30d: HoldoutWindowAudit;
+  },
+): CandidateDecision {
+  const beatsControlWalkForwardRaw = candidate.walkForward.rawAccuracy > control.walkForward.rawAccuracy;
+  const beatsControlForward14dRaw = candidate.forward14d.rawAccuracy > control.forward14d.rawAccuracy;
+  const beatsControlForward30dRaw = candidate.forward30d.rawAccuracy > control.forward30d.rawAccuracy;
+  const nonRegressiveWalkForwardBlended = candidate.walkForward.blendedAccuracy >= control.walkForward.blendedAccuracy;
+  const nonRegressiveForward14dBlended = candidate.forward14d.blendedAccuracy >= control.forward14d.blendedAccuracy;
+  const nonRegressiveForward30dBlended = candidate.forward30d.blendedAccuracy >= control.forward30d.blendedAccuracy;
+  const nonRegressiveWalkForwardCoverage = candidate.walkForward.coveragePct >= control.walkForward.coveragePct;
+  const nonRegressiveForward14dCoverage = candidate.forward14d.coveragePct >= control.forward14d.coveragePct;
+  const nonRegressiveForward30dCoverage = candidate.forward30d.coveragePct >= control.forward30d.coveragePct;
+  const promotionEligibleSameCoverage =
+    holdoutAudit.walkForward.honestEligible &&
+    holdoutAudit.forward14d.honestEligible &&
+    holdoutAudit.forward30d.honestEligible &&
+    beatsControlWalkForwardRaw &&
+    beatsControlForward14dRaw &&
+    beatsControlForward30dRaw &&
+    nonRegressiveWalkForwardBlended &&
+    nonRegressiveForward14dBlended &&
+    nonRegressiveForward30dBlended &&
+    nonRegressiveWalkForwardCoverage &&
+    nonRegressiveForward14dCoverage &&
+    nonRegressiveForward30dCoverage;
+
+  let reason = "Candidate is replay-only until it clears every honest same-coverage gate.";
+  if (!holdoutAudit.walkForward.honestEligible || !holdoutAudit.forward14d.honestEligible || !holdoutAudit.forward30d.honestEligible) {
+    const blockedWindows = [holdoutAudit.walkForward, holdoutAudit.forward14d, holdoutAudit.forward30d]
+      .filter((window) => !window.honestEligible)
+      .map((window) => window.label);
+    reason = `Model training overlaps the ${blockedWindows.join(", ")} evaluation window(s), so this result is diagnostic replay only.`;
+  } else if (!beatsControlWalkForwardRaw || !beatsControlForward14dRaw || !beatsControlForward30dRaw) {
+    reason = "Candidate does not beat control raw accuracy on every required same-coverage window.";
+  } else if (
+    !nonRegressiveWalkForwardBlended ||
+    !nonRegressiveForward14dBlended ||
+    !nonRegressiveForward30dBlended ||
+    !nonRegressiveWalkForwardCoverage ||
+    !nonRegressiveForward14dCoverage ||
+    !nonRegressiveForward30dCoverage
+  ) {
+    reason = "Candidate improves raw accuracy but still regresses blended accuracy or coverage on a required window.";
+  } else if (promotionEligibleSameCoverage) {
+    reason = "Candidate clears the honest same-coverage promotion gate across walk-forward, 14d, and 30d windows.";
+  }
+
+  return {
+    beatsControlWalkForwardRaw,
+    beatsControlForward14dRaw,
+    beatsControlForward30dRaw,
+    nonRegressiveWalkForwardBlended,
+    nonRegressiveForward14dBlended,
+    nonRegressiveForward30dBlended,
+    nonRegressiveWalkForwardCoverage,
+    nonRegressiveForward14dCoverage,
+    nonRegressiveForward30dCoverage,
+    honestWalkForwardWindow: holdoutAudit.walkForward.honestEligible,
+    honestForward14dWindow: holdoutAudit.forward14d.honestEligible,
+    honestForward30dWindow: holdoutAudit.forward30d.honestEligible,
+    promotionEligibleSameCoverage,
+    classification: promotionEligibleSameCoverage ? "promotion_safe" : "replay_only",
+    reason,
+  };
+}
+
+async function loadOfficialLiveBaseline(filePath: string | null): Promise<OfficialLiveBaseline | null> {
+  if (!filePath) return null;
+  try {
+    const payload = JSON.parse(await readFile(filePath, "utf8")) as OfficialLiveAuditPayload;
+    return {
+      sourceFile: filePath,
+      generatedAt: payload.generatedAt ?? null,
+      input: payload.input ?? null,
+      walkForward: payload.walkForward?.overall ?? null,
+      latestFold:
+        payload.walkForward?.latestFold == null
+          ? null
+          : {
+              from: payload.walkForward.latestFold.testFrom ?? null,
+              to: payload.walkForward.latestFold.testTo ?? null,
+              metrics: payload.walkForward.latestFold.metrics ?? null,
+            },
+      honest14d:
+        payload.honest14d == null
+          ? null
+          : {
+              from: payload.honest14d.from ?? null,
+              to: payload.honest14d.to ?? null,
+              overall: payload.honest14d.overall ?? null,
+            },
+      honest30d:
+        payload.honest30d == null
+          ? null
+          : {
+              from: payload.honest30d.from ?? null,
+              to: payload.honest30d.to ?? null,
+              overall: payload.honest30d.overall ?? null,
+            },
+    };
+  } catch {
+    return null;
+  }
 }
 
 function buildApprovedModelMap(
@@ -391,6 +645,12 @@ function buildCandidateRows(
 
 async function main(): Promise<void> {
   const args = parseArgs();
+  if (!process.env.SNAPSHOT_PLAYER_LOCAL_RECOVERY_MANIFEST_MODE?.trim()) {
+    process.env.SNAPSHOT_PLAYER_LOCAL_RECOVERY_MANIFEST_MODE = "on";
+  }
+  if (!process.env.SNAPSHOT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_MODE?.trim()) {
+    process.env.SNAPSHOT_PLAYER_MARKET_RESIDUAL_DRAG_MEMORY_MODE = "on";
+  }
   const payload = await loadRowsPayload(args.input);
   const rows = filterAndAttachRows(payload.playerMarketRows, args.minActualMinutes);
   const playerSummaries = await summarizePlayers(rows);
@@ -417,6 +677,7 @@ async function main(): Promise<void> {
     date.setUTCDate(date.getUTCDate() - 29);
     return date.toISOString().slice(0, 10);
   })();
+  const walkForwardStart = dates.find((date) => walkForwardDateSet.has(date)) ?? latestDate;
   const forward14dDateSet = new Set(dates.filter((date) => date >= forward14dStart));
   const forward30dDateSet = new Set(dates.filter((date) => date >= forward30dStart));
 
@@ -456,6 +717,11 @@ async function main(): Promise<void> {
   const controlWalkForward = summarizeRows(liveRows, walkForwardDateSet).overall;
   const controlForward14d = summarizeRows(liveRows, forward14dDateSet).overall;
   const controlForward30d = summarizeRows(liveRows, forward30dDateSet).overall;
+  const holdoutAudit = {
+    walkForward: buildHoldoutWindowAudit("walkForward", walkForwardStart, latestDate, modelPayload.to ?? null),
+    forward14d: buildHoldoutWindowAudit("forward14d", forward14dStart, latestDate, modelPayload.to ?? null),
+    forward30d: buildHoldoutWindowAudit("forward30d", forward30dStart, latestDate, modelPayload.to ?? null),
+  };
 
   const results: CandidateResult[] = candidates.map((candidate) => {
     const approvedModels = buildApprovedModelMap(modelPayload, candidate);
@@ -494,18 +760,38 @@ async function main(): Promise<void> {
     };
   });
 
-  const bestCandidate =
-    results
-      .slice()
-      .sort((left, right) => {
-        if (right.walkForward.rawAccuracy !== left.walkForward.rawAccuracy) {
-          return right.walkForward.rawAccuracy - left.walkForward.rawAccuracy;
+  const control = {
+    walkForward: controlWalkForward,
+    forward14d: controlForward14d,
+    forward30d: controlForward30d,
+  };
+  const officialLiveBaseline = await loadOfficialLiveBaseline(args.officialAuditFile);
+  const candidateReports: CandidateReport[] = results.map((candidate) => ({
+    ...candidate,
+    decision: buildCandidateDecision(candidate, control, holdoutAudit),
+  }));
+  const bestReplayCandidate = candidateReports.slice().sort(compareCandidates)[0] ?? null;
+  const bestPromotionCandidate =
+    candidateReports.filter((candidate) => candidate.decision.promotionEligibleSameCoverage).sort(compareCandidates)[0] ?? null;
+  const promotionDecision =
+    bestPromotionCandidate != null
+      ? {
+          status: "promotion_candidate_found",
+          reason: `Promotion-safe winner: ${bestPromotionCandidate.label}.`,
         }
-        if (right.forward30d.rawAccuracy !== left.forward30d.rawAccuracy) {
-          return right.forward30d.rawAccuracy - left.forward30d.rawAccuracy;
-        }
-        return right.walkForward.blendedAccuracy - left.walkForward.blendedAccuracy;
-      })[0] ?? null;
+      : !holdoutAudit.walkForward.honestEligible ||
+          !holdoutAudit.forward14d.honestEligible ||
+          !holdoutAudit.forward30d.honestEligible
+        ? {
+            status: "replay_only_model_file",
+            reason:
+              "The supplied player-market model file overlaps at least one evaluation window, so replay leaders are not promotion-safe.",
+          }
+        : {
+            status: "no_same_coverage_winner",
+            reason:
+              "The supplied model file is holdout-clean for these windows, but no candidate beat control while preserving blended accuracy and coverage across every required window.",
+          };
 
   const summary = {
     generatedAt: new Date().toISOString(),
@@ -521,31 +807,37 @@ async function main(): Promise<void> {
       modelsFile: args.models,
       modelsFileSignature: buildFileSignature(args.models),
     },
+    evaluationContext: {
+      branchControlMeaning: "Control metrics below are branch-local control for this evaluator, not the canonical full shipped live stack.",
+      officialLiveBaselineMeaning:
+        officialLiveBaseline == null
+          ? "Official live baseline file was unavailable."
+          : "Official live baseline comes from the current full shipped live-stack audit and should be treated as the real model accuracy.",
+      officialAuditFile: args.officialAuditFile,
+    },
     trainedModelWindow: {
       from: modelPayload.from ?? null,
       to: modelPayload.to ?? null,
       modelCount: modelPayload.modelCount ?? (modelPayload.playerMarketModels ?? []).length,
       playersRepresented: modelPayload.playersRepresented ?? null,
     },
-    control: {
-      walkForward: controlWalkForward,
-      forward14d: controlForward14d,
-      forward30d: controlForward30d,
+    evaluationWindows: {
+      latestDate,
+      walkForwardStart,
+      forward14dStart,
+      forward30dStart,
     },
-    candidates: results,
+    holdoutAudit,
+    promotionDecision,
+    officialLiveBaseline,
+    control,
+    candidates: candidateReports,
+    bestReplayCandidate: bestReplayCandidate,
+    bestPromotionCandidate: bestPromotionCandidate,
     bestCandidate:
-      bestCandidate == null
+      bestPromotionCandidate == null
         ? null
-        : {
-            label: bestCandidate.label,
-            walkForward: bestCandidate.walkForward,
-            forward14d: bestCandidate.forward14d,
-            forward30d: bestCandidate.forward30d,
-            beatsControlWalkForwardRaw: bestCandidate.walkForward.rawAccuracy > controlWalkForward.rawAccuracy,
-            beatsControlForward30dRaw: bestCandidate.forward30d.rawAccuracy > controlForward30d.rawAccuracy,
-            beatsControlWalkForwardBlended: bestCandidate.walkForward.blendedAccuracy > controlWalkForward.blendedAccuracy,
-            beatsControlWalkForwardCoverage: bestCandidate.walkForward.coveragePct > controlWalkForward.coveragePct,
-          },
+        : bestPromotionCandidate,
   };
 
   await mkdir(path.dirname(args.out), { recursive: true });
@@ -560,16 +852,41 @@ async function main(): Promise<void> {
           forward14dRaw: controlForward14d.rawAccuracy,
           forward30dRaw: controlForward30d.rawAccuracy,
         },
-        bestCandidate:
-          bestCandidate == null
+        officialLiveBaseline:
+          officialLiveBaseline == null
             ? null
             : {
-                label: bestCandidate.label,
-                walkForwardRaw: bestCandidate.walkForward.rawAccuracy,
-                forward14dRaw: bestCandidate.forward14d.rawAccuracy,
-                forward30dRaw: bestCandidate.forward30d.rawAccuracy,
-                approvedModelCount: bestCandidate.approvedModelCount,
-                approvedPlayers: bestCandidate.approvedPlayers,
+                walkForwardRaw: officialLiveBaseline.walkForward?.rawAccuracy ?? null,
+                latestFoldRaw: officialLiveBaseline.latestFold?.metrics?.rawAccuracy ?? null,
+                forward14dRaw: officialLiveBaseline.honest14d?.overall?.rawAccuracy ?? null,
+                forward30dRaw: officialLiveBaseline.honest30d?.overall?.rawAccuracy ?? null,
+                sourceFile: officialLiveBaseline.sourceFile,
+              },
+        promotionDecision,
+        holdoutAudit,
+        bestReplayCandidate:
+          bestReplayCandidate == null
+            ? null
+            : {
+                label: bestReplayCandidate.label,
+                walkForwardRaw: bestReplayCandidate.walkForward.rawAccuracy,
+                forward14dRaw: bestReplayCandidate.forward14d.rawAccuracy,
+                forward30dRaw: bestReplayCandidate.forward30d.rawAccuracy,
+                approvedModelCount: bestReplayCandidate.approvedModelCount,
+                approvedPlayers: bestReplayCandidate.approvedPlayers,
+                classification: bestReplayCandidate.decision.classification,
+              },
+        bestCandidate:
+          bestPromotionCandidate == null
+            ? null
+            : {
+                label: bestPromotionCandidate.label,
+                walkForwardRaw: bestPromotionCandidate.walkForward.rawAccuracy,
+                forward14dRaw: bestPromotionCandidate.forward14d.rawAccuracy,
+                forward30dRaw: bestPromotionCandidate.forward30d.rawAccuracy,
+                approvedModelCount: bestPromotionCandidate.approvedModelCount,
+                approvedPlayers: bestPromotionCandidate.approvedPlayers,
+                classification: bestPromotionCandidate.decision.classification,
               },
       },
       null,
