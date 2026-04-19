@@ -1,13 +1,12 @@
 {
-  "version": "2026-04-17-donte-depth3-plus-donovan-center-over-bundle",
-  "generatedAt": "2026-04-17T01:54:25.287Z",
-  "sourceAuditFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\_tmp_manifest_strict_stale_rules.json",
+  "version": "2026-04-18-isaiah-jackson-plus-dillon-runtime-positive-pack-v2",
+  "generatedAt": "2026-04-18T18:19:06.9115623-04:00",
+  "sourceAuditFile": "exports/_tmp_current_target_lift_summary.json",
   "methodology": {
-    "baseVersion": "2026-04-15-player-local-target-lift-v20-fullboard-maxnet-minrows-1",
-    "policy": "Strict stale override prune: remove the top 75 player-market manifest rules that underperformed baseline on full history and honest 30d and 14d holdouts, then promote a Donte DiVincenzo depth-3 split router plus the Donovan Clingan center-over bundle.",
-    "pruneCount": 75,
-    "selection": "Top 75 by combined full + 30d + 14d delta-vs-baseline score among strict stale rules.",
-    "recentWindowsGuard": "must be nonpositive vs baseline on full, 30d, and 14d with minimum sample thresholds"
+    "baseVersion": "2026-04-17-donte-depth3-plus-donovan-center-over-bundle",
+    "policy": "Promote only re-audited player-local replacements that remain positive in the real manifest-on runtime replay. The approved set now includes the Isaiah Jackson replacement and the Dillon Brooks runtime-positive recovery pack across PRA, REB, THREES, and PA.",
+    "selection": "two actual-runtime-positive replacements",
+    "recentWindowsGuard": "full > 0 net rows, 30d >= 0, 14d >= 0 in real manifest-on replay"
   },
   "entries": [
     {
@@ -77,22 +76,154 @@
     {
       "playerKey": "dillon brooks",
       "playerName": "Dillon Brooks",
-      "label": "train_best_hub_router_v1",
-      "targetRawAccuracy": 70,
+      "label": "honest_recovery_v3_multi_market_runtime_positive",
+      "targetRawAccuracy": 74,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 19.87,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 16.5,
+              "rule": {
+                "kind": "action",
+                "action": "favored"
+              }
+            },
+            {
+              "value": 14.5,
+              "rule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "minutesVolatility",
+            "threshold": 4.21,
+            "lowAction": "OVER",
+            "highAction": "final"
+          }
+        },
+        "REB": {
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 3.5,
+              "rule": {
+                "kind": "threshold",
+                "feature": "overPrice",
+                "threshold": -3,
+                "lowAction": "OVER",
+                "highAction": "UNDER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "priceAbsLean",
+            "threshold": 0.145,
+            "lowAction": "OVER",
+            "highAction": "liveRaw"
+          }
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 1.66,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "feature": "overPrice",
+          "threshold": -162,
+          "lowAction": "UNDER",
+          "highAction": "final"
+        },
+        "THREES": {
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 1.5,
+              "rule": {
+                "kind": "threshold",
+                "feature": "expectedMinutes",
+                "threshold": 27.88,
+                "lowAction": "liveRaw",
+                "highAction": "UNDER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "projectedValue",
+            "threshold": 2.02,
+            "lowAction": "OVER",
+            "highAction": "final"
+          }
+        },
+        "PRA": {
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 28.5,
+              "rule": {
+                "kind": "action",
+                "action": "UNDER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "split",
+            "feature": "underPrice",
+            "threshold": -124.5,
+            "lowRule": {
+              "kind": "action",
+              "action": "OVER"
+            },
+            "highRule": {
+              "kind": "threshold",
+              "feature": "minutesVolatility",
+              "threshold": 3.98,
+              "lowAction": "OVER",
+              "highAction": "UNDER"
+            }
+          }
+        },
+        "PA": {
+          "kind": "valueMap",
+          "feature": "line",
+          "cases": [
+            {
+              "value": 20.5,
+              "rule": {
+                "kind": "action",
+                "action": "OVER"
+              }
+            },
+            {
+              "value": 19.5,
+              "rule": {
+                "kind": "action",
+                "action": "liveRaw"
+              }
+            },
+            {
+              "value": 21.5,
+              "rule": {
+                "kind": "threshold",
+                "feature": "minutesVolatility",
+                "threshold": 3.98,
+                "lowAction": "OVER",
+                "highAction": "UNDER"
+              }
+            }
+          ],
+          "defaultRule": {
+            "kind": "threshold",
+            "feature": "lineGap",
+            "threshold": -3.9,
+            "lowAction": "OVER",
+            "highAction": "UNDER"
+          }
         },
         "PR": {
           "kind": "threshold",
@@ -103,9 +234,9 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 30.69,
-          "lowAction": "liveRaw",
+          "feature": "overPrice",
+          "threshold": -105.5,
+          "lowAction": "OVER",
           "highAction": "UNDER"
         }
       }
@@ -590,29 +721,24 @@
     {
       "playerKey": "isaiah jackson",
       "playerName": "Isaiah Jackson",
-      "label": "train_best_mixed_market_bias_router_guarded_v1",
+      "label": "train_best_action_by_market_v1",
       "targetRawAccuracy": 70,
       "markets": {
-        "PTS": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 8.76,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+        "PRA": {
+          "kind": "action",
+          "action": "OVER"
         },
-        "REB": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 5.28,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+        "PA": {
+          "kind": "action",
+          "action": "OVER"
         },
-        "AST": {
-          "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.087,
-          "lowAction": "UNDER",
-          "highAction": "liveRaw"
+        "PR": {
+          "kind": "action",
+          "action": "OVER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "OVER"
         }
       }
     },
