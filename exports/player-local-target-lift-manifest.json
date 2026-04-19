@@ -1,12 +1,13 @@
 {
-  "version": "2026-04-18-isaiah-jackson-plus-dillon-runtime-positive-pack-v2",
-  "generatedAt": "2026-04-18T18:19:06.9115623-04:00",
-  "sourceAuditFile": "exports/_tmp_current_target_lift_summary.json",
+  "version": "2026-04-19-top117-hybrid-ddq-clingan-isaiah-fox",
+  "generatedAt": "2026-04-19T13:29:07.967Z",
+  "sourceAuditFile": "exports/live-player-local-hybrid-ddq-clingan-isaiah-fox-audit-2026-04-19.json",
   "methodology": {
-    "baseVersion": "2026-04-17-donte-depth3-plus-donovan-center-over-bundle",
-    "policy": "Promote only re-audited player-local replacements that remain positive in the real manifest-on runtime replay. The approved set now includes the Isaiah Jackson replacement and the Dillon Brooks runtime-positive recovery pack across PRA, REB, THREES, and PA.",
-    "selection": "two actual-runtime-positive replacements",
-    "recentWindowsGuard": "full > 0 net rows, 30d >= 0, 14d >= 0 in real manifest-on replay"
+    "baseVersion": "2026-04-18-isaiah-jackson-plus-dillon-runtime-positive-pack-v2",
+    "policy": "Promote only runtime-faithful player-local manifest hybrids that improve the honest recent windows without turning negative on full walk-forward replay.",
+    "selection": "top117 transfer-subset base plus current Dillon Brooks, Donte DiVincenzo, Immanuel Quickley, Donovan Clingan, Isaiah Jackson, and De'Aaron Fox entries after honest replay screening.",
+    "recentWindowsGuard": "full walk-forward raw delta must stay positive or near-flat, honest30d raw must improve, honest14d raw must improve",
+    "proofAuditFile": "exports/live-player-local-hybrid-ddq-clingan-isaiah-fox-audit-2026-04-19.json"
   },
   "entries": [
     {
@@ -17,10 +18,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 13.71,
-          "lowAction": "OVER",
-          "highAction": "baseline"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -249,10 +250,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 31.91,
-          "lowAction": "baseline",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -313,10 +314,10 @@
         },
         "REB": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 17.97,
-          "lowAction": "baseline",
-          "highAction": "favored"
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "threshold",
@@ -409,6 +410,13 @@
           "threshold": 24.95,
           "lowAction": "UNDER",
           "highAction": "projection"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         }
       }
     },
@@ -427,8 +435,11 @@
           "source": "projection"
         },
         "AST": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "source",
@@ -504,7 +515,7 @@
         },
         "REB": {
           "kind": "source",
-          "source": "favored"
+          "source": "projection"
         },
         "AST": {
           "kind": "source",
@@ -704,10 +715,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 36.9,
-          "lowAction": "OVER",
-          "highAction": "favored"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -759,6 +770,13 @@
         "RA": {
           "kind": "source",
           "source": "liveRaw"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         }
       }
     },
@@ -802,6 +820,13 @@
           "threshold": 24.15,
           "lowAction": "projection",
           "highAction": "liveRaw"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         }
       }
     },
@@ -995,7 +1020,7 @@
         },
         "REB": {
           "kind": "source",
-          "source": "liveRaw"
+          "source": "projection"
         },
         "AST": {
           "kind": "source",
@@ -1018,8 +1043,11 @@
           "source": "liveRaw"
         },
         "RA": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         }
       }
     },
@@ -1042,8 +1070,11 @@
           "source": "liveRaw"
         },
         "THREES": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
         },
         "PRA": {
           "kind": "source",
@@ -1160,6 +1191,13 @@
           "threshold": 5.78,
           "lowAction": "OVER",
           "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -1243,10 +1281,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.011,
+          "feature": "absLineGap",
+          "threshold": 1.055,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -1307,10 +1345,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 4.12,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -1895,12 +1933,18 @@
           "source": "baseline"
         },
         "REB": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "threshold",
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
         },
         "AST": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "source",
@@ -1912,15 +1956,15 @@
         },
         "PA": {
           "kind": "source",
-          "source": "baseline"
+          "source": "projection"
         },
         "PR": {
           "kind": "source",
           "source": "baseline"
         },
         "RA": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -1971,8 +2015,11 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "source",
@@ -2019,10 +2066,10 @@
         },
         "PA": {
           "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": -0.11,
-          "lowAction": "liveRaw",
-          "highAction": "favored"
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         },
         "PR": {
           "kind": "threshold",
@@ -2086,6 +2133,17 @@
         "PR": {
           "kind": "source",
           "source": "projection"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -2154,8 +2212,11 @@
           "source": "favored"
         },
         "AST": {
-          "kind": "source",
-          "source": "favored"
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "source",
@@ -2274,8 +2335,11 @@
           "action": "OVER"
         },
         "AST": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "source",
@@ -2699,10 +2763,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.65,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -2770,9 +2834,9 @@
         },
         "THREES": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.26,
-          "lowAction": "liveRaw",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowAction": "OVER",
           "highAction": "UNDER"
         },
         "PRA": {
@@ -2905,17 +2969,14 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": 4.43,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 5.15,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -2926,11 +2987,8 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 34.88,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "UNDER"
         },
         "REB": {
           "kind": "threshold",
@@ -2969,10 +3027,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 28.21,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -3083,10 +3141,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.102,
-          "lowAction": "projection",
-          "highAction": "OVER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -3899,6 +3957,10 @@
           "threshold": 5,
           "lowAction": "projection",
           "highAction": "OVER"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
         }
       }
     },
@@ -4017,10 +4079,17 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 7.32,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         }
       }
     },
@@ -4104,17 +4173,17 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 8.35,
-          "lowAction": "UNDER",
-          "highAction": "OVER"
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 2.22,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PA": {
           "kind": "threshold",
@@ -4420,15 +4489,18 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PR": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PTS": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 31.92,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -4497,8 +4569,11 @@
           "source": "liveRaw"
         },
         "REB": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "threshold",
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "source",
@@ -4521,8 +4596,8 @@
           "source": "liveRaw"
         },
         "RA": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -4788,6 +4863,13 @@
           "threshold": 2.17,
           "lowAction": "OVER",
           "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         }
       }
     },
@@ -4814,10 +4896,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 7.74,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -4828,8 +4910,11 @@
       "targetRawAccuracy": 60,
       "markets": {
         "THREES": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
         },
         "PRA": {
           "kind": "action",
@@ -4847,8 +4932,11 @@
           "highAction": "liveRaw"
         },
         "AST": {
-          "kind": "source",
-          "source": "liveRaw"
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PR": {
           "kind": "action",
@@ -5280,6 +5368,13 @@
           "threshold": 35.34,
           "lowAction": "liveRaw",
           "highAction": "UNDER"
+        },
+        "THREES": {
+          "kind": "threshold",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowAction": "OVER",
+          "highAction": "UNDER"
         }
       }
     },
@@ -5490,10 +5585,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 5.03,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "liveRaw"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -5710,10 +5805,10 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 3.84,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         }
       }
     },
@@ -5796,6 +5891,10 @@
           "threshold": 2.54,
           "lowAction": "liveRaw",
           "highAction": "UNDER"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
         }
       }
     },
@@ -5842,10 +5941,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 27.88,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -6016,8 +6115,11 @@
           "action": "UNDER"
         },
         "PRA": {
-          "kind": "action",
-          "action": "OVER"
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "action",
@@ -6181,10 +6283,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.84,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "projection"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -6297,8 +6399,11 @@
           "action": "OVER"
         },
         "PRA": {
-          "kind": "source",
-          "source": "baseline"
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "source",
@@ -6526,11 +6631,8 @@
           "highAction": "liveRaw"
         },
         "PA": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 23.1,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "kind": "source",
+          "source": "projection"
         },
         "PR": {
           "kind": "threshold",
@@ -6541,10 +6643,10 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 6.22,
-          "lowAction": "projection",
-          "highAction": "OVER"
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         }
       }
     },
@@ -6748,10 +6850,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 22.7,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -7172,6 +7274,10 @@
         "REB": {
           "kind": "source",
           "source": "final"
+        },
+        "PA": {
+          "kind": "source",
+          "source": "projection"
         }
       }
     },
@@ -7345,10 +7451,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 26.3,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -7545,10 +7651,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": -0.016,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -7644,10 +7750,10 @@
         },
         "PTS": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 32.85,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -7829,10 +7935,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 15.58,
+          "feature": "absLineGap",
+          "threshold": 0.595,
           "lowAction": "UNDER",
-          "highAction": "liveRaw"
+          "highAction": "current"
         }
       }
     },
@@ -7970,10 +8076,10 @@
         },
         "PRA": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.2,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "threshold",
@@ -8011,6 +8117,17 @@
         "THREES": {
           "kind": "action",
           "action": "OVER"
+        },
+        "REB": {
+          "kind": "source",
+          "source": "projection"
+        },
+        "PR": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -8128,10 +8245,10 @@
         },
         "PA": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 18.45,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         }
       }
     },
@@ -8150,10 +8267,10 @@
         },
         "REB": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 28.23,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "threshold",
@@ -8576,10 +8693,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 28.82,
-          "lowAction": "OVER",
-          "highAction": "favored"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -8967,11 +9084,15 @@
           "highAction": "liveRaw"
         },
         "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "AST": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.014,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -9017,11 +9138,8 @@
           "highAction": "liveRaw"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 23.48,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -9104,10 +9222,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 0.32,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -9168,10 +9286,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 7.28,
-          "lowAction": "projection",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -9288,11 +9406,15 @@
           "highAction": "liveRaw"
         },
         "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "AST": {
           "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 0.35,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -9318,10 +9440,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 34.31,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "favored"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -9425,10 +9547,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 5.09,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -9486,6 +9608,13 @@
           "threshold": 9.13,
           "lowAction": "favored",
           "highAction": "liveRaw"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -9625,11 +9754,8 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": 0.73,
-          "lowAction": "UNDER",
-          "highAction": "projection"
+          "kind": "action",
+          "action": "UNDER"
         },
         "REB": {
           "kind": "threshold",
@@ -9640,10 +9766,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 1.83,
-          "lowAction": "projection",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -9776,15 +9902,15 @@
           "source": "baseline"
         },
         "PR": {
-          "kind": "source",
-          "source": "projection"
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PTS": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 26.87,
-          "lowAction": "liveRaw",
-          "highAction": "favored"
+          "kind": "action",
+          "action": "UNDER"
         },
         "REB": {
           "kind": "threshold",
@@ -9802,11 +9928,8 @@
       "targetRawAccuracy": 70,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "absLineGap",
-          "threshold": 0.32,
-          "lowAction": "UNDER",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "UNDER"
         },
         "THREES": {
           "kind": "threshold",
@@ -10073,11 +10196,8 @@
           "highAction": "liveRaw"
         },
         "REB": {
-          "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 22.86,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "source",
+          "source": "projection"
         },
         "PA": {
           "kind": "threshold",
@@ -10088,10 +10208,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 23.37,
-          "lowAction": "projection",
-          "highAction": "UNDER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "AST": {
           "kind": "threshold",
@@ -10117,10 +10237,10 @@
       "markets": {
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.28,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -10158,11 +10278,8 @@
           "highAction": "OVER"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 11.89,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -10354,11 +10471,8 @@
           "highAction": "favored"
         },
         "REB": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 2.14,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "kind": "source",
+          "source": "projection"
         },
         "AST": {
           "kind": "threshold",
@@ -10419,10 +10533,10 @@
         },
         "PA": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 16.24,
-          "lowAction": "liveRaw",
-          "highAction": "projection"
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         },
         "PR": {
           "kind": "threshold",
@@ -10440,10 +10554,10 @@
         },
         "PTS": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 13.01,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -10553,6 +10667,13 @@
           "threshold": 25.07,
           "lowAction": "projection",
           "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -10727,25 +10848,23 @@
           "highAction": "liveRaw"
         },
         "PA": {
-          "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": 1.34,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "source",
+          "source": "projection"
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 32.33,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 8.91,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "PTS": {
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -10779,6 +10898,13 @@
           "threshold": 9.86,
           "lowAction": "OVER",
           "highAction": "projection"
+        },
+        "PA": {
+          "kind": "threshold",
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         }
       }
     },
@@ -13821,10 +13947,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 27.87,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -13864,10 +13990,10 @@
       "markets": {
         "PRA": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 18.42,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "threshold",
@@ -13878,10 +14004,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 21.9,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -14123,10 +14249,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 18.05,
-          "lowAction": "projection",
-          "highAction": "OVER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -14148,6 +14274,13 @@
           "threshold": 0.025,
           "lowAction": "OVER",
           "highAction": "UNDER"
+        },
+        "PRA": {
+          "kind": "threshold",
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         }
       }
     },
@@ -14314,10 +14447,10 @@
         },
         "REB": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.13,
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "baseline"
         },
         "PRA": {
           "kind": "threshold",
@@ -14826,9 +14959,9 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 33.39,
-          "lowAction": "OVER",
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
           "highAction": "UNDER"
         }
       }
@@ -14862,10 +14995,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 28.11,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
@@ -15059,6 +15192,13 @@
           "threshold": 3.8,
           "lowAction": "liveRaw",
           "highAction": "OVER"
+        },
+        "RA": {
+          "kind": "threshold",
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         }
       }
     },
@@ -15069,25 +15209,22 @@
       "targetRawAccuracy": 60,
       "markets": {
         "PTS": {
-          "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.88,
-          "lowAction": "projection",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "UNDER"
         },
         "REB": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 4.88,
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": 0.069,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -15119,10 +15256,10 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": -0.094,
-          "lowAction": "OVER",
-          "highAction": "favored"
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
         }
       }
     },
@@ -15383,10 +15520,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 31.53,
-          "lowAction": "projection",
-          "highAction": "OVER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -16154,16 +16291,16 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.022,
+          "feature": "absLineGap",
+          "threshold": 1.055,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 18.6,
-          "lowAction": "OVER",
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
           "highAction": "baseline"
         },
         "AST": {
@@ -16202,11 +16339,8 @@
           "highAction": "projection"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "overPrice",
-          "threshold": 100,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -16225,17 +16359,17 @@
         },
         "PRA": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 36.77,
-          "lowAction": "favored",
-          "highAction": "liveRaw"
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.003,
-          "lowAction": "projection",
-          "highAction": "liveRaw"
+          "feature": "minutesVolatility",
+          "threshold": 3.645,
+          "lowAction": "UNDER",
+          "highAction": "OVER"
         },
         "PR": {
           "kind": "threshold",
@@ -16459,11 +16593,15 @@
           "highAction": "projection"
         },
         "RA": {
+          "kind": "action",
+          "action": "UNDER"
+        },
+        "AST": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 7.39,
-          "lowAction": "liveRaw",
-          "highAction": "favored"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -16610,10 +16748,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "underPrice",
-          "threshold": -141,
-          "lowAction": "OVER",
-          "highAction": "liveRaw"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -16763,6 +16901,13 @@
           "threshold": 3.69,
           "lowAction": "projection",
           "highAction": "OVER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -17129,10 +17274,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "lineGap",
-          "threshold": -2.32,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -17193,10 +17338,17 @@
         },
         "RA": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 8.17,
-          "lowAction": "OVER",
-          "highAction": "favored"
+          "feature": "underPrice",
+          "threshold": -114.75,
+          "lowAction": "current",
+          "highAction": "UNDER"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -17328,11 +17480,8 @@
           "highAction": "UNDER"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.055,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "kind": "action",
+          "action": "UNDER"
         },
         "PTS": {
           "kind": "threshold",
@@ -17475,6 +17624,13 @@
           "threshold": 3.77,
           "lowAction": "OVER",
           "highAction": "baseline"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -17600,10 +17756,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 3.75,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -17714,10 +17870,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "priceLean",
-          "threshold": 0,
-          "lowAction": "OVER",
-          "highAction": "projection"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -17735,9 +17891,9 @@
         },
         "THREES": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.32,
-          "lowAction": "projection",
+          "feature": "projectedValue",
+          "threshold": 3.2,
+          "lowAction": "OVER",
           "highAction": "UNDER"
         },
         "PRA": {
@@ -17792,10 +17948,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 25.86,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "projection"
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -17824,6 +17980,10 @@
           "threshold": -118,
           "lowAction": "OVER",
           "highAction": "UNDER"
+        },
+        "RA": {
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },
@@ -17835,10 +17995,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "projectedValue",
-          "threshold": 14.74,
-          "lowAction": "OVER",
-          "highAction": "final"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -17870,10 +18030,10 @@
         },
         "PR": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 2.92,
-          "lowAction": "liveRaw",
-          "highAction": "baseline"
+          "feature": "absLineGap",
+          "threshold": 0.595,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "RA": {
           "kind": "threshold",
@@ -17881,6 +18041,13 @@
           "threshold": -125,
           "lowAction": "OVER",
           "highAction": "projection"
+        },
+        "AST": {
+          "kind": "threshold",
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         }
       }
     },
@@ -17942,10 +18109,10 @@
       "markets": {
         "PTS": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 28.81,
-          "lowAction": "liveRaw",
-          "highAction": "favored"
+          "feature": "absLineGap",
+          "threshold": 1.055,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "REB": {
           "kind": "threshold",
@@ -18113,17 +18280,17 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 3.3,
+          "feature": "starterRateLast10",
+          "threshold": 1,
           "lowAction": "UNDER",
-          "highAction": "OVER"
+          "highAction": "current"
         },
         "PRA": {
           "kind": "threshold",
-          "feature": "underPrice",
-          "threshold": -116.5,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "absLineGap",
+          "threshold": 0.26,
+          "lowAction": "projection",
+          "highAction": "current"
         },
         "PA": {
           "kind": "threshold",
@@ -18277,10 +18444,10 @@
         },
         "AST": {
           "kind": "threshold",
-          "feature": "expectedMinutes",
-          "threshold": 38.67,
-          "lowAction": "liveRaw",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -18334,17 +18501,17 @@
         },
         "REB": {
           "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.05,
-          "lowAction": "liveRaw",
-          "highAction": "OVER"
+          "feature": "projectedMinutes",
+          "threshold": 30.195,
+          "lowAction": "UNDER",
+          "highAction": "baseline"
         },
         "AST": {
           "kind": "threshold",
-          "feature": "priceAbsLean",
-          "threshold": 0.109,
-          "lowAction": "OVER",
-          "highAction": "UNDER"
+          "feature": "starterRateLast10",
+          "threshold": 1,
+          "lowAction": "UNDER",
+          "highAction": "current"
         },
         "THREES": {
           "kind": "threshold",
@@ -18354,11 +18521,8 @@
           "highAction": "baseline"
         },
         "RA": {
-          "kind": "threshold",
-          "feature": "minutesVolatility",
-          "threshold": 5.23,
-          "lowAction": "UNDER",
-          "highAction": "OVER"
+          "kind": "action",
+          "action": "UNDER"
         }
       }
     },

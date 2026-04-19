@@ -1,0 +1,543 @@
+{
+  "generatedAt": "2026-04-19T13:29:19.787Z",
+  "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-04-14-current.json",
+  "runtime": {
+    "label": "current-live-stack-audit",
+    "rowsFilePath": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-04-14-current.json",
+    "rowsFileSignature": "140569831:1776270248582",
+    "playerOverrideMode": "on",
+    "playerOverrideAllowlistFile": null,
+    "playerModelFiles": [
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\shai-gilgeous-alexander-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\giannis-antetokounmpo-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\luka-doncic-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\victor-wembanyama-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\anthony-edwards-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\stephen-curry-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\donovan-mitchell-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\cade-cunningham-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\jaylen-brown-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kevin-durant-player-model-summary.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json"
+    ],
+    "playerModelFileSignatures": {
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\shai-gilgeous-alexander-player-model-summary.json": "27966:1773291583577",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\giannis-antetokounmpo-player-model-summary.json": "18099:1773300207177",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\luka-doncic-player-model-summary.json": "29025:1773333060882",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\victor-wembanyama-player-model-summary.json": "31039:1773334982830",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\anthony-edwards-player-model-summary.json": "30251:1773335830569",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\stephen-curry-player-model-summary.json": "22158:1773338337806",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\donovan-mitchell-player-model-summary.json": "34195:1773338337807",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\cade-cunningham-player-model-summary.json": "30737:1773339652385",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\jaylen-brown-player-model-summary.json": "28229:1773339652385",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kevin-durant-player-model-summary.json": "31627:1773341726966",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json": "27821:1773341726968"
+    },
+    "priorityPlayerModelFiles": [
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-tight-v1-2026-04-14.json"
+    ],
+    "priorityPlayerModelFileSignatures": {
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-tight-v1-2026-04-14.json": "795069:1776278985644"
+    },
+    "priorityPlayerModelFilesMode": "default",
+    "playerOverrideRuntime": {
+      "mode": "on",
+      "playerModelFiles": [
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\shai-gilgeous-alexander-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\giannis-antetokounmpo-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\luka-doncic-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\victor-wembanyama-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\anthony-edwards-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\stephen-curry-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\donovan-mitchell-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\cade-cunningham-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\jaylen-brown-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kevin-durant-player-model-summary.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json"
+      ],
+      "playerModelFileSignatures": {
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\shai-gilgeous-alexander-player-model-summary.json": "27966:1773291583577",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\giannis-antetokounmpo-player-model-summary.json": "18099:1773300207177",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\luka-doncic-player-model-summary.json": "29025:1773333060882",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\victor-wembanyama-player-model-summary.json": "31039:1773334982830",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\anthony-edwards-player-model-summary.json": "30251:1773335830569",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\stephen-curry-player-model-summary.json": "22158:1773338337806",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\donovan-mitchell-player-model-summary.json": "34195:1773338337807",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\cade-cunningham-player-model-summary.json": "30737:1773339652385",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\jaylen-brown-player-model-summary.json": "28229:1773339652385",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kevin-durant-player-model-summary.json": "31627:1773341726966",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json": "27821:1773341726968"
+      },
+      "priorityPlayerModelFiles": [
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-tight-v1-2026-04-14.json"
+      ],
+      "priorityPlayerModelFileSignatures": {
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-tight-v1-2026-04-14.json": "795069:1776278985644"
+      },
+      "priorityPlayerModelFilesMode": "default",
+      "joelMode": "off",
+      "javonMode": "off",
+      "jaMode": "off",
+      "naeMode": "off",
+      "coleMode": "off",
+      "dejounteMode": "off",
+      "devinMode": "off",
+      "aaronMode": "off",
+      "sabonisMode": "off",
+      "taureanMode": "off",
+      "tristanMode": "off",
+      "marcusMode": "off",
+      "kyleMode": "off",
+      "playerLocalRecoveryClusterMode": "off",
+      "playerLocalRecoveryManifestMode": "on",
+      "playerLocalRecoveryManifestFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\player-local-target-lift-manifest.json",
+      "playerLocalRecoveryManifestSignature": "523698:1776605347973",
+      "playerMarketResidualDragMemoryMode": "on",
+      "playerMarketResidualDragMemoryFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-market-residual-drag-memory-v1-2026-04-16.json",
+      "playerMarketResidualDragMemorySignature": "6531:1776403143910"
+    },
+    "routerMode": "off",
+    "routerModelFile": null,
+    "routerPackFile": null,
+    "qualificationSettingsFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\universal-live-qualification-settings.json",
+    "qualificationSettingsFileSignature": "942:1774546494583",
+    "praRawFeatureMode": "on",
+    "praRawFeatureModelFile": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-pra-raw-feature-live.json",
+    "praRawFeatureModelFileSignature": "1908:1774564995971",
+    "praRawFeatureModelLabel": "raw_feature_pra_core_tight_v2",
+    "praRawFeatureModelVersion": "2026-03-26-pra-raw-v1"
+  },
+  "auditDefaults": {
+    "playerLocalRecoveryManifestMode": "on",
+    "playerMarketResidualDragMemoryMode": "on",
+    "minActualMinutes": 15,
+    "minTrainDates": 56,
+    "testDates": 14
+  },
+  "appSummary": {
+    "version": "2026-04-17-donovan-line-map-plus-pr-drag-release-honest-holdout",
+    "values": {
+      "label": "Live Quality Board Honest Holdout",
+      "honest14dRawAccuracy": 60.35,
+      "honest14dBlendedAccuracy": 60.48,
+      "honest14dCoveragePct": 94.99,
+      "honest30dRawAccuracy": 61.5,
+      "honest30dBlendedAccuracy": 61.54,
+      "honest30dCoveragePct": 95.42,
+      "latestFoldRawAccuracy": 60.11,
+      "latestFoldBlendedAccuracy": 60.22,
+      "latestFoldCoveragePct": 94.91,
+      "note": "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, the active v21 stale-manifest prune pack, the promoted priority player-market replacement pack on headroom markets, residual drag memory, the Nickeil combo-over revival patch, the strict stale override cleanup bundle drawn from the full-season audit, the Klay-derived THREES over-recovery pack for seven targeted shooter cells, the Donte-derived strict stale-cell prune expansion across stable negative player-market pockets, the Donovan-derived leftover-market completion pack across four targeted uncovered sinkholes, the Donovan-led player-override projection-correction pack across eight targeted stale override cells, the Fox raw-recovery bundle that restores AST to liveRaw, RA to projection, and PA to UNDER, the promoted Donte DiVincenzo depth-3 split router, and the Donovan Clingan exact line-map bundle that upgrades PA, PRA, and RA while releasing the stale Donovan PR baseline veto from residual drag memory so the stronger Donovan PR manifest can take over. This summary centers the honest recent read: 60.35 raw over the April 1, 2026 through April 14, 2026 holdout, 61.50 raw over the March 16, 2026 through April 14, 2026 holdout, and 60.11 raw on the latest walk-forward fold from April 3, 2026 through April 14, 2026. The full-history honest walk-forward replay for this promoted stack is 66.77 raw and 66.70 blended."
+    }
+  },
+  "walkForward": {
+    "overall": {
+      "samples": 75945,
+      "rawAccuracy": 66.97,
+      "strictRawAccuracy": 66.84,
+      "qualifiedAccuracy": 67.26,
+      "qualifiedPicks": 73237,
+      "coveragePct": 96.43,
+      "blendedAccuracy": 66.91,
+      "legacyUniversalRawAccuracy": 55.59,
+      "legacyUniversalBlendedAccuracy": 55.79,
+      "legacyUniversalCoveragePct": 64.2
+    },
+    "latestFold": {
+      "index": 8,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-04-02",
+      "testFrom": "2026-04-03",
+      "testTo": "2026-04-14",
+      "trainSamples": 98906,
+      "testSamples": 7586,
+      "metrics": {
+        "samples": 7586,
+        "rawAccuracy": 61.92,
+        "strictRawAccuracy": 61.72,
+        "qualifiedAccuracy": 62.09,
+        "qualifiedPicks": 7236,
+        "coveragePct": 95.39,
+        "blendedAccuracy": 62.04,
+        "legacyUniversalRawAccuracy": 50.05,
+        "legacyUniversalBlendedAccuracy": 51.61,
+        "legacyUniversalCoveragePct": 65
+      }
+    },
+    "folds": [
+      {
+        "index": 1,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2025-12-18",
+        "testFrom": "2025-12-19",
+        "testTo": "2026-01-02",
+        "trainSamples": 30547,
+        "testSamples": 9649,
+        "metrics": {
+          "samples": 9649,
+          "rawAccuracy": 70.76,
+          "strictRawAccuracy": 70.58,
+          "qualifiedAccuracy": 71.06,
+          "qualifiedPicks": 9317,
+          "coveragePct": 96.56,
+          "blendedAccuracy": 70.58,
+          "legacyUniversalRawAccuracy": 56.94,
+          "legacyUniversalBlendedAccuracy": 57.05,
+          "legacyUniversalCoveragePct": 64.58
+        }
+      },
+      {
+        "index": 2,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-01-02",
+        "testFrom": "2026-01-03",
+        "testTo": "2026-01-16",
+        "trainSamples": 40196,
+        "testSamples": 9202,
+        "metrics": {
+          "samples": 9202,
+          "rawAccuracy": 70.73,
+          "strictRawAccuracy": 70.66,
+          "qualifiedAccuracy": 70.88,
+          "qualifiedPicks": 8907,
+          "coveragePct": 96.79,
+          "blendedAccuracy": 70.67,
+          "legacyUniversalRawAccuracy": 56.65,
+          "legacyUniversalBlendedAccuracy": 56.87,
+          "legacyUniversalCoveragePct": 64.37
+        }
+      },
+      {
+        "index": 3,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-01-16",
+        "testFrom": "2026-01-17",
+        "testTo": "2026-01-30",
+        "trainSamples": 49398,
+        "testSamples": 9770,
+        "metrics": {
+          "samples": 9770,
+          "rawAccuracy": 69.6,
+          "strictRawAccuracy": 69.52,
+          "qualifiedAccuracy": 69.99,
+          "qualifiedPicks": 9434,
+          "coveragePct": 96.56,
+          "blendedAccuracy": 69.53,
+          "legacyUniversalRawAccuracy": 56.2,
+          "legacyUniversalBlendedAccuracy": 56.34,
+          "legacyUniversalCoveragePct": 63.6
+        }
+      },
+      {
+        "index": 4,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-01-30",
+        "testFrom": "2026-01-31",
+        "testTo": "2026-02-19",
+        "trainSamples": 59168,
+        "testSamples": 9308,
+        "metrics": {
+          "samples": 9308,
+          "rawAccuracy": 68.64,
+          "strictRawAccuracy": 68.6,
+          "qualifiedAccuracy": 69.04,
+          "qualifiedPicks": 9008,
+          "coveragePct": 96.78,
+          "blendedAccuracy": 68.56,
+          "legacyUniversalRawAccuracy": 55.88,
+          "legacyUniversalBlendedAccuracy": 55.8,
+          "legacyUniversalCoveragePct": 63.18
+        }
+      },
+      {
+        "index": 5,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-02-19",
+        "testFrom": "2026-02-20",
+        "testTo": "2026-03-05",
+        "trainSamples": 68476,
+        "testSamples": 9167,
+        "metrics": {
+          "samples": 9167,
+          "rawAccuracy": 66.42,
+          "strictRawAccuracy": 66.29,
+          "qualifiedAccuracy": 66.51,
+          "qualifiedPicks": 8874,
+          "coveragePct": 96.8,
+          "blendedAccuracy": 66.06,
+          "legacyUniversalRawAccuracy": 57.23,
+          "legacyUniversalBlendedAccuracy": 56.98,
+          "legacyUniversalCoveragePct": 64.22
+        }
+      },
+      {
+        "index": 6,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-03-05",
+        "testFrom": "2026-03-06",
+        "testTo": "2026-03-19",
+        "trainSamples": 77643,
+        "testSamples": 10467,
+        "metrics": {
+          "samples": 10467,
+          "rawAccuracy": 64.75,
+          "strictRawAccuracy": 64.56,
+          "qualifiedAccuracy": 65.11,
+          "qualifiedPicks": 10101,
+          "coveragePct": 96.5,
+          "blendedAccuracy": 64.85,
+          "legacyUniversalRawAccuracy": 56.83,
+          "legacyUniversalBlendedAccuracy": 56.69,
+          "legacyUniversalCoveragePct": 63.93
+        }
+      },
+      {
+        "index": 7,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-03-19",
+        "testFrom": "2026-03-20",
+        "testTo": "2026-04-02",
+        "trainSamples": 88110,
+        "testSamples": 10796,
+        "metrics": {
+          "samples": 10796,
+          "rawAccuracy": 62.7,
+          "strictRawAccuracy": 62.58,
+          "qualifiedAccuracy": 63.04,
+          "qualifiedPicks": 10360,
+          "coveragePct": 95.96,
+          "blendedAccuracy": 62.77,
+          "legacyUniversalRawAccuracy": 53.96,
+          "legacyUniversalBlendedAccuracy": 54.29,
+          "legacyUniversalCoveragePct": 64.85
+        }
+      },
+      {
+        "index": 8,
+        "trainFrom": "2025-10-23",
+        "trainTo": "2026-04-02",
+        "testFrom": "2026-04-03",
+        "testTo": "2026-04-14",
+        "trainSamples": 98906,
+        "testSamples": 7586,
+        "metrics": {
+          "samples": 7586,
+          "rawAccuracy": 61.92,
+          "strictRawAccuracy": 61.72,
+          "qualifiedAccuracy": 62.09,
+          "qualifiedPicks": 7236,
+          "coveragePct": 95.39,
+          "blendedAccuracy": 62.04,
+          "legacyUniversalRawAccuracy": 50.05,
+          "legacyUniversalBlendedAccuracy": 51.61,
+          "legacyUniversalCoveragePct": 65
+        }
+      }
+    ]
+  },
+  "honest30d": {
+    "from": "2026-03-16",
+    "to": "2026-04-14",
+    "overall": {
+      "samples": 21648,
+      "rawAccuracy": 62.64,
+      "strictRawAccuracy": 62.5,
+      "qualifiedAccuracy": 62.91,
+      "qualifiedPicks": 20751,
+      "coveragePct": 95.86,
+      "blendedAccuracy": 62.74,
+      "legacyUniversalRawAccuracy": 52.88,
+      "legacyUniversalBlendedAccuracy": 53.46,
+      "legacyUniversalCoveragePct": 64.94
+    }
+  },
+  "honest14d": {
+    "from": "2026-04-01",
+    "to": "2026-04-14",
+    "overall": {
+      "samples": 9104,
+      "rawAccuracy": 61.95,
+      "strictRawAccuracy": 61.79,
+      "qualifiedAccuracy": 62.13,
+      "qualifiedPicks": 8693,
+      "coveragePct": 95.49,
+      "blendedAccuracy": 62.13,
+      "legacyUniversalRawAccuracy": 50.71,
+      "legacyUniversalBlendedAccuracy": 52.11,
+      "legacyUniversalCoveragePct": 64.72
+    }
+  },
+  "worstPlayers": {
+    "min40": [
+      {
+        "playerName": "Jonathan Kuminga",
+        "samples": 116,
+        "finalAccuracy": 46.55,
+        "rawAccuracy": 46.55,
+        "worstMarket": {
+          "market": "PTS",
+          "accuracy": 33.33,
+          "samples": 15
+        }
+      },
+      {
+        "playerName": "Nae'Qwan Tomlin",
+        "samples": 60,
+        "finalAccuracy": 50,
+        "rawAccuracy": 55,
+        "worstMarket": {
+          "market": "REB",
+          "accuracy": 14.29,
+          "samples": 7
+        }
+      },
+      {
+        "playerName": "Franz Wagner",
+        "samples": 70,
+        "finalAccuracy": 52.86,
+        "rawAccuracy": 52.86,
+        "worstMarket": {
+          "market": "PA",
+          "accuracy": 25,
+          "samples": 8
+        }
+      },
+      {
+        "playerName": "Keegan Murray",
+        "samples": 45,
+        "finalAccuracy": 53.33,
+        "rawAccuracy": 53.33,
+        "worstMarket": {
+          "market": "RA",
+          "accuracy": 0,
+          "samples": 3
+        }
+      },
+      {
+        "playerName": "Miles McBride",
+        "samples": 101,
+        "finalAccuracy": 54.46,
+        "rawAccuracy": 55.45,
+        "worstMarket": {
+          "market": "PR",
+          "accuracy": 22.22,
+          "samples": 9
+        }
+      }
+    ],
+    "min100": [
+      {
+        "playerName": "Jonathan Kuminga",
+        "samples": 116,
+        "finalAccuracy": 46.55,
+        "rawAccuracy": 46.55,
+        "worstMarket": {
+          "market": "PTS",
+          "accuracy": 33.33,
+          "samples": 15
+        }
+      },
+      {
+        "playerName": "Miles McBride",
+        "samples": 101,
+        "finalAccuracy": 54.46,
+        "rawAccuracy": 55.45,
+        "worstMarket": {
+          "market": "PR",
+          "accuracy": 22.22,
+          "samples": 9
+        }
+      },
+      {
+        "playerName": "Egor Dëmin",
+        "samples": 151,
+        "finalAccuracy": 55.63,
+        "rawAccuracy": 56.95,
+        "worstMarket": {
+          "market": "PA",
+          "accuracy": 28.57,
+          "samples": 14
+        }
+      },
+      {
+        "playerName": "Rudy Gobert",
+        "samples": 316,
+        "finalAccuracy": 56.96,
+        "rawAccuracy": 56.96,
+        "worstMarket": {
+          "market": "AST",
+          "accuracy": 44.9,
+          "samples": 49
+        }
+      },
+      {
+        "playerName": "Matas Buzelis",
+        "samples": 382,
+        "finalAccuracy": 58.12,
+        "rawAccuracy": 58.64,
+        "worstMarket": {
+          "market": "PA",
+          "accuracy": 50,
+          "samples": 46
+        }
+      }
+    ],
+    "min200": [
+      {
+        "playerName": "Rudy Gobert",
+        "samples": 316,
+        "finalAccuracy": 56.96,
+        "rawAccuracy": 56.96,
+        "worstMarket": {
+          "market": "AST",
+          "accuracy": 44.9,
+          "samples": 49
+        }
+      },
+      {
+        "playerName": "Matas Buzelis",
+        "samples": 382,
+        "finalAccuracy": 58.12,
+        "rawAccuracy": 58.64,
+        "worstMarket": {
+          "market": "PA",
+          "accuracy": 50,
+          "samples": 46
+        }
+      },
+      {
+        "playerName": "Ryan Rollins",
+        "samples": 335,
+        "finalAccuracy": 58.51,
+        "rawAccuracy": 58.51,
+        "worstMarket": {
+          "market": "PTS",
+          "accuracy": 47.83,
+          "samples": 46
+        }
+      },
+      {
+        "playerName": "Marcus Smart",
+        "samples": 297,
+        "finalAccuracy": 58.92,
+        "rawAccuracy": 58.92,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 48.48,
+          "samples": 33
+        }
+      },
+      {
+        "playerName": "Kyle Filipowski",
+        "samples": 319,
+        "finalAccuracy": 58.93,
+        "rawAccuracy": 57.37,
+        "worstMarket": {
+          "market": "RA",
+          "accuracy": 45.95,
+          "samples": 37
+        }
+      }
+    ]
+  }
+}
