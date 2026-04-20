@@ -1075,6 +1075,105 @@ function buildPrecisionFillCandidateFromEntry(
   } satisfies PrecisionSlateCandidate;
 }
 
+function sortPrecisionTopOffCandidates(left: PrecisionSlateCandidate, right: PrecisionSlateCandidate): number {
+  return (
+    right.selectionScore - left.selectionScore ||
+    comparePrecisionSignals(left.signal, right.signal, "dynamic-edge-first") ||
+    (left.playerName ?? left.playerId).localeCompare(right.playerName ?? right.playerId)
+  );
+}
+
+function normalizePrecisionCardRanks(card: SnapshotPrecisionCardEntry[]): SnapshotPrecisionCardEntry[] {
+  return card.map((entry, index) => ({
+    ...entry,
+    rank: index + 1,
+  }));
+}
+
+function enforcePrecisionCardTargetCount(
+  currentCard: SnapshotPrecisionCardEntry[],
+  rows: SnapshotRow[],
+  targetCardCount: number,
+): SnapshotPrecisionCardEntry[] {
+  if (targetCardCount <= 0) {
+    return [];
+  }
+
+  const next = currentCard.slice(0, targetCardCount);
+  if (next.length >= targetCardCount) {
+    return normalizePrecisionCardRanks(next);
+  }
+
+  const rowByPlayerId = new Map(rows.map((row) => [row.playerId, row] as const));
+  const selectedPairs = new Set(next.map((entry) => getSnapshotPrecisionCardEntryKey(entry)));
+  const selectedPlayers = new Set(next.map((entry) => entry.playerId));
+  const recoveryCandidates = buildPrecisionRecoveryCandidatesFromRows(rows).sort(sortPrecisionTopOffCandidates);
+  const qualifiedFillCandidates = buildPrecisionFillCandidatesFromRows(rows, "qualified_fill").sort(sortPrecisionTopOffCandidates);
+  const modelFillCandidates = buildPrecisionFillCandidatesFromRows(rows, "model_fill").sort(sortPrecisionTopOffCandidates);
+
+  const candidateStages: Array<{
+    candidates: PrecisionSlateCandidate[];
+    ignorePlayerLimit?: boolean;
+  }> = [
+    { candidates: recoveryCandidates },
+    { candidates: qualifiedFillCandidates },
+    { candidates: modelFillCandidates },
+    {
+      candidates: qualifiedFillCandidates,
+      ignorePlayerLimit: true,
+    },
+    {
+      candidates: modelFillCandidates,
+      ignorePlayerLimit: true,
+    },
+  ];
+
+  const appendCandidate = (
+    candidate: PrecisionSlateCandidate,
+    options: {
+      ignorePlayerLimit?: boolean;
+    } = {},
+  ): void => {
+    if (next.length >= targetCardCount) return;
+
+    const candidateKey = getSnapshotPrecisionCardEntryKey(candidate);
+    if (selectedPairs.has(candidateKey)) return;
+    if (!options.ignorePlayerLimit && selectedPlayers.has(candidate.playerId)) return;
+
+    const row = rowByPlayerId.get(candidate.playerId);
+    if (!isPrecisionCardRowStillEligible(row)) return;
+
+    const sportsbookCount = row ? getRowMarketSportsbookCount(row, candidate.market) : 0;
+    if (
+      !isPromotedPrecisionCandidate({
+        market: candidate.market,
+        signal: candidate.signal,
+        sportsbookCount,
+      })
+    ) {
+      return;
+    }
+
+    next.push({
+      playerId: candidate.playerId,
+      market: candidate.market,
+      source: candidate.source,
+      rank: next.length + 1,
+      selectionScore: candidate.selectionScore,
+      precisionSignal: candidate.signal,
+    });
+    selectedPairs.add(candidateKey);
+    selectedPlayers.add(candidate.playerId);
+  };
+
+  candidateStages.forEach((stage) => {
+    if (next.length >= targetCardCount) return;
+    stage.candidates.forEach((candidate) => appendCandidate(candidate, stage));
+  });
+
+  return normalizePrecisionCardRanks(next);
+}
+
 function getRowMarketSportsbookCount(row: SnapshotRow, market: SnapshotMarket): number {
   return getRowMarketSignal(row, market)?.sportsbookCount ?? 0;
 }
@@ -5636,7 +5735,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     },
   );
   const boardRows = rowsWithSortKeys.map((item) => item.row);
-  const finalPrecisionCard =
+  const stabilizedPrecisionCard =
     isTodayEt
       ? stabilizePrecisionCardForToday(
           persistedBoard,
@@ -5645,6 +5744,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
         )
       : computedPrecisionCard;
+  const finalPrecisionCard = enforcePrecisionCardTargetCount(
+    stabilizedPrecisionCard,
+    boardRows,
+    PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+  );
   const fillCount = finalPrecisionCard.filter((entry) => {
     const selectorFamily = entry.precisionSignal?.selectorFamily;
     return selectorFamily === "qualified_fill" || selectorFamily === "model_fill";
