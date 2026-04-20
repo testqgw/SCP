@@ -1225,6 +1225,9 @@ async function fetchDailyPropLineMap(
           typeof record.PlayerName === "string" && record.PlayerName.toLowerCase() !== "scrambled"
             ? normalizePlayerName(record.PlayerName)
             : null;
+        if (market === "THREES" && !marketPlayerName) {
+          return;
+        }
         const fallbackName =
           outcomes
             .map((outcome) => stripOutcomeParticipantName(typeof outcome.Participant === "string" ? outcome.Participant : null))

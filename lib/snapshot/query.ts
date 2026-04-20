@@ -447,6 +447,16 @@ function stabilizePrecisionCardForToday(
     const currentRow = rowByPlayerId.get(entry.playerId);
     if (!isPrecisionCardRowStillEligible(currentRow)) return;
     const currentSignal = currentRow?.precisionSignals?.[entry.market] ?? null;
+    const sportsbookCount = currentRow ? getRowMarketSportsbookCount(currentRow, entry.market) : 0;
+    if (
+      !isPromotedPrecisionCandidate({
+        market: entry.market,
+        signal: currentSignal ?? entry.precisionSignal ?? null,
+        sportsbookCount,
+      })
+    ) {
+      return;
+    }
     const normalizedEntry: SnapshotPrecisionCardEntry = {
       ...entry,
       selectionScore: currentSignal?.selectionScore ?? entry.selectionScore ?? null,
