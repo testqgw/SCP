@@ -1042,29 +1042,6 @@ function buildPrecisionFillSignal(
   };
 }
 
-function buildPrecisionFillCandidatesFromRows(
-  rows: SnapshotRow[],
-  stage: PrecisionFillStage,
-): PrecisionSlateCandidate[] {
-  return rows.flatMap((row) =>
-    MARKETS.flatMap((market) => {
-      const signal = buildPrecisionFillSignal(row, market, stage);
-      if (!signal) return [];
-      return [
-        {
-          playerId: row.playerId,
-          playerName: row.playerName,
-          matchupKey: row.matchupKey,
-          market,
-          signal,
-          selectionScore: signal.selectionScore ?? 0,
-          source: "PRECISION" as const,
-        } satisfies PrecisionSlateCandidate,
-      ];
-    }),
-  );
-}
-
 function buildPrecisionFillCandidateFromEntry(
   row: SnapshotRow,
   entry: SnapshotPrecisionCardEntry,

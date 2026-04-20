@@ -262,8 +262,6 @@ export const ALL_DAILY_6_RULES: PrecisionRuleSet = {
   },
 };
 
-const DAILY_6_CURRENT_MARKETS = DAILY_6_MARKET_PACKS.SELECTOR_V2;
-
 export const LOOSE_RULES: PrecisionRuleSet = {};
 for (const m of ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as SnapshotMarket[]) {
   LOOSE_RULES[m] = {
