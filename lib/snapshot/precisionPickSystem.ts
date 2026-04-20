@@ -421,7 +421,7 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Active Slate Day",
   note:
-    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The rebuilt selector replays at 71.38% overall, 76.79% over the last 30 active slate days, and 83.33% over the last 14 active slate days while holding 6.0 picks per active slate day by using a core PTS/REB/PRA/PR/RA card plus one controlled precision-only recovery layer when a live slate runs short.",
+    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The rebuilt selector replays at 71.38% overall, 76.79% over the last 30 active slate days, and 83.33% over the last 14 active slate days while holding 6.0 picks per active slate day by using a core PTS/REB/PRA/PR/RA card plus one controlled precision-prior recovery layer when a live slate runs short.",
   targetCardCount: 6,
   allowFill: false,
 };

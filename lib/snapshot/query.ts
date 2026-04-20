@@ -944,10 +944,92 @@ function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): Precisio
 
 const PRIMARY_PRECISION_CARD_MARKETS = new Set<SnapshotMarket>(["PTS", "REB", "PRA", "PR", "RA"]);
 const CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS = new Set<SnapshotMarket>(["THREES"]);
+const CONTROLLED_PRECISION_PRIOR_RECOVERY_MIN_HISTORICAL_ACCURACY = 70;
+const CONTROLLED_PRECISION_PRIOR_RECOVERY_MIN_WIN_PROBABILITY = 0.62;
+
+function buildPrecisionPriorRecoveryCandidatesFromRows(rows: SnapshotRow[]): PrecisionSlateCandidate[] {
+  return rows.flatMap((row) =>
+    MARKETS.flatMap((market) => {
+      if (CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS.has(market)) return [];
+
+      const liveSignal = getRowMarketSignal(row, market);
+      const runtime = getRowMarketRuntime(row, market);
+      const existingSignal = row.precisionSignals?.[market] ?? null;
+      if (!existingSignal || !liveSignal || liveSignal.marketLine == null) return [];
+
+      const sportsbookCount = liveSignal.sportsbookCount ?? 0;
+      if (sportsbookCount < PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT) return [];
+
+      if ((existingSignal.historicalAccuracy ?? 0) < CONTROLLED_PRECISION_PRIOR_RECOVERY_MIN_HISTORICAL_ACCURACY) {
+        return [];
+      }
+      if ((existingSignal.projectionWinProbability ?? 0) < CONTROLLED_PRECISION_PRIOR_RECOVERY_MIN_WIN_PROBABILITY) {
+        return [];
+      }
+      if (
+        isPromotedPrecisionCandidate({
+          market,
+          signal: existingSignal,
+          sportsbookCount,
+        })
+      ) {
+        return [];
+      }
+
+      const side =
+        runtime?.finalSide && runtime.finalSide !== "NEUTRAL"
+          ? runtime.finalSide
+          : liveSignal.side;
+      if (side === "NEUTRAL") return [];
+
+      const projection = row.projectedTonight[market];
+      const basis = liveSignal.marketLine ?? row.modelLines[market].fairLine ?? null;
+      const absLineGap =
+        existingSignal.absLineGap ??
+        (projection != null && basis != null ? round(Math.abs(projection - basis), 2) : null);
+      const confidenceScore = round(Math.max(0, Math.min(1, (liveSignal.confidence ?? 0) / 100)), 4);
+      const selectionScore = round(
+        Math.max(existingSignal.projectionWinProbability ?? 0, confidenceScore) +
+          Math.min(sportsbookCount, 10) * 0.01 +
+          Math.min(absLineGap ?? 0, 5) * 0.01,
+        6,
+      );
+
+      return [
+        {
+          playerId: row.playerId,
+          playerName: row.playerName,
+          matchupKey: row.matchupKey,
+          market,
+          signal: {
+            ...existingSignal,
+            side,
+            qualified: false,
+            absLineGap,
+            selectionScore,
+            selectorFamily: "precision_recovery",
+            selectorTier: "precision_recovery",
+            reasons: [
+              "The core precision pool ran short, so this pick was promoted from the broader precision-prior recovery layer.",
+              `${sportsbookCount} live books are pricing this market.`,
+              "The precision prior stayed above the controlled recovery threshold.",
+            ],
+          },
+          selectionScore,
+          source: "PRECISION" as const,
+        } satisfies PrecisionSlateCandidate,
+      ];
+    }),
+  );
+}
 
 function buildControlledPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): PrecisionSlateCandidate[] {
-  return buildPrecisionRecoveryCandidatesFromRows(rows)
-    .filter((candidate) => !CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS.has(candidate.market))
+  return [
+    ...buildPrecisionRecoveryCandidatesFromRows(rows).filter(
+      (candidate) => !CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS.has(candidate.market),
+    ),
+    ...buildPrecisionPriorRecoveryCandidatesFromRows(rows),
+  ]
     .sort(sortPrecisionTopOffCandidates);
 }
 
