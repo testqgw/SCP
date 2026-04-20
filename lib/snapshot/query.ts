@@ -1090,6 +1090,19 @@ function normalizePrecisionCardRanks(card: SnapshotPrecisionCardEntry[]): Snapsh
   }));
 }
 
+function dedupePrecisionCardByPlayer(card: SnapshotPrecisionCardEntry[]): SnapshotPrecisionCardEntry[] {
+  const bestEntryByPlayer = new Map<string, SnapshotPrecisionCardEntry>();
+
+  card.forEach((entry) => {
+    const existing = bestEntryByPlayer.get(entry.playerId);
+    if (!existing || compareStabilizedPrecisionEntries(entry, existing) < 0) {
+      bestEntryByPlayer.set(entry.playerId, entry);
+    }
+  });
+
+  return Array.from(bestEntryByPlayer.values()).sort(compareStabilizedPrecisionEntries);
+}
+
 function enforcePrecisionCardTargetCount(
   currentCard: SnapshotPrecisionCardEntry[],
   rows: SnapshotRow[],
@@ -1099,7 +1112,7 @@ function enforcePrecisionCardTargetCount(
     return [];
   }
 
-  const next = currentCard.slice(0, targetCardCount);
+  const next = dedupePrecisionCardByPlayer(currentCard).slice(0, targetCardCount);
   if (next.length >= targetCardCount) {
     return normalizePrecisionCardRanks(next);
   }
@@ -1113,32 +1126,18 @@ function enforcePrecisionCardTargetCount(
 
   const candidateStages: Array<{
     candidates: PrecisionSlateCandidate[];
-    ignorePlayerLimit?: boolean;
   }> = [
     { candidates: recoveryCandidates },
     { candidates: qualifiedFillCandidates },
     { candidates: modelFillCandidates },
-    {
-      candidates: qualifiedFillCandidates,
-      ignorePlayerLimit: true,
-    },
-    {
-      candidates: modelFillCandidates,
-      ignorePlayerLimit: true,
-    },
   ];
 
-  const appendCandidate = (
-    candidate: PrecisionSlateCandidate,
-    options: {
-      ignorePlayerLimit?: boolean;
-    } = {},
-  ): void => {
+  const appendCandidate = (candidate: PrecisionSlateCandidate): void => {
     if (next.length >= targetCardCount) return;
 
     const candidateKey = getSnapshotPrecisionCardEntryKey(candidate);
     if (selectedPairs.has(candidateKey)) return;
-    if (!options.ignorePlayerLimit && selectedPlayers.has(candidate.playerId)) return;
+    if (selectedPlayers.has(candidate.playerId)) return;
 
     const row = rowByPlayerId.get(candidate.playerId);
     if (!isPrecisionCardRowStillEligible(row)) return;
@@ -1168,7 +1167,7 @@ function enforcePrecisionCardTargetCount(
 
   candidateStages.forEach((stage) => {
     if (next.length >= targetCardCount) return;
-    stage.candidates.forEach((candidate) => appendCandidate(candidate, stage));
+    stage.candidates.forEach((candidate) => appendCandidate(candidate));
   });
 
   return normalizePrecisionCardRanks(next);
