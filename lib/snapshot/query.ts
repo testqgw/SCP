@@ -41,6 +41,7 @@ import {
   buildShortfallPrecisionRescuePick,
   buildPrecision80Pick,
   comparePrecisionSignals,
+  isPromotedPrecisionCandidate,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
   selectPrecisionCardWithTopOff,
@@ -896,6 +897,15 @@ function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): Precisio
       const signal = row.precisionSignals?.[market] ?? null;
       const qualified = signal?.qualified ?? signal?.side !== "NEUTRAL";
       if (!signal || !qualified || signal.side === "NEUTRAL") return [];
+      if (
+        !isPromotedPrecisionCandidate({
+          market,
+          signal,
+          sportsbookCount: getRowMarketSportsbookCount(row, market),
+        })
+      ) {
+        return [];
+      }
       return [
         {
           playerId: row.playerId,
@@ -909,6 +919,27 @@ function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): Precisio
       ];
     }),
   );
+}
+
+function getRowMarketSportsbookCount(row: SnapshotRow, market: SnapshotMarket): number {
+  switch (market) {
+    case "PTS":
+      return row.ptsSignal?.sportsbookCount ?? 0;
+    case "REB":
+      return row.rebSignal?.sportsbookCount ?? 0;
+    case "AST":
+      return row.astSignal?.sportsbookCount ?? 0;
+    case "THREES":
+      return row.threesSignal?.sportsbookCount ?? 0;
+    case "PRA":
+      return row.praSignal?.sportsbookCount ?? 0;
+    case "PA":
+      return row.paSignal?.sportsbookCount ?? 0;
+    case "PR":
+      return row.prSignal?.sportsbookCount ?? 0;
+    case "RA":
+      return row.raSignal?.sportsbookCount ?? 0;
+  }
 }
 
 function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
@@ -4940,6 +4971,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const shortfallPrecisionSignals: Partial<
       Record<SnapshotMarket, NonNullable<ReturnType<typeof buildShortfallPrecisionRescuePick>>>
     > = {};
+    const precisionSportsbookCounts: Record<SnapshotMarket, number> = {
+      PTS: ptsSignal?.sportsbookCount ?? 0,
+      REB: rebSignal?.sportsbookCount ?? 0,
+      AST: astSignal?.sportsbookCount ?? 0,
+      THREES: threesSignal?.sportsbookCount ?? 0,
+      PRA: praSignal?.sportsbookCount ?? 0,
+      PA: paSignal?.sportsbookCount ?? 0,
+      PR: prSignal?.sportsbookCount ?? 0,
+      RA: raSignal?.sportsbookCount ?? 0,
+    };
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
       const precisionInput = buildPrecisionCardInputForMarket(market);
       const strictSignal = buildPrecision80Pick(precisionInput);
@@ -4968,9 +5009,14 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       }
     });
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
+      const sportsbookCount = precisionSportsbookCounts[market];
       const strictSignal = strictPrecisionSignals[market];
       const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
-      if (strictSignal && strictQualified) {
+      if (
+        strictSignal &&
+        strictQualified &&
+        isPromotedPrecisionCandidate({ market, signal: strictSignal, sportsbookCount })
+      ) {
         precisionCardCandidates.push({
           playerId: player.id,
           playerName: player.fullName,
@@ -4985,7 +5031,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
 
       const adaptiveSignal = adaptivePrecisionSignals[market];
       const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
-      if (adaptiveSignal && adaptiveQualified) {
+      if (
+        adaptiveSignal &&
+        adaptiveQualified &&
+        isPromotedPrecisionCandidate({ market, signal: adaptiveSignal, sportsbookCount })
+      ) {
         precisionAdaptiveCardCandidates.push({
           playerId: player.id,
           playerName: player.fullName,
@@ -5000,7 +5050,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
 
       const shortfallSignal = shortfallPrecisionSignals[market];
       const shortfallQualified = shortfallSignal?.qualified ?? shortfallSignal?.side !== "NEUTRAL";
-      if (shortfallSignal && shortfallQualified) {
+      if (
+        shortfallSignal &&
+        shortfallQualified &&
+        isPromotedPrecisionCandidate({ market, signal: shortfallSignal, sportsbookCount })
+      ) {
         precisionShortfallCardCandidates.push({
           playerId: player.id,
           playerName: player.fullName,

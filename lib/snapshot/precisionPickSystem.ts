@@ -430,6 +430,34 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
 
 export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-02-precision-selector-v2-adaptive-and-tier2-pocket-cuts";
 
+export const PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT = 3;
+
+export function getPromotedPrecisionRejectionReasons(input: {
+  market: SnapshotMarket;
+  signal: Pick<SnapshotPrecisionPickSignal, "side"> | null | undefined;
+  sportsbookCount?: number | null;
+}): string[] {
+  const reasons: string[] = [];
+  const signal = input.signal;
+  if (!signal || signal.side === "NEUTRAL") {
+    reasons.push("Precision signal is neutral.");
+    return reasons;
+  }
+
+  if ((input.sportsbookCount ?? 0) < PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT) {
+    reasons.push(`At least ${PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT} live books are required for a promoted precision pick.`);
+  }
+  return reasons;
+}
+
+export function isPromotedPrecisionCandidate(input: {
+  market: SnapshotMarket;
+  signal: Pick<SnapshotPrecisionPickSignal, "side"> | null | undefined;
+  sportsbookCount?: number | null;
+}): boolean {
+  return getPromotedPrecisionRejectionReasons(input).length === 0;
+}
+
 export const CORE_THREE_EXPANSION_V1: ShadowConfig = {
   targetPicks: 15,
   minimumPicks: 4,
