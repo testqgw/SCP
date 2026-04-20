@@ -934,6 +934,15 @@ function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): Precisio
   );
 }
 
+const PRIMARY_PRECISION_CARD_MARKETS = new Set<SnapshotMarket>(["PTS", "REB", "PRA", "PR", "RA"]);
+const CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS = new Set<SnapshotMarket>(["THREES"]);
+
+function buildControlledPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): PrecisionSlateCandidate[] {
+  return buildPrecisionRecoveryCandidatesFromRows(rows)
+    .filter((candidate) => !CONTROLLED_PRECISION_RECOVERY_EXCLUDED_MARKETS.has(candidate.market))
+    .sort(sortPrecisionTopOffCandidates);
+}
+
 type PrecisionFillStage = "qualified_fill" | "model_fill";
 
 function getRowMarketSignal(row: SnapshotRow, market: SnapshotMarket): SnapshotPtsSignal | null {
@@ -1120,16 +1129,12 @@ function enforcePrecisionCardTargetCount(
   const rowByPlayerId = new Map(rows.map((row) => [row.playerId, row] as const));
   const selectedPairs = new Set(next.map((entry) => getSnapshotPrecisionCardEntryKey(entry)));
   const selectedPlayers = new Set(next.map((entry) => entry.playerId));
-  const recoveryCandidates = buildPrecisionRecoveryCandidatesFromRows(rows).sort(sortPrecisionTopOffCandidates);
-  const qualifiedFillCandidates = buildPrecisionFillCandidatesFromRows(rows, "qualified_fill").sort(sortPrecisionTopOffCandidates);
-  const modelFillCandidates = buildPrecisionFillCandidatesFromRows(rows, "model_fill").sort(sortPrecisionTopOffCandidates);
+  const recoveryCandidates = buildControlledPrecisionRecoveryCandidatesFromRows(rows);
 
   const candidateStages: Array<{
     candidates: PrecisionSlateCandidate[];
   }> = [
     { candidates: recoveryCandidates },
-    { candidates: qualifiedFillCandidates },
-    { candidates: modelFillCandidates },
   ];
 
   const appendCandidate = (candidate: PrecisionSlateCandidate): void => {
@@ -4250,8 +4255,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
 
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
-  const precisionAdaptiveCardCandidates: PrecisionCardCandidateRecord[] = [];
-  const precisionShortfallCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
 
   for (const player of players) {
@@ -5244,6 +5247,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       }
     });
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
+      if (!PRIMARY_PRECISION_CARD_MARKETS.has(market)) {
+        return;
+      }
+
       const sportsbookCount = precisionSportsbookCounts[market];
       const strictSignal = strictPrecisionSignals[market];
       const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
@@ -5262,43 +5269,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           source: "PRECISION",
         });
         return;
-      }
-
-      const adaptiveSignal = adaptivePrecisionSignals[market];
-      const adaptiveQualified = adaptiveSignal?.qualified ?? adaptiveSignal?.side !== "NEUTRAL";
-      if (
-        adaptiveSignal &&
-        adaptiveQualified &&
-        isPromotedPrecisionCandidate({ market, signal: adaptiveSignal, sportsbookCount })
-      ) {
-        precisionAdaptiveCardCandidates.push({
-          playerId: player.id,
-          playerName: player.fullName,
-          matchupKey: matchup.matchupKey,
-          market,
-          signal: adaptiveSignal,
-          selectionScore: adaptiveSignal.selectionScore ?? 0,
-          source: "PRECISION",
-        });
-        return;
-      }
-
-      const shortfallSignal = shortfallPrecisionSignals[market];
-      const shortfallQualified = shortfallSignal?.qualified ?? shortfallSignal?.side !== "NEUTRAL";
-      if (
-        shortfallSignal &&
-        shortfallQualified &&
-        isPromotedPrecisionCandidate({ market, signal: shortfallSignal, sportsbookCount })
-      ) {
-        precisionShortfallCardCandidates.push({
-          playerId: player.id,
-          playerName: player.fullName,
-          matchupKey: matchup.matchupKey,
-          market,
-          signal: shortfallSignal,
-          selectionScore: shortfallSignal.selectionScore ?? 0,
-          source: "PRECISION",
-        });
       }
     });
     const marketSignals: Record<SnapshotMarket, SnapshotPtsSignal | null> = {
@@ -5689,49 +5659,12 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
-  const rowDerivedPrecisionCandidates = buildPrecisionRecoveryCandidatesFromRows(rowsWithSortKeys.map((item) => item.row));
-  const precisionQualifiedFillCandidates = buildPrecisionFillCandidatesFromRows(
+  const rowDerivedPrecisionCandidates = buildControlledPrecisionRecoveryCandidatesFromRows(
     rowsWithSortKeys.map((item) => item.row),
-    "qualified_fill",
-  );
-  const precisionModelFillCandidates = buildPrecisionFillCandidatesFromRows(
-    rowsWithSortKeys.map((item) => item.row),
-    "model_fill",
   );
   const computedPrecisionCard = selectPrecisionCardWithTopOff(
     precisionCardCandidates,
-    precisionAdaptiveCardCandidates,
-    {
-      candidates: precisionAdaptiveCardCandidates,
-      ignorePlayerLimit: true,
-      ignoreMarketCaps: true,
-    },
-    precisionShortfallCardCandidates,
-    precisionQualifiedFillCandidates,
-    precisionModelFillCandidates,
-    {
-      candidates: precisionQualifiedFillCandidates,
-      ignoreMarketCaps: true,
-    },
-    {
-      candidates: precisionModelFillCandidates,
-      ignoreMarketCaps: true,
-    },
-    {
-      candidates: rowDerivedPrecisionCandidates,
-      ignorePlayerLimit: true,
-      ignoreMarketCaps: true,
-    },
-    {
-      candidates: precisionQualifiedFillCandidates,
-      ignorePlayerLimit: true,
-      ignoreMarketCaps: true,
-    },
-    {
-      candidates: precisionModelFillCandidates,
-      ignorePlayerLimit: true,
-      ignoreMarketCaps: true,
-    },
+    rowDerivedPrecisionCandidates,
   );
   const boardRows = rowsWithSortKeys.map((item) => item.row);
   const stabilizedPrecisionCard =

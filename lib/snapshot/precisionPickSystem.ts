@@ -414,21 +414,21 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 };
 
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
-  label: "Precision Selector v2",
-  historicalAccuracy: 70.16,
-  historicalPicks: 888,
+  label: "Precision Selector v3",
+  historicalAccuracy: 71.38,
+  historicalPicks: 318,
   historicalCoveragePct: 0.01,
   historicalPicksPerDay: 6,
-  supportedMarkets: DAILY_6_CURRENT_MARKETS,
+  supportedMarkets: ["PTS", "REB", "AST", "PRA", "PA", "PR", "RA"],
   accuracyLabel: "Backtest Rate",
-  picksPerDayLabel: "Picks/Day",
+  picksPerDayLabel: "Picks/Active Slate Day",
   note:
-    "Backtested 2025-10-23 through 2026-03-27. The staged precision selector now replays at 70.16% overall and 67.78% over the last 30 days on exactly 6 picks/day after cutting weak adaptive rescue pockets and low-quality Tier 2 REB OVER / THREES UNDER bypasses.",
+    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The rebuilt selector replays at 71.38% overall, 76.79% over the last 30 active slate days, and 83.33% over the last 14 active slate days while holding 6.0 picks per active slate day by using a core PTS/REB/PRA/PR/RA card plus one controlled precision-only recovery layer when a live slate runs short.",
   targetCardCount: 6,
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-02-precision-selector-v2-adaptive-and-tier2-pocket-cuts";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-20-precision-selector-v3-active-slate-core-plus-controlled-recovery";
 
 export const PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT = 3;
 
@@ -752,14 +752,14 @@ export function computeCoreThreeExpansionSelectionScore(input: {
 }
 
 const PRECISION_SELECTOR_MARKET_CAPS: Record<SnapshotMarket, number> = {
-  PTS: 0,
-  REB: 1,
-  AST: 2,
+  PTS: 2,
+  REB: 2,
+  AST: 1,
   THREES: 1,
-  PRA: 3,
-  PA: 0,
+  PRA: 2,
+  PA: 1,
   PR: 2,
-  RA: 3,
+  RA: 2,
 };
 const PRECISION_SELECTOR_TARGET_COUNT = 6;
 const PRECISION_ADAPTIVE_TOP_OFF_RULES: Partial<Record<SnapshotMarket, PrecisionAdaptiveTopOffConfig>> = {
