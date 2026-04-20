@@ -444,6 +444,14 @@ function stabilizePrecisionCardForToday(
   const mergedEntries = new Map<string, SnapshotPrecisionCardEntry>();
 
   const mergeEntry = (entry: SnapshotPrecisionCardEntry): void => {
+    const selectorFamily = entry.precisionSignal?.selectorFamily;
+    if (
+      !PRECISION_80_SYSTEM_SUMMARY.allowFill &&
+      (selectorFamily === "qualified_fill" || selectorFamily === "model_fill")
+    ) {
+      return;
+    }
+
     const entryKey = getSnapshotPrecisionCardEntryKey(entry);
     const currentRow = rowByPlayerId.get(entry.playerId);
     if (!isPrecisionCardRowStillEligible(currentRow)) return;
