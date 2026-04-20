@@ -42,6 +42,7 @@ import {
   buildPrecision80Pick,
   comparePrecisionSignals,
   isPromotedPrecisionCandidate,
+  PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT,
   PRECISION_80_SYSTEM_SUMMARY_VERSION,
   PRECISION_80_SYSTEM_SUMMARY,
   selectPrecisionCardWithTopOff,
@@ -447,11 +448,13 @@ function stabilizePrecisionCardForToday(
     const currentRow = rowByPlayerId.get(entry.playerId);
     if (!isPrecisionCardRowStillEligible(currentRow)) return;
     const currentSignal = currentRow?.precisionSignals?.[entry.market] ?? null;
+    const rebuiltFillCandidate = currentRow ? buildPrecisionFillCandidateFromEntry(currentRow, entry) : null;
+    const resolvedSignal = rebuiltFillCandidate?.signal ?? currentSignal ?? null;
     const sportsbookCount = currentRow ? getRowMarketSportsbookCount(currentRow, entry.market) : 0;
     if (
       !isPromotedPrecisionCandidate({
         market: entry.market,
-        signal: currentSignal ?? entry.precisionSignal ?? null,
+        signal: resolvedSignal,
         sportsbookCount,
       })
     ) {
@@ -459,8 +462,8 @@ function stabilizePrecisionCardForToday(
     }
     const normalizedEntry: SnapshotPrecisionCardEntry = {
       ...entry,
-      selectionScore: currentSignal?.selectionScore ?? entry.selectionScore ?? null,
-      precisionSignal: currentSignal ?? entry.precisionSignal ?? null,
+      selectionScore: rebuiltFillCandidate?.selectionScore ?? currentSignal?.selectionScore ?? entry.selectionScore ?? null,
+      precisionSignal: resolvedSignal,
     };
     const existing = mergedEntries.get(entryKey);
     if (!existing || compareStabilizedPrecisionEntries(normalizedEntry, existing) < 0) {
@@ -931,25 +934,149 @@ function buildPrecisionRecoveryCandidatesFromRows(rows: SnapshotRow[]): Precisio
   );
 }
 
-function getRowMarketSportsbookCount(row: SnapshotRow, market: SnapshotMarket): number {
+type PrecisionFillStage = "qualified_fill" | "model_fill";
+
+function getRowMarketSignal(row: SnapshotRow, market: SnapshotMarket): SnapshotPtsSignal | null {
   switch (market) {
     case "PTS":
-      return row.ptsSignal?.sportsbookCount ?? 0;
+      return row.ptsSignal;
     case "REB":
-      return row.rebSignal?.sportsbookCount ?? 0;
+      return row.rebSignal;
     case "AST":
-      return row.astSignal?.sportsbookCount ?? 0;
+      return row.astSignal;
     case "THREES":
-      return row.threesSignal?.sportsbookCount ?? 0;
+      return row.threesSignal;
     case "PRA":
-      return row.praSignal?.sportsbookCount ?? 0;
+      return row.praSignal;
     case "PA":
-      return row.paSignal?.sportsbookCount ?? 0;
+      return row.paSignal;
     case "PR":
-      return row.prSignal?.sportsbookCount ?? 0;
+      return row.prSignal;
     case "RA":
-      return row.raSignal?.sportsbookCount ?? 0;
+      return row.raSignal;
   }
+}
+
+function getRowMarketRuntime(row: SnapshotRow, market: SnapshotMarket): SnapshotMarketRuntime | null {
+  return row.marketRuntime?.[market] ?? null;
+}
+
+function buildPrecisionFillSignal(
+  row: SnapshotRow,
+  market: SnapshotMarket,
+  stage: PrecisionFillStage,
+): SnapshotPrecisionPickSignal | null {
+  const liveSignal = getRowMarketSignal(row, market);
+  const runtime = getRowMarketRuntime(row, market);
+  if (!liveSignal || liveSignal.marketLine == null) return null;
+  if ((liveSignal.sportsbookCount ?? 0) < PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT) return null;
+
+  const runtimeSource = runtime?.source ?? "baseline";
+  if (stage === "qualified_fill" && runtimeSource !== "universal_qualified") return null;
+  if (stage === "model_fill" && runtimeSource === "universal_qualified") return null;
+
+  const side =
+    runtime?.finalSide && runtime.finalSide !== "NEUTRAL"
+      ? runtime.finalSide
+      : liveSignal.side;
+  if (side === "NEUTRAL") return null;
+
+  const existingSignal = row.precisionSignals?.[market] ?? null;
+  const projection = row.projectedTonight[market];
+  const basis = liveSignal.marketLine ?? row.modelLines[market].fairLine ?? null;
+  const absLineGap =
+    existingSignal?.absLineGap ??
+    (projection != null && basis != null ? round(Math.abs(projection - basis), 2) : null);
+  const confidenceScore = round(Math.max(0, Math.min(1, (liveSignal.confidence ?? 0) / 100)), 4);
+  const baselineSelectionScore = Math.max(
+    existingSignal?.selectionScore ?? 0,
+    existingSignal?.projectionWinProbability ?? 0,
+    confidenceScore,
+  );
+  const selectionScore = round(
+    baselineSelectionScore +
+      (stage === "qualified_fill" ? 0.04 : 0.015) +
+      Math.min(liveSignal.sportsbookCount, 10) * 0.01 +
+      Math.min(absLineGap ?? 0, 5) * 0.01,
+    6,
+  );
+  const reasons =
+    stage === "qualified_fill"
+      ? [
+          "True precision picks came in under the six-pick target, so this board-qualified live spot was used as a fill.",
+          `${liveSignal.sportsbookCount} live books are pricing this market.`,
+          "This pick came from the qualified live board layer.",
+        ]
+      : [
+          "True precision and qualified fill pools came in under the six-pick target, so this broader board model spot was used as a fill.",
+          `${liveSignal.sportsbookCount} live books are pricing this market.`,
+          runtimeSource === "player_override"
+            ? "This pick came from the player-override board layer."
+            : "This pick came from the baseline board layer.",
+        ];
+
+  return {
+    side,
+    qualified: false,
+    historicalAccuracy: existingSignal?.historicalAccuracy ?? 0,
+    historicalPicks: existingSignal?.historicalPicks ?? 0,
+    historicalCoveragePct: existingSignal?.historicalCoveragePct,
+    bucketRecentAccuracy: existingSignal?.bucketRecentAccuracy ?? null,
+    leafAccuracy: existingSignal?.leafAccuracy ?? null,
+    absLineGap,
+    projectionWinProbability: existingSignal?.projectionWinProbability ?? confidenceScore,
+    projectionPriceEdge: existingSignal?.projectionPriceEdge ?? null,
+    selectionScore,
+    selectorFamily: stage,
+    selectorTier: stage,
+    reasons,
+  };
+}
+
+function buildPrecisionFillCandidatesFromRows(
+  rows: SnapshotRow[],
+  stage: PrecisionFillStage,
+): PrecisionSlateCandidate[] {
+  return rows.flatMap((row) =>
+    MARKETS.flatMap((market) => {
+      const signal = buildPrecisionFillSignal(row, market, stage);
+      if (!signal) return [];
+      return [
+        {
+          playerId: row.playerId,
+          playerName: row.playerName,
+          matchupKey: row.matchupKey,
+          market,
+          signal,
+          selectionScore: signal.selectionScore ?? 0,
+          source: "PRECISION" as const,
+        } satisfies PrecisionSlateCandidate,
+      ];
+    }),
+  );
+}
+
+function buildPrecisionFillCandidateFromEntry(
+  row: SnapshotRow,
+  entry: SnapshotPrecisionCardEntry,
+): PrecisionSlateCandidate | null {
+  const stage = entry.precisionSignal?.selectorFamily;
+  if (stage !== "qualified_fill" && stage !== "model_fill") return null;
+  const signal = buildPrecisionFillSignal(row, entry.market, stage);
+  if (!signal) return null;
+  return {
+    playerId: row.playerId,
+    playerName: row.playerName,
+    matchupKey: row.matchupKey,
+    market: entry.market,
+    signal,
+    selectionScore: signal.selectionScore ?? entry.selectionScore ?? 0,
+    source: "PRECISION",
+  } satisfies PrecisionSlateCandidate;
+}
+
+function getRowMarketSportsbookCount(row: SnapshotRow, market: SnapshotMarket): number {
+  return getRowMarketSignal(row, market)?.sportsbookCount ?? 0;
 }
 
 function parseLineupSnapshot(value: unknown, dateEt: string): RotowireLineupSnapshot | null {
@@ -5464,12 +5591,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
-  const precisionSelectionPool = [
-    ...precisionCardCandidates,
-    ...precisionAdaptiveCardCandidates,
-    ...precisionShortfallCardCandidates,
-  ];
-  const precisionCard = selectPrecisionCardWithTopOff(
+  const rowDerivedPrecisionCandidates = buildPrecisionRecoveryCandidatesFromRows(rowsWithSortKeys.map((item) => item.row));
+  const precisionQualifiedFillCandidates = buildPrecisionFillCandidatesFromRows(
+    rowsWithSortKeys.map((item) => item.row),
+    "qualified_fill",
+  );
+  const precisionModelFillCandidates = buildPrecisionFillCandidatesFromRows(
+    rowsWithSortKeys.map((item) => item.row),
+    "model_fill",
+  );
+  const computedPrecisionCard = selectPrecisionCardWithTopOff(
     precisionCardCandidates,
     precisionAdaptiveCardCandidates,
     {
@@ -5478,21 +5609,32 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       ignoreMarketCaps: true,
     },
     precisionShortfallCardCandidates,
+    precisionQualifiedFillCandidates,
+    precisionModelFillCandidates,
+    {
+      candidates: precisionQualifiedFillCandidates,
+      ignoreMarketCaps: true,
+    },
+    {
+      candidates: precisionModelFillCandidates,
+      ignoreMarketCaps: true,
+    },
+    {
+      candidates: rowDerivedPrecisionCandidates,
+      ignorePlayerLimit: true,
+      ignoreMarketCaps: true,
+    },
+    {
+      candidates: precisionQualifiedFillCandidates,
+      ignorePlayerLimit: true,
+      ignoreMarketCaps: true,
+    },
+    {
+      candidates: precisionModelFillCandidates,
+      ignorePlayerLimit: true,
+      ignoreMarketCaps: true,
+    },
   );
-  const rowDerivedPrecisionCandidates = buildPrecisionRecoveryCandidatesFromRows(rowsWithSortKeys.map((item) => item.row));
-  const recoveredPrecisionCard =
-    precisionCard.length < (PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6)
-      ? selectPrecisionCardWithTopOff(
-          rowDerivedPrecisionCandidates,
-          {
-            candidates: rowDerivedPrecisionCandidates,
-            ignorePlayerLimit: true,
-            ignoreMarketCaps: true,
-          },
-        )
-      : precisionCard;
-  const computedPrecisionCard =
-    recoveredPrecisionCard.length > precisionCard.length ? recoveredPrecisionCard : precisionCard;
   const boardRows = rowsWithSortKeys.map((item) => item.row);
   const finalPrecisionCard =
     isTodayEt
@@ -5503,13 +5645,14 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
         )
       : computedPrecisionCard;
+  const fillCount = finalPrecisionCard.filter((entry) => {
+    const selectorFamily = entry.precisionSignal?.selectorFamily;
+    return selectorFamily === "qualified_fill" || selectorFamily === "model_fill";
+  }).length;
   const precisionCardSummary = {
     targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
-    truePickCount: Math.max(
-      precisionSelectionPool.filter((candidate) => candidate.source === "PRECISION").length,
-      rowDerivedPrecisionCandidates.length,
-    ),
-    fillCount: 0,
+    truePickCount: Math.max(0, finalPrecisionCard.length - fillCount),
+    fillCount,
     selectedCount: finalPrecisionCard.length,
   };
   const currentData: SnapshotBoardData = {
