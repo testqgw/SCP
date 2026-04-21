@@ -404,6 +404,23 @@ function preferBundledSnapshotBoardViewFallbackWhenBroken(
   return fallback;
 }
 
+function recoverStartedSlatePrecisionCard(
+  dateEt: string,
+  precisionCard: SnapshotPrecisionCardEntry[],
+  startedMatchupCount: number,
+): SnapshotPrecisionCardEntry[] {
+  if (dateEt !== getSnapshotBoardDateString() || startedMatchupCount === 0 || precisionCard.length > 0) {
+    return precisionCard;
+  }
+
+  const fallback = loadBundledSnapshotBoardViewFallback(dateEt);
+  if (!fallback || fallback.dateEt !== dateEt || !Array.isArray(fallback.precisionCard) || fallback.precisionCard.length === 0) {
+    return precisionCard;
+  }
+
+  return structuredClone(fallback.precisionCard);
+}
+
 function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
   if (dateEt !== getSnapshotBoardDateString()) return false;
   const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
@@ -4485,8 +4502,8 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           sortTime: startedMatchupTime,
           row: toBoardSnapshotRow(persistedRow),
         });
+        continue;
       }
-      continue;
     }
 
     const logsForPlayer = logsByPlayerId.get(player.id) ?? [];
@@ -6014,10 +6031,14 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           },
         )
       : computedPrecisionCard;
-  const finalPrecisionCard = enforcePrecisionCardTargetCount(
-    stabilizedPrecisionCard,
-    boardRows,
-    PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+  const finalPrecisionCard = recoverStartedSlatePrecisionCard(
+    dateEt,
+    enforcePrecisionCardTargetCount(
+      stabilizedPrecisionCard,
+      boardRows,
+      PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+    ),
+    startedMatchupTimesByKey.size,
   );
   const fillCount = finalPrecisionCard.filter((entry) => {
     const selectorFamily = entry.precisionSignal?.selectorFamily;
