@@ -3959,22 +3959,24 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       sourceSignal,
       expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
     });
-    await prisma.systemSetting.upsert({
-      where: { key: getSnapshotBoardSettingKey(dateEt) },
-      update: {
-        value: {
-          sourceSignal,
-          data: emptyData,
+    if (isTodayEt) {
+      await prisma.systemSetting.upsert({
+        where: { key: getSnapshotBoardSettingKey(dateEt) },
+        update: {
+          value: {
+            sourceSignal,
+            data: emptyData,
+          },
         },
-      },
-      create: {
-        key: getSnapshotBoardSettingKey(dateEt),
-        value: {
-          sourceSignal,
-          data: emptyData,
+        create: {
+          key: getSnapshotBoardSettingKey(dateEt),
+          value: {
+            sourceSignal,
+            data: emptyData,
+          },
         },
-      },
-    });
+      });
+    }
     return emptyData;
   }
 
@@ -6030,22 +6032,24 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     sourceSignal,
     expiresAt: Date.now() + SNAPSHOT_BOARD_CACHE_TTL_MS,
   });
-  await prisma.systemSetting.upsert({
-    where: { key: getSnapshotBoardSettingKey(dateEt) },
-    update: {
-      value: {
-        sourceSignal,
-        data: result,
+  if (isTodayEt) {
+    await prisma.systemSetting.upsert({
+      where: { key: getSnapshotBoardSettingKey(dateEt) },
+      update: {
+        value: {
+          sourceSignal,
+          data: result,
+        },
       },
-    },
-    create: {
-      key: getSnapshotBoardSettingKey(dateEt),
-      value: {
-        sourceSignal,
-        data: result,
+      create: {
+        key: getSnapshotBoardSettingKey(dateEt),
+        value: {
+          sourceSignal,
+          data: result,
+        },
       },
-    },
-  });
+    });
+  }
   return result;
 }
 
