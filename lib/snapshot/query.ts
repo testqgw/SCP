@@ -386,6 +386,24 @@ function getSnapshotBoardViewFallbackOrThrow(dateEt: string, error: unknown): Sn
   throw error;
 }
 
+function preferBundledSnapshotBoardViewFallbackWhenBroken(
+  dateEt: string,
+  data: SnapshotBoardViewData,
+): SnapshotBoardViewData {
+  const isTodayEt = dateEt === getSnapshotBoardDateString();
+  const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0;
+  if (!isTodayEt || !hasSlateGames || data.rows.length > 0) {
+    return data;
+  }
+
+  const fallback = loadBundledSnapshotBoardViewFallback(dateEt);
+  if (!fallback || fallback.rows.length === 0) {
+    return data;
+  }
+
+  return fallback;
+}
+
 function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
   if (dateEt !== getSnapshotBoardDateString()) return false;
   const hasSlateGames = data.matchups.length > 0 || data.teamMatchups.length > 0 || data.rows.length > 0;
@@ -3818,9 +3836,15 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     });
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
-      return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
+      return preferBundledSnapshotBoardViewFallbackWhenBroken(
+        dateEt,
+        toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt })),
+      );
     }
-    return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
+    return preferBundledSnapshotBoardViewFallbackWhenBroken(
+      dateEt,
+      toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt })),
+    );
   } catch (error) {
     return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
   }
@@ -3828,8 +3852,11 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
 
 export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
   try {
-    return toSnapshotBoardViewData(
-      await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+    return preferBundledSnapshotBoardViewFallbackWhenBroken(
+      dateEt,
+      toSnapshotBoardViewData(
+        await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+      ),
     );
   } catch (error) {
     return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
