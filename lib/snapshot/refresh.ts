@@ -37,10 +37,17 @@ const UPSERT_PLAYER_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_PLAYER_
 const UPSERT_GAME_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_GAME_BATCH, 20, 100);
 const UPSERT_LOG_BATCH = parsePositiveInt(process.env.SNAPSHOT_UPSERT_LOG_BATCH, 50, 200);
 const VISIT_REFRESH_COOLDOWN_MS = 15 * 60 * 1000;
+const SNAPSHOT_BOARD_SETTING_KEY_PREFIX = "snapshot_board:";
 const FAST_REFRESH_LINEUP_REUSE_TTL_MS = parsePositiveInt(
   process.env.SNAPSHOT_FAST_REFRESH_LINEUP_REUSE_TTL_MS,
   60_000,
   10 * 60_000,
+);
+const SNAPSHOT_BOARD_RETENTION_DAYS = parsePositiveInt(process.env.SNAPSHOT_BOARD_RETENTION_DAYS, 45, 365);
+const SNAPSHOT_REFRESH_RUN_RETENTION_DAYS = parsePositiveInt(
+  process.env.SNAPSHOT_REFRESH_RUN_RETENTION_DAYS,
+  30,
+  365,
 );
 const DELTA_HISTORICAL_BOX_SCORE_REUSE_ENABLED = process.env.SNAPSHOT_DELTA_HISTORICAL_BOX_SCORE_REUSE !== "false";
 
@@ -845,6 +852,32 @@ function evaluateQualityInput(data: { logs: NormalizedPlayerGameStat[]; games: N
   return issues;
 }
 
+async function pruneSnapshotStorage(dateEt: string): Promise<{ deletedBoardSettings: number; deletedRefreshRuns: number }> {
+  const boardCutoffDateEt = etDateShift(dateEt, -SNAPSHOT_BOARD_RETENTION_DAYS);
+  const refreshCutoff = new Date(Date.now() - SNAPSHOT_REFRESH_RUN_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
+  const [boardSettingsResult, refreshRunsResult] = await prisma.$transaction([
+    prisma.systemSetting.deleteMany({
+      where: {
+        key: {
+          startsWith: SNAPSHOT_BOARD_SETTING_KEY_PREFIX,
+          lt: `${SNAPSHOT_BOARD_SETTING_KEY_PREFIX}${boardCutoffDateEt}`,
+        },
+      },
+    }),
+    prisma.refreshRun.deleteMany({
+      where: {
+        startedAt: { lt: refreshCutoff },
+      },
+    }),
+  ]);
+
+  return {
+    deletedBoardSettings: boardSettingsResult.count,
+    deletedRefreshRuns: refreshRunsResult.count,
+  };
+}
+
 export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions): Promise<RefreshResult> {
   const startedAt = Date.now();
   const dateEt = getSnapshotBoardDateString();
@@ -1082,6 +1115,19 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
           },
         },
       });
+    }
+
+    try {
+      const cleanup = await pruneSnapshotStorage(dateEt);
+      if (cleanup.deletedBoardSettings > 0 || cleanup.deletedRefreshRuns > 0) {
+        warnings.push(
+          `Storage cleanup removed ${cleanup.deletedBoardSettings} old board snapshots and ${cleanup.deletedRefreshRuns} old refresh runs.`,
+        );
+      }
+    } catch (cleanupError) {
+      warnings.push(
+        `Storage cleanup skipped: ${cleanupError instanceof Error ? cleanupError.message : "unknown cleanup error"}`,
+      );
     }
 
     return {
