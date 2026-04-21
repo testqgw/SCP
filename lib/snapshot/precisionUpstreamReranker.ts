@@ -287,8 +287,23 @@ type PriorityEncodedModel = {
   numericStats: Record<PriorityNumericField, { mean: number; stdDev: number }>;
 };
 
+type PrioritySerializedEncodedModel = {
+  weights: number[];
+  featureIndexEntries: Array<[string, number]>;
+  numericStats: Record<PriorityNumericField, { mean: number; stdDev: number }>;
+};
+
+type PriorityRuntimeModelArtifact = {
+  version?: string;
+  generatedAt?: string;
+  trainedThroughDate?: string;
+  historyRowCount?: number;
+  model?: PrioritySerializedEncodedModel | null;
+};
+
 const PRIORITY_HISTORY_RELATIVE_PATH = path.join("exports", "precision-upstream-reranker-history-v1.json");
 const PRIORITY_HISTORY_FALLBACK_RELATIVE_PATH = path.join("exports", "_tmp_priority_upstream_meta_dataset.json");
+const PRIORITY_RUNTIME_MODEL_RELATIVE_PATH = path.join("exports", "precision-upstream-reranker-runtime-model-v1.json");
 const PRIORITY_POOL_SPECS: PriorityPoolSpec[] = [
   {
     label: "scoring_core_final_relaxed",
@@ -415,6 +430,13 @@ let cachedPriorityHistoryRows: PriorityHistoryRow[] | null = null;
 const cachedApprovedPoolMaps = new Map<string, Map<PriorityPoolLabel, Map<string, PriorityApprovedModel>>>();
 let cachedPriorityReplaySummary: PriorityReplaySummary | null = null;
 const cachedTrainedModels = new Map<string, PriorityEncodedModel | null>();
+let cachedPriorityRuntimeModelArtifact:
+  | {
+      trainedThroughDate: string;
+      model: PriorityEncodedModel | null;
+    }
+  | null
+  | undefined;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -760,6 +782,55 @@ function loadPriorityHistoryRows(): PriorityHistoryRow[] {
   return cachedPriorityHistoryRows;
 }
 
+function serializePriorityEncodedModel(model: PriorityEncodedModel | null): PrioritySerializedEncodedModel | null {
+  if (!model) return null;
+  return {
+    weights: model.weights,
+    featureIndexEntries: Array.from(model.featureIndex.entries()),
+    numericStats: model.numericStats,
+  };
+}
+
+function deserializePriorityEncodedModel(
+  model: PrioritySerializedEncodedModel | null | undefined,
+): PriorityEncodedModel | null {
+  if (!model) return null;
+  return {
+    weights: model.weights,
+    featureIndex: new Map(model.featureIndexEntries),
+    numericStats: model.numericStats,
+  };
+}
+
+function loadPriorityRuntimeModelArtifact():
+  | {
+      trainedThroughDate: string;
+      model: PriorityEncodedModel | null;
+    }
+  | null {
+  if (cachedPriorityRuntimeModelArtifact !== undefined) {
+    return cachedPriorityRuntimeModelArtifact;
+  }
+
+  const artifactPath = path.join(process.cwd(), PRIORITY_RUNTIME_MODEL_RELATIVE_PATH);
+  if (!existsSync(artifactPath)) {
+    cachedPriorityRuntimeModelArtifact = null;
+    return cachedPriorityRuntimeModelArtifact;
+  }
+
+  const payload = parseJsonFile<PriorityRuntimeModelArtifact>(artifactPath);
+  if (!payload.trainedThroughDate) {
+    cachedPriorityRuntimeModelArtifact = null;
+    return cachedPriorityRuntimeModelArtifact;
+  }
+
+  cachedPriorityRuntimeModelArtifact = {
+    trainedThroughDate: payload.trainedThroughDate,
+    model: deserializePriorityEncodedModel(payload.model),
+  };
+  return cachedPriorityRuntimeModelArtifact;
+}
+
 function getPriorityNumericValue(row: PriorityRuntimeMeta, field: PriorityNumericField): number {
   const direct = row[field];
   if (typeof direct === "boolean") return direct ? 1 : 0;
@@ -870,6 +941,21 @@ function buildPriorityEncodedModel(trainingRows: PriorityHistoryRow[]): Priority
   };
 }
 
+export function buildPrecisionUpstreamRuntimeModelArtifact(): PriorityRuntimeModelArtifact | null {
+  const historyRows = loadPriorityHistoryRows();
+  if (!historyRows.length) return null;
+  const trainedThroughDate = historyRows[historyRows.length - 1]?.date ?? null;
+  if (!trainedThroughDate) return null;
+  const model = buildPriorityEncodedModel(historyRows);
+  return {
+    version: "precision-upstream-reranker-runtime-model-v1",
+    generatedAt: new Date().toISOString(),
+    trainedThroughDate,
+    historyRowCount: historyRows.length,
+    model: serializePriorityEncodedModel(model),
+  };
+}
+
 function scorePriorityRow(row: PriorityRuntimeMeta, model: PriorityEncodedModel | null): number {
   if (!model) {
     return row.baseScoreGap;
@@ -906,6 +992,12 @@ function scorePriorityRow(row: PriorityRuntimeMeta, model: PriorityEncodedModel 
 function getTrainedPriorityModel(targetDateEt: string): PriorityEncodedModel | null {
   if (cachedTrainedModels.has(targetDateEt)) {
     return cachedTrainedModels.get(targetDateEt) ?? null;
+  }
+
+  const runtimeArtifact = loadPriorityRuntimeModelArtifact();
+  if (runtimeArtifact && targetDateEt > runtimeArtifact.trainedThroughDate) {
+    cachedTrainedModels.set(targetDateEt, runtimeArtifact.model);
+    return runtimeArtifact.model;
   }
 
   const historyRows = loadPriorityHistoryRows();

@@ -438,6 +438,10 @@ function stabilizePrecisionCardForToday(
   currentRows: SnapshotRow[],
   nextPrecisionCard: SnapshotPrecisionCardEntry[],
   targetCardCount: number,
+  options: {
+    matchupStartMsByKey: Map<string, number | null>;
+    nowMs: number;
+  },
 ): SnapshotPrecisionCardEntry[] {
   const persistedPrecisionCard = persistedBoard?.data.precisionCard ?? [];
   if (persistedPrecisionCard.length === 0 || targetCardCount <= 0) {
@@ -445,6 +449,25 @@ function stabilizePrecisionCardForToday(
   }
 
   const rowByPlayerId = new Map(currentRows.map((row) => [row.playerId, row] as const));
+  const lockedStartedEntries = persistedPrecisionCard
+    .flatMap((entry) => {
+      const currentRow = rowByPlayerId.get(entry.playerId);
+      const matchupStartMs = currentRow ? options.matchupStartMsByKey.get(currentRow.matchupKey) ?? null : null;
+      if (matchupStartMs == null || matchupStartMs > options.nowMs) {
+        return [];
+      }
+      const currentSignal = currentRow?.precisionSignals?.[entry.market] ?? null;
+      return [
+        {
+          ...entry,
+          selectionScore: currentSignal?.selectionScore ?? entry.selectionScore ?? null,
+          precisionSignal: currentSignal ?? entry.precisionSignal ?? null,
+        } satisfies SnapshotPrecisionCardEntry,
+      ];
+    })
+    .slice(0, targetCardCount);
+  const lockedEntryKeys = new Set(lockedStartedEntries.map((entry) => getSnapshotPrecisionCardEntryKey(entry)));
+  const lockedPlayers = new Set(lockedStartedEntries.map((entry) => entry.playerId));
   const mergedEntries = new Map<string, SnapshotPrecisionCardEntry>();
 
   const mergeEntry = (entry: SnapshotPrecisionCardEntry): void => {
@@ -457,6 +480,7 @@ function stabilizePrecisionCardForToday(
     }
 
     const entryKey = getSnapshotPrecisionCardEntryKey(entry);
+    if (lockedEntryKeys.has(entryKey) || lockedPlayers.has(entry.playerId)) return;
     const currentRow = rowByPlayerId.get(entry.playerId);
     if (!isPrecisionCardRowStillEligible(currentRow)) return;
     const currentSignal = currentRow?.precisionSignals?.[entry.market] ?? null;
@@ -491,15 +515,22 @@ function stabilizePrecisionCardForToday(
     mergeEntry(entry);
   });
 
+  const remainingSlots = Math.max(0, targetCardCount - lockedStartedEntries.length);
   const stabilizedEntries = Array.from(mergedEntries.values())
     .sort(compareStabilizedPrecisionEntries)
+    .slice(0, remainingSlots)
+    .map((entry) => ({
+      ...entry,
+    }));
+
+  const finalEntries = [...lockedStartedEntries, ...stabilizedEntries]
     .slice(0, targetCardCount)
     .map((entry, index) => ({
       ...entry,
       rank: index + 1,
     }));
 
-  return stabilizedEntries.length > 0 ? stabilizedEntries : nextPrecisionCard;
+  return finalEntries.length > 0 ? finalEntries : nextPrecisionCard;
 }
 
 function normalizeSearchText(value: string): string {
@@ -5926,6 +5957,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
           boardRows,
           computedPrecisionCard,
           PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
+          {
+            matchupStartMsByKey: matchupStartTimesByKey,
+            nowMs,
+          },
         )
       : computedPrecisionCard;
   const finalPrecisionCard = enforcePrecisionCardTargetCount(

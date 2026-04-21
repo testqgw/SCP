@@ -1,0 +1,747 @@
+{
+  "version": "precision-upstream-reranker-runtime-model-v1",
+  "generatedAt": "2026-04-21T00:31:44.024Z",
+  "trainedThroughDate": "2026-04-14",
+  "historyRowCount": 3053,
+  "model": {
+    "weights": [
+      0.1565844485372535,
+      0.025862001429940717,
+      0.010299241974529822,
+      0.014073131579692779,
+      0.048388738128618214,
+      0.02685392536058071,
+      0.023721126131136316,
+      0.022359458127247222,
+      0.04313799851296062,
+      -0.010786003495422289,
+      0.05510093914374652,
+      0.09015743507364499,
+      0.03908797659609359,
+      0,
+      0,
+      0.046578002936276466,
+      -0.003531051299285374,
+      -0.04645337629368333,
+      0.060740816386312804,
+      0.004384265127802259,
+      0.05063577395404423,
+      0.2874516579812049,
+      0.14269679793437495,
+      -0.007426716248109373,
+      0.0930318437383179,
+      -0.0037065213927523974,
+      -0.09303784419692272,
+      -0.017655722293159,
+      -0.14747430443024775,
+      -0.00998083436137773,
+      0.021416147828431403,
+      -0.05105001964582656,
+      0.07793054222073369,
+      -0.0024882422501926577,
+      0.07120319213673944,
+      0.010413600082240937,
+      -0.06225760352436415,
+      -0.13591526123540368,
+      0.01962413617643605,
+      0.0005727736774045938,
+      0.045141259234835154,
+      0.011577371438598832,
+      0.013299977388956667,
+      0.02049673701802761,
+      0.015317339734677374,
+      -0.04908934139909816,
+      0.12111180567109983,
+      -0.03580417963519659,
+      0.04276812040586548,
+      -0.011630145554160767,
+      0.004977238887433383,
+      0.012884415346632469,
+      -0.018113609860298304,
+      -0.026361267855709757,
+      0.057236664629424804,
+      -0.007535079004566958,
+      0.09913473160172666,
+      0.025076440920774008,
+      -0.02294649042796988,
+      0.03550354068190955,
+      -0.040010137582904504,
+      -0.014371133314775207,
+      -0.028879171084413003,
+      -0.007928945331770867,
+      -0.00870429582249328,
+      0.09030399725818064,
+      0.0965536894246169,
+      -0.022693746833408125,
+      0.03208885509920778,
+      0.0200266211499719,
+      -0.0016824323361590374,
+      -0.06037569958343832,
+      0.17370288318901325,
+      -0.019481599010041768,
+      0.17370288318901325,
+      -0.019481599010041768,
+      0.005151450797786842,
+      0.17370288318901325,
+      -0.024633049807828638,
+      0.008900696195315477,
+      0.004043135808382816,
+      0.028525684313532886,
+      0.018201391115897848,
+      0.019139072234431207,
+      0.0030851477239663056,
+      0.005846532685649373,
+      0.025393502164652172,
+      0.07470876762696749,
+      0.022503292084815208,
+      -0.04587853533656373,
+      0.03872641905452277,
+      0.007728151195899521,
+      -0.05644772134362434,
+      -0.016544109552775854,
+      -0.0029041678608268512,
+      -0.01292119655899168,
+      0.025880413768314858,
+      0.09567846500406711,
+      -0.03482251924245433,
+      0.02660917341817992,
+      -0.06950454977591738,
+      -0.035578822878334714,
+      -0.024821028768612013,
+      0.0315830614665323,
+      0.026427091619883908,
+      0.02491462714274325,
+      0.013595209331664627,
+      -0.047845898458346504,
+      0.015615935957538102,
+      0.0846919144707704,
+      0.004539007936391354,
+      0.0011975505133374278,
+      -0.003252453056615415,
+      0.043204911647288916,
+      0.06217985729427556,
+      -0.007460813699622089,
+      -0.05124209979899988,
+      0.050574905663444344,
+      -0.006443725423109896,
+      0.023338441560504804,
+      -0.014222129448905512
+    ],
+    "featureIndexEntries": [
+      [
+        "bias",
+        0
+      ],
+      [
+        "num:poolCount:z",
+        1
+      ],
+      [
+        "num:poolCount:q",
+        2
+      ],
+      [
+        "num:strictPoolCount:z",
+        3
+      ],
+      [
+        "num:strictPoolCount:q",
+        4
+      ],
+      [
+        "num:finalPoolCount:z",
+        5
+      ],
+      [
+        "num:finalPoolCount:q",
+        6
+      ],
+      [
+        "num:scoringCorePool:z",
+        7
+      ],
+      [
+        "num:scoringCorePool:q",
+        8
+      ],
+      [
+        "num:comboPool:z",
+        9
+      ],
+      [
+        "num:comboPool:q",
+        10
+      ],
+      [
+        "num:rawQualified:z",
+        11
+      ],
+      [
+        "num:rawQualified:q",
+        12
+      ],
+      [
+        "num:strictAgreement:z",
+        13
+      ],
+      [
+        "num:strictAgreement:q",
+        14
+      ],
+      [
+        "num:finalAgreement:z",
+        15
+      ],
+      [
+        "num:finalAgreement:q",
+        16
+      ],
+      [
+        "num:projectionAgreement:z",
+        17
+      ],
+      [
+        "num:projectionAgreement:q",
+        18
+      ],
+      [
+        "num:favoredAgreement:z",
+        19
+      ],
+      [
+        "num:favoredAgreement:q",
+        20
+      ],
+      [
+        "num:playerOverrideEngaged:z",
+        21
+      ],
+      [
+        "num:playerOverrideEngaged:q",
+        22
+      ],
+      [
+        "num:holdoutAccuracy:z",
+        23
+      ],
+      [
+        "num:holdoutAccuracy:q",
+        24
+      ],
+      [
+        "num:projectionBaselineAccuracy:z",
+        25
+      ],
+      [
+        "num:projectionBaselineAccuracy:q",
+        26
+      ],
+      [
+        "num:finalBaselineAccuracy:z",
+        27
+      ],
+      [
+        "num:finalBaselineAccuracy:q",
+        28
+      ],
+      [
+        "num:modelAccuracy:z",
+        29
+      ],
+      [
+        "num:modelAccuracy:q",
+        30
+      ],
+      [
+        "num:samples:z",
+        31
+      ],
+      [
+        "num:samples:q",
+        32
+      ],
+      [
+        "num:edgeVsProjection:z",
+        33
+      ],
+      [
+        "num:edgeVsProjection:q",
+        34
+      ],
+      [
+        "num:edgeVsFinal:z",
+        35
+      ],
+      [
+        "num:edgeVsFinal:q",
+        36
+      ],
+      [
+        "num:projectedValue:z",
+        37
+      ],
+      [
+        "num:projectedValue:q",
+        38
+      ],
+      [
+        "num:lineGap:z",
+        39
+      ],
+      [
+        "num:lineGap:q",
+        40
+      ],
+      [
+        "num:absLineGap:z",
+        41
+      ],
+      [
+        "num:absLineGap:q",
+        42
+      ],
+      [
+        "num:expectedMinutes:z",
+        43
+      ],
+      [
+        "num:expectedMinutes:q",
+        44
+      ],
+      [
+        "num:minutesVolatility:z",
+        45
+      ],
+      [
+        "num:minutesVolatility:q",
+        46
+      ],
+      [
+        "num:starterRateLast10:z",
+        47
+      ],
+      [
+        "num:starterRateLast10:q",
+        48
+      ],
+      [
+        "num:priceLean:z",
+        49
+      ],
+      [
+        "num:priceLean:q",
+        50
+      ],
+      [
+        "num:weightedCurrentLineOverRate:z",
+        51
+      ],
+      [
+        "num:weightedCurrentLineOverRate:q",
+        52
+      ],
+      [
+        "num:emaCurrentLineDelta:z",
+        53
+      ],
+      [
+        "num:emaCurrentLineDelta:q",
+        54
+      ],
+      [
+        "num:emaCurrentLineOverRate:z",
+        55
+      ],
+      [
+        "num:emaCurrentLineOverRate:q",
+        56
+      ],
+      [
+        "num:l5CurrentLineOverRate:z",
+        57
+      ],
+      [
+        "num:l5CurrentLineOverRate:q",
+        58
+      ],
+      [
+        "num:baseScoreGap:z",
+        59
+      ],
+      [
+        "num:baseScoreGap:q",
+        60
+      ],
+      [
+        "num:baseScoreRecency:z",
+        61
+      ],
+      [
+        "num:baseScoreRecency:q",
+        62
+      ],
+      [
+        "num:baseScoreBalanced:z",
+        63
+      ],
+      [
+        "num:baseScoreBalanced:q",
+        64
+      ],
+      [
+        "cat:market:AST",
+        65
+      ],
+      [
+        "cat:market:PA",
+        66
+      ],
+      [
+        "cat:market:PR",
+        67
+      ],
+      [
+        "cat:market:PRA",
+        68
+      ],
+      [
+        "cat:market:PTS",
+        69
+      ],
+      [
+        "cat:market:RA",
+        70
+      ],
+      [
+        "cat:market:REB",
+        71
+      ],
+      [
+        "cat:rawSource:player_override",
+        72
+      ],
+      [
+        "cat:rawSource:universal_raw",
+        73
+      ],
+      [
+        "cat:strictRawSource:player_override",
+        74
+      ],
+      [
+        "cat:strictRawSource:universal_raw",
+        75
+      ],
+      [
+        "cat:finalSource:baseline",
+        76
+      ],
+      [
+        "cat:finalSource:player_override",
+        77
+      ],
+      [
+        "cat:finalSource:universal_qualified",
+        78
+      ],
+      [
+        "cat:archetype:BENCH_CREATOR_SCORER",
+        79
+      ],
+      [
+        "cat:archetype:BENCH_LOW_USAGE_BIG",
+        80
+      ],
+      [
+        "cat:archetype:BENCH_LOW_USAGE_WING",
+        81
+      ],
+      [
+        "cat:archetype:BENCH_MIDRANGE_SCORER",
+        82
+      ],
+      [
+        "cat:archetype:BENCH_PASS_FIRST_GUARD",
+        83
+      ],
+      [
+        "cat:archetype:BENCH_REBOUNDING_SCORER",
+        84
+      ],
+      [
+        "cat:archetype:BENCH_SHOOTING_GUARD",
+        85
+      ],
+      [
+        "cat:archetype:BENCH_SPACER_SCORER",
+        86
+      ],
+      [
+        "cat:archetype:BENCH_STRETCH_BIG",
+        87
+      ],
+      [
+        "cat:archetype:BENCH_TRADITIONAL_BIG",
+        88
+      ],
+      [
+        "cat:archetype:BENCH_TRADITIONAL_GUARD",
+        89
+      ],
+      [
+        "cat:archetype:BENCH_VOLUME_SCORER",
+        90
+      ],
+      [
+        "cat:archetype:BENCH_WING",
+        91
+      ],
+      [
+        "cat:archetype:CENTER",
+        92
+      ],
+      [
+        "cat:archetype:CONNECTOR_WING",
+        93
+      ],
+      [
+        "cat:archetype:ELITE_SHOOTING_GUARD",
+        94
+      ],
+      [
+        "cat:archetype:HELIOCENTRIC_GUARD",
+        95
+      ],
+      [
+        "cat:archetype:JUMBO_CREATOR_GUARD",
+        96
+      ],
+      [
+        "cat:archetype:LEAD_GUARD",
+        97
+      ],
+      [
+        "cat:archetype:MARKET_SHAPED_SCORING_WING",
+        98
+      ],
+      [
+        "cat:archetype:POINT_FORWARD",
+        99
+      ],
+      [
+        "cat:archetype:SCORE_FIRST_LEAD_GUARD",
+        100
+      ],
+      [
+        "cat:archetype:SCORER_CREATOR_WING",
+        101
+      ],
+      [
+        "cat:archetype:SCORING_GUARD_CREATOR",
+        102
+      ],
+      [
+        "cat:archetype:SPOTUP_WING",
+        103
+      ],
+      [
+        "cat:archetype:STRETCH_RIM_PROTECTOR_CENTER",
+        104
+      ],
+      [
+        "cat:archetype:TABLE_SETTING_LEAD_GUARD",
+        105
+      ],
+      [
+        "cat:archetype:TWO_WAY_MARKET_WING",
+        106
+      ],
+      [
+        "cat:archetype:WING",
+        107
+      ],
+      [
+        "cat:modelKind:constant",
+        108
+      ],
+      [
+        "cat:modelKind:favoriteOverSuppress",
+        109
+      ],
+      [
+        "cat:modelKind:featureThresholdRouter",
+        110
+      ],
+      [
+        "cat:modelKind:finalOverride",
+        111
+      ],
+      [
+        "cat:modelKind:gapThenMarket",
+        112
+      ],
+      [
+        "cat:modelKind:gapThenProjection",
+        113
+      ],
+      [
+        "cat:modelKind:lowMinutesThenFinal",
+        114
+      ],
+      [
+        "cat:modelKind:lowQualityThenMarket",
+        115
+      ],
+      [
+        "cat:modelKind:marketFavored",
+        116
+      ],
+      [
+        "cat:modelKind:nearLineThenMarket",
+        117
+      ],
+      [
+        "cat:modelKind:projection",
+        118
+      ],
+      [
+        "cat:modelKind:tree",
+        119
+      ],
+      [
+        "cat:modelKind:underGapThenFinalElseConstant",
+        120
+      ]
+    ],
+    "numericStats": {
+      "poolCount": {
+        "mean": 2.8784801834261384,
+        "stdDev": 1.1252857333468942
+      },
+      "strictPoolCount": {
+        "mean": 1.653128070750082,
+        "stdDev": 0.47597457279601246
+      },
+      "finalPoolCount": {
+        "mean": 1.2253521126760563,
+        "stdDev": 0.8342798362823248
+      },
+      "scoringCorePool": {
+        "mean": 0.7425483131346217,
+        "stdDev": 0.43723027776623935
+      },
+      "comboPool": {
+        "mean": 0.9105797576154602,
+        "stdDev": 0.2853493694340821
+      },
+      "rawQualified": {
+        "mean": 0.6003930560104815,
+        "stdDev": 0.4898175520587944
+      },
+      "strictAgreement": {
+        "mean": 1,
+        "stdDev": 1
+      },
+      "finalAgreement": {
+        "mean": 0.9456272518833934,
+        "stdDev": 0.22675174173279655
+      },
+      "projectionAgreement": {
+        "mean": 0.6442843105142483,
+        "stdDev": 0.47872960817085936
+      },
+      "favoredAgreement": {
+        "mean": 0.6275794300687848,
+        "stdDev": 0.4834495723685457
+      },
+      "playerOverrideEngaged": {
+        "mean": 0.28496560759908285,
+        "stdDev": 0.45139806167590846
+      },
+      "holdoutAccuracy": {
+        "mean": 70.70522436947337,
+        "stdDev": 7.784527970236434
+      },
+      "projectionBaselineAccuracy": {
+        "mean": 52.727775958074176,
+        "stdDev": 9.4355400924108
+      },
+      "finalBaselineAccuracy": {
+        "mean": 51.729115623976156,
+        "stdDev": 8.896893984529457
+      },
+      "modelAccuracy": {
+        "mean": 92.02652145430643,
+        "stdDev": 5.657152939730942
+      },
+      "samples": {
+        "mean": 38.84834588928922,
+        "stdDev": 13.320149964221677
+      },
+      "edgeVsProjection": {
+        "mean": 17.977448411398584,
+        "stdDev": 9.179351067549971
+      },
+      "edgeVsFinal": {
+        "mean": 18.976108745496205,
+        "stdDev": 9.532496765605238
+      },
+      "projectedValue": {
+        "mean": 13.622397641663916,
+        "stdDev": 9.126777167428385
+      },
+      "lineGap": {
+        "mean": 0.056560759908286906,
+        "stdDev": 2.0505667202544773
+      },
+      "absLineGap": {
+        "mean": 1.3153095316082535,
+        "stdDev": 1.5741613099797276
+      },
+      "expectedMinutes": {
+        "mean": 27.463337700622297,
+        "stdDev": 5.304616357158771
+      },
+      "minutesVolatility": {
+        "mean": 4.925401244677359,
+        "stdDev": 1.6859458204105264
+      },
+      "starterRateLast10": {
+        "mean": 0.6119489027186378,
+        "stdDev": 0.4519868080929951
+      },
+      "priceLean": {
+        "mean": -0.002059187684245005,
+        "stdDev": 0.1141613281659041
+      },
+      "weightedCurrentLineOverRate": {
+        "mean": 0.5207520471667209,
+        "stdDev": 0.19117348519370822
+      },
+      "emaCurrentLineDelta": {
+        "mean": 0.4932302653128172,
+        "stdDev": 3.4463783047280483
+      },
+      "emaCurrentLineOverRate": {
+        "mean": 0.5128119882083316,
+        "stdDev": 0.29776424684976616
+      },
+      "l5CurrentLineOverRate": {
+        "mean": 0.5200131018670151,
+        "stdDev": 0.24024171654836007
+      },
+      "baseScoreGap": {
+        "mean": 0.6227301677038972,
+        "stdDev": 0.0818587072636858
+      },
+      "baseScoreRecency": {
+        "mean": 0.6377845912217482,
+        "stdDev": 0.08023209246234907
+      },
+      "baseScoreBalanced": {
+        "mean": 0.6750496079266294,
+        "stdDev": 0.0727877853427827
+      }
+    }
+  }
+}
