@@ -48,6 +48,10 @@ import {
   selectPrecisionCardWithTopOff,
   type PrecisionSlateCandidate,
 } from "@/lib/snapshot/precisionPickSystem";
+import {
+  buildPrecisionUpstreamPriorityCandidate,
+  rerankPrecisionUpstreamCandidates,
+} from "@/lib/snapshot/precisionUpstreamReranker";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import {
   evaluateLiveUniversalModelSide,
@@ -567,17 +571,30 @@ type SnapshotMarketRuntimeBuildInput = {
   } | null;
 };
 
-function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): SnapshotMarketRuntime {
-  const baselineSide = input.signal?.baselineSide ?? input.modelSide;
+type SnapshotMarketDecisionMeta = {
+  baselineSide: SnapshotModelSide;
+  rawDecision: ReturnType<typeof inspectLiveUniversalModelSide>;
+  liveDecision: ReturnType<typeof evaluateLiveUniversalModelSide>;
+  playerOverrideSide: SnapshotModelSide;
+  rawSide: SnapshotModelSide;
+  strictRawSide: SnapshotModelSide;
+  finalSide: SnapshotModelSide;
+  rawSource: "player_override" | "universal_raw" | "baseline";
+  strictRawSource: "player_override" | "universal_raw" | "none";
+  finalSource: SnapshotBoardMarketSource;
+  playerOverrideEngaged: boolean;
+  universalQualifiedEngaged: boolean;
+};
+
+function buildSnapshotMarketDecisionMeta(input: SnapshotMarketRuntimeBuildInput): SnapshotMarketDecisionMeta {
+  const baselineSide = resolveBinarySide(input.signal?.baselineSide ?? input.modelSide) ?? "NEUTRAL";
   let finalSide: SnapshotModelSide = baselineSide;
-  let source: SnapshotBoardMarketSource = "baseline";
+  let finalSource: SnapshotBoardMarketSource = "baseline";
   let playerOverrideEngaged = false;
   let universalQualifiedEngaged = false;
-
   const rawDecision = inspectLiveUniversalModelSide(input.universalInput);
   const liveDecision = evaluateLiveUniversalModelSide(input.universalInput);
-  const resolvedBaselineSide = resolveBinarySide(baselineSide) ?? "NEUTRAL";
-  const resolvedLiveSide = resolveBinarySide(liveDecision.side) ?? resolvedBaselineSide;
+  const resolvedLiveSide = resolveBinarySide(liveDecision.side) ?? baselineSide;
   const playerOverrideSide = predictLivePlayerModelSide({
     playerName: input.playerName,
     market: input.market,
@@ -585,31 +602,49 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
     line: input.universalInput.line,
     overPrice: input.universalInput.overPrice,
     underPrice: input.universalInput.underPrice,
-    rawSide: resolveBinarySide(rawDecision.rawSide) ?? resolvedBaselineSide,
+    rawSide: resolveBinarySide(rawDecision.rawSide) ?? baselineSide,
     finalSide: resolvedLiveSide,
-    baselineSide: resolvedBaselineSide,
+    baselineSide,
     expectedMinutes: input.expectedMinutes,
     minutesVolatility: input.minutesVolatility,
     starterRateLast10: input.starterRateLast10,
   });
 
+  const strictRawSide: SnapshotModelSide =
+    playerOverrideSide !== "NEUTRAL" ? playerOverrideSide : rawDecision.rawSide;
+  const rawSide: SnapshotModelSide =
+    strictRawSide === "OVER" || strictRawSide === "UNDER" ? strictRawSide : baselineSide;
+
+  const rawSource: SnapshotMarketDecisionMeta["rawSource"] =
+    playerOverrideSide !== "NEUTRAL"
+      ? "player_override"
+      : rawDecision.rawSide === "NEUTRAL"
+        ? "baseline"
+        : "universal_raw";
+  const strictRawSource: SnapshotMarketDecisionMeta["strictRawSource"] =
+    playerOverrideSide !== "NEUTRAL"
+      ? "player_override"
+      : rawDecision.rawSide === "NEUTRAL"
+        ? "none"
+        : "universal_raw";
+
   if (playerOverrideSide === "OVER" || playerOverrideSide === "UNDER") {
     finalSide = playerOverrideSide;
-    source = "player_override";
+    finalSource = "player_override";
     playerOverrideEngaged = true;
   } else if (liveDecision.side === "OVER" || liveDecision.side === "UNDER") {
     finalSide = liveDecision.side;
-    source = "universal_qualified";
+    finalSource = "universal_qualified";
     universalQualifiedEngaged = true;
   }
 
-  const praControlSide = resolveBinarySide(rawDecision.rawSide) ?? resolvedBaselineSide;
+  const praControlSide = resolveBinarySide(rawDecision.rawSide) ?? baselineSide;
   if (
     input.market === "PRA" &&
     !playerOverrideEngaged &&
     input.praPromotionContext &&
     input.praPromotionContext.projectionSide != null &&
-    resolvedBaselineSide !== "NEUTRAL" &&
+    baselineSide !== "NEUTRAL" &&
     praControlSide !== "NEUTRAL" &&
     input.praPromotionContext.lineGap != null &&
     input.praPromotionContext.absLineGap != null
@@ -621,7 +656,7 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
       overPrice: input.universalInput.overPrice,
       underPrice: input.universalInput.underPrice,
       projectionSide: input.praPromotionContext.projectionSide,
-      baselineSide: resolvedBaselineSide,
+      baselineSide,
       controlSide: praControlSide,
       universalSide: resolveBinarySide(rawDecision.rawSide),
       playerSide: null,
@@ -644,10 +679,33 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
     });
     if (promotedPra && promotedPra.changedFromControl) {
       finalSide = promotedPra.selectedSide;
-      source = promotedPra.selectedSide === resolvedBaselineSide ? "baseline" : "universal_qualified";
-      universalQualifiedEngaged = source === "universal_qualified";
+      finalSource = promotedPra.selectedSide === baselineSide ? "baseline" : "universal_qualified";
+      universalQualifiedEngaged = finalSource === "universal_qualified";
     }
   }
+
+  return {
+    baselineSide,
+    rawDecision,
+    liveDecision,
+    playerOverrideSide,
+    rawSide,
+    strictRawSide,
+    finalSide,
+    rawSource,
+    strictRawSource,
+    finalSource,
+    playerOverrideEngaged,
+    universalQualifiedEngaged,
+  };
+}
+
+function buildSnapshotMarketRuntime(
+  input: SnapshotMarketRuntimeBuildInput & {
+    decisionMeta?: SnapshotMarketDecisionMeta | null;
+  },
+): SnapshotMarketRuntime {
+  const decisionMeta = input.decisionMeta ?? buildSnapshotMarketDecisionMeta(input);
 
   const signalGrade: SnapshotPropSignalGrade | null = buildPropSignalGrade({
     market: input.market,
@@ -662,11 +720,11 @@ function buildSnapshotMarketRuntime(input: SnapshotMarketRuntimeBuildInput): Sna
   });
 
   return {
-    baselineSide,
-    finalSide,
-    source,
-    playerOverrideEngaged,
-    universalQualifiedEngaged,
+    baselineSide: decisionMeta.baselineSide,
+    finalSide: decisionMeta.finalSide,
+    source: decisionMeta.finalSource,
+    playerOverrideEngaged: decisionMeta.playerOverrideEngaged,
+    universalQualifiedEngaged: decisionMeta.universalQualifiedEngaged,
     signalGrade,
   };
 }
@@ -5141,6 +5199,26 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       availabilityStatus: lineupSignal?.availabilityStatus ?? null,
       availabilityPercentPlay: lineupSignal?.availabilityPercentPlay ?? null,
     };
+    const precisionSportsbookCounts: Record<SnapshotMarket, number> = {
+      PTS: ptsSignal?.sportsbookCount ?? 0,
+      REB: rebSignal?.sportsbookCount ?? 0,
+      AST: astSignal?.sportsbookCount ?? 0,
+      THREES: threesSignal?.sportsbookCount ?? 0,
+      PRA: praSignal?.sportsbookCount ?? 0,
+      PA: paSignal?.sportsbookCount ?? 0,
+      PR: prSignal?.sportsbookCount ?? 0,
+      RA: raSignal?.sportsbookCount ?? 0,
+    };
+    const marketSignals: Record<SnapshotMarket, SnapshotPtsSignal | null> = {
+      PTS: ptsSignal,
+      REB: rebSignal,
+      AST: astSignal,
+      THREES: threesSignal,
+      PRA: praSignal,
+      PA: paSignal,
+      PR: prSignal,
+      RA: raSignal,
+    };
     const buildPrecisionCardInputForMarket = (market: SnapshotMarket) => {
       switch (market) {
         case "PTS":
@@ -5270,22 +5348,13 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     };
     const precisionSignals: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> = {};
     const strictPrecisionSignals: Partial<Record<SnapshotMarket, NonNullable<ReturnType<typeof buildPrecision80Pick>>>> = {};
+    const precisionDecisionMetaByMarket: Partial<Record<SnapshotMarket, SnapshotMarketDecisionMeta>> = {};
     const adaptivePrecisionSignals: Partial<
       Record<SnapshotMarket, NonNullable<ReturnType<typeof buildAdaptivePrecisionFloorPick>>>
     > = {};
     const shortfallPrecisionSignals: Partial<
       Record<SnapshotMarket, NonNullable<ReturnType<typeof buildShortfallPrecisionRescuePick>>>
     > = {};
-    const precisionSportsbookCounts: Record<SnapshotMarket, number> = {
-      PTS: ptsSignal?.sportsbookCount ?? 0,
-      REB: rebSignal?.sportsbookCount ?? 0,
-      AST: astSignal?.sportsbookCount ?? 0,
-      THREES: threesSignal?.sportsbookCount ?? 0,
-      PRA: praSignal?.sportsbookCount ?? 0,
-      PA: paSignal?.sportsbookCount ?? 0,
-      PR: prSignal?.sportsbookCount ?? 0,
-      RA: raSignal?.sportsbookCount ?? 0,
-    };
     (["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"] as const).forEach((market) => {
       const precisionInput = buildPrecisionCardInputForMarket(market);
       const strictSignal = buildPrecision80Pick(precisionInput);
@@ -5318,42 +5387,113 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         return;
       }
 
+      const precisionInput = buildPrecisionCardInputForMarket(market);
+      const decisionMeta = buildSnapshotMarketDecisionMeta({
+        market,
+        playerName: player.fullName,
+        signal: marketSignals[market],
+        modelSide: modelLines[market].modelSide,
+        universalInput: precisionInput,
+        expectedMinutes: minutesProfile.expected,
+        l5MinutesAvg: minutesLast5Avg,
+        l5MarketDeltaAvg: null,
+        opponentAllowance: opponentAllowance[market],
+        opponentAllowanceDelta: opponentAllowanceDelta[market],
+        opponentPositionAllowance: null,
+        minutesVolatility,
+        starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+        praPromotionContext:
+          market === "PRA"
+            ? {
+                projectionSide: deriveProjectionSide(projectedTonight.PRA, praMarketLine?.line ?? null),
+                favoredSide: deriveFavoredSide(praMarketLine?.overPrice ?? null, praMarketLine?.underPrice ?? null),
+                openingTeamSpread,
+                openingTotal,
+                lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+                completenessScore: dataCompleteness.score,
+                pointsProjection: projectedTonight.PTS,
+                reboundsProjection: projectedTonight.REB,
+                assistProjection: projectedTonight.AST,
+                threesProjection: projectedTonight.THREES,
+                lineGap:
+                  projectedTonight.PRA == null || praMarketLine?.line == null
+                    ? null
+                    : round(projectedTonight.PRA - praMarketLine.line, 4),
+                absLineGap:
+                  projectedTonight.PRA == null || praMarketLine?.line == null
+                    ? null
+                    : Math.abs(round(projectedTonight.PRA - praMarketLine.line, 4)),
+              }
+            : null,
+      });
+      precisionDecisionMetaByMarket[market] = decisionMeta;
+
       const sportsbookCount = precisionSportsbookCounts[market];
-      const strictSignal = strictPrecisionSignals[market];
-      const strictQualified = strictSignal?.qualified ?? strictSignal?.side !== "NEUTRAL";
-      if (
-        strictSignal &&
-        strictQualified &&
-        isPromotedPrecisionCandidate({ market, signal: strictSignal, sportsbookCount })
-      ) {
+      const priceLean =
+        impliedProbabilityFromAmerican(precisionInput.overPrice ?? null) == null ||
+        impliedProbabilityFromAmerican(precisionInput.underPrice ?? null) == null
+          ? null
+          : round(
+              (impliedProbabilityFromAmerican(precisionInput.overPrice ?? null) ?? 0) -
+                (impliedProbabilityFromAmerican(precisionInput.underPrice ?? null) ?? 0),
+              4,
+            );
+      const upstreamCandidate = buildPrecisionUpstreamPriorityCandidate({
+        dateEt,
+        playerId: player.id,
+        playerName: player.fullName,
+        matchupKey: matchup.matchupKey,
+        market,
+        sportsbookCount,
+        projectionSide: deriveProjectionSide(precisionInput.projectedValue ?? null, precisionInput.line ?? null),
+        finalSide: decisionMeta.finalSide,
+        strictRawSide: decisionMeta.strictRawSide,
+        rawSource: decisionMeta.rawSource,
+        strictRawSource: decisionMeta.strictRawSource,
+        finalSource: decisionMeta.finalSource,
+        overrideEngaged: decisionMeta.finalSource !== "baseline",
+        playerOverrideEngaged: decisionMeta.playerOverrideEngaged,
+        rawQualified: decisionMeta.liveDecision.side === "OVER" || decisionMeta.liveDecision.side === "UNDER",
+        rejectionCount: decisionMeta.liveDecision.rejectionReasons.length,
+        archetype: decisionMeta.rawDecision.archetype,
+        modelKind: decisionMeta.rawDecision.modelKind,
+        bucketSamples: decisionMeta.rawDecision.bucketSamples,
+        bucketModelAccuracy: decisionMeta.rawDecision.bucketModelAccuracy,
+        bucketLateAccuracy: decisionMeta.rawDecision.bucketLateAccuracy,
+        leafCount: decisionMeta.rawDecision.leafCount,
+        leafAccuracy: decisionMeta.rawDecision.leafAccuracy,
+        projectionWinProbability: decisionMeta.rawDecision.projectionWinProbability,
+        projectionPriceEdge: decisionMeta.rawDecision.projectionPriceEdge,
+        priceStrength: decisionMeta.rawDecision.priceStrength,
+        projectionMarketAgreement: decisionMeta.rawDecision.projectionMarketAgreement,
+        projectedValue: precisionInput.projectedValue ?? null,
+        line: precisionInput.line ?? null,
+        overPrice: precisionInput.overPrice ?? null,
+        underPrice: precisionInput.underPrice ?? null,
+        favoredSide: deriveFavoredSide(precisionInput.overPrice ?? null, precisionInput.underPrice ?? null),
+        expectedMinutes: precisionInput.expectedMinutes ?? null,
+        minutesVolatility: precisionInput.minutesVolatility ?? null,
+        starterRateLast10: precisionInput.starterRateLast10 ?? null,
+        priceLean,
+        weightedCurrentLineOverRate: precisionInput.weightedCurrentLineOverRate ?? null,
+        emaCurrentLineDelta: precisionInput.emaCurrentLineDelta ?? null,
+        emaCurrentLineOverRate: precisionInput.emaCurrentLineOverRate ?? null,
+        l5CurrentLineOverRate: precisionInput.l5CurrentLineOverRate ?? null,
+        strictSignal: strictPrecisionSignals[market] ?? null,
+      });
+
+      if (upstreamCandidate) {
         precisionCardCandidates.push({
-          playerId: player.id,
-          playerName: player.fullName,
-          matchupKey: matchup.matchupKey,
-          market,
-          signal: strictSignal,
-          selectionScore: strictSignal.selectionScore ?? 0,
-          source: "PRECISION",
+          ...upstreamCandidate,
         });
-        return;
       }
     });
-    const marketSignals: Record<SnapshotMarket, SnapshotPtsSignal | null> = {
-      PTS: ptsSignal,
-      REB: rebSignal,
-      AST: astSignal,
-      THREES: threesSignal,
-      PRA: praSignal,
-      PA: paSignal,
-      PR: prSignal,
-      RA: raSignal,
-    };
     const marketRuntime = Object.fromEntries(
       MARKETS.map((market) => {
         const universalInput = buildPrecisionCardInputForMarket(market);
-        return [
-          market,
-          buildSnapshotMarketRuntime({
+        const decisionMeta =
+          precisionDecisionMetaByMarket[market] ??
+          buildSnapshotMarketDecisionMeta({
             market,
             playerName: player.fullName,
             signal: marketSignals[market],
@@ -5390,6 +5530,47 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
                         : Math.abs(round(projectedTonight.PRA - praMarketLine.line, 4)),
                   }
                 : null,
+          });
+        return [
+          market,
+          buildSnapshotMarketRuntime({
+            market,
+            playerName: player.fullName,
+            signal: marketSignals[market],
+            modelSide: modelLines[market].modelSide,
+            universalInput,
+            expectedMinutes: minutesProfile.expected,
+            l5MinutesAvg: minutesLast5Avg,
+            l5MarketDeltaAvg: null,
+            opponentAllowance: opponentAllowance[market],
+            opponentAllowanceDelta: opponentAllowanceDelta[market],
+            opponentPositionAllowance: null,
+            minutesVolatility,
+            starterRateLast10: playerProfile?.starterRateLast10 ?? computedStarterRateLast10,
+            praPromotionContext:
+              market === "PRA"
+                ? {
+                    projectionSide: deriveProjectionSide(projectedTonight.PRA, praMarketLine?.line ?? null),
+                    favoredSide: deriveFavoredSide(praMarketLine?.overPrice ?? null, praMarketLine?.underPrice ?? null),
+                    openingTeamSpread,
+                    openingTotal,
+                    lineupTimingConfidence: praSignal?.lineupTimingConfidence ?? null,
+                    completenessScore: dataCompleteness.score,
+                    pointsProjection: projectedTonight.PTS,
+                    reboundsProjection: projectedTonight.REB,
+                    assistProjection: projectedTonight.AST,
+                    threesProjection: projectedTonight.THREES,
+                    lineGap:
+                      projectedTonight.PRA == null || praMarketLine?.line == null
+                        ? null
+                        : round(projectedTonight.PRA - praMarketLine.line, 4),
+                    absLineGap:
+                    projectedTonight.PRA == null || praMarketLine?.line == null
+                      ? null
+                      : Math.abs(round(projectedTonight.PRA - praMarketLine.line, 4)),
+                  }
+                : null,
+            decisionMeta,
           }),
         ] as const;
       }),
@@ -5729,8 +5910,12 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const rowDerivedPrecisionCandidates = buildControlledPrecisionRecoveryCandidatesFromRows(
     rowsWithSortKeys.map((item) => item.row),
   );
-  const computedPrecisionCard = selectPrecisionCardWithTopOff(
+  const rerankedPrecisionCardCandidates = rerankPrecisionUpstreamCandidates(
     precisionCardCandidates,
+    dateEt,
+  );
+  const computedPrecisionCard = selectPrecisionCardWithTopOff(
+    rerankedPrecisionCardCandidates,
     rowDerivedPrecisionCandidates,
   );
   const boardRows = rowsWithSortKeys.map((item) => item.row);
