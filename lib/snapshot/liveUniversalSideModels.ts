@@ -406,6 +406,9 @@ export type PredictLiveUniversalSideInput = {
   finalSide: SnapshotModelSide;
   l5CurrentLineDeltaAvg?: number | null;
   l5CurrentLineOverRate?: number | null;
+  l10CurrentLineOverRate?: number | null;
+  l15CurrentLineOverRate?: number | null;
+  weightedCurrentLineOverRate?: number | null;
   l5MinutesAvg?: number | null;
   emaCurrentLineDelta?: number | null;
   emaCurrentLineOverRate?: number | null;
