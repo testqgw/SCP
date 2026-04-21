@@ -86,6 +86,10 @@ import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
 import { formatUtcToEt, getSnapshotBoardDateString } from "@/lib/snapshot/time";
+import {
+  isSnapshotBoardDatabaseUnavailableError,
+  loadBundledSnapshotBoardViewFallback,
+} from "@/lib/snapshot/boardFallback";
 import type {
   SnapshotBoardData,
   SnapshotBoardFeed,
@@ -370,6 +374,16 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
     sourceSignal: candidate.sourceSignal,
     data: candidate.data,
   };
+}
+
+function getSnapshotBoardViewFallbackOrThrow(dateEt: string, error: unknown): SnapshotBoardViewData {
+  if (isSnapshotBoardDatabaseUnavailableError(error)) {
+    const fallback = loadBundledSnapshotBoardViewFallback(dateEt);
+    if (fallback) {
+      return fallback;
+    }
+  }
+  throw error;
 }
 
 function isUnderfilledPrecisionBoard(dateEt: string, data: SnapshotBoardData): boolean {
@@ -3797,21 +3811,29 @@ export async function getSnapshotPlayerLookupData(input: {
 }
 
 export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
-  const persistedBoardSetting = await prisma.systemSetting.findUnique({
-    where: { key: getSnapshotBoardSettingKey(dateEt) },
-    select: { value: true },
-  });
-  const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
-  if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
-    return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
+  try {
+    const persistedBoardSetting = await prisma.systemSetting.findUnique({
+      where: { key: getSnapshotBoardSettingKey(dateEt) },
+      select: { value: true },
+    });
+    const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
+    if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
+      return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt }));
+    }
+    return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
+  } catch (error) {
+    return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
   }
-  return toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt }));
 }
 
 export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
-  return toSnapshotBoardViewData(
-    await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
-  );
+  try {
+    return toSnapshotBoardViewData(
+      await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+    );
+  } catch (error) {
+    return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
+  }
 }
 
 export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
