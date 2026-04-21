@@ -630,6 +630,7 @@ type SnapshotMarketRuntimeBuildInput = {
   expectedMinutes: number | null;
   l5MinutesAvg: number | null;
   l5MarketDeltaAvg: number | null;
+  trendVsSeason: number | null;
   opponentAllowance: number | null;
   opponentAllowanceDelta: number | null;
   opponentPositionAllowance: number | null;
@@ -799,6 +800,8 @@ function buildSnapshotMarketRuntime(
     confidence: input.signal?.confidence ?? null,
     expectedMinutes: input.expectedMinutes,
     l5MinutesAvg: input.l5MinutesAvg,
+    minutesVolatility: input.minutesVolatility,
+    trendVsSeason: input.trendVsSeason,
     l5CurrentLineDeltaAvg: input.universalInput.l5CurrentLineDeltaAvg ?? null,
     weightedCurrentLineOverRate: input.universalInput.weightedCurrentLineOverRate ?? null,
     opponentAllowance: input.opponentAllowance,
@@ -5503,6 +5506,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         expectedMinutes: minutesProfile.expected,
         l5MinutesAvg: minutesLast5Avg,
         l5MarketDeltaAvg: null,
+        trendVsSeason: trendVsSeason[market],
         opponentAllowance: opponentAllowance[market],
         opponentAllowanceDelta: opponentAllowanceDelta[market],
         opponentPositionAllowance: null,
@@ -5608,6 +5612,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
             expectedMinutes: minutesProfile.expected,
             l5MinutesAvg: minutesLast5Avg,
             l5MarketDeltaAvg: null,
+            trendVsSeason: trendVsSeason[market],
             opponentAllowance: opponentAllowance[market],
             opponentAllowanceDelta: opponentAllowanceDelta[market],
             opponentPositionAllowance: null,
@@ -5648,6 +5653,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
             expectedMinutes: minutesProfile.expected,
             l5MinutesAvg: minutesLast5Avg,
             l5MarketDeltaAvg: null,
+            trendVsSeason: trendVsSeason[market],
             opponentAllowance: opponentAllowance[market],
             opponentAllowanceDelta: opponentAllowanceDelta[market],
             opponentPositionAllowance: null,

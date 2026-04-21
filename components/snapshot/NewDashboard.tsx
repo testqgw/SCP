@@ -342,7 +342,7 @@ function signalGradeValue(signalGrade: SnapshotPropSignalGrade | null | undefine
 
 function signalGradeNote(signalGrade: SnapshotPropSignalGrade | null | undefined) {
   if (!signalGrade) {
-    return 'Directional signal tracking is only available for PTS, REB, and AST when enough live context is present.';
+    return 'General signal tracking is only available for PTS, REB, and AST when enough live context is present.';
   }
   const leadReason = signalGrade.reasons[0];
   return leadReason ? `${signalGrade.summary} ${leadReason}` : signalGrade.summary;

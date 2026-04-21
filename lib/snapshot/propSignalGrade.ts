@@ -12,6 +12,8 @@ type PropSignalInput = {
   confidence: number | null;
   expectedMinutes: number | null;
   l5MinutesAvg: number | null;
+  minutesVolatility: number | null;
+  trendVsSeason: number | null;
   l5CurrentLineDeltaAvg: number | null;
   weightedCurrentLineOverRate: number | null;
   opponentAllowance: number | null;
@@ -22,8 +24,9 @@ type PropSignalInput = {
 type RuleKey =
   | "projectionGap"
   | "confidence"
-  | "expectedMinutes"
-  | "l5MinutesAvg"
+  | "workload"
+  | "stability"
+  | "recentForm"
   | "l5CurrentLineDeltaAvg"
   | "weightedCurrentLineOverRate"
   | "opponentAllowance"
@@ -43,6 +46,14 @@ type SignalCombo = {
 };
 
 type MarketConfig = {
+  thresholds: {
+    projectionGap: { over: number; under: number };
+    trendVsSeason: { over: number; under: number };
+    l5CurrentLineDeltaAvg: { over: number; under: number };
+    weightedCurrentLineOverRate: { over: number; under: number };
+    opponentAllowance: { over: number; under: number };
+    opponentAllowanceDelta: { over: number; under: number };
+  };
   rules: SignalRule[];
   combos: SignalCombo[];
 };
@@ -87,295 +98,349 @@ function resolveMinutesBase(input: PropSignalInput) {
   return input.expectedMinutes ?? input.l5MinutesAvg ?? null;
 }
 
+const PTS_THRESHOLDS = {
+  projectionGap: { over: 1.0, under: -1.0 },
+  trendVsSeason: { over: 0.9, under: -0.9 },
+  l5CurrentLineDeltaAvg: { over: 0.8, under: -0.8 },
+  weightedCurrentLineOverRate: { over: 0.56, under: 0.44 },
+  opponentAllowance: { over: 10.2, under: 9.5 },
+  opponentAllowanceDelta: { over: 0.45, under: -0.45 },
+} as const;
+
+const REB_THRESHOLDS = {
+  projectionGap: { over: 0.65, under: -0.65 },
+  trendVsSeason: { over: 0.5, under: -0.5 },
+  l5CurrentLineDeltaAvg: { over: 0.45, under: -0.45 },
+  weightedCurrentLineOverRate: { over: 0.54, under: 0.46 },
+  opponentAllowance: { over: 3.55, under: 3.1 },
+  opponentAllowanceDelta: { over: 0.12, under: -0.12 },
+} as const;
+
+const AST_THRESHOLDS = {
+  projectionGap: { over: 0.5, under: -0.5 },
+  trendVsSeason: { over: 0.45, under: -0.45 },
+  l5CurrentLineDeltaAvg: { over: 0.35, under: -0.35 },
+  weightedCurrentLineOverRate: { over: 0.54, under: 0.46 },
+  opponentAllowance: { over: 2.35, under: 2.0 },
+  opponentAllowanceDelta: { over: 0.15, under: -0.15 },
+} as const;
+
 const SIGNAL_CONFIG: Record<SupportedMarket, MarketConfig> = {
   PTS: {
+    thresholds: PTS_THRESHOLDS,
     rules: [
       {
         key: "projectionGap",
         weight: 5.2,
-        reason: (side) =>
-          side === "OVER"
-            ? "Projection is clearing the PTS line by a healthy margin."
-            : "Projection is sitting comfortably below the PTS line.",
+        reason: () => "Projection is giving the current read a real cushion versus the line.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, {
-            over: 1.05,
-            under: -1.05,
-          }),
+          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, PTS_THRESHOLDS.projectionGap),
       },
       {
         key: "confidence",
         weight: 4.1,
-        reason: () => "Live model confidence cleared the PTS support bar.",
+        reason: () => "Live model confidence cleared the support bar.",
         evaluate: (input) => gte(input.confidence, 58),
       },
       {
-        key: "weightedCurrentLineOverRate",
-        weight: 3.4,
-        reason: (side) =>
-          side === "OVER"
-            ? "Recent games have been beating this PTS line often enough to back the over."
-            : "Recent games have been staying under this PTS line often enough to back the under.",
+        key: "workload",
+        weight: 2.5,
+        reason: () => "Role and minute load are healthy enough to matter here.",
+        evaluate: (input) => gte(resolveMinutesBase(input), 24),
+      },
+      {
+        key: "stability",
+        weight: 2.1,
+        reason: () => "The player’s role looks stable enough to trust right now.",
+        evaluate: (input) =>
+          input.minutesVolatility == null ? null : lte(input.minutesVolatility, 6.1),
+      },
+      {
+        key: "recentForm",
+        weight: 2.6,
+        reason: () => "Recent player form is moving with the current read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.weightedCurrentLineOverRate, side, {
-            over: 0.56,
-            under: 0.44,
-          }),
+          supportsDirectionalThreshold(input.trendVsSeason, side, PTS_THRESHOLDS.trendVsSeason),
+      },
+      {
+        key: "weightedCurrentLineOverRate",
+        weight: 3.1,
+        reason: () => "Recent results versus this line are supportive.",
+        evaluate: (input, side) =>
+          supportsDirectionalThreshold(
+            input.weightedCurrentLineOverRate,
+            side,
+            PTS_THRESHOLDS.weightedCurrentLineOverRate,
+          ),
       },
       {
         key: "l5CurrentLineDeltaAvg",
-        weight: 2.8,
-        reason: (side) =>
-          side === "OVER"
-            ? "Last-five scoring results are landing above this number on average."
-            : "Last-five scoring results are landing below this number on average.",
+        weight: 2.6,
+        reason: () => "Last-five line results are reinforcing the read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.l5CurrentLineDeltaAvg, side, {
-            over: 0.8,
-            under: -0.8,
-          }),
+          supportsDirectionalThreshold(
+            input.l5CurrentLineDeltaAvg,
+            side,
+            PTS_THRESHOLDS.l5CurrentLineDeltaAvg,
+          ),
       },
       {
-        key: "expectedMinutes",
-        weight: 2.3,
-        reason: (side) =>
-          side === "OVER"
-            ? "Minutes base is strong enough to support a PTS over."
-            : "Minutes base is light enough to support a PTS under.",
+        key: "opponentAllowance",
+        weight: 1.9,
+        reason: () => "Opponent season allowance is supportive for the matchup.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(resolveMinutesBase(input), side, {
-            over: 30.0,
-            under: 27.5,
-          }),
+          supportsDirectionalThreshold(
+            input.opponentAllowance,
+            side,
+            PTS_THRESHOLDS.opponentAllowance,
+          ),
       },
       {
         key: "opponentAllowanceDelta",
         weight: 1.7,
-        reason: (side) =>
-          side === "OVER"
-            ? "Matchup is softer than league baseline for scoring."
-            : "Matchup is tighter than league baseline for scoring.",
+        reason: () => "Opponent’s recent allowance trend is reinforcing the matchup.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.opponentAllowanceDelta, side, {
-            over: 0.55,
-            under: -0.55,
-          }),
+          supportsDirectionalThreshold(
+            input.opponentAllowanceDelta,
+            side,
+            PTS_THRESHOLDS.opponentAllowanceDelta,
+          ),
       },
       {
         key: "completenessScore",
         weight: 1.1,
-        reason: () => "Runtime context is complete enough to trust the PTS read.",
+        reason: () => "Runtime context is complete enough to trust the read.",
         evaluate: (input) => gte(input.completenessScore, 72),
       },
     ],
     combos: [
       {
         keys: ["projectionGap", "weightedCurrentLineOverRate"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Projection edge and recent line history are both leaning over."
-            : "Projection edge and recent line history are both leaning under.",
+        reason: () => "Projection and recent market fit are lined up.",
       },
       {
-        keys: ["confidence", "expectedMinutes"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Model confidence and workload are aligned for this over."
-            : "Model confidence is there, and the workload setup is supportive of the under.",
+        keys: ["recentForm", "opponentAllowanceDelta"],
+        reason: () => "Player form and opponent context are both supportive.",
+      },
+      {
+        keys: ["opponentAllowance", "opponentAllowanceDelta"],
+        reason: () => "Opponent season profile and recent allowance are both supportive.",
+      },
+      {
+        keys: ["workload", "stability"],
+        reason: () => "Role and minutes look stable enough to trust.",
       },
     ],
   },
   REB: {
+    thresholds: REB_THRESHOLDS,
     rules: [
       {
         key: "projectionGap",
         weight: 4.8,
-        reason: (side) =>
-          side === "OVER"
-            ? "Projection is clearing the REB line by enough to matter."
-            : "Projection is sitting below the REB line by enough to support the under.",
+        reason: () => "Projection is giving the current read a useful cushion versus the line.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, {
-            over: 0.7,
-            under: -0.7,
-          }),
+          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, REB_THRESHOLDS.projectionGap),
       },
       {
         key: "confidence",
         weight: 3.6,
-        reason: () => "Live model confidence cleared the REB support bar.",
+        reason: () => "Live model confidence cleared the support bar.",
         evaluate: (input) => gte(input.confidence, 55),
       },
       {
-        key: "weightedCurrentLineOverRate",
-        weight: 3.0,
-        reason: (side) =>
-          side === "OVER"
-            ? "Recent rebound hit rates are supporting the over."
-            : "Recent rebound hit rates are supporting the under.",
+        key: "workload",
+        weight: 2.2,
+        reason: () => "Role and minute load are healthy enough to matter here.",
+        evaluate: (input) => gte(resolveMinutesBase(input), 22),
+      },
+      {
+        key: "stability",
+        weight: 2.0,
+        reason: () => "The player’s role looks stable enough to trust right now.",
+        evaluate: (input) =>
+          input.minutesVolatility == null ? null : lte(input.minutesVolatility, 6.4),
+      },
+      {
+        key: "recentForm",
+        weight: 2.2,
+        reason: () => "Recent player form is moving with the current read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.weightedCurrentLineOverRate, side, {
-            over: 0.55,
-            under: 0.45,
-          }),
+          supportsDirectionalThreshold(input.trendVsSeason, side, REB_THRESHOLDS.trendVsSeason),
+      },
+      {
+        key: "weightedCurrentLineOverRate",
+        weight: 2.9,
+        reason: () => "Recent results versus this line are supportive.",
+        evaluate: (input, side) =>
+          supportsDirectionalThreshold(
+            input.weightedCurrentLineOverRate,
+            side,
+            REB_THRESHOLDS.weightedCurrentLineOverRate,
+          ),
       },
       {
         key: "l5CurrentLineDeltaAvg",
-        weight: 2.5,
-        reason: (side) =>
-          side === "OVER"
-            ? "Last-five rebound results are finishing above this line on average."
-            : "Last-five rebound results are finishing below this line on average.",
+        weight: 2.4,
+        reason: () => "Last-five line results are reinforcing the read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.l5CurrentLineDeltaAvg, side, {
-            over: 0.45,
-            under: -0.45,
-          }),
+          supportsDirectionalThreshold(
+            input.l5CurrentLineDeltaAvg,
+            side,
+            REB_THRESHOLDS.l5CurrentLineDeltaAvg,
+          ),
+      },
+      {
+        key: "opponentAllowance",
+        weight: 2.0,
+        reason: () => "Opponent season allowance is supportive for the matchup.",
+        evaluate: (input, side) =>
+          supportsDirectionalThreshold(
+            input.opponentAllowance,
+            side,
+            REB_THRESHOLDS.opponentAllowance,
+          ),
       },
       {
         key: "opponentAllowanceDelta",
-        weight: 2.1,
-        reason: (side) =>
-          side === "OVER"
-            ? "Matchup is giving up extra rebounds versus league baseline."
-            : "Matchup is suppressing rebounds versus league baseline.",
+        weight: 1.9,
+        reason: () => "Opponent’s recent allowance trend is reinforcing the matchup.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.opponentAllowanceDelta, side, {
-            over: 0.16,
-            under: -0.16,
-          }),
-      },
-      {
-        key: "expectedMinutes",
-        weight: 1.7,
-        reason: (side) =>
-          side === "OVER"
-            ? "Minutes base is healthy enough to support rebound volume."
-            : "Minutes base is soft enough to keep rebound volume capped.",
-        evaluate: (input, side) =>
-          supportsDirectionalThreshold(resolveMinutesBase(input), side, {
-            over: 28.0,
-            under: 25.5,
-          }),
+          supportsDirectionalThreshold(
+            input.opponentAllowanceDelta,
+            side,
+            REB_THRESHOLDS.opponentAllowanceDelta,
+          ),
       },
       {
         key: "completenessScore",
         weight: 1.1,
-        reason: () => "Runtime context is complete enough to trust the REB read.",
+        reason: () => "Runtime context is complete enough to trust the read.",
         evaluate: (input) => gte(input.completenessScore, 72),
       },
     ],
     combos: [
       {
         keys: ["projectionGap", "opponentAllowanceDelta"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Projection edge and matchup both point toward the over."
-            : "Projection edge and matchup both point toward the under.",
+        reason: () => "Projection edge and matchup are lined up.",
+      },
+      {
+        keys: ["opponentAllowance", "opponentAllowanceDelta"],
+        reason: () => "Opponent season profile and recent allowance are both supportive.",
+      },
+      {
+        keys: ["workload", "stability"],
+        reason: () => "Role and minutes look stable enough to trust.",
       },
       {
         keys: ["weightedCurrentLineOverRate", "l5CurrentLineDeltaAvg"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Short-run rebound form is backing the over from two angles."
-            : "Short-run rebound form is backing the under from two angles.",
+        reason: () => "Recent line history is supporting the read from two angles.",
       },
     ],
   },
   AST: {
+    thresholds: AST_THRESHOLDS,
     rules: [
       {
         key: "projectionGap",
         weight: 4.9,
-        reason: (side) =>
-          side === "OVER"
-            ? "Projection is clearing the AST line by a useful margin."
-            : "Projection is sitting below the AST line by a useful margin.",
+        reason: () => "Projection is giving the current read a useful cushion versus the line.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, {
-            over: 0.55,
-            under: -0.55,
-          }),
+          supportsDirectionalThreshold(safeLineGap(input.projectedValue, input.line), side, AST_THRESHOLDS.projectionGap),
       },
       {
         key: "confidence",
         weight: 3.8,
-        reason: () => "Live model confidence cleared the AST support bar.",
+        reason: () => "Live model confidence cleared the support bar.",
         evaluate: (input) => gte(input.confidence, 55),
       },
       {
-        key: "weightedCurrentLineOverRate",
-        weight: 3.1,
-        reason: (side) =>
-          side === "OVER"
-            ? "Recent assist hit rates are supporting the over."
-            : "Recent assist hit rates are supporting the under.",
+        key: "workload",
+        weight: 2.3,
+        reason: () => "Role and minute load are healthy enough to matter here.",
+        evaluate: (input) => gte(resolveMinutesBase(input), 24),
+      },
+      {
+        key: "stability",
+        weight: 2.0,
+        reason: () => "The player’s role looks stable enough to trust right now.",
+        evaluate: (input) =>
+          input.minutesVolatility == null ? null : lte(input.minutesVolatility, 6.1),
+      },
+      {
+        key: "recentForm",
+        weight: 2.5,
+        reason: () => "Recent player form is moving with the current read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.weightedCurrentLineOverRate, side, {
-            over: 0.55,
-            under: 0.45,
-          }),
+          supportsDirectionalThreshold(input.trendVsSeason, side, AST_THRESHOLDS.trendVsSeason),
+      },
+      {
+        key: "weightedCurrentLineOverRate",
+        weight: 2.9,
+        reason: () => "Recent results versus this line are supportive.",
+        evaluate: (input, side) =>
+          supportsDirectionalThreshold(
+            input.weightedCurrentLineOverRate,
+            side,
+            AST_THRESHOLDS.weightedCurrentLineOverRate,
+          ),
       },
       {
         key: "l5CurrentLineDeltaAvg",
-        weight: 2.6,
-        reason: (side) =>
-          side === "OVER"
-            ? "Last-five assist results are landing above this line on average."
-            : "Last-five assist results are landing below this line on average.",
+        weight: 2.4,
+        reason: () => "Last-five line results are reinforcing the read.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.l5CurrentLineDeltaAvg, side, {
-            over: 0.4,
-            under: -0.4,
-          }),
+          supportsDirectionalThreshold(
+            input.l5CurrentLineDeltaAvg,
+            side,
+            AST_THRESHOLDS.l5CurrentLineDeltaAvg,
+          ),
       },
       {
-        key: "expectedMinutes",
-        weight: 2.2,
-        reason: (side) =>
-          side === "OVER"
-            ? "Minutes base is strong enough to support creator volume."
-            : "Minutes base is soft enough to cap creator volume.",
+        key: "opponentAllowance",
+        weight: 1.8,
+        reason: () => "Opponent season allowance is supportive for the matchup.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(resolveMinutesBase(input), side, {
-            over: 31.0,
-            under: 28.5,
-          }),
+          supportsDirectionalThreshold(
+            input.opponentAllowance,
+            side,
+            AST_THRESHOLDS.opponentAllowance,
+          ),
       },
       {
         key: "opponentAllowanceDelta",
         weight: 1.9,
-        reason: (side) =>
-          side === "OVER"
-            ? "Matchup is softer than league baseline for assists."
-            : "Matchup is tighter than league baseline for assists.",
+        reason: () => "Opponent’s recent allowance trend is reinforcing the matchup.",
         evaluate: (input, side) =>
-          supportsDirectionalThreshold(input.opponentAllowanceDelta, side, {
-            over: 0.2,
-            under: -0.2,
-          }),
+          supportsDirectionalThreshold(
+            input.opponentAllowanceDelta,
+            side,
+            AST_THRESHOLDS.opponentAllowanceDelta,
+          ),
       },
       {
         key: "completenessScore",
         weight: 1.1,
-        reason: () => "Runtime context is complete enough to trust the AST read.",
+        reason: () => "Runtime context is complete enough to trust the read.",
         evaluate: (input) => gte(input.completenessScore, 72),
       },
     ],
     combos: [
       {
-        keys: ["expectedMinutes", "opponentAllowanceDelta"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Creator minutes and matchup are both backing the over."
-            : "Minutes context and matchup are both backing the under.",
+        keys: ["recentForm", "opponentAllowanceDelta"],
+        reason: () => "Player form and opponent context are both supportive.",
+      },
+      {
+        keys: ["opponentAllowance", "opponentAllowanceDelta"],
+        reason: () => "Opponent season profile and recent allowance are both supportive.",
       },
       {
         keys: ["weightedCurrentLineOverRate", "l5CurrentLineDeltaAvg"],
-        reason: (side) =>
-          side === "OVER"
-            ? "Short-run assist form is supporting the over cleanly."
-            : "Short-run assist form is supporting the under cleanly.",
+        reason: () => "Recent line history is supporting the read from two angles.",
+      },
+      {
+        keys: ["workload", "stability"],
+        reason: () => "Role and minutes look stable enough to trust.",
       },
     ],
   },
@@ -390,26 +455,25 @@ function scoreToGrade(scorePct: number): SnapshotPropSignalGrade["grade"] {
 
 function buildSummary(
   market: SupportedMarket,
-  side: TrackedSide,
   matchedSignals: number,
   totalSignals: number,
   comboReasons: string[],
   grade: SnapshotPropSignalGrade["grade"],
 ) {
-  const base = `${matchedSignals} of ${totalSignals} validated ${market} ${side.toLowerCase()} support signals hit.`;
+  const base = `${matchedSignals} of ${totalSignals} context signals matched for ${market}.`;
   if (comboReasons.length > 0) {
     return `${base} ${comboReasons[0]}`;
   }
   if (grade === "A") {
-    return `${base} This ${side.toLowerCase()} case is stacked from multiple angles.`;
+    return `${base} Form, role, and matchup are all lined up.`;
   }
   if (grade === "B") {
-    return `${base} Several meaningful inputs are aligned for this side.`;
+    return `${base} Several key inputs are pointing the same way.`;
   }
   if (grade === "C") {
-    return `${base} There is some support here, but the stack is incomplete.`;
+    return `${base} There is some support here, but the picture is mixed.`;
   }
-  return `${base} This side is still a thinner context read right now.`;
+  return `${base} The overall setup still looks thin right now.`;
 }
 
 export function buildPropSignalGrade(input: PropSignalInput): SnapshotPropSignalGrade | null {
@@ -457,7 +521,7 @@ export function buildPropSignalGrade(input: PropSignalInput): SnapshotPropSignal
     scorePct,
     matchedSignals: matchedKeys.size,
     totalSignals: availableSignals,
-    summary: buildSummary(input.market, trackedSide, matchedKeys.size, availableSignals, comboReasons, grade),
-    reasons: [...comboReasons, ...reasons].slice(0, 4),
+    summary: buildSummary(input.market, matchedKeys.size, availableSignals, comboReasons, grade),
+    reasons: Array.from(new Set([...comboReasons, ...reasons])).slice(0, 4),
   };
 }
