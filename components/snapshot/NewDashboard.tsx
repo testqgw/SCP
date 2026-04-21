@@ -341,8 +341,11 @@ function signalGradeValue(signalGrade: SnapshotPropSignalGrade | null | undefine
 }
 
 function signalGradeNote(signalGrade: SnapshotPropSignalGrade | null | undefined) {
-  if (!signalGrade) return 'Great-game signal is only available for PTS, REB, and AST when runtime context is present.';
-  return `${signalGrade.matchedSignals}/${signalGrade.totalSignals} validated breakout signals matched. ${signalGrade.summary}`;
+  if (!signalGrade) {
+    return 'Directional signal tracking is only available for PTS, REB, and AST when enough live context is present.';
+  }
+  const leadReason = signalGrade.reasons[0];
+  return leadReason ? `${signalGrade.summary} ${leadReason}` : signalGrade.summary;
 }
 
 function gapRead(value: number | null | undefined, digits = 1) {
@@ -3565,7 +3568,10 @@ export default function NewDashboard({
                                           <CompactMetric label="Updated" value={relativeTime(updatedAt, now)} />
                                         </div>
                                         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-                                          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Tracker note</div>
+                                          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Signal tracker</div>
+                                          <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                                            {signalGradeNote(v.signalGrade)}
+                                          </p>
                                           <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
                                             This expanded row uses the saved pregame event status, current live consensus or fair fallback, and the board projection. Book-by-book line history is not stored in SnapshotBoardData yet, so the table stays honest about that limitation.
                                           </p>

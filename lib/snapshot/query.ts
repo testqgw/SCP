@@ -786,17 +786,24 @@ function buildSnapshotMarketRuntime(
   },
 ): SnapshotMarketRuntime {
   const decisionMeta = input.decisionMeta ?? buildSnapshotMarketDecisionMeta(input);
+  const trackedSignalSide =
+    resolveBinarySide(decisionMeta.finalSide) ??
+    resolveBinarySide(input.signal?.side ?? input.signal?.baselineSide ?? input.modelSide) ??
+    "NEUTRAL";
 
   const signalGrade: SnapshotPropSignalGrade | null = buildPropSignalGrade({
     market: input.market,
+    side: trackedSignalSide,
     projectedValue: input.universalInput.projectedValue,
     line: input.universalInput.line,
+    confidence: input.signal?.confidence ?? null,
     expectedMinutes: input.expectedMinutes,
     l5MinutesAvg: input.l5MinutesAvg,
-    l5MarketDeltaAvg: input.l5MarketDeltaAvg,
+    l5CurrentLineDeltaAvg: input.universalInput.l5CurrentLineDeltaAvg ?? null,
+    weightedCurrentLineOverRate: input.universalInput.weightedCurrentLineOverRate ?? null,
     opponentAllowance: input.opponentAllowance,
     opponentAllowanceDelta: input.opponentAllowanceDelta,
-    opponentPositionAllowance: input.opponentPositionAllowance,
+    completenessScore: input.universalInput.completenessScore ?? null,
   });
 
   return {

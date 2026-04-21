@@ -70,6 +70,7 @@ export type SnapshotBoardMarketSource = "player_override" | "universal_qualified
 
 export type SnapshotPropSignalGrade = {
   market: "PTS" | "REB" | "AST";
+  side?: SnapshotModelSide;
   grade: "A" | "B" | "C" | "D";
   scorePct: number;
   matchedSignals: number;
