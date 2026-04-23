@@ -184,6 +184,7 @@ const DEFAULT_LIVE_MODEL_FILES = [
 ];
 const DEFAULT_PRIORITY_LIVE_MODEL_FILES = [
   path.join(process.cwd(), "exports", "live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json"),
+  path.join(process.cwd(), "exports", "live-player-model-priority-all-market-holdout50-overlay-v1-2026-04-14.json"),
 ];
 const DEFAULT_PLAYER_OVERRIDE_ALLOWLIST_FILE = path.join(process.cwd(), "exports", "live-player-override-allowlist.json");
 const DEFAULT_PLAYER_LOCAL_RECOVERY_MANIFEST_FILE = path.join(

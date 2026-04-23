@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-23T20:44:01.287Z",
+  "generatedAt": "2026-04-23T21:16:18.411Z",
   "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-2025-10-23-to-2026-04-14-current.json",
   "runtime": {
     "label": "current-live-stack-audit",
@@ -34,10 +34,12 @@
       "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json": "27821:1773341726968"
     },
     "priorityPlayerModelFiles": [
-      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json"
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-all-market-holdout50-overlay-v1-2026-04-14.json"
     ],
     "priorityPlayerModelFileSignatures": {
-      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json": "1145707:1776976965672"
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json": "1145707:1776976965672",
+      "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-all-market-holdout50-overlay-v1-2026-04-14.json": "2541533:1776978917111"
     },
     "priorityPlayerModelFilesMode": "default",
     "playerOverrideRuntime": {
@@ -69,10 +71,12 @@
         "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\kawhi-leonard-player-model-summary.json": "27821:1773341726968"
       },
       "priorityPlayerModelFiles": [
-        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json"
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-all-market-holdout50-overlay-v1-2026-04-14.json"
       ],
       "priorityPlayerModelFileSignatures": {
-        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json": "1145707:1776976965672"
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-replace-headroom-loose-v1-2026-04-14.json": "1145707:1776976965672",
+        "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-player-model-priority-all-market-holdout50-overlay-v1-2026-04-14.json": "2541533:1776978917111"
       },
       "priorityPlayerModelFilesMode": "default",
       "joelMode": "off",
@@ -115,30 +119,30 @@
     "testDates": 14
   },
   "appSummary": {
-    "version": "2026-04-23-headroom-loose-priority-v1",
+    "version": "2026-04-23-all-market-holdout50-overlay-v1",
     "values": {
       "label": "Live Quality Board Honest Holdout",
-      "honest14dRawAccuracy": 63.57,
-      "honest14dBlendedAccuracy": 63.75,
-      "honest14dCoveragePct": 95.54,
-      "honest30dRawAccuracy": 64.1,
-      "honest30dBlendedAccuracy": 64.22,
-      "honest30dCoveragePct": 95.93,
-      "latestFoldRawAccuracy": 63.51,
-      "latestFoldBlendedAccuracy": 63.66,
-      "latestFoldCoveragePct": 95.44,
-      "note": "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, the active v21 stale-manifest prune pack, the promoted loose priority player-market replacement pack on headroom markets, residual drag memory, the Nickeil combo-over revival patch, the strict stale override cleanup bundle drawn from the full-season audit, the Klay-derived THREES over-recovery pack for seven targeted shooter cells, the Donte-derived strict stale-cell prune expansion across stable negative player-market pockets, the Donovan-derived leftover-market completion pack across four targeted uncovered sinkholes, the Donovan-led player-override projection-correction pack across eight targeted stale override cells, the Fox raw-recovery bundle that restores AST to liveRaw, RA to projection, and PA to UNDER, the promoted Donte DiVincenzo depth-3 split router, and the Donovan Clingan exact line-map bundle that upgrades PA, PRA, and RA while releasing the stale Donovan PR baseline veto from residual drag memory so the stronger Donovan PR manifest can take over. This summary centers the honest recent read: 63.57 raw over the April 1, 2026 through April 14, 2026 holdout, 64.10 raw over the March 16, 2026 through April 14, 2026 holdout, and 63.51 raw on the latest walk-forward fold from April 3, 2026 through April 14, 2026. The full-history honest walk-forward replay for this promoted stack is 68.19 raw and 68.15 blended."
+      "honest14dRawAccuracy": 69.41,
+      "honest14dBlendedAccuracy": 69.49,
+      "honest14dCoveragePct": 96.58,
+      "honest30dRawAccuracy": 69.67,
+      "honest30dBlendedAccuracy": 69.71,
+      "honest30dCoveragePct": 96.81,
+      "latestFoldRawAccuracy": 69.29,
+      "latestFoldBlendedAccuracy": 69.34,
+      "latestFoldCoveragePct": 96.53,
+      "note": "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, the active v21 stale-manifest prune pack, the promoted loose priority player-market replacement pack on headroom markets, the promoted all-market holdout50 priority overlay, residual drag memory, the Nickeil combo-over revival patch, the strict stale override cleanup bundle drawn from the full-season audit, the Klay-derived THREES over-recovery pack for seven targeted shooter cells, the Donte-derived strict stale-cell prune expansion across stable negative player-market pockets, the Donovan-derived leftover-market completion pack across four targeted uncovered sinkholes, the Donovan-led player-override projection-correction pack across eight targeted stale override cells, the Fox raw-recovery bundle that restores AST to liveRaw, RA to projection, and PA to UNDER, the promoted Donte DiVincenzo depth-3 split router, and the Donovan Clingan exact line-map bundle that upgrades PA, PRA, and RA while releasing the stale Donovan PR baseline veto from residual drag memory so the stronger Donovan PR manifest can take over. This summary centers the honest recent read: 69.41 raw over the April 1, 2026 through April 14, 2026 holdout, 69.67 raw over the March 16, 2026 through April 14, 2026 holdout, and 69.29 raw on the latest walk-forward fold from April 3, 2026 through April 14, 2026. The full-history honest walk-forward replay for this promoted stack is 72.67 raw and 72.64 blended."
     }
   },
   "walkForward": {
     "overall": {
       "samples": 75945,
-      "rawAccuracy": 68.19,
-      "strictRawAccuracy": 68.06,
-      "qualifiedAccuracy": 68.51,
-      "qualifiedPicks": 73338,
-      "coveragePct": 96.57,
-      "blendedAccuracy": 68.15,
+      "rawAccuracy": 72.67,
+      "strictRawAccuracy": 72.56,
+      "qualifiedAccuracy": 73.04,
+      "qualifiedPicks": 73873,
+      "coveragePct": 97.27,
+      "blendedAccuracy": 72.64,
       "legacyUniversalRawAccuracy": 55.59,
       "legacyUniversalBlendedAccuracy": 55.79,
       "legacyUniversalCoveragePct": 64.2
@@ -153,12 +157,12 @@
       "testSamples": 7586,
       "metrics": {
         "samples": 7586,
-        "rawAccuracy": 63.51,
-        "strictRawAccuracy": 63.31,
-        "qualifiedAccuracy": 63.77,
-        "qualifiedPicks": 7240,
-        "coveragePct": 95.44,
-        "blendedAccuracy": 63.66,
+        "rawAccuracy": 69.29,
+        "strictRawAccuracy": 69.09,
+        "qualifiedAccuracy": 69.7,
+        "qualifiedPicks": 7323,
+        "coveragePct": 96.53,
+        "blendedAccuracy": 69.34,
         "legacyUniversalRawAccuracy": 50.05,
         "legacyUniversalBlendedAccuracy": 51.61,
         "legacyUniversalCoveragePct": 65
@@ -175,12 +179,12 @@
         "testSamples": 9649,
         "metrics": {
           "samples": 9649,
-          "rawAccuracy": 71.53,
-          "strictRawAccuracy": 71.34,
-          "qualifiedAccuracy": 71.84,
-          "qualifiedPicks": 9331,
-          "coveragePct": 96.7,
-          "blendedAccuracy": 71.38,
+          "rawAccuracy": 75.16,
+          "strictRawAccuracy": 74.98,
+          "qualifiedAccuracy": 75.55,
+          "qualifiedPicks": 9389,
+          "coveragePct": 97.31,
+          "blendedAccuracy": 75.05,
           "legacyUniversalRawAccuracy": 56.94,
           "legacyUniversalBlendedAccuracy": 57.05,
           "legacyUniversalCoveragePct": 64.58
@@ -196,12 +200,12 @@
         "testSamples": 9202,
         "metrics": {
           "samples": 9202,
-          "rawAccuracy": 71.71,
-          "strictRawAccuracy": 71.64,
-          "qualifiedAccuracy": 71.86,
-          "qualifiedPicks": 8916,
-          "coveragePct": 96.89,
-          "blendedAccuracy": 71.63,
+          "rawAccuracy": 75.47,
+          "strictRawAccuracy": 75.43,
+          "qualifiedAccuracy": 75.73,
+          "qualifiedPicks": 8970,
+          "coveragePct": 97.48,
+          "blendedAccuracy": 75.43,
           "legacyUniversalRawAccuracy": 56.65,
           "legacyUniversalBlendedAccuracy": 56.87,
           "legacyUniversalCoveragePct": 64.37
@@ -217,12 +221,12 @@
         "testSamples": 9770,
         "metrics": {
           "samples": 9770,
-          "rawAccuracy": 70.62,
-          "strictRawAccuracy": 70.54,
-          "qualifiedAccuracy": 71,
-          "qualifiedPicks": 9458,
-          "coveragePct": 96.81,
-          "blendedAccuracy": 70.57,
+          "rawAccuracy": 74.42,
+          "strictRawAccuracy": 74.37,
+          "qualifiedAccuracy": 74.83,
+          "qualifiedPicks": 9515,
+          "coveragePct": 97.39,
+          "blendedAccuracy": 74.4,
           "legacyUniversalRawAccuracy": 56.2,
           "legacyUniversalBlendedAccuracy": 56.34,
           "legacyUniversalCoveragePct": 63.6
@@ -238,12 +242,12 @@
         "testSamples": 9308,
         "metrics": {
           "samples": 9308,
-          "rawAccuracy": 69.76,
-          "strictRawAccuracy": 69.71,
-          "qualifiedAccuracy": 70.2,
-          "qualifiedPicks": 9022,
-          "coveragePct": 96.93,
-          "blendedAccuracy": 69.74,
+          "rawAccuracy": 73.64,
+          "strictRawAccuracy": 73.59,
+          "qualifiedAccuracy": 74.05,
+          "qualifiedPicks": 9066,
+          "coveragePct": 97.4,
+          "blendedAccuracy": 73.61,
           "legacyUniversalRawAccuracy": 55.88,
           "legacyUniversalBlendedAccuracy": 55.8,
           "legacyUniversalCoveragePct": 63.18
@@ -259,12 +263,12 @@
         "testSamples": 9167,
         "metrics": {
           "samples": 9167,
-          "rawAccuracy": 67.93,
-          "strictRawAccuracy": 67.8,
-          "qualifiedAccuracy": 68.05,
-          "qualifiedPicks": 8886,
-          "coveragePct": 96.93,
-          "blendedAccuracy": 67.58,
+          "rawAccuracy": 72.15,
+          "strictRawAccuracy": 72.06,
+          "qualifiedAccuracy": 72.36,
+          "qualifiedPicks": 8954,
+          "coveragePct": 97.68,
+          "blendedAccuracy": 71.9,
           "legacyUniversalRawAccuracy": 57.23,
           "legacyUniversalBlendedAccuracy": 56.98,
           "legacyUniversalCoveragePct": 64.22
@@ -280,12 +284,12 @@
         "testSamples": 10467,
         "metrics": {
           "samples": 10467,
-          "rawAccuracy": 66.14,
-          "strictRawAccuracy": 65.96,
-          "qualifiedAccuracy": 66.53,
-          "qualifiedPicks": 10118,
-          "coveragePct": 96.67,
-          "blendedAccuracy": 66.27,
+          "rawAccuracy": 71.2,
+          "strictRawAccuracy": 71.03,
+          "qualifiedAccuracy": 71.6,
+          "qualifiedPicks": 10206,
+          "coveragePct": 97.51,
+          "blendedAccuracy": 71.34,
           "legacyUniversalRawAccuracy": 56.83,
           "legacyUniversalBlendedAccuracy": 56.69,
           "legacyUniversalCoveragePct": 63.93
@@ -301,12 +305,12 @@
         "testSamples": 10796,
         "metrics": {
           "samples": 10796,
-          "rawAccuracy": 64.13,
-          "strictRawAccuracy": 64.01,
-          "qualifiedAccuracy": 64.51,
-          "qualifiedPicks": 10367,
-          "coveragePct": 96.03,
-          "blendedAccuracy": 64.21,
+          "rawAccuracy": 69.91,
+          "strictRawAccuracy": 69.79,
+          "qualifiedAccuracy": 70.33,
+          "qualifiedPicks": 10450,
+          "coveragePct": 96.8,
+          "blendedAccuracy": 69.91,
           "legacyUniversalRawAccuracy": 53.96,
           "legacyUniversalBlendedAccuracy": 54.29,
           "legacyUniversalCoveragePct": 64.85
@@ -322,12 +326,12 @@
         "testSamples": 7586,
         "metrics": {
           "samples": 7586,
-          "rawAccuracy": 63.51,
-          "strictRawAccuracy": 63.31,
-          "qualifiedAccuracy": 63.77,
-          "qualifiedPicks": 7240,
-          "coveragePct": 95.44,
-          "blendedAccuracy": 63.66,
+          "rawAccuracy": 69.29,
+          "strictRawAccuracy": 69.09,
+          "qualifiedAccuracy": 69.7,
+          "qualifiedPicks": 7323,
+          "coveragePct": 96.53,
+          "blendedAccuracy": 69.34,
           "legacyUniversalRawAccuracy": 50.05,
           "legacyUniversalBlendedAccuracy": 51.61,
           "legacyUniversalCoveragePct": 65
@@ -340,12 +344,12 @@
     "to": "2026-04-14",
     "overall": {
       "samples": 21648,
-      "rawAccuracy": 64.1,
-      "strictRawAccuracy": 63.96,
-      "qualifiedAccuracy": 64.43,
-      "qualifiedPicks": 20768,
-      "coveragePct": 95.93,
-      "blendedAccuracy": 64.22,
+      "rawAccuracy": 69.67,
+      "strictRawAccuracy": 69.53,
+      "qualifiedAccuracy": 70.07,
+      "qualifiedPicks": 20958,
+      "coveragePct": 96.81,
+      "blendedAccuracy": 69.71,
       "legacyUniversalRawAccuracy": 52.88,
       "legacyUniversalBlendedAccuracy": 53.46,
       "legacyUniversalCoveragePct": 64.94
@@ -356,12 +360,12 @@
     "to": "2026-04-14",
     "overall": {
       "samples": 9104,
-      "rawAccuracy": 63.57,
-      "strictRawAccuracy": 63.4,
-      "qualifiedAccuracy": 63.82,
-      "qualifiedPicks": 8698,
-      "coveragePct": 95.54,
-      "blendedAccuracy": 63.75,
+      "rawAccuracy": 69.41,
+      "strictRawAccuracy": 69.24,
+      "qualifiedAccuracy": 69.78,
+      "qualifiedPicks": 8793,
+      "coveragePct": 96.58,
+      "blendedAccuracy": 69.49,
       "legacyUniversalRawAccuracy": 50.71,
       "legacyUniversalBlendedAccuracy": 52.11,
       "legacyUniversalCoveragePct": 64.72
@@ -372,159 +376,12 @@
       {
         "playerName": "Jonathan Kuminga",
         "samples": 116,
-        "finalAccuracy": 46.55,
-        "rawAccuracy": 46.55,
+        "finalAccuracy": 50.86,
+        "rawAccuracy": 50.86,
         "worstMarket": {
           "market": "PTS",
           "accuracy": 33.33,
           "samples": 15
-        }
-      },
-      {
-        "playerName": "Nae'Qwan Tomlin",
-        "samples": 60,
-        "finalAccuracy": 50,
-        "rawAccuracy": 55,
-        "worstMarket": {
-          "market": "REB",
-          "accuracy": 14.29,
-          "samples": 7
-        }
-      },
-      {
-        "playerName": "Franz Wagner",
-        "samples": 70,
-        "finalAccuracy": 52.86,
-        "rawAccuracy": 52.86,
-        "worstMarket": {
-          "market": "PA",
-          "accuracy": 25,
-          "samples": 8
-        }
-      },
-      {
-        "playerName": "Keegan Murray",
-        "samples": 45,
-        "finalAccuracy": 53.33,
-        "rawAccuracy": 53.33,
-        "worstMarket": {
-          "market": "RA",
-          "accuracy": 0,
-          "samples": 3
-        }
-      },
-      {
-        "playerName": "Miles McBride",
-        "samples": 101,
-        "finalAccuracy": 54.46,
-        "rawAccuracy": 55.45,
-        "worstMarket": {
-          "market": "PR",
-          "accuracy": 22.22,
-          "samples": 9
-        }
-      }
-    ],
-    "min100": [
-      {
-        "playerName": "Jonathan Kuminga",
-        "samples": 116,
-        "finalAccuracy": 46.55,
-        "rawAccuracy": 46.55,
-        "worstMarket": {
-          "market": "PTS",
-          "accuracy": 33.33,
-          "samples": 15
-        }
-      },
-      {
-        "playerName": "Miles McBride",
-        "samples": 101,
-        "finalAccuracy": 54.46,
-        "rawAccuracy": 55.45,
-        "worstMarket": {
-          "market": "PR",
-          "accuracy": 22.22,
-          "samples": 9
-        }
-      },
-      {
-        "playerName": "Rudy Gobert",
-        "samples": 316,
-        "finalAccuracy": 56.96,
-        "rawAccuracy": 56.96,
-        "worstMarket": {
-          "market": "AST",
-          "accuracy": 44.9,
-          "samples": 49
-        }
-      },
-      {
-        "playerName": "Ryan Rollins",
-        "samples": 335,
-        "finalAccuracy": 58.51,
-        "rawAccuracy": 58.51,
-        "worstMarket": {
-          "market": "PTS",
-          "accuracy": 47.83,
-          "samples": 46
-        }
-      },
-      {
-        "playerName": "Kyshawn George",
-        "samples": 165,
-        "finalAccuracy": 58.79,
-        "rawAccuracy": 58.79,
-        "worstMarket": {
-          "market": "REB",
-          "accuracy": 44,
-          "samples": 25
-        }
-      }
-    ],
-    "min200": [
-      {
-        "playerName": "Rudy Gobert",
-        "samples": 316,
-        "finalAccuracy": 56.96,
-        "rawAccuracy": 56.96,
-        "worstMarket": {
-          "market": "AST",
-          "accuracy": 44.9,
-          "samples": 49
-        }
-      },
-      {
-        "playerName": "Ryan Rollins",
-        "samples": 335,
-        "finalAccuracy": 58.51,
-        "rawAccuracy": 58.51,
-        "worstMarket": {
-          "market": "PTS",
-          "accuracy": 47.83,
-          "samples": 46
-        }
-      },
-      {
-        "playerName": "Marcus Smart",
-        "samples": 297,
-        "finalAccuracy": 58.92,
-        "rawAccuracy": 58.92,
-        "worstMarket": {
-          "market": "PRA",
-          "accuracy": 48.48,
-          "samples": 33
-        }
-      },
-      {
-        "playerName": "Cam Spencer",
-        "samples": 318,
-        "finalAccuracy": 59.12,
-        "rawAccuracy": 58.18,
-        "worstMarket": {
-          "market": "PA",
-          "accuracy": 43.24,
-          "samples": 37
         }
       },
       {
@@ -536,6 +393,153 @@
           "market": "PR",
           "accuracy": 53.49,
           "samples": 43
+        }
+      },
+      {
+        "playerName": "Collin Gillespie",
+        "samples": 379,
+        "finalAccuracy": 60.42,
+        "rawAccuracy": 60.42,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 50,
+          "samples": 44
+        }
+      },
+      {
+        "playerName": "Devin Vassell",
+        "samples": 286,
+        "finalAccuracy": 60.84,
+        "rawAccuracy": 60.84,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 48.48,
+          "samples": 33
+        }
+      },
+      {
+        "playerName": "Jevon Carter",
+        "samples": 166,
+        "finalAccuracy": 60.84,
+        "rawAccuracy": 57.83,
+        "worstMarket": {
+          "market": "THREES",
+          "accuracy": 45,
+          "samples": 20
+        }
+      }
+    ],
+    "min100": [
+      {
+        "playerName": "Jonathan Kuminga",
+        "samples": 116,
+        "finalAccuracy": 50.86,
+        "rawAccuracy": 50.86,
+        "worstMarket": {
+          "market": "PTS",
+          "accuracy": 33.33,
+          "samples": 15
+        }
+      },
+      {
+        "playerName": "AJ Green",
+        "samples": 367,
+        "finalAccuracy": 59.13,
+        "rawAccuracy": 58.31,
+        "worstMarket": {
+          "market": "PR",
+          "accuracy": 53.49,
+          "samples": 43
+        }
+      },
+      {
+        "playerName": "Collin Gillespie",
+        "samples": 379,
+        "finalAccuracy": 60.42,
+        "rawAccuracy": 60.42,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 50,
+          "samples": 44
+        }
+      },
+      {
+        "playerName": "Devin Vassell",
+        "samples": 286,
+        "finalAccuracy": 60.84,
+        "rawAccuracy": 60.84,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 48.48,
+          "samples": 33
+        }
+      },
+      {
+        "playerName": "Jevon Carter",
+        "samples": 166,
+        "finalAccuracy": 60.84,
+        "rawAccuracy": 57.83,
+        "worstMarket": {
+          "market": "THREES",
+          "accuracy": 45,
+          "samples": 20
+        }
+      }
+    ],
+    "min200": [
+      {
+        "playerName": "AJ Green",
+        "samples": 367,
+        "finalAccuracy": 59.13,
+        "rawAccuracy": 58.31,
+        "worstMarket": {
+          "market": "PR",
+          "accuracy": 53.49,
+          "samples": 43
+        }
+      },
+      {
+        "playerName": "Collin Gillespie",
+        "samples": 379,
+        "finalAccuracy": 60.42,
+        "rawAccuracy": 60.42,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 50,
+          "samples": 44
+        }
+      },
+      {
+        "playerName": "Devin Vassell",
+        "samples": 286,
+        "finalAccuracy": 60.84,
+        "rawAccuracy": 60.84,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 48.48,
+          "samples": 33
+        }
+      },
+      {
+        "playerName": "Ryan Kalkbrenner",
+        "samples": 230,
+        "finalAccuracy": 60.87,
+        "rawAccuracy": 60.87,
+        "worstMarket": {
+          "market": "PRA",
+          "accuracy": 54.84,
+          "samples": 31
+        }
+      },
+      {
+        "playerName": "Kris Dunn",
+        "samples": 382,
+        "finalAccuracy": 61.52,
+        "rawAccuracy": 60.99,
+        "worstMarket": {
+          "market": "REB",
+          "accuracy": 55.56,
+          "samples": 54
         }
       }
     ]
