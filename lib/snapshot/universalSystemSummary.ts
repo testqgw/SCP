@@ -1,19 +1,19 @@
 import type { SnapshotUniversalSystemSummary } from "@/lib/types/snapshot";
 
 export const UNIVERSAL_SYSTEM_SUMMARY_VERSION =
-  "2026-04-17-donovan-line-map-plus-pr-drag-release-honest-holdout";
+  "2026-04-19-current-live-stack-audit-refresh";
 
 export const UNIVERSAL_SYSTEM_SUMMARY: SnapshotUniversalSystemSummary = {
   label: "Live Quality Board Honest Holdout",
-  honest14dRawAccuracy: 60.35,
-  honest14dBlendedAccuracy: 60.48,
-  honest14dCoveragePct: 94.99,
-  honest30dRawAccuracy: 61.5,
-  honest30dBlendedAccuracy: 61.54,
-  honest30dCoveragePct: 95.42,
-  latestFoldRawAccuracy: 60.11,
-  latestFoldBlendedAccuracy: 60.22,
-  latestFoldCoveragePct: 94.91,
+  honest14dRawAccuracy: 61.99,
+  honest14dBlendedAccuracy: 62.18,
+  honest14dCoveragePct: 95.52,
+  honest30dRawAccuracy: 62.69,
+  honest30dBlendedAccuracy: 62.81,
+  honest30dCoveragePct: 95.91,
+  latestFoldRawAccuracy: 61.96,
+  latestFoldBlendedAccuracy: 62.1,
+  latestFoldCoveragePct: 95.41,
   note:
-    "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, the active v21 stale-manifest prune pack, the promoted priority player-market replacement pack on headroom markets, residual drag memory, the Nickeil combo-over revival patch, the strict stale override cleanup bundle drawn from the full-season audit, the Klay-derived THREES over-recovery pack for seven targeted shooter cells, the Donte-derived strict stale-cell prune expansion across stable negative player-market pockets, the Donovan-derived leftover-market completion pack across four targeted uncovered sinkholes, the Donovan-led player-override projection-correction pack across eight targeted stale override cells, the Fox raw-recovery bundle that restores AST to liveRaw, RA to projection, and PA to UNDER, the promoted Donte DiVincenzo depth-3 split router, and the Donovan Clingan exact line-map bundle that upgrades PA, PRA, and RA while releasing the stale Donovan PR baseline veto from residual drag memory so the stronger Donovan PR manifest can take over. This summary centers the honest recent read: 60.35 raw over the April 1, 2026 through April 14, 2026 holdout, 61.50 raw over the March 16, 2026 through April 14, 2026 holdout, and 60.11 raw on the latest walk-forward fold from April 3, 2026 through April 14, 2026. The full-history honest walk-forward replay for this promoted stack is 66.77 raw and 66.70 blended.",
+    "Board-faithful live scoreboard using resolved raw accuracy, player overrides, universal fallback, the active v21 stale-manifest prune pack, the promoted priority player-market replacement pack on headroom markets, residual drag memory, the Nickeil combo-over revival patch, the strict stale override cleanup bundle drawn from the full-season audit, the Klay-derived THREES over-recovery pack for seven targeted shooter cells, the Donte-derived strict stale-cell prune expansion across stable negative player-market pockets, the Donovan-derived leftover-market completion pack across four targeted uncovered sinkholes, the Donovan-led player-override projection-correction pack across eight targeted stale override cells, the Fox raw-recovery bundle that restores AST to liveRaw, RA to projection, and PA to UNDER, the promoted Donte DiVincenzo depth-3 split router, and the Donovan Clingan exact line-map bundle that upgrades PA, PRA, and RA while releasing the stale Donovan PR baseline veto from residual drag memory so the stronger Donovan PR manifest can take over. This summary centers the honest recent read: 61.99 raw over the April 1, 2026 through April 14, 2026 holdout, 62.69 raw over the March 16, 2026 through April 14, 2026 holdout, and 61.96 raw on the latest walk-forward fold from April 3, 2026 through April 14, 2026. The full-history honest walk-forward replay for this promoted stack is 66.98 raw and 66.94 blended.",
 };
