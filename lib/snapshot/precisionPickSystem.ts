@@ -854,6 +854,7 @@ const PRECISION_SELECTOR_WEIGHTS = {
   usageContext: 0.04,
 } as const;
 const PRECISION_MIN_RECENT_MINUTES_AVG = 15;
+const PRECISION_MIN_PROJECTED_MINUTES = 15;
 
 function roundSelectorScore(value: number, digits = 4): number {
   const factor = 10 ** digits;
@@ -871,6 +872,13 @@ function clamp01(value: number): number {
 function getPrecisionRecentMinutesAverage(input: Pick<PrecisionPickInput, "minutesLast10Avg">): number | null {
   if (input.minutesLast10Avg != null && Number.isFinite(input.minutesLast10Avg)) {
     return input.minutesLast10Avg;
+  }
+  return null;
+}
+
+function getPrecisionProjectedMinutes(input: Pick<PrecisionPickInput, "expectedMinutes">): number | null {
+  if (input.expectedMinutes != null && Number.isFinite(input.expectedMinutes)) {
+    return input.expectedMinutes;
   }
   return null;
 }
@@ -1561,6 +1569,7 @@ export function buildPrecisionPick(
   const availabilityStatus = input.availabilityStatus ?? null;
   const availabilityPercentPlay = input.availabilityPercentPlay ?? null;
   const recentMinutesAvg = getPrecisionRecentMinutesAverage(input);
+  const projectedMinutes = getPrecisionProjectedMinutes(input);
 
   if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") {
     reasons.push("Player is unavailable in the live injury feed.");
@@ -1570,6 +1579,9 @@ export function buildPrecisionPick(
   }
   if (recentMinutesAvg == null || recentMinutesAvg < PRECISION_MIN_RECENT_MINUTES_AVG) {
     reasons.push("Last-10 minutes average is unavailable or below the 15-minute precision floor.");
+  }
+  if (projectedMinutes == null || projectedMinutes < PRECISION_MIN_PROJECTED_MINUTES) {
+    reasons.push("Projected minutes are unavailable or below the 15-minute precision floor.");
   }
 
   if (decision.rawSide === "NEUTRAL") {
