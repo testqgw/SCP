@@ -5276,6 +5276,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       playerId: player.id,
       playerName: player.fullName,
       matchupKey: matchup.matchupKey,
+      minutesLast10Avg,
       expectedMinutes: minutesProfile.expected,
       minutesVolatility,
       benchBigRoleStability,

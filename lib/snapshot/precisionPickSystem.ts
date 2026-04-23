@@ -17,6 +17,7 @@ type PrecisionAvailabilityStatus = "OUT" | "DOUBTFUL" | "QUESTIONABLE" | "PROBAB
 export type PrecisionPickInput = PredictLiveUniversalSideInput & {
   playerId?: string | null;
   playerName?: string | null;
+  minutesLast10Avg?: number | null;
   availabilityStatus?: PrecisionAvailabilityStatus | null;
   availabilityPercentPlay?: number | null;
   weightedCurrentLineOverRate?: number | null;
@@ -867,12 +868,9 @@ function clamp01(value: number): number {
   return clamp(value, 0, 1);
 }
 
-function getPrecisionRecentMinutesAverage(input: Pick<PrecisionPickInput, "l5MinutesAvg" | "emaMinutesAvg">): number | null {
-  if (input.l5MinutesAvg != null && Number.isFinite(input.l5MinutesAvg)) {
-    return input.l5MinutesAvg;
-  }
-  if (input.emaMinutesAvg != null && Number.isFinite(input.emaMinutesAvg)) {
-    return input.emaMinutesAvg;
+function getPrecisionRecentMinutesAverage(input: Pick<PrecisionPickInput, "minutesLast10Avg">): number | null {
+  if (input.minutesLast10Avg != null && Number.isFinite(input.minutesLast10Avg)) {
+    return input.minutesLast10Avg;
   }
   return null;
 }
@@ -1571,7 +1569,7 @@ export function buildPrecisionPick(
     reasons.push("Player is too risky in the live injury feed.");
   }
   if (recentMinutesAvg == null || recentMinutesAvg < PRECISION_MIN_RECENT_MINUTES_AVG) {
-    reasons.push("Recent minutes average is unavailable or below the 15-minute precision floor.");
+    reasons.push("Last-10 minutes average is unavailable or below the 15-minute precision floor.");
   }
 
   if (decision.rawSide === "NEUTRAL") {
