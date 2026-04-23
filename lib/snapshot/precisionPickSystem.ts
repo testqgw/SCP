@@ -852,6 +852,7 @@ const PRECISION_SELECTOR_WEIGHTS = {
   sameOpponent: 0.03,
   usageContext: 0.04,
 } as const;
+const PRECISION_MIN_RECENT_MINUTES_AVG = 15;
 
 function roundSelectorScore(value: number, digits = 4): number {
   const factor = 10 ** digits;
@@ -864,6 +865,16 @@ function clamp(value: number, min: number, max: number): number {
 
 function clamp01(value: number): number {
   return clamp(value, 0, 1);
+}
+
+function getPrecisionRecentMinutesAverage(input: Pick<PrecisionPickInput, "l5MinutesAvg" | "emaMinutesAvg">): number | null {
+  if (input.l5MinutesAvg != null && Number.isFinite(input.l5MinutesAvg)) {
+    return input.l5MinutesAvg;
+  }
+  if (input.emaMinutesAvg != null && Number.isFinite(input.emaMinutesAvg)) {
+    return input.emaMinutesAvg;
+  }
+  return null;
 }
 
 function getPrecisionAdaptiveExclusionReason(
@@ -1551,12 +1562,16 @@ export function buildPrecisionPick(
   const reasons: string[] = [];
   const availabilityStatus = input.availabilityStatus ?? null;
   const availabilityPercentPlay = input.availabilityPercentPlay ?? null;
+  const recentMinutesAvg = getPrecisionRecentMinutesAverage(input);
 
   if (availabilityStatus === "OUT" || availabilityStatus === "DOUBTFUL") {
     reasons.push("Player is unavailable in the live injury feed.");
   }
   if (availabilityStatus === "QUESTIONABLE" && availabilityPercentPlay != null && availabilityPercentPlay <= 55) {
     reasons.push("Player is too risky in the live injury feed.");
+  }
+  if (recentMinutesAvg == null || recentMinutesAvg < PRECISION_MIN_RECENT_MINUTES_AVG) {
+    reasons.push("Recent minutes average is unavailable or below the 15-minute precision floor.");
   }
 
   if (decision.rawSide === "NEUTRAL") {
