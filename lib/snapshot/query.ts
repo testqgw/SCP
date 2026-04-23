@@ -898,6 +898,7 @@ function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
 function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
   return {
     ...data,
+    universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
     rows: data.rows.map((row) => toBoardSnapshotRow(row)),
   };
 }
@@ -3865,7 +3866,7 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
       return preferBundledSnapshotBoardViewFallbackWhenBroken(
         dateEt,
-        toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(persistedBoard.data, { dateEt })),
+        toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data), { dateEt })),
       );
     }
     return preferBundledSnapshotBoardViewFallbackWhenBroken(
