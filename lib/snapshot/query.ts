@@ -117,6 +117,7 @@ import type {
   SnapshotMarketRuntime,
   SnapshotMatchupOption,
   SnapshotPrecisionCardEntry,
+  SnapshotPrecisionCardSummary,
   SnapshotModelSide,
   SnapshotMetricRecord,
   SnapshotPropSignalGrade,
@@ -895,11 +896,15 @@ function toBoardSnapshotRow(row: SnapshotRow): SnapshotRow {
   };
 }
 
-function toBoardSnapshotData(data: SnapshotBoardData): SnapshotBoardData {
+function toBoardSnapshotData(
+  data: SnapshotBoardData,
+  lineupMap?: Map<string, LineupTeamSignal> | null,
+): SnapshotBoardData {
+  const sanitizedData = removeConfirmedOutPlayersFromBoardData(data, lineupMap);
   return {
-    ...data,
+    ...sanitizedData,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
-    rows: data.rows.map((row) => toBoardSnapshotRow(row)),
+    rows: sanitizedData.rows.map((row) => toBoardSnapshotRow(row)),
   };
 }
 
@@ -1443,6 +1448,90 @@ function readLineupSignal(
     availabilityStatus: availability?.status ?? null,
     availabilityPercentPlay: availability?.percentPlay ?? null,
     availabilityTitle: availability?.title ?? null,
+  };
+}
+
+async function resolveLineupSnapshotForDate(
+  dateEt: string,
+  setting: { value: unknown; updatedAt: Date } | null | undefined,
+): Promise<{ snapshot: RotowireLineupSnapshot | null; updatedAt: Date | null }> {
+  const fallback = {
+    snapshot: parseLineupSnapshot(setting?.value ?? null, dateEt),
+    updatedAt: setting?.updatedAt ?? null,
+  };
+  if (dateEt !== getSnapshotBoardDateString()) return fallback;
+
+  return withTimeoutFallback(
+    maybeRefreshTodayLineupSnapshot({
+      dateEt,
+      currentValue: setting?.value ?? null,
+      currentUpdatedAt: setting?.updatedAt ?? null,
+    }),
+    fallback,
+  );
+}
+
+function isConfirmedOutSignal(
+  signal: Pick<LineupPlayerSignal, "availabilityStatus" | "availabilityPercentPlay"> | null | undefined,
+): boolean {
+  return signal?.availabilityStatus === "OUT" || signal?.availabilityPercentPlay === 0;
+}
+
+function isConfirmedOutSnapshotRow(row: SnapshotRow, lineupMap?: Map<string, LineupTeamSignal> | null): boolean {
+  if (isConfirmedOutSignal(row.playerContext)) return true;
+  if (!lineupMap) return false;
+  return isConfirmedOutSignal(readLineupSignal(lineupMap, row.teamCode, row.playerName));
+}
+
+function summarizeFilteredPrecisionCard(
+  card: SnapshotPrecisionCardEntry[],
+  previousSummary: SnapshotPrecisionCardSummary | null | undefined,
+): SnapshotPrecisionCardSummary | null {
+  if (!previousSummary && card.length === 0) return previousSummary ?? null;
+  const fillCount = card.filter((entry) => {
+    const selectorFamily = entry.precisionSignal?.selectorFamily;
+    return selectorFamily === "qualified_fill" || selectorFamily === "model_fill";
+  }).length;
+  return {
+    targetCardCount: previousSummary?.targetCardCount ?? PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? card.length,
+    truePickCount: Math.max(0, card.length - fillCount),
+    fillCount,
+    selectedCount: card.length,
+  };
+}
+
+function removeConfirmedOutPlayersFromBoardData(
+  data: SnapshotBoardData,
+  lineupMap?: Map<string, LineupTeamSignal> | null,
+): SnapshotBoardData {
+  if (data.dateEt !== getSnapshotBoardDateString()) return data;
+
+  const removedPlayerIds = new Set<string>();
+  const rows = data.rows.filter((row) => {
+    if (!isConfirmedOutSnapshotRow(row, lineupMap)) return true;
+    removedPlayerIds.add(row.playerId);
+    return false;
+  });
+  if (removedPlayerIds.size === 0) return data;
+
+  const rowPlayerIds = new Set(rows.map((row) => row.playerId));
+  const precisionCard = normalizePrecisionCardRanks(
+    (data.precisionCard ?? []).filter((entry) => rowPlayerIds.has(entry.playerId)),
+  );
+  const boardFeed = data.boardFeed
+    ? {
+        ...data.boardFeed,
+        events: data.boardFeed.events.filter((event) => !removedPlayerIds.has(event.playerId)),
+      }
+    : data.boardFeed;
+
+  return {
+    ...data,
+    rows,
+    precisionCard,
+    precisionCardSummary: summarizeFilteredPrecisionCard(precisionCard, data.precisionCardSummary),
+    precisionDashboard: null,
+    boardFeed,
   };
 }
 
@@ -3858,15 +3947,27 @@ export async function getSnapshotPlayerLookupData(input: {
 
 export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
   try {
-    const persistedBoardSetting = await prisma.systemSetting.findUnique({
-      where: { key: getSnapshotBoardSettingKey(dateEt) },
-      select: { value: true },
-    });
+    const [persistedBoardSetting, lineupSetting] = await Promise.all([
+      prisma.systemSetting.findUnique({
+        where: { key: getSnapshotBoardSettingKey(dateEt) },
+        select: { value: true },
+      }),
+      dateEt === getSnapshotBoardDateString()
+        ? prisma.systemSetting.findUnique({
+            where: { key: "snapshot_lineups_today" },
+            select: { value: true, updatedAt: true },
+          })
+        : Promise.resolve(null),
+    ]);
+    const lineupSnapshotResult = await resolveLineupSnapshotForDate(dateEt, lineupSetting);
+    const lineupMap = buildLineupSignalMap(lineupSnapshotResult.snapshot);
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
       return preferBundledSnapshotBoardViewFallbackWhenBroken(
         dateEt,
-        toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data), { dateEt })),
+        toSnapshotBoardViewData(
+          await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data, lineupMap), { dateEt }),
+        ),
       );
     }
     return preferBundledSnapshotBoardViewFallbackWhenBroken(
@@ -3928,32 +4029,34 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     refreshSetting?.value && typeof refreshSetting.value === "object" && (refreshSetting.value as { dateEt?: unknown }).dateEt === dateEt
       ? refreshSetting.updatedAt
       : null;
+  const lineupSnapshotResult = await resolveLineupSnapshotForDate(dateEt, lineupSetting);
+  const lineupUpdatedAt = lineupSnapshotResult.updatedAt ?? lineupSetting?.updatedAt ?? null;
+  const lineupMap = buildLineupSignalMap(lineupSnapshotResult.snapshot);
   const sourceUpdatedAtIso = latestUpdatedAtIso(
     latestGameWrite._max.updatedAt,
     latestDataWrite._max.updatedAt,
-    lineupSetting?.updatedAt,
+    lineupUpdatedAt,
     latestRefreshUpdatedAt,
   );
-  const parsedLineupSnapshot = parseLineupSnapshot(lineupSetting?.value ?? null, dateEt);
-    const lineupUpdatedAtIso = lineupSetting?.updatedAt?.toISOString() ?? null;
-    const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
-    const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
-    const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
-    const sourceSignal = [
-      sourceUpdatedAtIso ?? "none",
-      gameUpdatedAtIso ?? "none",
-      latestDataWrite._max.updatedAt?.toISOString() ?? "none",
-      lineupUpdatedAtIso ?? "none",
-      SNAPSHOT_BOARD_PAYLOAD_VERSION,
-      UNIVERSAL_SYSTEM_SUMMARY_VERSION,
-      PRECISION_80_SYSTEM_SUMMARY_VERSION,
-      promotedPraRuntime.enabled
-        ? `${promotedPraRuntime.version ?? "unknown"}:${promotedPraRuntime.label ?? "pra-live"}`
-        : `pra-raw-feature:${promotedPraRuntime.mode}`,
-      `player-overrides:${playerOverrideRuntime.mode}:${playerOverrideRuntime.joelMode}:${playerOverrideRuntime.javonMode}:${playerOverrideRuntime.jaMode}:${playerOverrideRuntime.naeMode}:${playerOverrideRuntime.coleMode}:${playerOverrideRuntime.dejounteMode}:${playerOverrideRuntime.devinMode}:${playerOverrideRuntime.aaronMode}:${playerOverrideRuntime.sabonisMode}:${playerOverrideRuntime.taureanMode}:${playerOverrideRuntime.tristanMode}:${playerOverrideRuntime.marcusMode}:${playerOverrideRuntime.kyleMode}`,
-      `player-local-manifest:${playerOverrideRuntime.playerLocalRecoveryManifestMode}:${playerOverrideRuntime.playerLocalRecoveryManifestSignature ?? "none"}`,
-      `player-market-drag-memory:${playerOverrideRuntime.playerMarketResidualDragMemoryMode}:${playerOverrideRuntime.playerMarketResidualDragMemorySignature ?? "none"}`,
-    ].join("|");
+  const lineupUpdatedAtIso = lineupUpdatedAt?.toISOString() ?? null;
+  const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
+  const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
+  const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
+  const sourceSignal = [
+    sourceUpdatedAtIso ?? "none",
+    gameUpdatedAtIso ?? "none",
+    latestDataWrite._max.updatedAt?.toISOString() ?? "none",
+    lineupUpdatedAtIso ?? "none",
+    SNAPSHOT_BOARD_PAYLOAD_VERSION,
+    UNIVERSAL_SYSTEM_SUMMARY_VERSION,
+    PRECISION_80_SYSTEM_SUMMARY_VERSION,
+    promotedPraRuntime.enabled
+      ? `${promotedPraRuntime.version ?? "unknown"}:${promotedPraRuntime.label ?? "pra-live"}`
+      : `pra-raw-feature:${promotedPraRuntime.mode}`,
+    `player-overrides:${playerOverrideRuntime.mode}:${playerOverrideRuntime.joelMode}:${playerOverrideRuntime.javonMode}:${playerOverrideRuntime.jaMode}:${playerOverrideRuntime.naeMode}:${playerOverrideRuntime.coleMode}:${playerOverrideRuntime.dejounteMode}:${playerOverrideRuntime.devinMode}:${playerOverrideRuntime.aaronMode}:${playerOverrideRuntime.sabonisMode}:${playerOverrideRuntime.taureanMode}:${playerOverrideRuntime.tristanMode}:${playerOverrideRuntime.marcusMode}:${playerOverrideRuntime.kyleMode}`,
+    `player-local-manifest:${playerOverrideRuntime.playerLocalRecoveryManifestMode}:${playerOverrideRuntime.playerLocalRecoveryManifestSignature ?? "none"}`,
+    `player-market-drag-memory:${playerOverrideRuntime.playerMarketResidualDragMemoryMode}:${playerOverrideRuntime.playerMarketResidualDragMemorySignature ?? "none"}`,
+  ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
   if (
@@ -3964,7 +4067,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     !isUnderfilledPrecisionBoard(dateEt, cached.data) &&
     hasPersistedBoardFeedData(cached.data)
   ) {
-    return toBoardSnapshotData(cached.data);
+    return toBoardSnapshotData(cached.data, lineupMap);
   }
 
   const persistedBoardSetting = await prisma.systemSetting.findUnique({
@@ -3981,7 +4084,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     hasPersistedBoardFeedData(persistedBoard.data)
   ) {
     const normalizedPersistedBoard = {
-      ...toBoardSnapshotData(persistedBoard.data),
+      ...toBoardSnapshotData(persistedBoard.data, lineupMap),
       universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
     };
     snapshotBoardCache.set(cacheKey, {
@@ -3991,10 +4094,6 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     });
     return normalizedPersistedBoard;
   }
-
-  const lineupSnapshot = parsedLineupSnapshot;
-  const lineupMap = buildLineupSignalMap(lineupSnapshot);
-
   if (games.length === 0) {
     const emptyData = {
       dateEt,
