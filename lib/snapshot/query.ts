@@ -3979,7 +3979,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     !isUnderfilledPrecisionBoard(dateEt, persistedBoard.data) &&
     hasPersistedBoardFeedData(persistedBoard.data)
   ) {
-    const normalizedPersistedBoard = toBoardSnapshotData(persistedBoard.data);
+    const normalizedPersistedBoard = {
+      ...toBoardSnapshotData(persistedBoard.data),
+      universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
+    };
     snapshotBoardCache.set(cacheKey, {
       data: normalizedPersistedBoard,
       sourceSignal,
