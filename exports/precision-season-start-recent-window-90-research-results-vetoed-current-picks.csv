@@ -1,0 +1,23 @@
+date,playerId,playerName,market,side,outcome,line,projectedValue,actualValue,actualSide,curRank,sourceRank,bestSourceScore,sourcesStr,edge,vetoReason
+2026-03-22,cmm6n0snc0069dx106skwmis9,Jose Alvarado,REB,OVER,WIN,1.5,1.92,,,3.0,3.0,0.87881657,current,0.41999999999999993,recent_upstream_slot3_high_confidence_veto
+2026-03-23,cmm6n1pzy00u1dx10yigqfwya,Jay Huff,REB,UNDER,LOSS,3.5,3.61,,,3.0,3.0,0.87183122,current,-0.10999999999999988,recent_upstream_slot3_high_confidence_veto
+2026-03-25,cmm6n0xih009pdx10hxwriccg,Drake Powell,PRA,UNDER,WIN,12.5,10.98,,,3.0,3.0,0.87142547,current,1.5199999999999996,recent_upstream_slot3_high_confidence_veto
+2026-03-26,cmm6n0s10005tdx108sv2w69j,Saddiq Bey,PTS,OVER,LOSS,19.5,19.07,,,3.0,3.0,0.84139994,current,-0.4299999999999997,recent_upstream_slot3_high_confidence_veto
+2026-03-27,cmm6n17yc00h5dx10u8l0q5lo,Will Richard,REB,UNDER,WIN,3.5,2.91,,,3.0,3.0,0.86057248,current,0.5899999999999999,recent_upstream_slot3_high_confidence_veto
+2026-03-28,cmm6n1skc00vtdx1023u3aph9,DeMar DeRozan,RA,UNDER,WIN,7.5,8.25,,,1.0,1.0,0.88039815,current,-0.75,recent_ra_under_veto
+2026-03-28,cmm6n1t9e00wbdx10ksgb3ju6,Nique Clifford,PRA,UNDER,WIN,17.5,19.18,,,3.0,3.0,0.85819276,current,-1.6799999999999997,recent_upstream_slot3_high_confidence_veto
+2026-03-29,cmm6n16c200fzdx108xbwhssb,Shai Gilgeous-Alexander,REB,OVER,LOSS,3.5,4.0,,,3.0,3.0,0.8434498,current,0.5,recent_upstream_slot3_high_confidence_veto
+2026-03-30,cmm6n1g8p00n3dx10vldksrbh,Victor Wembanyama,PTS,UNDER,LOSS,26.5,24.34,,,2.0,3.0,0.84360953,current,2.16,recent_upstream_slot3_high_confidence_veto
+2026-03-31,cmm6n0p3i003pdx105aygapj3,Austin Reaves,AST,OVER,LOSS,4.5,6.36,,,2.0,2.0,0.86731973,current,1.8600000000000003,recent_ast_over_veto
+2026-03-31,cmm6n1ivv00oxdx10aozkxaxa,Cooper Flagg,PR,UNDER,WIN,31.5,29.02,,,3.0,3.0,0.85740876,current,2.4800000000000004,recent_upstream_slot3_high_confidence_veto
+2026-04-01,cmm6n1kyy00qfdx101uedcwen,Sandro Mamukelashvili,PRA,OVER,WIN,21.5,19.96,,,3.0,3.0,0.85258742,current,-1.5399999999999991,recent_upstream_slot3_high_confidence_veto
+2026-04-01,cmm6n1gbj00n5dx106ok18214,Julian Champagnie,RA,UNDER,WIN,6.5,6.05,,,5.0,5.0,0.83361825,current,0.4500000000000002,recent_ra_under_veto
+2026-04-02,cmm6n17n700gxdx10ld2yeq47,Pat Spencer,PTS,OVER,WIN,6.5,10.04,,,3.0,3.0,0.84809092,current,3.539999999999999,recent_upstream_slot3_high_confidence_veto
+2026-04-03,cmm6n1a4900ipdx1070kjx8ni,Tari Eason,PRA,OVER,WIN,18.5,17.71,,,3.0,3.0,0.85744284,current,-0.7899999999999991,recent_upstream_slot3_high_confidence_veto
+2026-04-05,cmm6n1a4900ipdx1070kjx8ni,Tari Eason,PRA,OVER,LOSS,17.5,18.42,,,3.0,3.0,0.87272668,current,0.9200000000000017,recent_upstream_slot3_high_confidence_veto
+2026-04-10,cmm6n1re000v1dx10ryl7gaap,Jrue Holiday,RA,UNDER,WIN,10.5,11.31,,,4.0,4.0,0.85017321,current,-0.8100000000000005,recent_ra_under_veto
+2026-04-12,cmm6n1md300rfdx10edlrq91k,Jaylon Tyson,RA,UNDER,LOSS,7.5,6.64,,,6.0,6.0,0.84565558,current,0.8600000000000003,recent_ra_under_veto
+2026-04-14,cmm6n1re000v1dx10ryl7gaap,Jrue Holiday,RA,UNDER,WIN,10.5,10.97,,,3.0,3.0,0.83998305,current,-0.47000000000000064,recent_ra_under_veto
+2026-04-22,cmm6n1eoz00lzdx10pcp0tnx6,Isaiah Stewart,THREES,UNDER,LOSS,0.5,0.16,1.0,OVER,1.0,1.0,2.756,current+honest+memory+optimized+side+slate,0.33999999999999997,late_low_edge_threes_under_veto
+2026-04-23,cmm6n1bqn00jvdx10edgad4ox,Dyson Daniels,THREES,UNDER,LOSS,0.5,0.25,1.0,OVER,3.0,2.0,1.9365,current+honest+memory+optimized+side+slate+walkfwd,0.25,late_low_edge_threes_under_veto
+2026-04-23,cmm6n0lwq001fdx10tiozh0vj,Jordan Clarkson,THREES,UNDER,WIN,0.5,0.21,0.0,UNDER,6.0,4.0,0.587482213973999,current+memory+slate,0.29000000000000004,late_low_edge_threes_under_veto

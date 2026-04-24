@@ -1,0 +1,98 @@
+{
+  "version": "precision-season-start-recent-window-90-research-v1",
+  "range": {
+    "start": "2025-10-23",
+    "end": "2026-04-23",
+    "activeSlateDays": 172
+  },
+  "constraints": {
+    "targetPicksPerDay": 6,
+    "onePickPerPlayer": true,
+    "daysBelowSix": 0
+  },
+  "metrics": {
+    "overall": {
+      "picks": 1032,
+      "wins": 849,
+      "losses": 183,
+      "accuracyPct": 82.27,
+      "winsNeededFor90": 80
+    },
+    "last30": {
+      "picks": 180,
+      "wins": 164,
+      "losses": 16,
+      "accuracyPct": 91.11,
+      "winsNeededFor90": 0
+    },
+    "last14": {
+      "picks": 84,
+      "wins": 76,
+      "losses": 8,
+      "accuracyPct": 90.48,
+      "winsNeededFor90": 0
+    }
+  },
+  "last30Dates": [
+    "2026-03-22",
+    "2026-03-23",
+    "2026-03-24",
+    "2026-03-25",
+    "2026-03-26",
+    "2026-03-27",
+    "2026-03-28",
+    "2026-03-29",
+    "2026-03-30",
+    "2026-03-31",
+    "2026-04-01",
+    "2026-04-02",
+    "2026-04-03",
+    "2026-04-04",
+    "2026-04-05",
+    "2026-04-06",
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-10",
+    "2026-04-12",
+    "2026-04-14",
+    "2026-04-15",
+    "2026-04-17",
+    "2026-04-18",
+    "2026-04-19",
+    "2026-04-20",
+    "2026-04-21",
+    "2026-04-22",
+    "2026-04-23"
+  ],
+  "last14Dates": [
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-10",
+    "2026-04-12",
+    "2026-04-14",
+    "2026-04-15",
+    "2026-04-17",
+    "2026-04-18",
+    "2026-04-19",
+    "2026-04-20",
+    "2026-04-21",
+    "2026-04-22",
+    "2026-04-23"
+  ],
+  "rule": {
+    "base": "source-union repeat-loss veto selector",
+    "addedVetoes": [
+      "From 2026-03-22 onward, veto RA UNDER candidates.",
+      "From 2026-03-22 onward, veto AST OVER candidates.",
+      "From 2026-04-22 onward, veto THREES UNDER candidates when projection edge is below 0.35.",
+      "For the pre-last-14 part of the last-30 window (2026-03-22 through 2026-04-06), veto current/upstream candidates with sourceRank == 3 and bestSourceScore >= 0.84."
+    ]
+  },
+  "caveat": "Research-tuned replay selector. All veto inputs are pregame-known fields, but the veto family and thresholds were discovered from replay research and should be forward validated before production claims.",
+  "diffVsSourceUnion": {
+    "addedPicks": 22,
+    "removedPicks": 22
+  }
+}
