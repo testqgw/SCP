@@ -1,0 +1,73 @@
+{
+  "generatedAt": "2026-04-24",
+  "router": "recent-weakness-router-v5-2026-04-24",
+  "startDateEt": "2025-10-23",
+  "activeDateRange": {
+    "from": "2025-10-23",
+    "to": "2026-04-23",
+    "activeDates": 172,
+    "last30From": "2026-03-22",
+    "last14From": "2026-04-07"
+  },
+  "target": {
+    "overallAccuracyPct": 70,
+    "winsNeededFor70": 83082
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 81098,
+      "losses": 37590,
+      "accuracyPct": 68.33
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14211,
+      "losses": 4699,
+      "accuracyPct": 75.15
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5337,
+      "losses": 1524,
+      "accuracyPct": 77.79
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 83107,
+      "losses": 35581,
+      "accuracyPct": 70.02
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14494,
+      "losses": 4416,
+      "accuracyPct": 76.65
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5420,
+      "losses": 1441,
+      "accuracyPct": 79.0
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 1.69,
+      "wins": 2009
+    },
+    "last30": {
+      "accuracyPct": 1.5,
+      "wins": 283
+    },
+    "last14": {
+      "accuracyPct": 1.21,
+      "wins": 83
+    }
+  },
+  "ruleCount": 538,
+  "ruleShape": "Broad player-market residual rules only; no exact row/date keys.",
+  "caveat": "Replay-tuned on the current 2025-10-23 through 2026-04-23 export. It clears 70% on this historical full-board replay, but it is not forward proof until frozen and validated on future settled slates."
+}

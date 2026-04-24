@@ -1,0 +1,2154 @@
+[
+  {
+    "key": "playerMarket=derik queen__THREES",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=nic claxton__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=duncan robinson__REB",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jarred vanderbilt__REB",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=tristan da silva__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=joel embiid__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=lauri markkanen__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=al horford__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=daniel gafford__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=stephon castle__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=max christie__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=keldon johnson__AST",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jaylen wells__PTS",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jaylin williams__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=ace bailey__PRA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=immanuel quickley__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jaylin williams__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=paolo banchero__THREES",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=andrew nembhard__PR",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=brandon williams__THREES",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=zaccharie risacher__PTS",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=isaiah joe__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nick richards__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=nolan traore__PRA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=jose alvarado__PR",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=jericho sims__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=alex sarr__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=daniel gafford__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=nic claxton__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=chet holmgren__REB",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=klay thompson__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=rj barrett__THREES",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=quinten post__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jalen suggs__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=aaron nesmith__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jaden mcdaniels__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=goga bitadze__PTS",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=donovan clingan__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jarrett allen__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=cedric coward__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tari eason__PR",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=corey kispert__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jarred vanderbilt__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=cameron johnson__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dominick barlow__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=luke kornet__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=moses moody__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=sidy cissoko__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=egor demin__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=max christie__PR",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=ivica zubac__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=quenton jackson__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=terance mann__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jordan hawkins__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=collin murray boyles__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=drake powell__REB",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=bruce brown__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=nickeil alexander walker__THREES",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=ben sheppard__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jaxson hayes__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=marcus smart__REB",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=ryan dunn__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=sion james__AST",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=mark williams__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=kel el ware__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=terance mann__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dylan cardwell__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jordan miller__REB",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=gradey dick__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nique clifford__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=cason wallace__PR",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=ivica zubac__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=de anthony melton__THREES",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=onyeka okongwu__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=vit krejci__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=dyson daniels__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=klay thompson__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=adem bona__RA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=miles bridges__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=olivier maxence prosper__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=tyus jones__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=ja morant__PTS",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jalen pickett__PTS",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=miles mcbride__PA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=ivica zubac__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=danny wolf__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=stephon castle__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=al horford__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=peyton watson__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=aaron wiggins__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=giannis antetokounmpo__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jalen smith__PA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=brice sensabaugh__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=guerschon yabusele__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=guerschon yabusele__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=peyton watson__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=marcus sasser__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=brice sensabaugh__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jordan poole__REB",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=khris middleton__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jose alvarado__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=ryan rollins__PA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=zeke nnaji__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=kasparas jakucionis__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=micah potter__REB",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=saddiq bey__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=aaron nesmith__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=adem bona__REB",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=khris middleton__PR",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=rayan rupert__PRA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=cedric coward__REB",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=corey kispert__PR",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jalen green__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=collin murray boyles__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=harrison barnes__THREES",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=austin reaves__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=kyshawn george__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=kyshawn george__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=marcus smart__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=day ron sharpe__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=dean wade__PA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=tre johnson__PRA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=russell westbrook__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=egor demin__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jaden ivey__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=caleb love__PTS",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=moses moody__THREES",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=quinten post__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jalen smith__AST",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=ryan nembhard__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=kyle filipowski__RA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=gabe vincent__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=dorian finney smith__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=danny wolf__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dyson daniels__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=lonzo ball__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=luka garza__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=clint capela__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jordan clarkson__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=sidy cissoko__PRA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jared mccain__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=domantas sabonis__REB",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=bradley beal__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=noah penda__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=stephon castle__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=aaron gordon__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jamal shead__PRA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=mohamed diawara__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=ben sheppard__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=gg jackson__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=javon small__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jalen williams__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jaylon tyson__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=cj mccollum__THREES",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=isaiah hartenstein__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jordan clarkson__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tyus jones__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=ethan thompson__THREES",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=tre johnson__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=simone fontecchio__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=miles bridges__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jalen smith__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jarred vanderbilt__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=darius garland__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jock landale__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=thomas bryant__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=taylor hendricks__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=alex sarr__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tristan vukcevic__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=carter bryant__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=mohamed diawara__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cody williams__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=dwight powell__PRA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=brandon williams__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=kyshawn george__PRA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=terance mann__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=cam thomas__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=nique clifford__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jordan walsh__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=cedric coward__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=justin edwards__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=keegan murray__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=danny wolf__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=alperen sengun__PRA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=tre johnson__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=spencer jones__REB",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=anfernee simons__PR",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=joel embiid__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jaylin williams__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=bilal coulibaly__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=zach edey__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=kenrich williams__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=grant williams__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=myles turner__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=gg jackson__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=keyonte george__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=corey kispert__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=daniel gafford__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=zeke nnaji__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=de andre hunter__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=scoot henderson__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=scoot henderson__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=kyle kuzma__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=tre jones__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=cody williams__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=jordan miller__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=hugo gonzalez__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=svi mykhailiuk__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nicolas batum__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jeremiah robinson earl__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=kevin love__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=sharife cooper__PRA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=matas buzelis__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=leaky black__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=carter bryant__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=ziaire williams__PA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=nic claxton__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=kevin huerter__PTS",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=cason wallace__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=gradey dick__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=thomas bryant__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=malik monk__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=taylor hendricks__PA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=baylor scheierman__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=micah peavy__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=asa newell__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jaylen clark__PTS",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jordan clarkson__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=collin murray boyles__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=luke kornet__AST",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jose alvarado__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=mohamed diawara__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=peyton watson__REB",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=austin reaves__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=sidy cissoko__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=aaron nesmith__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jock landale__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=p j washington__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=ben sheppard__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=deni avdija__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jalen wilson__PR",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=jevon carter__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=zion williamson__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=obi toppin__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=ethan thompson__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=josh green__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=ochai agbaji__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=mohamed diawara__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=doug mcdermott__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=doug mcdermott__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=will richard__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=herbert jones__RA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=alex caruso__REB",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jamir watkins__RA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=daeqwon plowden__PTS",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=cameron payne__PTS",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=elijah harkless__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=josh hart__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=aaron wiggins__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=devin carter__PA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=nolan traore__REB",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jaden mcdaniels__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=rui hachimura__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=zion williamson__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=danny wolf__REB",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=marcus smart__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=noah clowney__PR",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=duncan robinson__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=will richard__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jake laravia__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=moses moody__REB",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=egor demin__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=will richard__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=kyshawn george__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=cade cunningham__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=lonzo ball__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jalen smith__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=alex caruso__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=spencer jones__PA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=andrew nembhard__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=p j washington__PR",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=jaylon tyson__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=zeke nnaji__PTS",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=caleb martin__AST",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=dorian finney smith__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=miles mcbride__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=kam jones__AST",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=noah clowney__AST",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=moses moody__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tari eason__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jalen johnson__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=nikola vucevic__PTS",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=caleb love__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jalen pickett__PA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=marcus sasser__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=ryan rollins__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=adem bona__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=isaiah collier__THREES",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=kevin love__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=caleb martin__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=cameron payne__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=luke kornet__PA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=anthony davis__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=demar derozan__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=corey kispert__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=day ron sharpe__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=isaiah jackson__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nick richards__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jared mccain__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jaden ivey__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=ethan thompson__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=domantas sabonis__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=myron gardner__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=mouhamed gueye__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=kentavious caldwell pope__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=kentavious caldwell pope__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=ja morant__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=dalton knecht__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jeremy sochan__PTS",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=kevon looney__PTS",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=trayce jackson davis__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jase richardson__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=noah penda__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jalen pickett__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=gary harris__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=johnny furphy__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=moritz wagner__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=myron gardner__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=moritz wagner__PRA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=royce o neale__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=malachi smith__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=miles mcbride__THREES",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=cason wallace__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=julian champagnie__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jordan miller__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=julian reese__REB",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jalen slawson__PRA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jalen slawson__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=p j washington__PRA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=ryan rollins__THREES",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=javon small__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cody williams__REB",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=pete nance__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=mouhamed gueye__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=isaiah jackson__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=pete nance__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=oscar tshiebwe__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=paul george__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jordan poole__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=carter bryant__REB",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=devin carter__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=julius randle__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=james harden__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=saddiq bey__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=josh giddey__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=stephon castle__PTS",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=noah clowney__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=aaron gordon__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jose alvarado__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=kam jones__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=naji marshall__REB",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=evan mobley__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=joel embiid__PR",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=paul reed__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=marcus sasser__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=bub carrington__THREES",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=precious achiuwa__PTS",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=tyler kolek__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=tyler kolek__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=marcus sasser__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jayson tatum__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cameron payne__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=austin reaves__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=gg jackson__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dennis schroder__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jett howard__PTS",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jevon carter__PA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=jamir watkins__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=elijah harkless__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=doug mcdermott__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jeremiah fears__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=sam merrill__REB",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=neemias queta__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tre johnson__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=mouhamed gueye__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=bronny james__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=alex caruso__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=drake powell__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=ty jerome__PR",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=doug mcdermott__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=deandre jordan__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=khaman maluach__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cameron payne__PR",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=jamal cain__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jamal cain__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=julius randle__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=simone fontecchio__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jonathan kuminga__PRA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=oscar tshiebwe__RA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=precious achiuwa__PR",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=aaron holiday__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=josh giddey__PR",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=immanuel quickley__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=matas buzelis__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=donte divincenzo__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jared mccain__AST",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=miles bridges__PRA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=dyson daniels__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=santi aldama__REB",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=kon knueppel__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jarace walker__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=tristan da silva__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jusuf nurkic__PTS",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=goga bitadze__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=vit krejci__PR",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jordan miller__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jarace walker__PA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=dyson daniels__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=ivica zubac__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=joel embiid__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=jalen smith__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=danny wolf__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=luguentz dort__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=ziaire williams__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=svi mykhailiuk__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=vit krejci__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=trendon watford__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jett howard__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=draymond green__PR",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=egor demin__REB",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=quinten post__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=luke kornet__PR",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=immanuel quickley__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=demar derozan__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=domantas sabonis__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=nikola vucevic__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=svi mykhailiuk__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jusuf nurkic__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=devin carter__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=bryce mcgowens__REB",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=jordan poole__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jeremiah fears__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cam thomas__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=cam thomas__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=cole anthony__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=cooper flagg__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=ben sheppard__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=kentavious caldwell pope__RA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=nikola jovic__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=julian strawther__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=micah peavy__PA",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=de andre hunter__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=kobe sanders__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=zach collins__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=tyler kolek__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=aaron wiggins__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=kentavious caldwell pope__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=klay thompson__PA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=jarrett allen__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=kyshawn george__PA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=landry shamet__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=mike conley__PR",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=josh minott__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=clint capela__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=jordan miller__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=de andre hunter__PA",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=tyus jones__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=danny wolf__THREES",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=nae qwan tomlin__REB",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=josh green__RA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=aaron wiggins__PRA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jordan clarkson__REB",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=cam thomas__AST",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=ziaire williams__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dru smith__AST",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=stephen curry__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=trae young__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nickeil alexander walker__RA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=jaylen wells__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=brice sensabaugh__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=walker kessler__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=asa newell__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=simone fontecchio__PA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=dru smith__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=mike conley__PRA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=isaiah joe__RA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=keaton wallace__AST",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=buddy hield__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=nikola jovic__PA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jaylen clark__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jett howard__RA",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=justin edwards__RA",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=lonzo ball__PA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=sidy cissoko__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=tyler herro__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=bryce mcgowens__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=johnny furphy__PA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=dorian finney smith__PTS",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=dorian finney smith__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=myron gardner__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=sharife cooper__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=myron gardner__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=ben sheppard__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=gabe vincent__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=saddiq bey__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=taylor hendricks__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=john collins__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=bradley beal__AST",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=russell westbrook__AST",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=tidjane salaun__PRA",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=hugo gonzalez__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=javonte green__PTS",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=zach lavine__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=dwight powell__PTS",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=quenton jackson__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=drew eubanks__AST",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=jordan walsh__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=keegan murray__PRA",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=noah penda__THREES",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=noah penda__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=tre mann__THREES",
+    "expert": "alwaysUnder"
+  },
+  {
+    "key": "playerMarket=tre mann__PRA",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=thomas bryant__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=dorian finney smith__AST",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=ochai agbaji__RA",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=josh green__PTS",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=nolan traore__THREES",
+    "expert": "projection"
+  },
+  {
+    "key": "playerMarket=jordan miller__AST",
+    "expert": "baseline"
+  },
+  {
+    "key": "playerMarket=moritz wagner__RA",
+    "expert": "rawDecision"
+  },
+  {
+    "key": "playerMarket=oscar tshiebwe__PR",
+    "expert": "inv_rawSide"
+  },
+  {
+    "key": "playerMarket=karl anthony towns__PR",
+    "expert": "alwaysOver"
+  },
+  {
+    "key": "playerMarket=shaedon sharpe__RA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=joan beringer__REB",
+    "expert": "overProb"
+  },
+  {
+    "key": "playerMarket=cody williams__THREES",
+    "expert": "inv_overProb"
+  },
+  {
+    "key": "playerMarket=joel embiid__PA",
+    "expert": "favored"
+  },
+  {
+    "key": "playerMarket=rasheer fleming__PR",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=matisse thybulle__THREES",
+    "expert": "inv_current"
+  },
+  {
+    "key": "playerMarket=herbert jones__REB",
+    "expert": "rawDecision"
+  }
+]

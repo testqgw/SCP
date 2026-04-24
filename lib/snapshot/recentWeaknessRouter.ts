@@ -1,13 +1,16 @@
 import { normalizeLivePlayerOverrideKey } from "@/lib/snapshot/livePlayerSideModels";
+import recentWeaknessRouterV5Rules from "@/lib/snapshot/recentWeaknessRouterV5Rules.json";
 import type { SnapshotBoardMarketSource, SnapshotMarket, SnapshotModelSide } from "@/lib/types/snapshot";
 
 export const RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET = "2026-03-22";
+export const RECENT_WEAKNESS_ROUTER_V5_START_DATE_ET = "2025-10-23";
 export const RECENT_WEAKNESS_ROUTER_V1_VERSION = "recent-weakness-router-v1-2026-04-24";
 export const RECENT_WEAKNESS_ROUTER_V2_VERSION = "recent-weakness-router-v2-2026-04-24";
 export const RECENT_WEAKNESS_ROUTER_V3_VERSION = "recent-weakness-router-v3-2026-04-24";
 export const RECENT_WEAKNESS_ROUTER_V4_VERSION = "recent-weakness-router-v4-2026-04-24";
+export const RECENT_WEAKNESS_ROUTER_V5_VERSION = "recent-weakness-router-v5-2026-04-24";
 
-type RecentWeaknessRouterMode = "off" | "v1" | "v2" | "v3" | "v4";
+type RecentWeaknessRouterMode = "off" | "v1" | "v2" | "v3" | "v4" | "v5";
 
 type RecentWeaknessRouterExpert =
   | "alwaysOver"
@@ -65,7 +68,8 @@ export type RecentWeaknessRouterResult = {
     | typeof RECENT_WEAKNESS_ROUTER_V1_VERSION
     | typeof RECENT_WEAKNESS_ROUTER_V2_VERSION
     | typeof RECENT_WEAKNESS_ROUTER_V3_VERSION
-    | typeof RECENT_WEAKNESS_ROUTER_V4_VERSION;
+    | typeof RECENT_WEAKNESS_ROUTER_V4_VERSION
+    | typeof RECENT_WEAKNESS_ROUTER_V5_VERSION;
 };
 
 const RECENT_WEAKNESS_ROUTER_V1_RULES: Partial<Record<RecentWeaknessRouterRuleKey, RecentWeaknessRouterExpert>> = {
@@ -109,6 +113,9 @@ type RecentWeaknessRouterV2Rule = {
   key: string;
   expert: RecentWeaknessRouterExpert;
 };
+
+const RECENT_WEAKNESS_ROUTER_V5_RULES: RecentWeaknessRouterV2Rule[] =
+  recentWeaknessRouterV5Rules as RecentWeaknessRouterV2Rule[];
 
 const RECENT_WEAKNESS_ROUTER_V2_RULES: RecentWeaknessRouterV2Rule[] = [
   { key: "market=RA|finalSource=baseline|finalSide=OVER|vol=lt8", expert: "inv_overProb" },
@@ -603,7 +610,8 @@ export function getRecentWeaknessRouterMode(): RecentWeaknessRouterMode {
   if (raw === "v1") return "v1";
   if (raw === "v2") return "v2";
   if (raw === "v3") return "v3";
-  return "v4";
+  if (raw === "v4") return "v4";
+  return "v5";
 }
 
 export function getRecentWeaknessRouterRuntimeMeta(): {
@@ -615,16 +623,23 @@ export function getRecentWeaknessRouterRuntimeMeta(): {
   return {
     mode,
     version:
-      mode === "v4"
-        ? RECENT_WEAKNESS_ROUTER_V4_VERSION
-        : mode === "v3"
-          ? RECENT_WEAKNESS_ROUTER_V3_VERSION
-          : mode === "v2"
-            ? RECENT_WEAKNESS_ROUTER_V2_VERSION
-            : mode === "v1"
-              ? RECENT_WEAKNESS_ROUTER_V1_VERSION
-              : null,
-    startDateEt: mode === "off" ? null : RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET,
+      mode === "v5"
+        ? RECENT_WEAKNESS_ROUTER_V5_VERSION
+        : mode === "v4"
+          ? RECENT_WEAKNESS_ROUTER_V4_VERSION
+          : mode === "v3"
+            ? RECENT_WEAKNESS_ROUTER_V3_VERSION
+            : mode === "v2"
+              ? RECENT_WEAKNESS_ROUTER_V2_VERSION
+              : mode === "v1"
+                ? RECENT_WEAKNESS_ROUTER_V1_VERSION
+                : null,
+    startDateEt:
+      mode === "off"
+        ? null
+        : mode === "v5"
+          ? RECENT_WEAKNESS_ROUTER_V5_START_DATE_ET
+          : RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET,
   };
 }
 
@@ -963,10 +978,41 @@ function applyRecentWeaknessRouterV4(
   };
 }
 
+function applyRecentWeaknessRouterV5(
+  input: RecentWeaknessRouterInput,
+  currentSide: "OVER" | "UNDER",
+  currentSource: SnapshotBoardMarketSource,
+): RecentWeaknessRouterResult | null {
+  const features = buildRecentWeaknessRouterV2Features(input, currentSide, currentSource);
+  const rule = RECENT_WEAKNESS_ROUTER_V5_RULES.find((candidate) =>
+    matchesRecentWeaknessRouterV2Rule(candidate.key, features),
+  );
+  if (!rule) return null;
+
+  const side = resolveExpertSide(input, rule.expert, currentSide);
+  if (!side || side === currentSide) return null;
+
+  return {
+    side,
+    source: sourceForRoutedSide(input, side),
+    expert: rule.expert,
+    ruleKey: rule.key,
+    version: RECENT_WEAKNESS_ROUTER_V5_VERSION,
+  };
+}
+
 export function applyRecentWeaknessRouter(input: RecentWeaknessRouterInput): RecentWeaknessRouterResult | null {
   const mode = getRecentWeaknessRouterMode();
   if (mode === "off") return null;
-  if (!input.gameDateEt || input.gameDateEt < RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET) return null;
+  if (!input.gameDateEt) return null;
+  if (mode !== "v5" && input.gameDateEt < RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET) return null;
+  if (mode === "v5" && input.gameDateEt < RECENT_WEAKNESS_ROUTER_V5_START_DATE_ET) return null;
+
+  if (mode === "v5" && input.gameDateEt < RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET) {
+    return isBinarySide(input.finalSide)
+      ? applyRecentWeaknessRouterV5(input, input.finalSide, input.finalSource)
+      : null;
+  }
 
   const v1Result = applyRecentWeaknessRouterV1(input);
   if (mode === "v1") return v1Result;
@@ -985,5 +1031,10 @@ export function applyRecentWeaknessRouter(input: RecentWeaknessRouterInput): Rec
 
   const v4CurrentSide = v3Result?.side ?? v3CurrentSide;
   const v4CurrentSource = v3Result?.source ?? v3CurrentSource;
-  return applyRecentWeaknessRouterV4(input, v4CurrentSide, v4CurrentSource) ?? v3Result ?? v2Result ?? v1Result;
+  const v4Result = applyRecentWeaknessRouterV4(input, v4CurrentSide, v4CurrentSource);
+  if (mode === "v4") return v4Result ?? v3Result ?? v2Result ?? v1Result;
+
+  const v5CurrentSide = v4Result?.side ?? v4CurrentSide;
+  const v5CurrentSource = v4Result?.source ?? v4CurrentSource;
+  return applyRecentWeaknessRouterV5(input, v5CurrentSide, v5CurrentSource) ?? v4Result ?? v3Result ?? v2Result ?? v1Result;
 }
