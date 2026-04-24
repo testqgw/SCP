@@ -422,7 +422,7 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Active Slate Day",
   note:
-    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The v6 upstream HGB blend plus overlay replays at 90.25% overall, 90.00% over the last 30 active slate days, and 91.67% over the last 14 active slate days while holding 6.0 picks per active slate day by ranking the approved player-market priority pool and replacing replayed overfit/role-risk pockets from the same daily candidate pool.",
+    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The v6 upstream HGB blend plus overlay replays at 90.25% overall, 90.00% over the last 30 active slate days, and 91.67% over the last 14 active slate days while holding 6.0 picks per active slate day by ranking the approved player-market priority pool and replacing replayed overfit/role-risk pockets from the same daily candidate pool. Forward audit cards now lock from the live board before the first game so grading uses a fixed pre-slate card.",
   targetCardCount: 6,
   allowFill: false,
 };

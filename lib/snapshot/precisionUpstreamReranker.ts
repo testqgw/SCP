@@ -281,6 +281,48 @@ type PriorityReplaySummary = {
   picksPerDay: number;
 };
 
+export type PrecisionUpstreamLockedHistoryReplayPick = {
+  date: string;
+  rank: number;
+  playerId: string;
+  playerName: string;
+  market: SnapshotMarket;
+  side: Side;
+  correct: boolean;
+  selectionScore: number;
+  lockedLine: number;
+  holdoutAccuracy: number | null;
+  modelAccuracy: number;
+  projectedValue: number;
+  lineGap: number;
+  absLineGap: number;
+  expectedMinutes: number | null;
+  minutesVolatility: number | null;
+  starterRateLast10: number | null;
+  overlayRejectionReason: string | null;
+};
+
+export type PrecisionUpstreamLockedHistoryReplayDay = {
+  date: string;
+  picks: number;
+  correct: number;
+  accuracy: number | null;
+};
+
+export type PrecisionUpstreamLockedHistoryReplay = {
+  version: string;
+  generatedAt: string;
+  lockPolicy: {
+    type: "synthetic_pre_first_game_card";
+    targetCount: number;
+    marketCaps: Partial<Record<SnapshotMarket, number>>;
+    onePickPerPlayer: boolean;
+  };
+  summary: PriorityReplaySummary & { daysBelowSix: number };
+  daily: PrecisionUpstreamLockedHistoryReplayDay[];
+  picks: PrecisionUpstreamLockedHistoryReplayPick[];
+};
+
 type PriorityEncodedModel = {
   weights: number[];
   featureIndex: Map<string, number>;
@@ -1307,6 +1349,92 @@ export function evaluatePrecisionUpstreamHistoryReplay(): PriorityReplaySummary 
     picksPerDay: round(selectedRows.length / Math.max(dates.length, 1), 2),
   };
   return cachedPriorityReplaySummary;
+}
+
+function summarizePriorityReplayDaily(windowRows: Array<{ picks: number; correct: number }>) {
+  const picks = windowRows.reduce((sum, row) => sum + row.picks, 0);
+  const correct = windowRows.reduce((sum, row) => sum + row.correct, 0);
+  return {
+    picks,
+    correct,
+    accuracy: picks > 0 ? round((correct / picks) * 100, 2) : 0,
+  };
+}
+
+function toLockedHistoryReplayPick(row: PriorityHistoryRow, rank: number): PrecisionUpstreamLockedHistoryReplayPick {
+  return {
+    date: row.date,
+    rank,
+    playerId: row.playerId,
+    playerName: row.playerName,
+    market: row.market,
+    side: row.side,
+    correct: row.correct,
+    selectionScore: round(row.baseScoreBalanced, 8),
+    lockedLine: round(row.projectedValue - row.lineGap, 4),
+    holdoutAccuracy: row.holdoutAccuracy,
+    modelAccuracy: row.modelAccuracy,
+    projectedValue: row.projectedValue,
+    lineGap: row.lineGap,
+    absLineGap: row.absLineGap,
+    expectedMinutes: row.expectedMinutes,
+    minutesVolatility: row.minutesVolatility,
+    starterRateLast10: row.starterRateLast10,
+    overlayRejectionReason: getPrecisionV6OverlayRejectionReason(row),
+  };
+}
+
+export function buildPrecisionUpstreamLockedHistoryReplay(): PrecisionUpstreamLockedHistoryReplay | null {
+  const historyRows = loadPriorityHistoryRows();
+  if (!historyRows.length) return null;
+
+  const rowsByDate = new Map<string, PriorityHistoryRow[]>();
+  historyRows.forEach((row) => {
+    const bucket = rowsByDate.get(row.date) ?? [];
+    bucket.push(row);
+    rowsByDate.set(row.date, bucket);
+  });
+
+  const dates = Array.from(rowsByDate.keys()).sort((left, right) => left.localeCompare(right));
+  const daily: PrecisionUpstreamLockedHistoryReplayDay[] = [];
+  const picks: PrecisionUpstreamLockedHistoryReplayPick[] = [];
+
+  dates.forEach((date) => {
+    const scoredRows = scorePriorityRowsWithRuntimeReranker((rowsByDate.get(date) ?? []).slice(), date).sort(
+      comparePriorityCandidates,
+    );
+    const selected = selectPriorityDailyRows(scoredRows);
+    const correct = selected.filter((row) => row.correct).length;
+    daily.push({
+      date,
+      picks: selected.length,
+      correct,
+      accuracy: selected.length > 0 ? round((correct / selected.length) * 100, 2) : null,
+    });
+    selected.forEach((row, index) => {
+      picks.push(toLockedHistoryReplayPick(row, index + 1));
+    });
+  });
+
+  return {
+    version: "precision-upstream-locked-history-replay-v1",
+    generatedAt: new Date().toISOString(),
+    lockPolicy: {
+      type: "synthetic_pre_first_game_card",
+      targetCount: PRIORITY_SELECTOR_TARGET_COUNT,
+      marketCaps: PRIORITY_SELECTOR_MARKET_CAPS,
+      onePickPerPlayer: true,
+    },
+    summary: {
+      overall: summarizePriorityReplayDaily(daily),
+      last30: summarizePriorityReplayDaily(daily.slice(-30)),
+      last14: summarizePriorityReplayDaily(daily.slice(-14)),
+      picksPerDay: round(picks.length / Math.max(dates.length, 1), 2),
+      daysBelowSix: daily.filter((day) => day.picks < PRIORITY_SELECTOR_TARGET_COUNT).length,
+    },
+    daily,
+    picks,
+  };
 }
 
 type PrecisionSlateCandidateLike = {

@@ -52,6 +52,14 @@ import {
   buildPrecisionUpstreamPriorityCandidate,
   rerankPrecisionUpstreamCandidates,
 } from "@/lib/snapshot/precisionUpstreamReranker";
+import {
+  buildPrecisionPregameLock,
+  getPrecisionPregameLockSettingKey,
+  readPrecisionPregameLock,
+  shouldCreatePrecisionPregameLock,
+  summarizePrecisionPregameCard,
+  type SnapshotPrecisionPregameLock,
+} from "@/lib/snapshot/precisionPregameLock";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import {
   evaluateLiveUniversalModelSide,
@@ -438,6 +446,67 @@ function getSnapshotBoardRowKey(row: Pick<SnapshotRow, "matchupKey" | "playerId"
 
 function getSnapshotPrecisionCardEntryKey(entry: Pick<SnapshotPrecisionCardEntry, "playerId" | "market">): string {
   return `${entry.playerId}|${entry.market}`;
+}
+
+async function loadPrecisionPregameLock(dateEt: string): Promise<SnapshotPrecisionPregameLock | null> {
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: getPrecisionPregameLockSettingKey(dateEt) },
+    select: { value: true },
+  });
+  return readPrecisionPregameLock(setting?.value ?? null);
+}
+
+function getFirstGameStartMs(matchupStartMsByKey: Map<string, number | null>): number | null {
+  const starts = Array.from(matchupStartMsByKey.values())
+    .filter((value): value is number => value != null && Number.isFinite(value))
+    .sort((left, right) => left - right);
+  return starts[0] ?? null;
+}
+
+async function maybeCreatePrecisionPregameLock(input: {
+  dateEt: string;
+  isTodayEt: boolean;
+  nowMs: number;
+  firstGameStartMs: number | null;
+  sourceUpdatedAt: string | null;
+  targetCardCount: number;
+  data: Pick<SnapshotBoardData, "rows" | "precisionCard" | "precisionCardSummary">;
+}): Promise<SnapshotPrecisionPregameLock | null> {
+  const existingLock = await loadPrecisionPregameLock(input.dateEt);
+  if (existingLock) return existingLock;
+
+  const precisionCard = input.data.precisionCard ?? [];
+  const decision = shouldCreatePrecisionPregameLock({
+    isTodayEt: input.isTodayEt,
+    nowMs: input.nowMs,
+    firstGameStartMs: input.firstGameStartMs,
+    precisionCardCount: precisionCard.length,
+    targetCardCount: input.targetCardCount,
+  });
+  if (!decision.eligible || input.firstGameStartMs == null) {
+    return null;
+  }
+
+  const lock = buildPrecisionPregameLock({
+    dateEt: input.dateEt,
+    lockedAt: new Date(input.nowMs).toISOString(),
+    firstGameTimeUtc: new Date(input.firstGameStartMs).toISOString(),
+    sourceUpdatedAt: input.sourceUpdatedAt,
+    targetCardCount: input.targetCardCount,
+    data: input.data,
+  });
+
+  try {
+    await prisma.systemSetting.create({
+      data: {
+        key: getPrecisionPregameLockSettingKey(input.dateEt),
+        value: lock,
+      },
+    });
+    return lock;
+  } catch {
+    return loadPrecisionPregameLock(input.dateEt);
+  }
 }
 
 function buildPersistedSnapshotRowMap(
@@ -6157,23 +6226,38 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     ),
     startedMatchupTimesByKey.size,
   );
-  const fillCount = finalPrecisionCard.filter((entry) => {
-    const selectorFamily = entry.precisionSignal?.selectorFamily;
-    return selectorFamily === "qualified_fill" || selectorFamily === "model_fill";
-  }).length;
-  const precisionCardSummary = {
-    targetCardCount: PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6,
-    truePickCount: Math.max(0, finalPrecisionCard.length - fillCount),
-    fillCount,
-    selectedCount: finalPrecisionCard.length,
-  };
+  const targetPrecisionCardCount = PRECISION_80_SYSTEM_SUMMARY.targetCardCount ?? 6;
+  const firstGameStartMs = getFirstGameStartMs(matchupStartTimesByKey);
+  let displayedPrecisionCard = finalPrecisionCard;
+  let precisionCardSummary = summarizePrecisionPregameCard(finalPrecisionCard, targetPrecisionCardCount);
+  const precisionPregameLock =
+    (await loadPrecisionPregameLock(dateEt)) ??
+    (isTodayEt
+      ? await maybeCreatePrecisionPregameLock({
+          dateEt,
+          isTodayEt,
+          nowMs,
+          firstGameStartMs,
+          sourceUpdatedAt: sourceUpdatedAtIso,
+          targetCardCount: targetPrecisionCardCount,
+          data: {
+            rows: boardRows,
+            precisionCard: finalPrecisionCard,
+            precisionCardSummary,
+          },
+        })
+      : null);
+  if (precisionPregameLock) {
+    displayedPrecisionCard = precisionPregameLock.precisionCard;
+    precisionCardSummary = precisionPregameLock.precisionCardSummary;
+  }
   const currentData: SnapshotBoardData = {
     dateEt,
     lastUpdatedAt: sourceUpdatedAtIso,
     matchups: Array.from(matchupOptionsByKey.values()).sort((a, b) => a.label.localeCompare(b.label)),
     teamMatchups,
     rows: boardRows,
-    precisionCard: finalPrecisionCard,
+    precisionCard: displayedPrecisionCard,
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,

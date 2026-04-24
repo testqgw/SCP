@@ -11,6 +11,10 @@
     {
       "path": "/api/internal/refresh/full",
       "schedule": "10 14 * * *"
+    },
+    {
+      "path": "/api/internal/precision-lock",
+      "schedule": "*/15 15-23,0-3 * * *"
     }
   ]
 }
