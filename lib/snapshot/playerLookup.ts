@@ -252,7 +252,7 @@ function applyAvailabilityToMetricRecord(
   const scaled = blankMetricRecord();
   MARKETS.forEach((market) => {
     const value = metrics[market];
-    if (market === "PTS" || market === "AST") {
+    if (market === "PTS") {
       scaled[market] = value;
       return;
     }

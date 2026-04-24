@@ -19,7 +19,7 @@ type MaybeRefreshTodayLineupSnapshotResult = {
 
 const TODAY_LINEUP_REFRESH_TTL_MS = (() => {
   const parsed = Number(process.env.SNAPSHOT_TODAY_LINEUP_REFRESH_TTL_MS);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 20 * 60_000;
+  if (!Number.isFinite(parsed) || parsed <= 0) return 5 * 60_000;
   return Math.min(Math.max(5 * 60_000, Math.floor(parsed)), 90 * 60_000);
 })();
 

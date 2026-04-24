@@ -1674,7 +1674,7 @@ function applyAvailabilityToMetricRecord(
   const scaled = blankMetricRecord();
   MARKETS.forEach((market) => {
     const value = metrics[market];
-    if (market === "PTS" || market === "AST") {
+    if (market === "PTS") {
       scaled[market] = value;
       return;
     }
@@ -4059,6 +4059,15 @@ export async function getSnapshotPlayerLookupData(input: {
 
 export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
   try {
+    if (dateEt === getSnapshotBoardDateString()) {
+      return preferBundledSnapshotBoardViewFallbackWhenBroken(
+        dateEt,
+        toSnapshotBoardViewData(
+          await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, false), { dateEt }),
+        ),
+      );
+    }
+
     const [persistedBoardSetting, lineupSetting] = await Promise.all([
       prisma.systemSetting.findUnique({
         where: { key: getSnapshotBoardSettingKey(dateEt) },
