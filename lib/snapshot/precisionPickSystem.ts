@@ -413,8 +413,8 @@ export const TIER_2_HIGH_CONFIDENCE_RULES: PrecisionRuleSet = {
 };
 
 export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
-  label: "Precision Selector v4",
-  historicalAccuracy: 80.5,
+  label: "Precision Selector v5",
+  historicalAccuracy: 85.53,
   historicalPicks: 318,
   historicalCoveragePct: 0.01,
   historicalPicksPerDay: 6,
@@ -422,12 +422,12 @@ export const PRECISION_80_SYSTEM_SUMMARY: SnapshotPrecisionSystemSummary = {
   accuracyLabel: "Backtest Rate",
   picksPerDayLabel: "Picks/Active Slate Day",
   note:
-    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The rebuilt upstream reranker replays at 80.50% overall, 82.22% over the last 30 active slate days, and 84.52% over the last 14 active slate days while holding 6.0 picks per active slate day by ranking a broader approved player-market pool instead of relying on the old strict core plus recovery chain.",
+    "Backtested on active slate days from 2026-02-19 through 2026-04-14. The v5 upstream HGB blend reranker replays at 85.53% overall, 86.11% over the last 30 active slate days, and 86.90% over the last 14 active slate days while holding 6.0 picks per active slate day by ranking the approved player-market priority pool with slate-rank features and the live-safe historical priors.",
   targetCardCount: 6,
   allowFill: false,
 };
 
-export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-20-precision-selector-v4-upstream-reranker";
+export const PRECISION_80_SYSTEM_SUMMARY_VERSION = "2026-04-24-precision-selector-v5-hgb-blend-reranker";
 
 export const PROMOTED_PRECISION_MIN_SPORTSBOOK_COUNT = 3;
 

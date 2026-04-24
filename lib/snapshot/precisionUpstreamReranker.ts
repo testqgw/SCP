@@ -301,9 +301,44 @@ type PriorityRuntimeModelArtifact = {
   model?: PrioritySerializedEncodedModel | null;
 };
 
+type PriorityHgbTreeNode = {
+  value: number;
+  featureIndex: number;
+  threshold: number;
+  left: number;
+  right: number;
+  missingGoToLeft: boolean;
+  isLeaf: boolean;
+};
+
+type PriorityHgbModel = {
+  name: string;
+  weight: number;
+  numericFields: string[];
+  rankFields: string[];
+  categoricalFields: string[];
+  categories: Record<string, string[]>;
+  baseline: number;
+  trees: PriorityHgbTreeNode[][];
+};
+
+type PriorityHgbRuntimeModelArtifact = {
+  version?: string;
+  generatedAt?: string;
+  trainedThroughDate?: string;
+  historyRowCount?: number;
+  summary?: PriorityReplaySummary & { daysBelowSix?: number };
+  walkForwardScores?: Record<string, number>;
+  models?: PriorityHgbModel[];
+};
+
 const PRIORITY_HISTORY_RELATIVE_PATH = path.join("exports", "precision-upstream-reranker-history-v1.json");
 const PRIORITY_HISTORY_FALLBACK_RELATIVE_PATH = path.join("exports", "_tmp_priority_upstream_meta_dataset.json");
 const PRIORITY_RUNTIME_MODEL_RELATIVE_PATH = path.join("exports", "precision-upstream-reranker-runtime-model-v1.json");
+const PRIORITY_HGB_RUNTIME_MODEL_RELATIVE_PATH = path.join(
+  "exports",
+  "precision-upstream-hgb-reranker-runtime-model-v1.json",
+);
 const PRIORITY_POOL_SPECS: PriorityPoolSpec[] = [
   {
     label: "scoring_core_final_relaxed",
@@ -437,6 +472,7 @@ let cachedPriorityRuntimeModelArtifact:
     }
   | null
   | undefined;
+let cachedPriorityHgbRuntimeModelArtifact: PriorityHgbRuntimeModelArtifact | null | undefined;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -831,6 +867,27 @@ function loadPriorityRuntimeModelArtifact():
   return cachedPriorityRuntimeModelArtifact;
 }
 
+function loadPriorityHgbRuntimeModelArtifact(): PriorityHgbRuntimeModelArtifact | null {
+  if (cachedPriorityHgbRuntimeModelArtifact !== undefined) {
+    return cachedPriorityHgbRuntimeModelArtifact;
+  }
+
+  const artifactPath = path.join(process.cwd(), PRIORITY_HGB_RUNTIME_MODEL_RELATIVE_PATH);
+  if (!existsSync(artifactPath)) {
+    cachedPriorityHgbRuntimeModelArtifact = null;
+    return cachedPriorityHgbRuntimeModelArtifact;
+  }
+
+  const payload = parseJsonFile<PriorityHgbRuntimeModelArtifact>(artifactPath);
+  if (!payload.trainedThroughDate || !payload.models?.length) {
+    cachedPriorityHgbRuntimeModelArtifact = null;
+    return cachedPriorityHgbRuntimeModelArtifact;
+  }
+
+  cachedPriorityHgbRuntimeModelArtifact = payload;
+  return cachedPriorityHgbRuntimeModelArtifact;
+}
+
 function getPriorityNumericValue(row: PriorityRuntimeMeta, field: PriorityNumericField): number {
   const direct = row[field];
   if (typeof direct === "boolean") return direct ? 1 : 0;
@@ -841,6 +898,148 @@ function getPriorityNumericValue(row: PriorityRuntimeMeta, field: PriorityNumeri
 function getPriorityCategoryValue(row: PriorityRuntimeMeta, field: PriorityCategoryField): string | null {
   const value = row[field];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getPriorityAnyNumericValue(row: PriorityRuntimeMeta, field: string, fallback = 0): number {
+  const direct = (row as unknown as Record<string, unknown>)[field];
+  if (typeof direct === "boolean") return direct ? 1 : 0;
+  if (typeof direct === "number" && Number.isFinite(direct)) return direct;
+  return fallback;
+}
+
+function getPriorityAnyCategoryValue(row: PriorityRuntimeMeta, field: string): string | null {
+  const value = (row as unknown as Record<string, unknown>)[field];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function getPriorityHgbScoreKey(row: Pick<PriorityRuntimeMeta, "date" | "playerId" | "market" | "side">): string {
+  return `${row.date}|${row.playerId}|${row.market}|${row.side}`;
+}
+
+function buildPriorityHgbRankValues(
+  rows: PriorityRuntimeMeta[],
+  rankFields: string[],
+): Map<PriorityRuntimeMeta, Record<string, number>> {
+  const rankValues = new Map<PriorityRuntimeMeta, Record<string, number>>();
+  rows.forEach((row) => rankValues.set(row, {}));
+  if (!rankFields.length || rows.length === 0) return rankValues;
+
+  const denominator = Math.max(rows.length - 1, 1);
+  rankFields.forEach((field) => {
+    rows
+      .map((row, index) => ({
+        row,
+        index,
+        value: getPriorityAnyNumericValue(row, field, Number.NEGATIVE_INFINITY),
+      }))
+      .sort((left, right) => left.value - right.value || left.index - right.index)
+      .forEach((entry, rank) => {
+        const rowRanks = rankValues.get(entry.row) ?? {};
+        rowRanks[field] = rank / denominator;
+        rankValues.set(entry.row, rowRanks);
+      });
+  });
+
+  return rankValues;
+}
+
+function encodePriorityHgbFeatures(
+  row: PriorityRuntimeMeta,
+  model: PriorityHgbModel,
+  rankValues: Map<PriorityRuntimeMeta, Record<string, number>>,
+): number[] {
+  const encoded: number[] = [];
+  model.numericFields.forEach((field) => {
+    encoded.push(getPriorityAnyNumericValue(row, field));
+  });
+  const rowRanks = rankValues.get(row) ?? {};
+  model.rankFields.forEach((field) => {
+    encoded.push(rowRanks[field] ?? 0);
+  });
+  model.categoricalFields.forEach((field) => {
+    const value = getPriorityAnyCategoryValue(row, field);
+    (model.categories[field] ?? []).forEach((category) => {
+      encoded.push(value === category ? 1 : 0);
+    });
+  });
+  return encoded;
+}
+
+function scorePriorityHgbTree(nodes: PriorityHgbTreeNode[], features: number[]): number {
+  let nodeIndex = 0;
+  for (let guard = 0; guard < nodes.length; guard += 1) {
+    const node = nodes[nodeIndex];
+    if (!node) return 0;
+    if (node.isLeaf) return node.value;
+    const value = features[node.featureIndex];
+    if (value == null || !Number.isFinite(value)) {
+      nodeIndex = node.missingGoToLeft ? node.left : node.right;
+    } else {
+      nodeIndex = value <= node.threshold ? node.left : node.right;
+    }
+  }
+  return 0;
+}
+
+function scorePriorityHgbModel(
+  row: PriorityRuntimeMeta,
+  model: PriorityHgbModel,
+  rankValues: Map<PriorityRuntimeMeta, Record<string, number>>,
+): number {
+  const features = encodePriorityHgbFeatures(row, model, rankValues);
+  const rawScore = model.trees.reduce(
+    (score, tree) => score + scorePriorityHgbTree(tree, features),
+    model.baseline,
+  );
+  return sigmoid(rawScore);
+}
+
+function scorePriorityRowsWithHgb(
+  rows: PriorityRuntimeMeta[],
+  artifact: PriorityHgbRuntimeModelArtifact,
+): number[] {
+  const models = artifact.models ?? [];
+  if (!models.length) return rows.map((row) => row.baseScoreGap);
+
+  const rankValuesByModel = new Map<string, Map<PriorityRuntimeMeta, Record<string, number>>>();
+  models.forEach((model) => {
+    rankValuesByModel.set(model.name, buildPriorityHgbRankValues(rows, model.rankFields));
+  });
+
+  const totalWeight = models.reduce((sum, model) => sum + model.weight, 0) || 1;
+  return rows.map((row) => {
+    const blended = models.reduce((sum, model) => {
+      const rankValues = rankValuesByModel.get(model.name) ?? new Map<PriorityRuntimeMeta, Record<string, number>>();
+      return sum + model.weight * scorePriorityHgbModel(row, model, rankValues);
+    }, 0);
+    return round(blended / totalWeight, 8);
+  });
+}
+
+function scorePriorityRowsWithRuntimeReranker(rows: PriorityHistoryRow[], targetDateEt: string): PriorityHistoryRow[] {
+  const hgbArtifact = loadPriorityHgbRuntimeModelArtifact();
+  if (hgbArtifact) {
+    if (targetDateEt <= hgbArtifact.trainedThroughDate!) {
+      return rows.map((row) => ({
+        ...row,
+        baseScoreBalanced:
+          hgbArtifact.walkForwardScores?.[getPriorityHgbScoreKey(row)] ??
+          row.baseScoreGap,
+      }));
+    }
+
+    const scores = scorePriorityRowsWithHgb(rows, hgbArtifact);
+    return rows.map((row, index) => ({
+      ...row,
+      baseScoreBalanced: scores[index] ?? row.baseScoreGap,
+    }));
+  }
+
+  const model = getTrainedPriorityModel(targetDateEt);
+  return rows.map((row) => ({
+    ...row,
+    baseScoreBalanced: model ? scorePriorityRow(row, model) : row.baseScoreGap,
+  }));
 }
 
 function buildPriorityEncodedModel(trainingRows: PriorityHistoryRow[]): PriorityEncodedModel | null {
@@ -1060,13 +1259,7 @@ export function evaluatePrecisionUpstreamHistoryReplay(): PriorityReplaySummary 
 
   dates.forEach((date) => {
     const dayRows = (rowsByDate.get(date) ?? []).slice();
-    const model = getTrainedPriorityModel(date);
-    const scoredRows = dayRows
-      .map((row) => ({
-        ...row,
-        baseScoreBalanced: model ? scorePriorityRow(row, model) : row.baseScoreGap,
-      }))
-      .sort(comparePriorityCandidates);
+    const scoredRows = scorePriorityRowsWithRuntimeReranker(dayRows, date).sort(comparePriorityCandidates);
     const selected = selectPriorityDailyRows(scoredRows);
     const correct = selected.filter((row) => row.correct).length;
     selectedRows.push(...selected);
@@ -1318,10 +1511,10 @@ export function buildPrecisionUpstreamPriorityCandidate(
     projectionWinProbability: input.projectionWinProbability,
     projectionPriceEdge: input.projectionPriceEdge,
     selectionScore,
-    selectorFamily: "precision_upstream_v4",
-    selectorTier: "precision_upstream_v4",
+    selectorFamily: "precision_upstream_v5",
+    selectorTier: "precision_upstream_v5",
     reasons: [
-      `The upstream precision reranker approved this ${input.market} spot across ${poolLabels.length} priority pool${poolLabels.length === 1 ? "" : "s"}.`,
+      `The upstream precision HGB blend approved this ${input.market} spot across ${poolLabels.length} priority pool${poolLabels.length === 1 ? "" : "s"}.`,
       `${input.sportsbookCount} live books are pricing this market.`,
       `The player-market holdout prior for this lane is ${getPrioritySignalHistoricalAccuracy(selectedModel, input.strictSignal).toFixed(2)}%.`,
     ],
@@ -1344,6 +1537,34 @@ export function rerankPrecisionUpstreamCandidates<T extends PrecisionSlateCandid
   targetDateEt: string,
 ): T[] {
   if (candidates.length === 0) return candidates;
+
+  const hgbArtifact = loadPriorityHgbRuntimeModelArtifact();
+  if (hgbArtifact) {
+    const metas = candidates
+      .map((candidate) => candidate.upstreamReranker)
+      .filter((meta): meta is PriorityRuntimeMeta => meta != null);
+    const hgbScores = scorePriorityRowsWithHgb(metas, hgbArtifact);
+    const scoreByMeta = new Map<PriorityRuntimeMeta, number>();
+    metas.forEach((meta, index) => scoreByMeta.set(meta, hgbScores[index] ?? meta.baseScoreGap));
+
+    return candidates.map((candidate) => {
+      const rerankerMeta = candidate.upstreamReranker;
+      if (!rerankerMeta) return candidate;
+      const rerankedScore =
+        targetDateEt <= hgbArtifact.trainedThroughDate!
+          ? hgbArtifact.walkForwardScores?.[getPriorityHgbScoreKey(rerankerMeta)] ?? scoreByMeta.get(rerankerMeta)
+          : scoreByMeta.get(rerankerMeta);
+      if (rerankedScore == null) return candidate;
+      return {
+        ...candidate,
+        selectionScore: rerankedScore,
+        signal: {
+          ...candidate.signal,
+          selectionScore: rerankedScore,
+        },
+      };
+    });
+  }
 
   const model = getTrainedPriorityModel(targetDateEt);
   return candidates.map((candidate) => {
