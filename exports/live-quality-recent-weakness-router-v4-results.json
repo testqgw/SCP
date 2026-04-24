@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-04-24",
+  "router": "recent-weakness-router-v4-2026-04-24",
+  "startDateEt": "2026-03-22",
+  "activeDateRange": {
+    "from": "2025-10-23",
+    "to": "2026-04-23",
+    "activeDates": 172,
+    "last30From": "2026-03-22",
+    "last14From": "2026-04-07"
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 80340,
+      "losses": 38348,
+      "accuracyPct": 67.69
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 13453,
+      "losses": 5457,
+      "accuracyPct": 71.14
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5016,
+      "losses": 1845,
+      "accuracyPct": 73.11
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 81098,
+      "losses": 37590,
+      "accuracyPct": 68.33
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14211,
+      "losses": 4699,
+      "accuracyPct": 75.15
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5337,
+      "losses": 1524,
+      "accuracyPct": 77.79
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 0.64,
+      "wins": 758
+    },
+    "last30": {
+      "accuracyPct": 4.01,
+      "wins": 758
+    },
+    "last14": {
+      "accuracyPct": 4.68,
+      "wins": 321
+    }
+  },
+  "caveat": "Very aggressive replay-tuned residual layer on the current row export. Freeze this forward and judge new settled slates before treating it as proven edge."
+}

@@ -5,8 +5,9 @@ export const RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET = "2026-03-22";
 export const RECENT_WEAKNESS_ROUTER_V1_VERSION = "recent-weakness-router-v1-2026-04-24";
 export const RECENT_WEAKNESS_ROUTER_V2_VERSION = "recent-weakness-router-v2-2026-04-24";
 export const RECENT_WEAKNESS_ROUTER_V3_VERSION = "recent-weakness-router-v3-2026-04-24";
+export const RECENT_WEAKNESS_ROUTER_V4_VERSION = "recent-weakness-router-v4-2026-04-24";
 
-type RecentWeaknessRouterMode = "off" | "v1" | "v2" | "v3";
+type RecentWeaknessRouterMode = "off" | "v1" | "v2" | "v3" | "v4";
 
 type RecentWeaknessRouterExpert =
   | "alwaysOver"
@@ -63,7 +64,8 @@ export type RecentWeaknessRouterResult = {
   version:
     | typeof RECENT_WEAKNESS_ROUTER_V1_VERSION
     | typeof RECENT_WEAKNESS_ROUTER_V2_VERSION
-    | typeof RECENT_WEAKNESS_ROUTER_V3_VERSION;
+    | typeof RECENT_WEAKNESS_ROUTER_V3_VERSION
+    | typeof RECENT_WEAKNESS_ROUTER_V4_VERSION;
 };
 
 const RECENT_WEAKNESS_ROUTER_V1_RULES: Partial<Record<RecentWeaknessRouterRuleKey, RecentWeaknessRouterExpert>> = {
@@ -354,12 +356,254 @@ const RECENT_WEAKNESS_ROUTER_V3_RULES: RecentWeaknessRouterV2Rule[] = [
   { key: "playerMarket=oso ighodaro__PR", expert: "baseline" },
 ];
 
+const RECENT_WEAKNESS_ROUTER_V4_RULES: RecentWeaknessRouterV2Rule[] = [
+  { key: "market=AST|finalSource=universal_qualified|finalSide=UNDER|mins=lt24|start=lt0p65", expert: "inv_rawSide" },
+  { key: "playerMarket=og anunoby__PRA|sameCurProj=Y", expert: "inv_current" },
+  { key: "playerMarket=anthony edwards__PRA", expert: "inv_current" },
+  { key: "playerMarket=donovan clingan__PR|absg=lt1", expert: "inv_overProb" },
+  { key: "market=RA|finalSource=universal_qualified|finalSide=UNDER|mins=lt18|start=lt0p35", expert: "overProb" },
+  { key: "market=PRA|finalSource=universal_qualified|finalSide=OVER|leafAccuracyBin=lt70|leafCountBin=lt80", expert: "inv_overProb" },
+  { key: "market=AST|finalSource=universal_qualified|finalSide=UNDER|projectionWinProbabilityBin=lt0p65|projectionPriceEdgeBin=0p05_to_0p15", expert: "inv_overProb" },
+  { key: "market=PR|finalSource=universal_qualified|finalSide=OVER|projectionWinProbabilityBin=lt0p55|projectionPriceEdgeBin=m0p15_to_m0p05", expert: "favored" },
+  { key: "playerMarket=moussa diabate__RA|absg=lt2", expert: "inv_current" },
+  { key: "playerMarket=nikola vucevic__RA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=jarace walker__AST|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=goga bitadze__REB|lg=1_to_3", expert: "baseline" },
+  { key: "playerMarket=cade cunningham__REB|mins=lt30", expert: "baseline" },
+  { key: "playerMarket=cade cunningham__PA|mins=lt30", expert: "favored" },
+  { key: "playerMarket=ausar thompson__PRA|vol=lt4", expert: "inv_current" },
+  { key: "playerMarket=mikal bridges__PA|vol=ge8", expert: "alwaysUnder" },
+  { key: "playerMarket=og anunoby__REB|vol=lt8", expert: "alwaysOver" },
+  { key: "playerMarket=josh okogie__REB|start=lt0p35", expert: "alwaysUnder" },
+  { key: "playerMarket=collin gillespie__REB|start=lt0p65", expert: "inv_current" },
+  { key: "playerMarket=cameron johnson__RA|finalSide=OVER|mins=lt36", expert: "alwaysUnder" },
+  { key: "playerMarket=daniss jenkins__PTS|sameCurProj=Y", expert: "inv_current" },
+  { key: "playerMarket=guerschon yabusele__THREES|absg=lt1", expert: "inv_current" },
+  { key: "playerMarket=jordan walsh__PTS", expert: "alwaysUnder" },
+  { key: "playerMarket=mark williams__PRA", expert: "inv_current" },
+  { key: "playerMarket=andrew wiggins__PR|vol=lt8", expert: "alwaysUnder" },
+  { key: "market=PR|finalSource=baseline|finalSide=UNDER|projectionWinProbabilityBin=lt0p75|projectionPriceEdgeBin=0p05_to_0p15", expert: "inv_overProb" },
+  { key: "market=PTS|finalSource=baseline|finalSide=UNDER|absg=lt5|proj=UNDER", expert: "inv_overProb" },
+  { key: "market=AST|finalSource=universal_qualified|finalSide=UNDER|projectionWinProbabilityBin=lt0p45|projectionPriceEdgeBin=m0p15_to_m0p05", expert: "inv_overProb" },
+  { key: "playerMarket=tre jones__RA|raw_bin=OVER", expert: "inv_current" },
+  { key: "playerMarket=jared mccain__AST", expert: "inv_current" },
+  { key: "playerMarket=bez mbeng__REB", expert: "inv_current" },
+  { key: "playerMarket=khris middleton__RA", expert: "inv_current" },
+  { key: "playerMarket=jarace walker__THREES|raw_bin=OVER", expert: "favored" },
+  { key: "playerMarket=adem bona__PTS|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=nikola jokic__PA|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=matisse thybulle__PR|prob=UNDER", expert: "inv_current" },
+  { key: "playerMarket=donovan mitchell__PRA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=stephen curry__PA|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=gui santos__PR|absg=lt3", expert: "inv_current" },
+  { key: "playerMarket=toumani camara__REB|rawdec=UNDER|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=josh hart__RA|rawdec=UNDER|proj=UNDER", expert: "favored" },
+  { key: "playerMarket=royce o neale__REB|vol=lt6", expert: "baseline" },
+  { key: "market=PRA|finalSource=baseline|finalSide=OVER|mins=lt24|start=lt0p35", expert: "projection" },
+  { key: "market=RA|finalSource=baseline|finalSide=UNDER|mins=lt30|start=lt0p95", expert: "inv_rawSide" },
+  { key: "playerMarket=andrew wiggins__RA|raw_bin=OVER", expert: "inv_current" },
+  { key: "playerMarket=scottie barnes__AST|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=immanuel quickley__PTS|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=tyler herro__PA|raw_bin=OVER", expert: "inv_current" },
+  { key: "playerMarket=jerami grant__PA|raw_bin=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=pat spencer__REB|raw_bin=UNDER", expert: "inv_current" },
+  { key: "playerMarket=anthony edwards__REB|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=adem bona__RA|prob=OVER", expert: "inv_current" },
+  { key: "playerMarket=collin sexton__PR|prob=OVER", expert: "inv_current" },
+  { key: "playerMarket=rui hachimura__PA|absg=lt2", expert: "alwaysOver" },
+  { key: "playerMarket=stephen curry__PR|absg=lt8", expert: "baseline" },
+  { key: "playerMarket=max christie__PRA|lg=m1_to_0", expert: "alwaysOver" },
+  { key: "playerMarket=daeqwon plowden__PRA|mins=lt36", expert: "alwaysUnder" },
+  { key: "playerMarket=kobe brown__THREES|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=nickeil alexander walker__PA|vol=lt4", expert: "inv_current" },
+  { key: "playerMarket=rudy gobert__PTS|vol=lt4", expert: "inv_current" },
+  { key: "playerMarket=jalen brunson__PTS|finalSide=UNDER|raw_bin=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=brandon ingram__RA|finalSide=OVER|rawdec=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=ja kobe walter__REB|finalSide=OVER|rawdec=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=rudy gobert__RA|finalSide=OVER|absg=lt1", expert: "alwaysUnder" },
+  { key: "playerMarket=max christie__PA|finalSide=UNDER|absg=lt1", expert: "favored" },
+  { key: "playerMarket=jarrett allen__PR|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=donovan mitchell__PA|sameCurProb=N", expert: "alwaysOver" },
+  { key: "playerMarket=harrison barnes__THREES", expert: "inv_current" },
+  { key: "playerMarket=evan mobley__REB|finalSide=OVER|proj=OVER", expert: "rawDecision" },
+  { key: "playerMarket=moussa diabate__PRA|raw_bin=OVER", expert: "inv_current" },
+  { key: "playerMarket=neemias queta__RA|sameCurProb=N", expert: "favored" },
+  { key: "playerMarket=victor wembanyama__AST", expert: "baseline" },
+  { key: "playerMarket=stephen curry__PTS|sameCurProj=N", expert: "inv_current" },
+  { key: "playerMarket=dyson daniels__PR|fav=UNDER|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=duncan robinson__PTS|rawdec=OVER", expert: "inv_current" },
+  { key: "playerMarket=cason wallace__AST|mins=lt24", expert: "alwaysOver" },
+  { key: "playerMarket=oso ighodaro__REB|fav=UNDER|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=chet holmgren__THREES|vol=lt6", expert: "alwaysOver" },
+  { key: "playerMarket=scottie barnes__PRA|vol=lt6", expert: "favored" },
+  { key: "playerMarket=paolo banchero__PTS|lg=m1_to_0", expert: "alwaysUnder" },
+  { key: "playerMarket=reed sheppard__PA|start=lt0p95", expert: "rawDecision" },
+  { key: "playerMarket=will riley__REB|finalSide=UNDER|absg=lt1", expert: "alwaysOver" },
+  { key: "playerMarket=miles bridges__AST|sameCurProj=Y", expert: "inv_rawSide" },
+  { key: "playerMarket=jalen johnson__AST|absg=lt1", expert: "inv_overProb" },
+  { key: "market=REB|finalSource=player_override|finalSide=UNDER|leafAccuracyBin=lt70|leafCountBin=lt160", expert: "inv_overProb" },
+  { key: "playerMarket=franz wagner__REB|absg=lt1", expert: "rawDecision" },
+  { key: "market=REB|finalSource=baseline|finalSide=UNDER|bucketLateAccuracyBin=lt75|bucketModelAccuracyBin=lt70", expert: "overProb" },
+  { key: "playerMarket=collin murray boyles__REB|finalSide=UNDER|absg=lt1", expert: "alwaysOver" },
+  { key: "market=PA|finalSource=universal_qualified|finalSide=OVER|bucketLateAccuracyBin=lt65|bucketModelAccuracyBin=lt65", expert: "projection" },
+  { key: "market=THREES|finalSource=player_override|finalSide=OVER|bucketLateAccuracyBin=lt60|bucketModelAccuracyBin=lt65", expert: "baseline" },
+  { key: "market=PRA|finalSource=universal_qualified|finalSide=UNDER|projectionWinProbabilityBin=lt0p65|projectionPriceEdgeBin=0p05_to_0p15", expert: "inv_rawSide" },
+  { key: "playerMarket=collin gillespie__PRA|sameCurProj=Y", expert: "inv_current" },
+  { key: "playerMarket=grayson allen__AST|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=collin murray boyles__PTS|raw_bin=UNDER", expert: "inv_current" },
+  { key: "playerMarket=rudy gobert__PRA|proj=OVER", expert: "alwaysOver" },
+  { key: "playerMarket=jaxson hayes__RA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=bilal coulibaly__REB|prob=OVER", expert: "inv_current" },
+  { key: "playerMarket=kyle anderson__PTS|finalSource=universal_qualified", expert: "inv_current" },
+  { key: "playerMarket=luke kornet__PA|sameCurProb=N", expert: "baseline" },
+  { key: "playerMarket=brandon ingram__PTS|lg=m1_to_0", expert: "inv_current" },
+  { key: "playerMarket=jonathan kuminga__REB|vol=lt6", expert: "baseline" },
+  { key: "playerMarket=ryan nembhard__PA|fav=OVER|proj=UNDER", expert: "alwaysUnder" },
+  { key: "playerMarket=coby white__PRA|finalSide=UNDER|lg=1_to_3", expert: "alwaysOver" },
+  { key: "playerMarket=jake laravia__AST|finalSide=UNDER|mins=lt30", expert: "inv_overProb" },
+  { key: "playerMarket=anthony black__PR|finalSide=OVER|mins=lt24", expert: "alwaysUnder" },
+  { key: "playerMarket=matas buzelis__PRA|vol=lt6", expert: "inv_current" },
+  { key: "playerMarket=victor wembanyama__PR|finalSide=UNDER|mins=lt30", expert: "alwaysOver" },
+  { key: "playerMarket=justin edwards__THREES", expert: "alwaysOver" },
+  { key: "playerMarket=donovan mitchell__PTS|rawdec=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=anthony edwards__RA|proj=UNDER", expert: "inv_overProb" },
+  { key: "playerMarket=evan mobley__PA|proj=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=micah potter__THREES|prob=OVER", expert: "rawDecision" },
+  { key: "playerMarket=jalen williams__REB|finalSource=baseline", expert: "alwaysOver" },
+  { key: "playerMarket=norman powell__PR|sameCurProj=Y", expert: "alwaysUnder" },
+  { key: "playerMarket=sandro mamukelashvili__RA|sameCurProb=N", expert: "alwaysUnder" },
+  { key: "playerMarket=jalen williams__PA|absg=lt1", expert: "alwaysOver" },
+  { key: "playerMarket=rui hachimura__RA|absg=lt2", expert: "baseline" },
+  { key: "playerMarket=jrue holiday__PR|lg=0_to_1", expert: "inv_overProb" },
+  { key: "playerMarket=paolo banchero__PRA|lg=m1_to_0", expert: "alwaysUnder" },
+  { key: "playerMarket=bruce brown__REB|lg=0_to_1", expert: "baseline" },
+  { key: "playerMarket=devin vassell__AST|vol=lt4", expert: "rawDecision" },
+  { key: "playerMarket=jerami grant__PR|vol=lt6", expert: "inv_overProb" },
+  { key: "playerMarket=jerami grant__RA|vol=lt6", expert: "alwaysUnder" },
+  { key: "playerMarket=micah potter__PA|vol=lt6", expert: "inv_rawSide" },
+  { key: "playerMarket=saddiq bey__THREES|prob=UNDER", expert: "inv_current" },
+  { key: "playerMarket=paul george__THREES|vol=lt4", expert: "alwaysOver" },
+  { key: "playerMarket=jalen suggs__PTS|finalSide=OVER|vol=lt6", expert: "favored" },
+  { key: "playerMarket=ziaire williams__PR", expert: "inv_current" },
+  { key: "playerMarket=pete nance__PRA", expert: "inv_current" },
+  { key: "playerMarket=joel embiid__THREES", expert: "inv_current" },
+  { key: "playerMarket=cam spencer__REB", expert: "inv_current" },
+  { key: "playerMarket=donovan mitchell__RA|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=tobias harris__REB|vol=lt6", expert: "inv_current" },
+  { key: "playerMarket=will richard__RA", expert: "inv_current" },
+  { key: "playerMarket=noah clowney__PA", expert: "inv_current" },
+  { key: "playerMarket=jevon carter__THREES|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=caris levert__REB|raw_bin=OVER", expert: "alwaysOver" },
+  { key: "playerMarket=klay thompson__PRA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=victor wembanyama__REB|prob=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=brandon williams__PR|sameCurProj=Y", expert: "inv_current" },
+  { key: "playerMarket=demar derozan__PR|mins=lt36", expert: "inv_current" },
+  { key: "playerMarket=victor wembanyama__RA|finalSide=UNDER|rawdec=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=tre jones__PTS|finalSide=UNDER|proj=OVER", expert: "alwaysOver" },
+  { key: "playerMarket=kristaps porzingis__AST|raw_bin=OVER|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=kyle filipowski__PTS|fav=UNDER|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=tyler herro__RA|finalSide=OVER|vol=lt4", expert: "alwaysUnder" },
+  { key: "market=PTS|finalSource=baseline|finalSide=UNDER|projectionWinProbabilityBin=lt0p55|projectionPriceEdgeBin=m0p15_to_m0p05", expert: "favored" },
+  { key: "playerMarket=rob dillingham__PTS|fav=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=jevon carter__RA|absg=lt1", expert: "inv_current" },
+  { key: "playerMarket=brice sensabaugh__THREES|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=jrue holiday__PTS|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=cooper flagg__RA|absg=lt1", expert: "inv_current" },
+  { key: "market=REB|finalSource=universal_qualified|finalSide=OVER|leafAccuracyBin=lt65|leafCountBin=lt320", expert: "rawDecision" },
+  { key: "market=PR|finalSource=universal_qualified|finalSide=OVER|leafAccuracyBin=ge80|leafCountBin=lt40", expert: "alwaysUnder" },
+  { key: "market=PRA|finalSource=universal_qualified|finalSide=UNDER|projectionWinProbabilityBin=lt0p55|projectionPriceEdgeBin=m0p05_to_0", expert: "inv_overProb" },
+  { key: "market=PTS|finalSource=universal_qualified|finalSide=UNDER|leafAccuracyBin=lt65|leafCountBin=lt320", expert: "alwaysOver" },
+  { key: "playerMarket=kris murray__PR|vol=lt8", expert: "inv_current" },
+  { key: "playerMarket=jared mccain__PR", expert: "alwaysUnder" },
+  { key: "playerMarket=alex caruso__RA", expert: "inv_current" },
+  { key: "playerMarket=jerami grant__AST|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=jarrett allen__AST|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=naji marshall__PTS|raw_bin=UNDER", expert: "inv_current" },
+  { key: "playerMarket=matas buzelis__PR|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=rob dillingham__PA|fav=OVER", expert: "inv_current" },
+  { key: "playerMarket=bennedict mathurin__PA|fav=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=will riley__PA|absg=lt3", expert: "inv_current" },
+  { key: "playerMarket=pelle larsson__PA|absg=lt1", expert: "alwaysOver" },
+  { key: "playerMarket=tyrese maxey__PTS|absg=lt1", expert: "alwaysUnder" },
+  { key: "playerMarket=darius garland__PA|absg=lt2", expert: "alwaysUnder" },
+  { key: "playerMarket=dominick barlow__PRA|lg=0_to_1", expert: "inv_current" },
+  { key: "playerMarket=daeqwon plowden__PR|mins=lt30", expert: "alwaysOver" },
+  { key: "playerMarket=cedric coward__THREES|mins=lt30", expert: "alwaysOver" },
+  { key: "playerMarket=neemias queta__PA|vol=lt8", expert: "inv_current" },
+  { key: "playerMarket=grayson allen__RA|vol=lt6", expert: "inv_current" },
+  { key: "playerMarket=royce o neale__PTS|start=lt0p95", expert: "alwaysUnder" },
+  { key: "playerMarket=dylan cardwell__PTS|finalSource=universal_qualified|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=cody williams__PA|finalSide=UNDER|rawdec=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=andre drummond__AST|finalSide=UNDER|proj=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=cj mccollum__RA|finalSide=UNDER|proj=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=kobe brown__PA|fav=UNDER|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=bub carrington__PR|prob=OVER", expert: "projection" },
+  { key: "playerMarket=luke kornet__REB|absg=lt2", expert: "baseline" },
+  { key: "playerMarket=tobias harris__PR|absg=lt1", expert: "inv_rawSide" },
+  { key: "playerMarket=og anunoby__PR|finalSide=OVER|absg=lt2", expert: "inv_overProb" },
+  { key: "playerMarket=bones hyland__THREES|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=kyle filipowski__AST|prob=UNDER", expert: "inv_current" },
+  { key: "playerMarket=ajay mitchell__RA|finalSource=universal_qualified", expert: "alwaysUnder" },
+  { key: "playerMarket=myles turner__RA|absg=lt2", expert: "alwaysOver" },
+  { key: "playerMarket=draymond green__PA|mins=lt36", expert: "inv_current" },
+  { key: "playerMarket=baylor scheierman__PTS|raw_bin=OVER|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=victor wembanyama__PA|finalSide=UNDER|mins=lt30", expert: "alwaysOver" },
+  { key: "playerMarket=og anunoby__PA|sameCurProj=Y", expert: "favored" },
+  { key: "playerMarket=jeremiah fears__REB|sameCurProb=N", expert: "rawDecision" },
+  { key: "playerMarket=leonard miller__PTS|fav=OVER", expert: "projection" },
+  { key: "playerMarket=leonard miller__PR|prob=OVER", expert: "inv_current" },
+  { key: "playerMarket=reed sheppard__PR|finalSource=universal_qualified", expert: "inv_rawSide" },
+  { key: "playerMarket=leonard miller__PA|finalSource=baseline", expert: "rawDecision" },
+  { key: "playerMarket=gui santos__PRA|sameCurProj=Y", expert: "overProb" },
+  { key: "playerMarket=andrew wiggins__PRA|vol=lt6", expert: "overProb" },
+  { key: "playerMarket=jrue holiday__PA|finalSide=OVER|mins=lt36", expert: "projection" },
+  { key: "playerMarket=ben saraf__PTS|start=lt0p35", expert: "inv_rawSide" },
+  { key: "market=PTS|finalSource=baseline|finalSide=UNDER|leafAccuracyBin=lt60|leafCountBin=lt320", expert: "overProb" },
+  { key: "playerMarket=elijah harkless__PR", expert: "inv_current" },
+  { key: "playerMarket=duncan robinson__THREES|finalSide=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=zion williamson__RA|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=will richard__PTS|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=andrew nembhard__RA|finalSide=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=tre johnson__PTS|finalSide=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=austin reaves__PR|raw_bin=OVER", expert: "inv_current" },
+  { key: "playerMarket=zion williamson__PA|raw_bin=UNDER", expert: "inv_current" },
+  { key: "playerMarket=ziaire williams__PTS|proj=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=malik monk__PRA|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=austin reaves__RA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=caris levert__RA|proj=UNDER", expert: "inv_current" },
+  { key: "playerMarket=jay huff__REB|proj=OVER", expert: "alwaysOver" },
+  { key: "playerMarket=saddiq bey__RA|proj=OVER", expert: "inv_current" },
+  { key: "playerMarket=dylan cardwell__PR|proj=OVER", expert: "baseline" },
+  { key: "playerMarket=matas buzelis__RA|proj=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=rudy gobert__PR|prob=UNDER", expert: "baseline" },
+  { key: "playerMarket=de anthony melton__PA|prob=OVER", expert: "alwaysUnder" },
+  { key: "playerMarket=joel embiid__RA|prob=UNDER", expert: "alwaysOver" },
+  { key: "playerMarket=sam merrill__RA|prob=OVER", expert: "alwaysOver" },
+  { key: "playerMarket=tyrese maxey__RA|fav=UNDER", expert: "inv_current" },
+  { key: "playerMarket=luke kennard__PA|finalSource=baseline", expert: "alwaysUnder" },
+  { key: "playerMarket=terance mann__PRA|sameCurProj=N", expert: "alwaysUnder" },
+  { key: "playerMarket=grayson allen__REB|sameCurProj=N", expert: "inv_current" },
+  { key: "playerMarket=julian champagnie__PTS|sameCurProb=N", expert: "baseline" },
+  { key: "playerMarket=isaac okoro__RA|sameCurProb=N", expert: "favored" },
+  { key: "playerMarket=mikal bridges__PA|absg=lt2", expert: "inv_current" },
+  { key: "playerMarket=dejounte murray__REB|absg=lt1", expert: "alwaysOver" },
+  { key: "playerMarket=matisse thybulle__PA|lg=m3_to_m1", expert: "inv_current" },
+  { key: "playerMarket=pete nance__PR|lg=minf_to_m5", expert: "alwaysUnder" },
+  { key: "playerMarket=josh hart__REB|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=daniss jenkins__PRA|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=oso ighodaro__PA|mins=lt36", expert: "alwaysUnder" },
+  { key: "playerMarket=isaac okoro__PA|mins=lt30", expert: "inv_current" },
+  { key: "playerMarket=devin booker__AST|vol=lt2", expert: "alwaysOver" },
+  { key: "playerMarket=deni avdija__AST|finalSource=universal_qualified|finalSide=UNDER", expert: "rawDecision" },
+];
+
 export function getRecentWeaknessRouterMode(): RecentWeaknessRouterMode {
   const raw = process.env.SNAPSHOT_RECENT_WEAKNESS_ROUTER_MODE?.trim().toLowerCase();
   if (raw === "off" || raw === "0" || raw === "false" || raw === "disabled") return "off";
   if (raw === "v1") return "v1";
   if (raw === "v2") return "v2";
-  return "v3";
+  if (raw === "v3") return "v3";
+  return "v4";
 }
 
 export function getRecentWeaknessRouterRuntimeMeta(): {
@@ -371,13 +615,15 @@ export function getRecentWeaknessRouterRuntimeMeta(): {
   return {
     mode,
     version:
-      mode === "v3"
-        ? RECENT_WEAKNESS_ROUTER_V3_VERSION
-        : mode === "v2"
-          ? RECENT_WEAKNESS_ROUTER_V2_VERSION
-          : mode === "v1"
-            ? RECENT_WEAKNESS_ROUTER_V1_VERSION
-            : null,
+      mode === "v4"
+        ? RECENT_WEAKNESS_ROUTER_V4_VERSION
+        : mode === "v3"
+          ? RECENT_WEAKNESS_ROUTER_V3_VERSION
+          : mode === "v2"
+            ? RECENT_WEAKNESS_ROUTER_V2_VERSION
+            : mode === "v1"
+              ? RECENT_WEAKNESS_ROUTER_V1_VERSION
+              : null,
     startDateEt: mode === "off" ? null : RECENT_WEAKNESS_ROUTER_V1_START_DATE_ET,
   };
 }
@@ -694,6 +940,29 @@ function applyRecentWeaknessRouterV3(
   };
 }
 
+function applyRecentWeaknessRouterV4(
+  input: RecentWeaknessRouterInput,
+  currentSide: "OVER" | "UNDER",
+  currentSource: SnapshotBoardMarketSource,
+): RecentWeaknessRouterResult | null {
+  const features = buildRecentWeaknessRouterV2Features(input, currentSide, currentSource);
+  const rule = RECENT_WEAKNESS_ROUTER_V4_RULES.find((candidate) =>
+    matchesRecentWeaknessRouterV2Rule(candidate.key, features),
+  );
+  if (!rule) return null;
+
+  const side = resolveExpertSide(input, rule.expert, currentSide);
+  if (!side || side === currentSide) return null;
+
+  return {
+    side,
+    source: sourceForRoutedSide(input, side),
+    expert: rule.expert,
+    ruleKey: rule.key,
+    version: RECENT_WEAKNESS_ROUTER_V4_VERSION,
+  };
+}
+
 export function applyRecentWeaknessRouter(input: RecentWeaknessRouterInput): RecentWeaknessRouterResult | null {
   const mode = getRecentWeaknessRouterMode();
   if (mode === "off") return null;
@@ -711,5 +980,10 @@ export function applyRecentWeaknessRouter(input: RecentWeaknessRouterInput): Rec
 
   const v3CurrentSide = v2Result?.side ?? currentSide;
   const v3CurrentSource = v2Result?.source ?? currentSource;
-  return applyRecentWeaknessRouterV3(input, v3CurrentSide, v3CurrentSource) ?? v2Result ?? v1Result;
+  const v3Result = applyRecentWeaknessRouterV3(input, v3CurrentSide, v3CurrentSource);
+  if (mode === "v3") return v3Result ?? v2Result ?? v1Result;
+
+  const v4CurrentSide = v3Result?.side ?? v3CurrentSide;
+  const v4CurrentSource = v3Result?.source ?? v3CurrentSource;
+  return applyRecentWeaknessRouterV4(input, v4CurrentSide, v4CurrentSource) ?? v3Result ?? v2Result ?? v1Result;
 }
