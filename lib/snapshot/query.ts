@@ -852,6 +852,20 @@ function buildSnapshotMarketDecisionMeta(input: SnapshotMarketRuntimeBuildInput)
     underProbability: rawDecision.underProbability,
     projectedValue: input.universalInput.projectedValue,
     line: input.universalInput.line,
+    projectedMinutes: input.expectedMinutes,
+    minutesVolatility: input.minutesVolatility,
+    starterRateLast10: input.starterRateLast10,
+    archetype: rawDecision.archetype,
+    modelKind: rawDecision.modelKind,
+    minutesBucket: rawDecision.minutesBucket,
+    projectionMarketAgreement: rawDecision.projectionMarketAgreement,
+    leafAccuracy: rawDecision.leafAccuracy,
+    bucketLateAccuracy: rawDecision.bucketLateAccuracy,
+    bucketModelAccuracy: rawDecision.bucketModelAccuracy,
+    leafCount: rawDecision.leafCount,
+    priceStrength: rawDecision.priceStrength,
+    projectionWinProbability: rawDecision.projectionWinProbability,
+    projectionPriceEdge: rawDecision.projectionPriceEdge,
   });
   if (recentWeaknessRoute) {
     finalSide = recentWeaknessRoute.side;

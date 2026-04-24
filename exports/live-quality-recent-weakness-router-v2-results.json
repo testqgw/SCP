@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-04-24",
+  "router": "recent-weakness-router-v2-2026-04-24",
+  "startDateEt": "2026-03-22",
+  "activeDateRange": {
+    "from": "2025-10-23",
+    "to": "2026-04-23",
+    "activeDates": 172,
+    "last30From": "2026-03-22",
+    "last14From": "2026-04-07"
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 79370,
+      "losses": 39318,
+      "accuracyPct": 66.87
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 12483,
+      "losses": 6427,
+      "accuracyPct": 66.01
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 4285,
+      "losses": 2576,
+      "accuracyPct": 62.45
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 79770,
+      "losses": 38918,
+      "accuracyPct": 67.21
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 12883,
+      "losses": 6027,
+      "accuracyPct": 68.13
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 4720,
+      "losses": 2141,
+      "accuracyPct": 68.79
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 0.34,
+      "wins": 400
+    },
+    "last30": {
+      "accuracyPct": 2.12,
+      "wins": 400
+    },
+    "last14": {
+      "accuracyPct": 6.34,
+      "wins": 435
+    }
+  },
+  "caveat": "Replay-tuned on the current row export and now frozen forward. Treat future settled slates as the real proof."
+}

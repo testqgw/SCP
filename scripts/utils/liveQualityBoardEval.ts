@@ -476,6 +476,20 @@ function applyRecentWeaknessRouterToEvaluatedRow(row: LiveQualityEvaluatedRow): 
     underProbability: row.rawDecision.underProbability,
     projectedValue: row.projectedValue,
     line: row.line,
+    projectedMinutes: row.projectedMinutes,
+    minutesVolatility: row.minutesVolatility,
+    starterRateLast10: row.starterRateLast10,
+    archetype: row.rawDecision.archetype,
+    modelKind: row.rawDecision.modelKind,
+    minutesBucket: row.rawDecision.minutesBucket,
+    projectionMarketAgreement: row.rawDecision.projectionMarketAgreement,
+    leafAccuracy: row.rawDecision.leafAccuracy,
+    bucketLateAccuracy: row.rawDecision.bucketLateAccuracy,
+    bucketModelAccuracy: row.rawDecision.bucketModelAccuracy,
+    leafCount: row.rawDecision.leafCount,
+    priceStrength: row.rawDecision.priceStrength,
+    projectionWinProbability: row.rawDecision.projectionWinProbability,
+    projectionPriceEdge: row.rawDecision.projectionPriceEdge,
   });
   if (!routed) return row;
 
