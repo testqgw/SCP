@@ -82,6 +82,7 @@
     "projection:report:precision-locked-results": "tsx --env-file=.env.local --env-file=.env scripts/export-precision-locked-results-report.ts",
     "projection:report:precision-season-start-results": "tsx --env-file=.env.local --env-file=.env scripts/export-precision-season-start-results-report.ts",
     "projection:report:precision-season-start-optimized": "tsx --env-file=.env.local --env-file=.env scripts/export-precision-season-start-optimized-results-report.ts",
+    "projection:report:honest-live-quality-gate": "python scripts/export-live-quality-honest-walkforward-confidence-gate.py --input exports/ultimate-live-quality-current-details.json --out-prefix exports/live-quality-full-model-honest-walkforward-confidence-gate-70-results --threshold 0.700",
     "projection:audit:threes-shadow-ranking": "tsx --env-file=.env.local --env-file=.env scripts/audit-threes-shadow-ranking.ts",
     "projection:evaluate:player-local-recovery-cluster": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-player-local-recovery-cluster.ts",
     "projection:evaluate:player-local-watchlist": "tsx --env-file=.env.local --env-file=.env scripts/evaluate-player-local-exception-watchlist.ts",

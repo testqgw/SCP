@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-04-24",
+  "router": "recent-weakness-router-v1-2026-04-24",
+  "startDateEt": "2026-03-22",
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 79080,
+      "losses": 39608,
+      "accuracyPct": 66.63
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 12193,
+      "losses": 6717,
+      "accuracyPct": 64.48
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 4187,
+      "losses": 2674,
+      "accuracyPct": 61.03
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 79370,
+      "losses": 39318,
+      "accuracyPct": 66.87
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 12483,
+      "losses": 6427,
+      "accuracyPct": 66.01
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 4285,
+      "losses": 2576,
+      "accuracyPct": 62.45
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 0.24,
+      "wins": 290
+    },
+    "last30": {
+      "accuracyPct": 1.53,
+      "wins": 290
+    },
+    "last14": {
+      "accuracyPct": 1.42,
+      "wins": 98
+    }
+  },
+  "caveat": "Replay-tuned on the current row export and now frozen forward. Treat future settled slates as the real proof."
+}

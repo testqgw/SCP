@@ -93,6 +93,10 @@ import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/li
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
+import {
+  applyRecentWeaknessRouter,
+  getRecentWeaknessRouterRuntimeMeta,
+} from "@/lib/snapshot/recentWeaknessRouter";
 import { formatUtcToEt, getSnapshotBoardDateString } from "@/lib/snapshot/time";
 import {
   isSnapshotBoardDatabaseUnavailableError,
@@ -833,6 +837,27 @@ function buildSnapshotMarketDecisionMeta(input: SnapshotMarketRuntimeBuildInput)
       finalSource = promotedPra.selectedSide === baselineSide ? "baseline" : "universal_qualified";
       universalQualifiedEngaged = finalSource === "universal_qualified";
     }
+  }
+
+  const recentWeaknessRoute = applyRecentWeaknessRouter({
+    gameDateEt: input.universalInput.gameDateEt,
+    market: input.market,
+    finalSource,
+    favoredSide: rawDecision.favoredSide,
+    finalSide,
+    baselineSide,
+    rawSide,
+    rawDecisionSide: rawDecision.rawSide,
+    overProbability: rawDecision.overProbability,
+    underProbability: rawDecision.underProbability,
+    projectedValue: input.universalInput.projectedValue,
+    line: input.universalInput.line,
+  });
+  if (recentWeaknessRoute) {
+    finalSide = recentWeaknessRoute.side;
+    finalSource = recentWeaknessRoute.source;
+    playerOverrideEngaged = finalSource === "player_override";
+    universalQualifiedEngaged = finalSource === "universal_qualified";
   }
 
   return {
@@ -1581,16 +1606,19 @@ function removeConfirmedOutPlayersFromBoardData(
     removedPlayerIds.add(row.playerId);
     return false;
   });
-  if (removedPlayerIds.size === 0) return data;
-
   const rowPlayerIds = new Set(rows.map((row) => row.playerId));
   const precisionCard = normalizePrecisionCardRanks(
     (data.precisionCard ?? []).filter((entry) => rowPlayerIds.has(entry.playerId)),
   );
+  const precisionCardChanged = precisionCard.length !== (data.precisionCard ?? []).length;
+  if (removedPlayerIds.size === 0 && !precisionCardChanged) return data;
+
   const boardFeed = data.boardFeed
     ? {
         ...data.boardFeed,
-        events: data.boardFeed.events.filter((event) => !removedPlayerIds.has(event.playerId)),
+        events: data.boardFeed.events.filter(
+          (event) => !removedPlayerIds.has(event.playerId) && rowPlayerIds.has(event.playerId),
+        ),
       }
     : data.boardFeed;
 
@@ -4111,6 +4139,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const gameUpdatedAtIso = latestGameWrite._max.updatedAt?.toISOString() ?? null;
   const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
   const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
+  const recentWeaknessRouterRuntime = getRecentWeaknessRouterRuntimeMeta();
   const sourceSignal = [
     sourceUpdatedAtIso ?? "none",
     gameUpdatedAtIso ?? "none",
@@ -4125,6 +4154,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     `player-overrides:${playerOverrideRuntime.mode}:${playerOverrideRuntime.joelMode}:${playerOverrideRuntime.javonMode}:${playerOverrideRuntime.jaMode}:${playerOverrideRuntime.naeMode}:${playerOverrideRuntime.coleMode}:${playerOverrideRuntime.dejounteMode}:${playerOverrideRuntime.devinMode}:${playerOverrideRuntime.aaronMode}:${playerOverrideRuntime.sabonisMode}:${playerOverrideRuntime.taureanMode}:${playerOverrideRuntime.tristanMode}:${playerOverrideRuntime.marcusMode}:${playerOverrideRuntime.kyleMode}`,
     `player-local-manifest:${playerOverrideRuntime.playerLocalRecoveryManifestMode}:${playerOverrideRuntime.playerLocalRecoveryManifestSignature ?? "none"}`,
     `player-market-drag-memory:${playerOverrideRuntime.playerMarketResidualDragMemoryMode}:${playerOverrideRuntime.playerMarketResidualDragMemorySignature ?? "none"}`,
+    `recent-weakness-router:${recentWeaknessRouterRuntime.mode}:${recentWeaknessRouterRuntime.version ?? "none"}:${recentWeaknessRouterRuntime.startDateEt ?? "none"}`,
   ].join("|");
   const cacheKey = dateEt;
   const cached = snapshotBoardCache.get(cacheKey);
@@ -6192,8 +6222,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     }
     return a.row.playerName.localeCompare(b.row.playerName);
   });
+  const activeRowsWithSortKeys = isTodayEt
+    ? rowsWithSortKeys.filter((item) => !isConfirmedOutSnapshotRow(item.row, lineupMap))
+    : rowsWithSortKeys;
   const rowDerivedPrecisionCandidates = buildControlledPrecisionRecoveryCandidatesFromRows(
-    rowsWithSortKeys.map((item) => item.row),
+    activeRowsWithSortKeys.map((item) => item.row),
   );
   const rerankedPrecisionCardCandidates = rerankPrecisionUpstreamCandidates(
     precisionCardCandidates,
@@ -6203,7 +6236,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     rerankedPrecisionCardCandidates,
     rowDerivedPrecisionCandidates,
   );
-  const boardRows = rowsWithSortKeys.map((item) => item.row);
+  const boardRows = activeRowsWithSortKeys.map((item) => item.row);
   const stabilizedPrecisionCard =
     isTodayEt
       ? stabilizePrecisionCardForToday(
@@ -6272,10 +6305,13 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     eventTime: sourceUpdatedAtIso ?? new Date(nowMs).toISOString(),
   });
 
-  const result = toBoardSnapshotData({
-    ...currentData,
-    boardFeed,
-  });
+  const result = toBoardSnapshotData(
+    {
+      ...currentData,
+      boardFeed,
+    },
+    lineupMap,
+  );
   snapshotBoardCache.set(cacheKey, {
     data: result,
     sourceSignal,

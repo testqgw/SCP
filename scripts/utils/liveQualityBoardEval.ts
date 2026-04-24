@@ -18,6 +18,10 @@ import {
 } from "../../lib/snapshot/livePlayerSideModels";
 import { attachCurrentLineRecencyMetrics } from "../../lib/snapshot/currentLineRecency";
 import {
+  applyRecentWeaknessRouter,
+  getRecentWeaknessRouterRuntimeMeta,
+} from "../../lib/snapshot/recentWeaknessRouter";
+import {
   DEFAULT_UNIVERSAL_LIVE_QUALIFICATION_SETTINGS_RELATIVE_PATH,
   DEFAULT_UNIVERSAL_LIVE_ROWS_FALLBACK_RELATIVE_PATH,
   resolvePreferredUniversalLiveRowsRelativePath,
@@ -219,6 +223,7 @@ export type LiveQualityRuntimeSnapshot = {
   praRawFeatureModelFileSignature: string | null;
   praRawFeatureModelLabel: string | null;
   praRawFeatureModelVersion: string | null;
+  recentWeaknessRouter: ReturnType<typeof getRecentWeaknessRouterRuntimeMeta>;
 };
 
 export const LIVE_QUALITY_MARKETS: Market[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
@@ -268,6 +273,7 @@ export function buildLiveQualityRuntimeSnapshot(options?: {
   const rowsFilePath = resolveRowsFilePath(options?.input);
   const playerOverrideRuntime = getLivePlayerOverrideRuntimeMeta();
   const promotedPraRuntime = getLivePraRawFeatureRuntimeMeta();
+  const recentWeaknessRouter = getRecentWeaknessRouterRuntimeMeta();
 
   return {
     label: options?.label?.trim() || null,
@@ -291,6 +297,7 @@ export function buildLiveQualityRuntimeSnapshot(options?: {
     praRawFeatureModelFileSignature: promotedPraRuntime.fileSignature,
     praRawFeatureModelLabel: promotedPraRuntime.label,
     praRawFeatureModelVersion: promotedPraRuntime.version,
+    recentWeaknessRouter,
   };
 }
 
@@ -455,6 +462,33 @@ export async function summarizePlayers(rows: LiveQualityTrainingRow[]): Promise<
   return summaries;
 }
 
+function applyRecentWeaknessRouterToEvaluatedRow(row: LiveQualityEvaluatedRow): LiveQualityEvaluatedRow {
+  const routed = applyRecentWeaknessRouter({
+    gameDateEt: row.gameDateEt,
+    market: row.market,
+    finalSource: row.finalSource,
+    favoredSide: row.rawDecision.favoredSide,
+    finalSide: row.finalSide,
+    baselineSide: row.baselineSide,
+    rawSide: row.rawSide,
+    rawDecisionSide: row.rawDecision.rawSide,
+    overProbability: row.rawDecision.overProbability,
+    underProbability: row.rawDecision.underProbability,
+    projectedValue: row.projectedValue,
+    line: row.line,
+  });
+  if (!routed) return row;
+
+  return {
+    ...row,
+    finalSide: routed.side,
+    finalSource: routed.source,
+    finalCorrect: routed.side === row.actualSide,
+    overrideEngaged: routed.source !== "baseline",
+    playerOverrideEngaged: routed.source === "player_override",
+  };
+}
+
 export function evaluateRows(
   rows: LiveQualityTrainingRow[],
   summaries: Map<string, LiveQualityPlayerSummary>,
@@ -585,7 +619,7 @@ export function evaluateRows(
           ? "universal_qualified"
           : "baseline";
 
-    return {
+    return applyRecentWeaknessRouterToEvaluatedRow({
       rowKey: buildLiveQualityRowKey(row),
       playerId: row.playerId,
       playerName: row.playerName,
@@ -623,7 +657,7 @@ export function evaluateRows(
       starterRateLast10: row.starterRateLast10,
       lineGap: row.lineGap,
       absLineGap: row.absLineGap,
-    };
+    });
   });
 }
 
@@ -687,7 +721,7 @@ export function applyPromotedLivePraRawFeatureRows(
     const finalSource: LiveQualityEvaluatedRow["finalSource"] =
       selected.selectedSide === baselineSide ? "baseline" : "universal_qualified";
 
-    return {
+    return applyRecentWeaknessRouterToEvaluatedRow({
       ...row,
       rawSide: selected.selectedSide,
       strictRawSide: selected.selectedSide,
@@ -699,7 +733,7 @@ export function applyPromotedLivePraRawFeatureRows(
       strictRawCorrect: selected.selectedSide === row.actualSide,
       finalCorrect: selected.selectedSide === row.actualSide,
       overrideEngaged: finalSource !== "baseline",
-    };
+    });
   });
 }
 
