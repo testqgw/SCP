@@ -465,6 +465,8 @@ export async function summarizePlayers(rows: LiveQualityTrainingRow[]): Promise<
 function applyRecentWeaknessRouterToEvaluatedRow(row: LiveQualityEvaluatedRow): LiveQualityEvaluatedRow {
   const routed = applyRecentWeaknessRouter({
     gameDateEt: row.gameDateEt,
+    playerName: row.playerName,
+    normalizedPlayerKey: row.normalizedPlayerKey,
     market: row.market,
     finalSource: row.finalSource,
     favoredSide: row.rawDecision.favoredSide,

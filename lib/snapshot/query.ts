@@ -841,6 +841,7 @@ function buildSnapshotMarketDecisionMeta(input: SnapshotMarketRuntimeBuildInput)
 
   const recentWeaknessRoute = applyRecentWeaknessRouter({
     gameDateEt: input.universalInput.gameDateEt,
+    playerName: input.playerName,
     market: input.market,
     finalSource,
     favoredSide: rawDecision.favoredSide,
