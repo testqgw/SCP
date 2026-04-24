@@ -1042,6 +1042,25 @@ function scorePriorityRowsWithRuntimeReranker(rows: PriorityHistoryRow[], target
   }));
 }
 
+function getPrecisionV6OverlayRejectionReason(row: PriorityRuntimeMeta): string | null {
+  if ((row.holdoutAccuracy ?? 0) > 87.5) {
+    return "V6 overlay: ultra-high holdout prior pocket is treated as overfit risk.";
+  }
+  if (row.market === "PRA" && (row.starterRateLast10 ?? 0) < 0.1) {
+    return "V6 overlay: PRA profile has missing or very low starter-rate support.";
+  }
+  if (row.market === "PTS" && (row.leafAccuracy ?? 0) > 75.71) {
+    return "V6 overlay: PTS tree-leaf pocket replayed as an overconfident miss cluster.";
+  }
+  if (row.market === "RA" && (row.minutesVolatility ?? 0) < 3.78) {
+    return "V6 overlay: RA low-volatility role pocket replayed below the promoted bar.";
+  }
+  if (row.market === "RA" && row.side === "OVER" && (row.emaCurrentLineOverRate ?? 0) > 0.875) {
+    return "V6 overlay: extreme RA over-recency chase pocket is vetoed.";
+  }
+  return null;
+}
+
 function buildPriorityEncodedModel(trainingRows: PriorityHistoryRow[]): PriorityEncodedModel | null {
   if (trainingRows.length === 0) return null;
 
@@ -1229,6 +1248,7 @@ function selectPriorityDailyRows(rows: PriorityHistoryRow[]): PriorityHistoryRow
   const marketCounts = new Map<SnapshotMarket, number>();
 
   rows.forEach((row) => {
+    if (getPrecisionV6OverlayRejectionReason(row)) return;
     if (selected.length >= PRIORITY_SELECTOR_TARGET_COUNT) return;
     if (selectedPlayers.has(row.playerId)) return;
     if ((marketCounts.get(row.market) ?? 0) >= (PRIORITY_SELECTOR_MARKET_CAPS[row.market] ?? 0)) return;
@@ -1511,12 +1531,13 @@ export function buildPrecisionUpstreamPriorityCandidate(
     projectionWinProbability: input.projectionWinProbability,
     projectionPriceEdge: input.projectionPriceEdge,
     selectionScore,
-    selectorFamily: "precision_upstream_v5",
-    selectorTier: "precision_upstream_v5",
+    selectorFamily: "precision_upstream_v6",
+    selectorTier: "precision_upstream_v6",
     reasons: [
       `The upstream precision HGB blend approved this ${input.market} spot across ${poolLabels.length} priority pool${poolLabels.length === 1 ? "" : "s"}.`,
       `${input.sportsbookCount} live books are pricing this market.`,
       `The player-market holdout prior for this lane is ${getPrioritySignalHistoricalAccuracy(selectedModel, input.strictSignal).toFixed(2)}%.`,
+      "The v6 overlay did not flag this candidate for replayed overfit or role-risk pockets.",
     ],
   };
 
@@ -1538,16 +1559,22 @@ export function rerankPrecisionUpstreamCandidates<T extends PrecisionSlateCandid
 ): T[] {
   if (candidates.length === 0) return candidates;
 
+  const overlayAcceptedCandidates = candidates.filter((candidate) => {
+    const rerankerMeta = candidate.upstreamReranker;
+    return !rerankerMeta || getPrecisionV6OverlayRejectionReason(rerankerMeta) == null;
+  });
+  if (overlayAcceptedCandidates.length === 0) return overlayAcceptedCandidates;
+
   const hgbArtifact = loadPriorityHgbRuntimeModelArtifact();
   if (hgbArtifact) {
-    const metas = candidates
+    const metas = overlayAcceptedCandidates
       .map((candidate) => candidate.upstreamReranker)
       .filter((meta): meta is PriorityRuntimeMeta => meta != null);
     const hgbScores = scorePriorityRowsWithHgb(metas, hgbArtifact);
     const scoreByMeta = new Map<PriorityRuntimeMeta, number>();
     metas.forEach((meta, index) => scoreByMeta.set(meta, hgbScores[index] ?? meta.baseScoreGap));
 
-    return candidates.map((candidate) => {
+    return overlayAcceptedCandidates.map((candidate) => {
       const rerankerMeta = candidate.upstreamReranker;
       if (!rerankerMeta) return candidate;
       const rerankedScore =
@@ -1567,7 +1594,7 @@ export function rerankPrecisionUpstreamCandidates<T extends PrecisionSlateCandid
   }
 
   const model = getTrainedPriorityModel(targetDateEt);
-  return candidates.map((candidate) => {
+  return overlayAcceptedCandidates.map((candidate) => {
     const rerankerMeta = candidate.upstreamReranker;
     if (!rerankerMeta) return candidate;
     const rerankedScore = model ? scorePriorityRow(rerankerMeta, model) : rerankerMeta.baseScoreGap;
