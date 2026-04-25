@@ -1,5 +1,9 @@
 import { round } from "@/lib/utils";
 import type { SnapshotMarket, SnapshotMetricRecord } from "@/lib/types/snapshot";
+import {
+  applyPairwiseTeammateSynergyAdjustments,
+  type PairwiseTeammateSynergyInput,
+} from "@/lib/snapshot/pairwiseTeammateSynergy";
 
 export const SNAPSHOT_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
@@ -449,6 +453,7 @@ export type ProjectTonightInput = {
   openingTeamSpread?: number | null;
   availabilitySeverity?: number | null;
   teammateSynergy?: TeamSynergyInput | null;
+  pairwiseTeammateSynergy?: PairwiseTeammateSynergyInput | null;
   opponentAvailability?: OpponentAvailabilityInput | null;
 };
 
@@ -1802,6 +1807,7 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   });
 
   applyTeammateSynergyAdjustments(result, input.last10Average, input.teammateSynergy);
+  applyPairwiseTeammateSynergyAdjustments(result, input.pairwiseTeammateSynergy, "base");
   applyOpponentAvailabilityAdjustments(result, input.last10Average, input.opponentAvailability);
 
   baseMarkets.forEach((market) => {
@@ -1989,6 +1995,7 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
 
   result.PTS = penalizedPts;
   result.THREES = penalizedThrees;
+  applyPairwiseTeammateSynergyAdjustments(result, input.pairwiseTeammateSynergy, "combo");
 
   return result;
 }

@@ -230,6 +230,28 @@ export type SnapshotTeammateCore = {
   avgAST10: number | null;
 };
 
+export type SnapshotTeammateSynergyTriggerMetric = "PTS" | "REB" | "AST" | "THREES" | "MIN";
+export type SnapshotTeammateSynergyConfidence = "HIGH" | "MEDIUM" | "LOW";
+export type SnapshotTeammateSynergyDirection = "BOOST" | "DRAG";
+
+export type SnapshotTeammateSynergy = {
+  teammateId: string;
+  teammateName: string;
+  triggerMetric: SnapshotTeammateSynergyTriggerMetric;
+  triggerLabel: string;
+  targetMarket: SnapshotMarket;
+  direction: SnapshotTeammateSynergyDirection;
+  delta: number;
+  withAverage: number;
+  withoutAverage: number;
+  withSample: number;
+  withoutSample: number;
+  confidence: SnapshotTeammateSynergyConfidence;
+  score: number;
+  likelyActiveTrigger: boolean;
+  activeToday: boolean;
+};
+
 export type SnapshotPrimaryDefender = {
   playerId: string;
   playerName: string;
@@ -261,6 +283,7 @@ export type SnapshotPlayerContext = {
   projectedMinutesCeiling: number | null;
   primaryDefender: SnapshotPrimaryDefender | null;
   teammateCore: SnapshotTeammateCore[];
+  teammateSynergies: SnapshotTeammateSynergy[];
 };
 
 export type SnapshotRow = {
@@ -417,6 +440,19 @@ export type SnapshotDashboardTeammateCore = Pick<
   "playerId" | "playerName" | "avgMinutesLast10"
 >;
 
+export type SnapshotDashboardTeammateSynergy = Pick<
+  SnapshotTeammateSynergy,
+  | "teammateName"
+  | "triggerLabel"
+  | "targetMarket"
+  | "direction"
+  | "delta"
+  | "withSample"
+  | "confidence"
+  | "likelyActiveTrigger"
+  | "activeToday"
+>;
+
 export type SnapshotDashboardPlayerContext = Pick<
   SnapshotPlayerContext,
   | "projectedStarter"
@@ -433,6 +469,7 @@ export type SnapshotDashboardPlayerContext = Pick<
 > & {
   primaryDefender: SnapshotDashboardPrimaryDefender | null;
   teammateCore: SnapshotDashboardTeammateCore[];
+  teammateSynergies: SnapshotDashboardTeammateSynergy[];
 };
 
 export type SnapshotDashboardGameIntel = Pick<SnapshotGameIntel, "generatedAt">;

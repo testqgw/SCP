@@ -3186,6 +3186,20 @@ export default function NewDashboard({
                                     .join(' | ')
                                 : '-'}
                             </div>
+                            <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                              Synergy:{' '}
+                              {researchRow.playerContext.teammateSynergies?.length
+                                ? researchRow.playerContext.teammateSynergies
+                                    .slice(0, 3)
+                                    .map((synergy) => {
+                                      const sign = synergy.delta >= 0 ? '+' : '';
+                                      const active = synergy.activeToday ? '' : ' inactive';
+                                      const likely = synergy.likelyActiveTrigger ? '' : ' watch';
+                                      return `${synergy.teammateName} ${synergy.triggerLabel} -> ${synergy.targetMarket} ${sign}${n(synergy.delta, 1)} (${synergy.confidence}, n=${synergy.withSample}${active}${likely})`;
+                                    })
+                                    .join(' | ')
+                                : '-'}
+                            </div>
                           </div>
                         </div>
                       ) : (

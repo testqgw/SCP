@@ -92,6 +92,12 @@ import {
 import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
 import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from "@/lib/snapshot/confidenceRating";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
+import {
+  buildPairwiseTeammateSynergyInput,
+  buildPairwiseTeammateSynergyMap,
+  type PairwiseTeammateGameLog,
+  type PairwiseTeammateProfile,
+} from "@/lib/snapshot/pairwiseTeammateSynergy";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
 import {
@@ -142,9 +148,13 @@ import type {
   SnapshotStatLog,
   SnapshotTeammateCore,
   SnapshotTeamMatchupStats,
+  SnapshotTeammateSynergy,
   SnapshotTeamRecord,
 } from "@/lib/types/snapshot";
 import { round } from "@/lib/utils";
+
+const APPLY_PAIRWISE_TEAMMATE_SYNERGY_TO_PROJECTIONS =
+  process.env.SNAPSHOT_PAIRWISE_TEAMMATE_SYNERGY === "1";
 
 type TeamMatchup = {
   teamCode: string;
@@ -1137,6 +1147,17 @@ function toDashboardPlayerContext(playerContext: SnapshotRow["playerContext"]): 
       playerName: teammate.playerName,
       avgMinutesLast10: teammate.avgMinutesLast10,
     })),
+    teammateSynergies: (playerContext.teammateSynergies ?? []).slice(0, 3).map((synergy) => ({
+      teammateName: synergy.teammateName,
+      triggerLabel: synergy.triggerLabel,
+      targetMarket: synergy.targetMarket,
+      direction: synergy.direction,
+      delta: synergy.delta,
+      withSample: synergy.withSample,
+      confidence: synergy.confidence,
+      likelyActiveTrigger: synergy.likelyActiveTrigger,
+      activeToday: synergy.activeToday,
+    })),
   };
 }
 
@@ -1920,6 +1941,56 @@ function buildTeammateSynergyInput(input: {
     activeCoreCount: context.activeProfiles.length,
     missingCoreCount: context.missingProfiles.length,
   };
+}
+
+function toPairwiseTeammateProfile(profile: PlayerProfile): PairwiseTeammateProfile {
+  return {
+    playerId: profile.playerId,
+    playerName: profile.playerName,
+    teamId: profile.teamId,
+    last10Average: profile.last10Average,
+    minutesLast10Avg: profile.minutesLast10Avg,
+  };
+}
+
+function isTeammateLikelyActiveToday(input: {
+  profile: Pick<PlayerProfile, "playerId" | "playerName">;
+  teamCode: string;
+  lineupMap: Map<string, LineupTeamSignal>;
+  statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
+}): boolean {
+  const lineupSignal = readLineupSignal(input.lineupMap, input.teamCode, input.profile.playerName);
+  const availabilityImpact = deriveRotowireAvailabilityImpact(
+    lineupSignal?.availabilityStatus ?? null,
+    lineupSignal?.availabilityPercentPlay ?? null,
+  );
+  if (availabilityImpact.severity >= 0.75) return false;
+
+  const latestStatus = input.statusLogsByPlayerId.get(input.profile.playerId)?.[0] ?? null;
+  return latestStatus?.played !== false;
+}
+
+function annotateTeammateSynergiesForSlate(input: {
+  synergies: SnapshotTeammateSynergy[];
+  teamCode: string;
+  teamProfilesById: Map<string, PlayerProfile>;
+  lineupMap: Map<string, LineupTeamSignal>;
+  statusLogsByPlayerId: Map<string, PlayerStatusLog[]>;
+}): SnapshotTeammateSynergy[] {
+  return input.synergies.map((synergy) => {
+    const profile = input.teamProfilesById.get(synergy.teammateId);
+    return {
+      ...synergy,
+      activeToday: profile
+        ? isTeammateLikelyActiveToday({
+            profile,
+            teamCode: input.teamCode,
+            lineupMap: input.lineupMap,
+            statusLogsByPlayerId: input.statusLogsByPlayerId,
+          })
+        : synergy.activeToday,
+    };
+  });
 }
 
 function applyLineupStarterLabel(baseLabel: string, signal: LineupPlayerSignal | null): string {
@@ -3993,6 +4064,7 @@ async function buildSnapshotRowForPlayerDate(playerId: string, dateEt: string): 
       projectedMinutesCeiling: minutesProfile.ceiling,
       primaryDefender,
       teammateCore,
+      teammateSynergies: [],
     },
     gameIntel,
   };
@@ -4552,6 +4624,24 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     logsByPlayerId.set(log.playerId, existing);
   }
 
+  const pairwiseLogsByPlayerId = new Map<string, PairwiseTeammateGameLog[]>();
+  for (const log of logs) {
+    const existing = pairwiseLogsByPlayerId.get(log.playerId) ?? [];
+    if (existing.length >= 180) continue;
+    existing.push({
+      playerId: log.playerId,
+      teamId: log.teamId,
+      externalGameId: log.externalGameId,
+      gameDateEt: log.gameDateEt,
+      minutes: toStat(log.minutes),
+      points: toStat(log.points),
+      rebounds: toStat(log.rebounds),
+      assists: toStat(log.assists),
+      threes: toStat(log.threes),
+    });
+    pairwiseLogsByPlayerId.set(log.playerId, existing);
+  }
+
   const statusLogsByPlayerId = new Map<string, PlayerStatusLog[]>();
   for (const log of statusLogsRaw) {
     const existing = statusLogsByPlayerId.get(log.playerId) ?? [];
@@ -4716,6 +4806,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     teamProfilesByTeamId.set(teamId, profiles);
   });
 
+  const pairwiseProfilesByTeamId = new Map<string, PairwiseTeammateProfile[]>();
+  teamProfilesByTeamId.forEach((profiles, teamId) => {
+    pairwiseProfilesByTeamId.set(teamId, profiles.map(toPairwiseTeammateProfile));
+  });
+  const pairwiseSynergyByPlayerId = buildPairwiseTeammateSynergyMap({
+    profilesByTeamId: pairwiseProfilesByTeamId,
+    logsByPlayerId: pairwiseLogsByPlayerId,
+    maxSynergiesPerPlayer: 4,
+  });
+
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
@@ -4779,6 +4879,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const opponentAllowanceDelta = deltaFromLeague(opponentAllowance, leagueAverage);
     const playerProfile = playerProfilesById.get(player.id) ?? null;
     const teamProfiles = teamProfilesByTeamId.get(player.teamId) ?? [];
+    const teamProfilesById = new Map(teamProfiles.map((profile) => [profile.playerId, profile]));
     const opponentProfiles = teamProfilesByTeamId.get(matchup.opponentTeamId) ?? [];
     const opponentAvailabilityContext = buildCoreAvailabilityContext({
       teamCode: matchup.opponentCode,
@@ -4903,6 +5004,16 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const sameOpponentLogs = filterSameOpponentLogs(logsForPlayer, matchup.opponentCode);
     const sameOpponentByMarket = arraysByMarket(sameOpponentLogs);
     const sameOpponentMinutes = sameOpponentLogs.map((log) => log.minutes);
+    const teammateSynergies = annotateTeammateSynergiesForSlate({
+      synergies: pairwiseSynergyByPlayerId.get(player.id) ?? [],
+      teamCode: matchup.teamCode,
+      teamProfilesById,
+      lineupMap,
+      statusLogsByPlayerId,
+    });
+    const pairwiseTeammateSynergy = APPLY_PAIRWISE_TEAMMATE_SYNERGY_TO_PROJECTIONS
+      ? buildPairwiseTeammateSynergyInput(teammateSynergies)
+      : null;
     const projectedTonight = applyAvailabilityToMetricRecord(
       projectTonightMetrics({
         last3Average,
@@ -4934,6 +5045,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         openingTotal,
         availabilitySeverity,
         teammateSynergy,
+        pairwiseTeammateSynergy,
         opponentAvailability,
       }),
       lineupSignal,
@@ -6218,6 +6330,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
         projectedMinutesCeiling: minutesProfile.ceiling,
         primaryDefender,
         teammateCore,
+        teammateSynergies,
       },
       gameIntel,
     });

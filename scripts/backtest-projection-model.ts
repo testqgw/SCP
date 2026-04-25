@@ -10,8 +10,19 @@ import {
   projectTonightMetrics,
   type TeamSynergyInput,
 } from "../lib/snapshot/projection";
+import {
+  buildPairwiseTeammateSynergyInput,
+  buildPairwiseTeammateSynergyMap,
+  type PairwiseTeammateGameLog,
+  type PairwiseTeammateProfile,
+} from "../lib/snapshot/pairwiseTeammateSynergy";
 import { round } from "../lib/utils";
-import type { SnapshotMarket, SnapshotMetricRecord, SnapshotModelSide } from "../lib/types/snapshot";
+import type {
+  SnapshotMarket,
+  SnapshotMetricRecord,
+  SnapshotModelSide,
+  SnapshotTeammateSynergy,
+} from "../lib/types/snapshot";
 import {
   computeLineupTimingConfidence,
   fetchHistoricalPregameOdds,
@@ -80,9 +91,12 @@ type Args = {
   raSideOverrideEnabled: boolean;
   emitPlayerRows: boolean;
   teammateSynergy: boolean;
+  pairwiseTeammateSynergy: boolean;
 };
 
 type HistoryLog = {
+  playerId: string;
+  externalGameId: string;
   gameDateEt: string;
   teamId: string | null;
   isHome: boolean | null;
@@ -180,6 +194,9 @@ type FinalizedPlayerMarketStats = {
 type PlayerMarketTrainingRow = {
   playerId: string;
   playerName: string;
+  teamId: string | null;
+  teamCode: string | null;
+  externalGameId: string | null;
   market: SnapshotMarket;
   gameDateEt: string;
   projectedValue: number;
@@ -1115,6 +1132,7 @@ function parseArgs(): Args {
   let raSideOverrideEnabled = true;
   let emitPlayerRows = false;
   let teammateSynergy = false;
+  let pairwiseTeammateSynergy = false;
 
   for (let i = 0; i < raw.length; i += 1) {
     const token = raw[i];
@@ -1246,6 +1264,15 @@ function parseArgs(): Args {
     }
     if (token === "--no-teammate-synergy") {
       teammateSynergy = false;
+      continue;
+    }
+    if (token === "--pairwise-teammate-synergy") {
+      pairwiseTeammateSynergy = true;
+      teammateSynergy = true;
+      continue;
+    }
+    if (token === "--no-pairwise-teammate-synergy") {
+      pairwiseTeammateSynergy = false;
       continue;
     }
     if (token.startsWith("--mode=")) {
@@ -1989,6 +2016,7 @@ function parseArgs(): Args {
     raSideOverrideEnabled,
     emitPlayerRows,
     teammateSynergy,
+    pairwiseTeammateSynergy,
   };
 }
 
@@ -2955,6 +2983,44 @@ function buildBacktestTeamProfiles(
   return result;
 }
 
+function toPairwiseBacktestProfiles(teamProfilesByTeamId: Map<string, BacktestPlayerProfile[]>): Map<string, PairwiseTeammateProfile[]> {
+  const result = new Map<string, PairwiseTeammateProfile[]>();
+  teamProfilesByTeamId.forEach((profiles, teamId) => {
+    result.set(
+      teamId,
+      profiles.map((profile) => ({
+        playerId: profile.playerId,
+        playerName: profile.playerName,
+        teamId: profile.teamId,
+        last10Average: profile.last10Average,
+        minutesLast10Avg: profile.minutesLast10Avg,
+      })),
+    );
+  });
+  return result;
+}
+
+function toPairwiseBacktestLogs(playerHistory: Map<string, HistoryLog[]>): Map<string, PairwiseTeammateGameLog[]> {
+  const result = new Map<string, PairwiseTeammateGameLog[]>();
+  playerHistory.forEach((history, playerId) => {
+    result.set(
+      playerId,
+      history.map((log) => ({
+        playerId,
+        teamId: log.teamId,
+        externalGameId: log.externalGameId,
+        gameDateEt: log.gameDateEt,
+        minutes: log.minutes,
+        points: log.metrics.PTS ?? 0,
+        rebounds: log.metrics.REB ?? 0,
+        assists: log.metrics.AST ?? 0,
+        threes: log.metrics.THREES ?? 0,
+      })),
+    );
+  });
+  return result;
+}
+
 function isLikelyMissingHistoricalCoreTeammate(
   profile: BacktestPlayerProfile,
   teamSignal: ReturnType<typeof getHistoricalRotowireTeamSignal>,
@@ -2979,6 +3045,24 @@ function isLikelyMissingHistoricalCoreTeammate(
   }
 
   return false;
+}
+
+function annotateBacktestPairwiseSynergies(input: {
+  synergies: SnapshotTeammateSynergy[];
+  teamProfilesByTeamId: Map<string, BacktestPlayerProfile[]>;
+  teamId: string | null;
+  teamSignal: ReturnType<typeof getHistoricalRotowireTeamSignal>;
+}): SnapshotTeammateSynergy[] {
+  if (!input.teamId) return input.synergies;
+  const teamProfiles = input.teamProfilesByTeamId.get(input.teamId) ?? [];
+  const profileById = new Map(teamProfiles.map((profile) => [profile.playerId, profile]));
+  return input.synergies.map((synergy) => {
+    const profile = profileById.get(synergy.teammateId);
+    return {
+      ...synergy,
+      activeToday: profile ? !isLikelyMissingHistoricalCoreTeammate(profile, input.teamSignal) : synergy.activeToday,
+    };
+  });
 }
 
 function buildBacktestTeammateSynergyInput(input: {
@@ -3231,6 +3315,14 @@ async function main(): Promise<void> {
     const pendingHybridUpdates: HybridPendingUpdate[] = [];
     const pendingPtsGlobalLinearUpdates: LinearPair[] = [];
     const teamProfilesByTeamId = args.teammateSynergy ? buildBacktestTeamProfiles(playerHistory, playerNameById) : null;
+    const pairwiseSynergyByPlayerId =
+      args.pairwiseTeammateSynergy && teamProfilesByTeamId
+        ? buildPairwiseTeammateSynergyMap({
+            profilesByTeamId: toPairwiseBacktestProfiles(teamProfilesByTeamId),
+            logsByPlayerId: toPairwiseBacktestLogs(playerHistory),
+            maxSynergiesPerPlayer: 4,
+          })
+        : null;
     const historicalRotowire = args.teammateSynergy ? (historicalRotowireByDate.get(date) ?? null) : null;
 
     if (inEvaluationWindow) {
@@ -3337,6 +3429,17 @@ async function main(): Promise<void> {
                 teamSignal: historicalTeamSignal,
               })
             : null;
+        const pairwiseTeammateSynergy =
+          args.pairwiseTeammateSynergy && pairwiseSynergyByPlayerId && teamProfilesByTeamId
+            ? buildPairwiseTeammateSynergyInput(
+                annotateBacktestPairwiseSynergies({
+                  synergies: pairwiseSynergyByPlayerId.get(log.playerId) ?? [],
+                  teamProfilesByTeamId,
+                  teamId: log.teamId,
+                  teamSignal: historicalTeamSignal,
+                }),
+              )
+            : null;
         const missingFrontcourtLoad = computeMissingFrontcourtLoad(teammateSynergy?.missingCoreAverage ?? null);
         const benchBigRoleStability = computeBenchBigRoleStability({
           archetype: playerArchetype,
@@ -3390,6 +3493,7 @@ async function main(): Promise<void> {
                 openingTotal: projectionOpeningTotal,
                 availabilitySeverity: historicalAvailabilitySeverity,
                 teammateSynergy,
+                pairwiseTeammateSynergy,
               })
             : args.mode === "player_conditional_median"
               ? projectedFromPlayerConditionalMedian(history, minutesLast10Avg, minutesLast3Avg)
@@ -3540,6 +3644,9 @@ async function main(): Promise<void> {
           playerMarketRows.push({
             playerId: log.playerId,
             playerName: playerNameById.get(log.playerId) ?? log.playerId,
+            teamId: log.teamId,
+            teamCode,
+            externalGameId: log.externalGameId,
             market: input.market,
             gameDateEt: log.gameDateEt,
             projectedValue: input.projectedValue,
@@ -4043,6 +4150,8 @@ async function main(): Promise<void> {
       const previousDate = history.length > 0 ? history[history.length - 1].gameDateEt : null;
       const restDaysBefore = previousDate ? daysBetween(previousDate, log.gameDateEt) : null;
       history.push({
+        playerId: log.playerId,
+        externalGameId: log.externalGameId,
         gameDateEt: log.gameDateEt,
         teamId: log.teamId,
         isHome: log.isHome,
@@ -4113,10 +4222,10 @@ async function main(): Promise<void> {
 
   const modelName =
     args.mode === "model"
-      ? `snapshot_projection_v4_player_specific_15mpg${args.teammateSynergy ? "_teammate_synergy" : ""}`
+      ? `snapshot_projection_v4_player_specific_15mpg${args.teammateSynergy ? "_teammate_synergy" : ""}${args.pairwiseTeammateSynergy ? "_pairwise_synergy" : ""}`
       : args.mode === "player_hybrid"
-        ? `snapshot_projection_v5_player_hybrid_online${args.teammateSynergy ? "_teammate_synergy" : ""}`
-        : `baseline_${args.mode}${args.teammateSynergy ? "_teammate_synergy" : ""}`;
+        ? `snapshot_projection_v5_player_hybrid_online${args.teammateSynergy ? "_teammate_synergy" : ""}${args.pairwiseTeammateSynergy ? "_pairwise_synergy" : ""}`
+        : `baseline_${args.mode}${args.teammateSynergy ? "_teammate_synergy" : ""}${args.pairwiseTeammateSynergy ? "_pairwise_synergy" : ""}`;
 
   const byPlayerMarket: FinalizedPlayerMarketStats[] = Array.from(playerMarketStats.entries())
     .map(([key, stats]) => {
@@ -4152,6 +4261,7 @@ async function main(): Promise<void> {
     lineFile: args.lineFile,
     directionalAccuracyEnabled: Boolean(args.lineFile),
     teammateSynergyEnabled: args.teammateSynergy,
+    pairwiseTeammateSynergyEnabled: args.pairwiseTeammateSynergy,
     evaluatedDates: evaluationDates.length,
     logsInRange,
     rowsWithHistory,
@@ -4204,6 +4314,11 @@ async function main(): Promise<void> {
       ...(args.teammateSynergy
         ? [
             "Teammate synergy adjustment enabled using rolling top-teammate production and archived Rotowire lineup/injury context.",
+          ]
+        : []),
+      ...(args.pairwiseTeammateSynergy
+        ? [
+            "Pairwise teammate synergy adjustment enabled using only teammate/player co-played games already in history before each evaluated date.",
           ]
         : []),
       ...(args.minHistoryMinutesAvg > 0

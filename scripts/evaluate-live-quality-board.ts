@@ -11,6 +11,11 @@ import {
   summarizeEvaluatedRows,
   summarizePlayers,
 } from "./utils/liveQualityBoardEval";
+import {
+  applyJointFeasibilityGate,
+  resolveJointFeasibilitySettings,
+  summarizeJointFeasibility,
+} from "./utils/liveQualityJointFeasibility";
 
 type Args = {
   input: string | null;
@@ -18,6 +23,8 @@ type Args = {
   detailsOut: string | null;
   minActualMinutes: number;
   qualificationSettingsFile: string | null;
+  jointFeasibilityGate: boolean | null;
+  jointFeasibilityMinSamples: number | null;
 };
 
 function parseArgs(): Args {
@@ -27,6 +34,8 @@ function parseArgs(): Args {
   let detailsOut: string | null = null;
   let minActualMinutes = 15;
   let qualificationSettingsFile: string | null = null;
+  let jointFeasibilityGate: boolean | null = null;
+  let jointFeasibilityMinSamples: number | null = null;
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -86,6 +95,25 @@ function parseArgs(): Args {
       if (Number.isFinite(parsed) && parsed >= 0) minActualMinutes = parsed;
       continue;
     }
+    if (token === "--joint-feasibility-gate") {
+      jointFeasibilityGate = true;
+      continue;
+    }
+    if (token === "--no-joint-feasibility-gate") {
+      jointFeasibilityGate = false;
+      continue;
+    }
+    if (token === "--joint-feasibility-min-samples" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed >= 2) jointFeasibilityMinSamples = Math.round(parsed);
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--joint-feasibility-min-samples=")) {
+      const parsed = Number(token.slice("--joint-feasibility-min-samples=".length));
+      if (Number.isFinite(parsed) && parsed >= 2) jointFeasibilityMinSamples = Math.round(parsed);
+      continue;
+    }
   }
 
   return {
@@ -94,6 +122,8 @@ function parseArgs(): Args {
     detailsOut,
     minActualMinutes,
     qualificationSettingsFile,
+    jointFeasibilityGate,
+    jointFeasibilityMinSamples,
   };
 }
 
@@ -103,10 +133,19 @@ async function main(): Promise<void> {
   const rows = filterAndAttachRows(payload.playerMarketRows, args.minActualMinutes);
   const summaries = await summarizePlayers(rows);
   const qualification = await loadLiveQualityQualificationSettings(args.qualificationSettingsFile);
-  const evaluatedRows = applyPromotedLivePraRawFeatureRows(
+  const promotedRows = applyPromotedLivePraRawFeatureRows(
     rows,
     evaluateRows(rows, summaries, qualification.settings),
   );
+  const jointFeasibilitySettings = resolveJointFeasibilitySettings({
+    ...(args.jointFeasibilityGate == null ? {} : { enabled: args.jointFeasibilityGate }),
+    ...(args.jointFeasibilityMinSamples == null ? {} : { minSamples: args.jointFeasibilityMinSamples }),
+  });
+  const evaluatedRows = applyJointFeasibilityGate({
+    baseRows: rows,
+    evaluatedRows: promotedRows,
+    settings: jointFeasibilitySettings,
+  });
   const summary = summarizeEvaluatedRows(evaluatedRows);
   const runtime = buildLiveQualityRuntimeSnapshot({
     input: args.input,
@@ -121,6 +160,7 @@ async function main(): Promise<void> {
     filters: {
       minActualMinutes: args.minActualMinutes,
     },
+    jointFeasibility: summarizeJointFeasibility(evaluatedRows, jointFeasibilitySettings),
     runtime,
     metricPriority: ["rawAccuracy", "blendedAccuracy", "coveragePct"],
     metricDefinitions: {

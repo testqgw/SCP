@@ -1212,6 +1212,7 @@ async function buildPlayerRow(player: PlayerLookupTarget, dateEt: string): Promi
     projectedMinutesCeiling: minutesProfile.ceiling,
     primaryDefender: null,
     teammateCore: [],
+    teammateSynergies: [],
   };
 
   const gameIntel: SnapshotGameIntel = {

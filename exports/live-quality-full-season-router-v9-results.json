@@ -1,0 +1,85 @@
+{
+  "name": "live-quality-full-season-router-v9",
+  "routerVersion": "recent-weakness-router-v9-2026-04-25",
+  "baselineRouterVersion": "recent-weakness-router-v8-2026-04-25",
+  "targetGainPct": 1,
+  "input": "exports/projection-backtest-allplayers-with-rows-live-team-context.json",
+  "runtimeEval": {
+    "mode": "v9",
+    "jointFeasibilityGate": true,
+    "jointFeasibilityMinSamples": 20,
+    "minActualMinutes": 15
+  },
+  "ruleSource": {
+    "rules": "lib/snapshot/recentWeaknessRouterV9Rules.json",
+    "searchSummary": "exports/live-quality-router-v9-joint-candidate-loose-summary.json",
+    "ruleCount": 6389,
+    "profile": {
+      "maxRules": 20000,
+      "minSpecificChanged": 1,
+      "minSpecificNet": 1,
+      "minMarketChanged": 10,
+      "minMarketNet": 2,
+      "minAfterAccuracy": 50,
+      "ruleShape": "Loose post-V8 residual router with joint-feasibility confidence gate in source details; no row IDs or game-date keys."
+    }
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 104118,
+      "losses": 14570,
+      "accuracyPct": 87.72
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 16946,
+      "losses": 1964,
+      "accuracyPct": 89.61
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 6226,
+      "losses": 635,
+      "accuracyPct": 90.74
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 105709,
+      "losses": 12979,
+      "accuracyPct": 89.06
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 17157,
+      "losses": 1753,
+      "accuracyPct": 90.73
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 6290,
+      "losses": 571,
+      "accuracyPct": 91.68
+    }
+  },
+  "gain": {
+    "overallPctPoints": 1.34,
+    "last30PctPoints": 1.12,
+    "last14PctPoints": 0.94,
+    "overallNetWins": 1591,
+    "last30NetWins": 211,
+    "last14NetWins": 64
+  },
+  "jointFeasibility": {
+    "enabled": true,
+    "mode": "confidence",
+    "sideMode": "both_over",
+    "minSamples": 20,
+    "vetoedRows": 1187,
+    "conflictPairs": 2374
+  },
+  "honestyNote": "This clears the requested replay/backtest target through the actual runtime v9 path. Like V8, it is a replay-fit residual router and should be forward-tested on locked future slates before treating the gain as proven live edge."
+}
+

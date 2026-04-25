@@ -38,6 +38,9 @@ type Market = SnapshotMarket;
 export type LiveQualityTrainingRow = {
   playerId: string;
   playerName: string;
+  teamId?: string | null;
+  teamCode?: string | null;
+  externalGameId?: string | null;
   market: Market;
   gameDateEt: string;
   projectedValue: number;
@@ -150,6 +153,9 @@ export type LiveQualityEvaluatedRow = {
   rowKey: string;
   playerId: string;
   playerName: string;
+  teamId?: string | null;
+  teamCode?: string | null;
+  externalGameId?: string | null;
   normalizedPlayerKey: string;
   market: Market;
   gameDateEt: string;
@@ -181,6 +187,9 @@ export type LiveQualityEvaluatedRow = {
   starterRateLast10: number | null;
   lineGap: number;
   absLineGap: number;
+  jointFeasibilityVetoed?: boolean;
+  jointFeasibilityReason?: string | null;
+  jointFeasibilityConflicts?: string[];
 };
 
 export type LiveQualityEvalBucket = {
@@ -639,6 +648,9 @@ export function evaluateRows(
       rowKey: buildLiveQualityRowKey(row),
       playerId: row.playerId,
       playerName: row.playerName,
+      teamId: row.teamId ?? null,
+      teamCode: row.teamCode ?? null,
+      externalGameId: row.externalGameId ?? null,
       normalizedPlayerKey: normalizeLivePlayerOverrideKey(row.playerName),
       market: row.market,
       gameDateEt: row.gameDateEt,
