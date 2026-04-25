@@ -397,6 +397,7 @@ export type SnapshotDashboardPrecisionSignal = {
   historicalAccuracy: number | null;
   projectionWinProbability: number | null;
   projectionPriceEdge: number | null;
+  absLineGap: number | null;
   selectionScore: number | null;
   selectorFamily?: string | null;
   selectorTier?: string | null;

@@ -90,6 +90,7 @@ import {
   type TeamSynergyInput,
 } from "@/lib/snapshot/projection";
 import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
+import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from "@/lib/snapshot/confidenceRating";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import { maybeRefreshTodayLineupSnapshot } from "@/lib/snapshot/liveLineups";
 import { buildPropSignalGrade } from "@/lib/snapshot/propSignalGrade";
@@ -1035,20 +1036,25 @@ function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): Snapsh
 function getMeaningfulPrecisionHistoricalAccuracy(
   signal: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy"> | null | undefined,
 ): number | null {
-  if (!signal) return null;
-  return signal.historicalAccuracy > 0 ? signal.historicalAccuracy : null;
+  return getMeaningfulHistoricalAccuracy(signal);
 }
 
 function resolveSnapshotDisplayConfidence(input: {
-  precisionSignal?: Pick<SnapshotPrecisionPickSignal, "projectionWinProbability" | "historicalAccuracy"> | null;
-  liveSignal?: Pick<SnapshotPtsSignal, "confidence"> | null;
+  precisionSignal?:
+    | Pick<
+        SnapshotPrecisionPickSignal,
+        | "side"
+        | "qualified"
+        | "projectionWinProbability"
+        | "historicalAccuracy"
+        | "projectionPriceEdge"
+        | "absLineGap"
+        | "selectionScore"
+      >
+    | null;
+  liveSignal?: Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount"> | null;
 }): number | null {
-  const precisionSignal = input.precisionSignal ?? null;
-  if (precisionSignal?.projectionWinProbability != null) {
-    return precisionSignal.projectionWinProbability * 100;
-  }
-
-  return getMeaningfulPrecisionHistoricalAccuracy(precisionSignal) ?? input.liveSignal?.confidence ?? null;
+  return resolvePickConfidenceRating(input);
 }
 
 function toDashboardPrecisionSignal(
@@ -1061,6 +1067,7 @@ function toDashboardPrecisionSignal(
     historicalAccuracy: getMeaningfulPrecisionHistoricalAccuracy(signal),
     projectionWinProbability: signal.projectionWinProbability,
     projectionPriceEdge: signal.projectionPriceEdge ?? null,
+    absLineGap: signal.absLineGap ?? null,
     selectionScore: signal.selectionScore ?? null,
     selectorFamily: signal.selectorFamily ?? null,
     selectorTier: signal.selectorTier ?? null,

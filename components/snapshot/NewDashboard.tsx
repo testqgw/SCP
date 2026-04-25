@@ -15,6 +15,7 @@ import type {
   SnapshotPrecisionCardEntry,
   SnapshotPrecisionPickSignal,
 } from '@/lib/types/snapshot';
+import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/lib/snapshot/confidenceRating';
 
 type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'players' | 'feed' | 'tracker' | 'method';
@@ -116,8 +117,13 @@ function pct(v: number | null | undefined, d = 1) {
 }
 
 type PrecisionConfidenceLike = {
+  side?: SnapshotModelSide | null;
+  qualified?: boolean;
   historicalAccuracy?: number | null;
   projectionWinProbability?: number | null;
+  projectionPriceEdge?: number | null;
+  absLineGap?: number | null;
+  selectionScore?: number | null;
 };
 
 function normalizePrecisionSignal(
@@ -130,6 +136,7 @@ function normalizePrecisionSignal(
     historicalAccuracy: meaningfulHistoricalAccuracy(precision),
     projectionWinProbability: precision.projectionWinProbability ?? null,
     projectionPriceEdge: precision.projectionPriceEdge ?? null,
+    absLineGap: precision.absLineGap ?? null,
     selectionScore: precision.selectionScore ?? null,
     selectorFamily: precision.selectorFamily ?? null,
     selectorTier: precision.selectorTier ?? null,
@@ -138,19 +145,14 @@ function normalizePrecisionSignal(
 }
 
 function meaningfulHistoricalAccuracy(precision: PrecisionConfidenceLike | null | undefined) {
-  const historicalAccuracy = precision?.historicalAccuracy;
-  return historicalAccuracy != null && historicalAccuracy > 0 ? historicalAccuracy : null;
+  return getMeaningfulHistoricalAccuracy(precision);
 }
 
 function resolveViewConfidence(
   precision: PrecisionConfidenceLike | null | undefined,
   liveSignal: SnapshotDashboardSignal | null | undefined,
 ) {
-  if (precision?.projectionWinProbability != null) {
-    return precision.projectionWinProbability * 100;
-  }
-
-  return meaningfulHistoricalAccuracy(precision) ?? liveSignal?.confidence ?? null;
+  return resolvePickConfidenceRating({ precisionSignal: precision, liveSignal });
 }
 
 function ts(v: string | null) {
@@ -741,7 +743,7 @@ function viewFor(
             ? 'UNDER'
             : 'NEUTRAL'
         : liveSignal?.side ?? row.modelLines[market].modelSide;
-  const usesDerivedConfidence = precision?.projectionWinProbability != null;
+  const usesDerivedConfidence = precision != null;
   const conf = resolveViewConfidence(precision, liveSignal);
   const usesDerivedEdge = proj != null && basis != null;
   const edge = usesDerivedEdge ? Number((proj - basis).toFixed(1)) : precision?.projectionPriceEdge ?? null;
@@ -2213,7 +2215,7 @@ export default function NewDashboard({
                     <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" showKind={false} />
                     <Stat dense label="Model gap" value={gapRead(featured.edge)} kind={featured.edgeKind} note={gapNote(featured)} showKind={false} />
                     <Stat dense label="Signal grade" value={signalGradeValue(featured.signalGrade)} kind={featured.signalGrade ? 'DERIVED' : 'PLACEHOLDER'} note={signalGradeNote(featured.signalGrade)} showKind={false} />
-                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} kind={featured.confKind} note="Payload confidence" showKind={false} />
+                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} kind={featured.confKind} note="Pick confidence" showKind={false} />
                   </div>
 
                   <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)] md:hidden">
