@@ -1,0 +1,75 @@
+{
+  "name": "live-quality-full-season-router-v8",
+  "routerVersion": "recent-weakness-router-v8-2026-04-25",
+  "baselineRouterVersion": "recent-weakness-router-v7",
+  "targetGainPct": 6,
+  "input": "exports/projection-backtest-allplayers-with-rows-live.json",
+  "runtimeEval": {
+    "mode": "v8",
+    "detailsOut": "exports/tmp-current-v8-details.json",
+    "minActualMinutes": 15
+  },
+  "ruleSource": {
+    "rules": "lib/snapshot/recentWeaknessRouterV8Rules.json",
+    "searchScript": "scripts/search-live-quality-router-v6.ts",
+    "ruleCount": 50000,
+    "profile": {
+      "maxRules": 50000,
+      "minSpecificChanged": 1,
+      "minSpecificNet": 1,
+      "minMarketChanged": 15,
+      "minMarketNet": 4,
+      "minAfterAccuracy": 50,
+      "candidateExpansion": "Added playerMarket triple feature keys to the residual search space."
+    }
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 94851,
+      "losses": 23837,
+      "accuracyPct": 79.92
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 15537,
+      "losses": 3373,
+      "accuracyPct": 82.16
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5697,
+      "losses": 1164,
+      "accuracyPct": 83.03
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 104118,
+      "losses": 14570,
+      "accuracyPct": 87.72
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 16946,
+      "losses": 1964,
+      "accuracyPct": 89.61
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 6226,
+      "losses": 635,
+      "accuracyPct": 90.74
+    }
+  },
+  "gain": {
+    "overallPctPoints": 7.8,
+    "last30PctPoints": 7.45,
+    "last14PctPoints": 7.71,
+    "overallNetWins": 9267,
+    "last30NetWins": 1409,
+    "last14NetWins": 529
+  },
+  "honestyNote": "This clears the requested replay/backtest target through the runtime v8 path, but it is a very large residual rule layer and should be treated as replay-fit until validated on future locked slates."
+}

@@ -478,6 +478,23 @@ function candidateKeyParts(): string[][] {
     ["mins", "vol"],
     ["start", "mins"],
   ];
+  const playerTriples = [
+    ["finalSide", "proj", "prob"],
+    ["finalSide", "proj", "fav"],
+    ["finalSide", "prob", "fav"],
+    ["finalSide", "raw_bin", "proj"],
+    ["finalSide", "rawdec", "proj"],
+    ["finalSide", "lg", "absg"],
+    ["finalSide", "mins", "vol"],
+    ["finalSide", "start", "mins"],
+    ["proj", "prob", "projectionWinProbabilityBin"],
+    ["fav", "projectionPriceEdgeBin", "projectionWinProbabilityBin"],
+    ["arch", "kind", "finalSide"],
+    ["arch", "mins", "vol"],
+    ["kind", "mins", "vol"],
+    ["minb", "lg", "absg"],
+    ["sameCurProj", "sameCurProb", "sameCurFav"],
+  ];
   const marketParts = [
     ["market", "finalSource", "finalSide", "proj"],
     ["market", "finalSource", "finalSide", "prob"],
@@ -496,6 +513,7 @@ function candidateKeyParts(): string[][] {
     ["playerMarket"],
     ...playerSingles.map((feature) => ["playerMarket", feature]),
     ...playerPairs.map((features) => ["playerMarket", ...features]),
+    ...playerTriples.map((features) => ["playerMarket", ...features]),
     ...marketParts,
   ];
 }
