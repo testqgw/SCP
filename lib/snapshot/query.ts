@@ -1110,6 +1110,9 @@ function toDashboardPlayerContext(playerContext: SnapshotRow["playerContext"]): 
   return {
     projectedStarter: playerContext.projectedStarter,
     lineupStatus: playerContext.lineupStatus,
+    lineupStarter: playerContext.lineupStarter,
+    availabilityStatus: playerContext.availabilityStatus,
+    availabilityPercentPlay: playerContext.availabilityPercentPlay,
     rotationRank: playerContext.rotationRank,
     minutesTrend: playerContext.minutesTrend,
     minutesVolatility: playerContext.minutesVolatility,

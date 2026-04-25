@@ -804,6 +804,15 @@ function trendRead(value: number | null | undefined) {
   return 'Tracking close to season baseline right now.';
 }
 
+function availabilityRead(playerContext: SnapshotDashboardRow['playerContext']) {
+  const status = playerContext.availabilityStatus;
+  if (!status || status === 'ACTIVE') return null;
+  if (playerContext.availabilityPercentPlay != null && status !== 'OUT') {
+    return `${status} (${n(playerContext.availabilityPercentPlay, 0)}% to play)`;
+  }
+  return status;
+}
+
 function marketRead(view: View) {
   if (view.live != null && view.edge != null) {
     return `${view.side} ${signed(view.edge)} vs live`;
@@ -2985,9 +2994,13 @@ export default function NewDashboard({
                           dense
                           showKind={false}
                           label="Lineup status"
-                          value={researchRow.playerContext.lineupStatus ?? '-'}
-                          kind={researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'}
-                          note={researchRow.playerContext.projectedStarter ?? 'Starter note unavailable'}
+                          value={availabilityRead(researchRow.playerContext) ?? researchRow.playerContext.lineupStatus ?? '-'}
+                          kind={availabilityRead(researchRow.playerContext) || researchRow.playerContext.lineupStatus ? 'LIVE' : 'PLACEHOLDER'}
+                          note={
+                            availabilityRead(researchRow.playerContext)
+                              ? `${researchRow.playerContext.lineupStatus ?? 'Lineup pending'} / ${researchRow.playerContext.projectedStarter}`
+                              : researchRow.playerContext.projectedStarter ?? 'Starter note unavailable'
+                          }
                         />
                       </div>
                     </div>
@@ -3544,7 +3557,7 @@ export default function NewDashboard({
                                             </div>
                                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
                                               <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Lineup status</div>
-                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{v.row.playerContext.lineupStatus ?? 'Waiting for lineup note'}</div>
+                                              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{availabilityRead(v.row.playerContext) ?? v.row.playerContext.lineupStatus ?? 'Waiting for lineup note'}</div>
                                             </div>
                                             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
                                               <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">Trend</div>

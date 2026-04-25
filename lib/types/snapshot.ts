@@ -420,6 +420,9 @@ export type SnapshotDashboardPlayerContext = Pick<
   SnapshotPlayerContext,
   | "projectedStarter"
   | "lineupStatus"
+  | "lineupStarter"
+  | "availabilityStatus"
+  | "availabilityPercentPlay"
   | "rotationRank"
   | "minutesTrend"
   | "minutesVolatility"
