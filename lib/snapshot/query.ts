@@ -4062,29 +4062,20 @@ export async function getSnapshotPlayerLookupData(input: {
 
 export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
   try {
-    if (dateEt === getSnapshotBoardDateString()) {
-      return preferBundledSnapshotBoardViewFallbackWhenBroken(
-        dateEt,
-        toSnapshotBoardViewData(
-          await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, false), { dateEt }),
-        ),
-      );
-    }
-
+    const isTodayEt = dateEt === getSnapshotBoardDateString();
     const [persistedBoardSetting, lineupSetting] = await Promise.all([
       prisma.systemSetting.findUnique({
         where: { key: getSnapshotBoardSettingKey(dateEt) },
         select: { value: true },
       }),
-      dateEt === getSnapshotBoardDateString()
+      isTodayEt
         ? prisma.systemSetting.findUnique({
             where: { key: "snapshot_lineups_today" },
             select: { value: true, updatedAt: true },
           })
         : Promise.resolve(null),
     ]);
-    const lineupSnapshotResult = await resolveLineupSnapshotForDate(dateEt, lineupSetting);
-    const lineupMap = buildLineupSignalMap(lineupSnapshotResult.snapshot);
+    const lineupMap = buildLineupSignalMap(parseLineupSnapshot(lineupSetting?.value ?? null, dateEt));
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
       return preferBundledSnapshotBoardViewFallbackWhenBroken(
@@ -4096,7 +4087,9 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     }
     return preferBundledSnapshotBoardViewFallbackWhenBroken(
       dateEt,
-      toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt })),
+      toSnapshotBoardViewData(
+        await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, !isTodayEt), { dateEt }),
+      ),
     );
   } catch (error) {
     return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
