@@ -1,0 +1,78 @@
+{
+  "generatedAt": "2026-04-25T00:41:24.372Z",
+  "router": "recent-weakness-router-v6-2026-04-25",
+  "mode": "v6",
+  "baselineRouter": "recent-weakness-router-v5-2026-04-24",
+  "ruleCount": 3500,
+  "startDateEt": "2025-10-23",
+  "dataset": {
+    "input": "exports/projection-backtest-allplayers-with-rows-live.json",
+    "from": "2025-10-23",
+    "to": "2026-04-23",
+    "minActualMinutes": 15
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 83107,
+      "losses": 35581,
+      "accuracyPct": 70.02
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14494,
+      "losses": 4416,
+      "accuracyPct": 76.65
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5420,
+      "losses": 1441,
+      "accuracyPct": 79
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 87905,
+      "losses": 30783,
+      "accuracyPct": 74.06
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14874,
+      "losses": 4036,
+      "accuracyPct": 78.66
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5515,
+      "losses": 1346,
+      "accuracyPct": 80.38
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 4.04,
+      "wins": 4798
+    },
+    "last30": {
+      "accuracyPct": 2.01,
+      "wins": 380
+    },
+    "last14": {
+      "accuracyPct": 1.38,
+      "wins": 95
+    }
+  },
+  "ruleShape": "Post-V5 ranked residual router over playerMarket and market feature-bin keys only; no exact row IDs or game-date keys.",
+  "verification": {
+    "runtimeEvalCommand": "SNAPSHOT_RECENT_WEAKNESS_ROUTER_MODE=v6 npx tsx --env-file=.env.local --env-file=.env scripts/evaluate-live-quality-board.ts --input exports/projection-backtest-allplayers-with-rows-live.json --min-actual-minutes 15",
+    "runtimeOverallBlendedAccuracyPct": 74.06
+  },
+  "caveats": [
+    "This is replay-tuned against the current historical live-quality backtest rows.",
+    "It is not forward proof until it holds on future locked slates.",
+    "Rules avoid exact row IDs and game-date keys, but many are player-market feature exceptions, so future monitoring matters."
+  ]
+}
