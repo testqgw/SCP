@@ -79,6 +79,12 @@ type Args = {
   outSummary: string;
   targetGainPct: number;
   maxRules: number;
+  minSpecificChanged: number;
+  minSpecificNet: number;
+  minMarketChanged: number;
+  minMarketNet: number;
+  minAfterAccuracy: number;
+  ruleShape: string;
 };
 
 const EXPERTS: Expert[] = [
@@ -104,6 +110,13 @@ function parseArgs(): Args {
   let outSummary = path.join("exports", "live-quality-router-v6-candidate-summary.json");
   let targetGainPct = 4;
   let maxRules = 2600;
+  let minSpecificChanged = 3;
+  let minSpecificNet = 2;
+  let minMarketChanged = 45;
+  let minMarketNet = 10;
+  let minAfterAccuracy = 62;
+  let ruleShape =
+    "Post-V5 ranked residual router over playerMarket and market feature-bin keys only; no exact row IDs or game-date keys.";
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];
@@ -135,9 +148,56 @@ function parseArgs(): Args {
       index += 1;
       continue;
     }
+    if (token === "--min-specific-changed" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) minSpecificChanged = Math.floor(parsed);
+      index += 1;
+      continue;
+    }
+    if (token === "--min-specific-net" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) minSpecificNet = Math.floor(parsed);
+      index += 1;
+      continue;
+    }
+    if (token === "--min-market-changed" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) minMarketChanged = Math.floor(parsed);
+      index += 1;
+      continue;
+    }
+    if (token === "--min-market-net" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) minMarketNet = Math.floor(parsed);
+      index += 1;
+      continue;
+    }
+    if (token === "--min-after-accuracy" && next) {
+      const parsed = Number(next);
+      if (Number.isFinite(parsed) && parsed > 0) minAfterAccuracy = parsed;
+      index += 1;
+      continue;
+    }
+    if (token === "--rule-shape" && next) {
+      ruleShape = next;
+      index += 1;
+      continue;
+    }
   }
 
-  return { input, outRules, outSummary, targetGainPct, maxRules };
+  return {
+    input,
+    outRules,
+    outSummary,
+    targetGainPct,
+    maxRules,
+    minSpecificChanged,
+    minSpecificNet,
+    minMarketChanged,
+    minMarketNet,
+    minAfterAccuracy,
+    ruleShape,
+  };
 }
 
 function isBinarySide(value: SnapshotModelSide | null | undefined): value is Side {
@@ -457,23 +517,23 @@ function summarizeRows(rows: RuntimeRow[], fromDate?: string): {
   };
 }
 
-function minChangedForKey(key: string): number {
-  if (key.startsWith("market=")) return 45;
-  if (key.split("|").length >= 3) return 3;
+function minChangedForKey(key: string, args: Args): number {
+  if (key.startsWith("market=")) return args.minMarketChanged;
+  if (key.split("|").length >= 3) return args.minSpecificChanged;
   return 6;
 }
 
-function minNetForKey(key: string): number {
-  if (key.startsWith("market=")) return 10;
-  if (key.split("|").length >= 3) return 2;
+function minNetForKey(key: string, args: Args): number {
+  if (key.startsWith("market=")) return args.minMarketNet;
+  if (key.split("|").length >= 3) return args.minSpecificNet;
   return 3;
 }
 
-function passesCandidate(candidate: Candidate): boolean {
+function passesCandidate(candidate: Candidate, args: Args): boolean {
   return (
-    candidate.changed >= minChangedForKey(candidate.key) &&
-    candidate.net >= minNetForKey(candidate.key) &&
-    candidate.afterAccuracy >= 62
+    candidate.changed >= minChangedForKey(candidate.key, args) &&
+    candidate.net >= minNetForKey(candidate.key, args) &&
+    candidate.afterAccuracy >= args.minAfterAccuracy
   );
 }
 
@@ -483,7 +543,7 @@ type CandidateAccumulator = Rule & {
   afterWins: number;
 };
 
-function accumulateCandidates(rows: RuntimeRow[]): Candidate[] {
+function accumulateCandidates(rows: RuntimeRow[], args: Args): Candidate[] {
   const keyParts = candidateKeyParts();
   const accumulators = new Map<string, CandidateAccumulator>();
 
@@ -521,7 +581,7 @@ function accumulateCandidates(rows: RuntimeRow[]): Candidate[] {
       net: accumulator.afterWins - accumulator.beforeWins,
       afterAccuracy: round((accumulator.afterWins / accumulator.changed) * 100, 2),
     }))
-    .filter((candidate) => passesCandidate(candidate))
+    .filter((candidate) => passesCandidate(candidate, args))
     .sort((left, right) => {
       const leftSpecificity = left.key.split("|").length;
       const rightSpecificity = right.key.split("|").length;
@@ -584,7 +644,7 @@ async function main(): Promise<void> {
     last14: summarizeRows(rows, LAST_14_FROM),
   };
   const targetWins = Math.ceil(before.overall.wins + (args.targetGainPct / 100) * rows.length);
-  const rankedCandidates = accumulateCandidates(rows);
+  const rankedCandidates = accumulateCandidates(rows, args);
   const selected: Candidate[] = [];
   const seenRuleKeys = new Set<string>();
 
@@ -628,8 +688,7 @@ async function main(): Promise<void> {
     },
     ruleCount: selected.length,
     selectedRules: selected,
-    ruleShape:
-      "Post-V5 ranked residual router over playerMarket and market feature-bin keys only; no exact row IDs or game-date keys.",
+    ruleShape: args.ruleShape,
   };
 
   const rules = selected.map(({ key, expert }) => ({ key, expert }));

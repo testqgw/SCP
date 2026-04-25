@@ -1,0 +1,86 @@
+{
+  "generatedAt": "2026-04-25T01:23:32.793Z",
+  "router": "recent-weakness-router-v7-2026-04-25",
+  "mode": "v7",
+  "baselineRouter": "recent-weakness-router-v6-2026-04-25",
+  "ruleCount": 12000,
+  "startDateEt": "2025-10-23",
+  "dataset": {
+    "input": "exports/projection-backtest-allplayers-with-rows-live.json",
+    "from": "2025-10-23",
+    "to": "2026-04-23",
+    "minActualMinutes": 15
+  },
+  "before": {
+    "overall": {
+      "samples": 118688,
+      "wins": 87905,
+      "losses": 30783,
+      "accuracyPct": 74.06
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 14874,
+      "losses": 4036,
+      "accuracyPct": 78.66
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5515,
+      "losses": 1346,
+      "accuracyPct": 80.38
+    }
+  },
+  "after": {
+    "overall": {
+      "samples": 118688,
+      "wins": 94851,
+      "losses": 23837,
+      "accuracyPct": 79.92
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 15537,
+      "losses": 3373,
+      "accuracyPct": 82.16
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 5697,
+      "losses": 1164,
+      "accuracyPct": 83.03
+    }
+  },
+  "gain": {
+    "overall": {
+      "accuracyPct": 5.86,
+      "wins": 6946
+    },
+    "last30": {
+      "accuracyPct": 3.5,
+      "wins": 663
+    },
+    "last14": {
+      "accuracyPct": 2.65,
+      "wins": 182
+    }
+  },
+  "searchProfile": {
+    "ruleShape": "Post-V6 balanced ranked residual router over playerMarket and market feature-bin keys only; no exact row IDs or game-date keys.",
+    "maxRules": 12000,
+    "minSpecificChanged": 2,
+    "minSpecificNet": 1,
+    "minMarketChanged": 25,
+    "minMarketNet": 6,
+    "minAfterAccuracy": 55
+  },
+  "verification": {
+    "runtimeEvalCommand": "SNAPSHOT_RECENT_WEAKNESS_ROUTER_MODE=v7 npx tsx --env-file=.env.local --env-file=.env scripts/evaluate-live-quality-board.ts --input exports/projection-backtest-allplayers-with-rows-live.json --min-actual-minutes 15",
+    "runtimeOverallBlendedAccuracyPct": 79.92
+  },
+  "caveats": [
+    "This is replay-tuned against the current historical live-quality backtest rows.",
+    "It is not forward proof until it holds on future locked slates.",
+    "The V7 layer is looser than V6 and uses many player-market feature exceptions, so future monitoring matters."
+  ]
+}
