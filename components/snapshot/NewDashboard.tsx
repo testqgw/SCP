@@ -17,8 +17,9 @@ import type {
 } from '@/lib/types/snapshot';
 import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/lib/snapshot/confidenceRating';
 
-type Tab = 'overview' | 'precision' | 'research' | 'scout' | 'tracking';
-type ViewKey = 'overview' | 'precision' | 'players' | 'feed' | 'tracker' | 'method';
+type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
+type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
+type RubbingSort = 'confidence' | 'edge' | 'books';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
 type TrackerBooksFilter = 'all' | '3plus' | '5plus';
@@ -26,6 +27,7 @@ type Kind = 'LIVE' | 'DERIVED' | 'PLACEHOLDER' | 'MODEL';
 type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
+const RUBBING_PAGE_SIZE = 24;
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
@@ -42,6 +44,7 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'overview', label: 'Overview', hint: 'Best board setups' },
   { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
+  { id: 'rubbing', label: 'Rubbing Hands', hint: 'All model props' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
@@ -50,6 +53,7 @@ const TABS: Array<{ id: Tab; label: string; hint: string }> = [
 const TAB_TO_VIEW: Record<Tab, ViewKey> = {
   overview: 'overview',
   precision: 'precision',
+  rubbing: 'rubbing',
   research: 'players',
   scout: 'feed',
   tracking: 'tracker',
@@ -58,6 +62,7 @@ const TAB_TO_VIEW: Record<Tab, ViewKey> = {
 const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
   overview: 'overview',
   precision: 'precision',
+  rubbing: 'rubbing',
   players: 'research',
   feed: 'scout',
   tracker: 'tracking',
@@ -66,6 +71,7 @@ const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
   { label: 'Overview', tab: 'overview' },
   { label: 'Precision Picks', tab: 'precision' },
+  { label: 'Rubbing Hands', tab: 'rubbing' },
   { label: 'Players', tab: 'research' },
   { label: 'Feed', tab: 'scout' },
   { label: 'Tracker', tab: 'tracking' },
@@ -541,6 +547,79 @@ function trackerStatusTone(status: TrackerStatusFilter): 'default' | 'cyan' | 'a
   return 'default';
 }
 
+function isAvailabilityRemoved(row: SnapshotDashboardRow) {
+  const status = row.playerContext.availabilityStatus;
+  if (status === 'OUT' || status === 'DOUBTFUL') return true;
+  if ((row.playerContext.availabilityPercentPlay ?? 100) <= 0) return true;
+  return false;
+}
+
+function isAvailabilityWatch(row: SnapshotDashboardRow) {
+  const status = row.playerContext.availabilityStatus;
+  if (!status || status === 'ACTIVE') return false;
+  if (isAvailabilityRemoved(row)) return false;
+  return status === 'QUESTIONABLE' || (row.playerContext.availabilityPercentPlay ?? 100) < 85;
+}
+
+function rubbingAvailabilityLabel(row: SnapshotDashboardRow) {
+  const availability = availabilityRead(row.playerContext);
+  if (availability) return availability;
+  if (row.playerContext.lineupStarter === true) return 'Starter confirmed';
+  if (row.playerContext.lineupStarter === false) return row.playerContext.lineupStatus ?? 'Bench or role watch';
+  return row.playerContext.lineupStatus ?? 'No injury flag';
+}
+
+function rubbingAvailabilityTone(row: SnapshotDashboardRow): 'default' | 'cyan' | 'amber' {
+  if (isAvailabilityRemoved(row) || isAvailabilityWatch(row)) return 'amber';
+  if (row.playerContext.lineupStarter === true) return 'cyan';
+  return 'default';
+}
+
+function rubbingPropStatusLabel(row: SnapshotDashboardRow) {
+  if (isAvailabilityRemoved(row)) return 'Removed by injury';
+  if (isAvailabilityWatch(row)) return 'Injury watch';
+  return 'Active prop';
+}
+
+function rubbingPropStatusTone(row: SnapshotDashboardRow): 'default' | 'cyan' | 'amber' {
+  if (isAvailabilityRemoved(row) || isAvailabilityWatch(row)) return 'amber';
+  return 'cyan';
+}
+
+function rubbingLaneLabel(view: View) {
+  if (view.precision?.qualified) return 'Precision model';
+  if (view.live != null) return 'Live model';
+  if (view.fair != null) return 'Fair model';
+  return 'Projection model';
+}
+
+function rubbingExternalNote(view: View) {
+  const notes: string[] = [];
+  const context = view.row.playerContext;
+  const availability = availabilityRead(context);
+  if (availability) notes.push(availability);
+  if (context.projectedMinutes != null) notes.push(`${n(context.projectedMinutes, 1)} projected min`);
+  if (view.books != null) notes.push(booksLiveLabel(view.books) ?? `${n(view.books, 0)} books`);
+
+  const synergy = context.teammateSynergies?.find(
+    (item) => item.targetMarket === view.market && item.likelyActiveTrigger && item.activeToday,
+  );
+  if (synergy) {
+    const sign = synergy.delta >= 0 ? '+' : '';
+    notes.push(`${synergy.teammateName} ${synergy.triggerLabel}: ${sign}${n(synergy.delta, 1)} ${MARKET_LABELS[view.market]}`);
+  }
+
+  if (context.primaryDefender?.matchupReason) {
+    notes.push(`Defender: ${context.primaryDefender.matchupReason}`);
+  }
+
+  if (view.row.dataCompleteness.score != null) {
+    notes.push(`Data ${pct(view.row.dataCompleteness.score, 0)} ${view.row.dataCompleteness.tier}`);
+  }
+
+  return notes.slice(0, 4).join(' | ') || 'No extra context in current payload';
+}
+
 function CompactMetric({
   label,
   value,
@@ -846,7 +925,7 @@ function slugifyParam(value: string) {
 }
 
 function parseViewParam(value: string | null): ViewKey {
-  if (value === 'precision' || value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
+  if (value === 'precision' || value === 'rubbing' || value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
   if (value === 'lines') return 'tracker';
   return 'overview';
 }
@@ -856,7 +935,7 @@ function viewKeepsPlayerParam(view: ViewKey) {
 }
 
 function viewKeepsMatchupParam(view: ViewKey) {
-  return view === 'overview' || view === 'players' || view === 'feed' || view === 'tracker';
+  return view === 'overview' || view === 'rubbing' || view === 'players' || view === 'feed' || view === 'tracker';
 }
 
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
@@ -935,6 +1014,10 @@ export default function NewDashboard({
   const [trackerBooksFilter, setTrackerBooksFilter] = useState<TrackerBooksFilter>('all');
   const [trackerPage, setTrackerPage] = useState(0);
   const [expandedTrackerKey, setExpandedTrackerKey] = useState<string | null>(null);
+  const [rubbingSort, setRubbingSort] = useState<RubbingSort>('confidence');
+  const [rubbingSearchQuery, setRubbingSearchQuery] = useState('');
+  const [rubbingMarketFilter, setRubbingMarketFilter] = useState<'ALL' | SnapshotMarket>('ALL');
+  const [rubbingPage, setRubbingPage] = useState(0);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
@@ -949,6 +1032,7 @@ export default function NewDashboard({
   const highlightTimeoutRef = useRef<number | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery.trim().toLowerCase());
   const deferredTrackerSearchQuery = useDeferredValue(trackerSearchQuery.trim().toLowerCase());
+  const deferredRubbingSearchQuery = useDeferredValue(rubbingSearchQuery.trim().toLowerCase());
 
   useEffect(() => {
     setData(initialData);
@@ -996,6 +1080,67 @@ export default function NewDashboard({
         MARKETS.map((market) => viewFor(row, market, null)),
       ),
     [boardRows],
+  );
+  const rubbingBaseViews = useMemo(
+    () => allViews.filter((view) => view.live != null || view.fair != null || view.proj != null || view.conf != null),
+    [allViews],
+  );
+  const rubbingRemovedViews = useMemo(
+    () => rubbingBaseViews.filter((view) => isAvailabilityRemoved(view.row)),
+    [rubbingBaseViews],
+  );
+  const rubbingActiveBaseViews = useMemo(
+    () => rubbingBaseViews.filter((view) => !isAvailabilityRemoved(view.row)),
+    [rubbingBaseViews],
+  );
+  const rubbingFilteredViews = useMemo(() => {
+    const views = rubbingActiveBaseViews.filter((view) => {
+      if (rubbingMarketFilter !== 'ALL' && view.market !== rubbingMarketFilter) return false;
+      if (!deferredRubbingSearchQuery) return true;
+      return [view.row.playerName, view.row.teamCode, view.row.opponentCode, view.row.matchupKey, view.label]
+        .join(' ')
+        .toLowerCase()
+        .includes(deferredRubbingSearchQuery);
+    });
+
+    views.sort((a, b) => {
+      if (rubbingSort === 'edge') {
+        return Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || (b.conf ?? -1) - (a.conf ?? -1) || b.score - a.score;
+      }
+      if (rubbingSort === 'books') {
+        return (b.books ?? -1) - (a.books ?? -1) || (b.conf ?? -1) - (a.conf ?? -1) || Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0);
+      }
+      return (b.conf ?? -1) - (a.conf ?? -1) || Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score;
+    });
+
+    return views;
+  }, [deferredRubbingSearchQuery, rubbingActiveBaseViews, rubbingMarketFilter, rubbingSort]);
+  const rubbingPageCount = Math.max(1, Math.ceil(rubbingFilteredViews.length / RUBBING_PAGE_SIZE));
+  const rubbingViews = useMemo(() => {
+    const start = rubbingPage * RUBBING_PAGE_SIZE;
+    return rubbingFilteredViews.slice(start, start + RUBBING_PAGE_SIZE);
+  }, [rubbingFilteredViews, rubbingPage]);
+  const rubbingRangeStart = rubbingFilteredViews.length === 0 ? 0 : rubbingPage * RUBBING_PAGE_SIZE + 1;
+  const rubbingRangeEnd = rubbingFilteredViews.length === 0 ? 0 : rubbingRangeStart + rubbingViews.length - 1;
+  const rubbingPageDisplay = rubbingFilteredViews.length === 0 ? 0 : rubbingPage + 1;
+  const rubbingPageTotalDisplay = rubbingFilteredViews.length === 0 ? 0 : rubbingPageCount;
+  const rubbingAverageConfidence = useMemo(() => {
+    const values = rubbingFilteredViews.map((view) => view.conf).filter((value): value is number => value != null && !Number.isNaN(value));
+    if (!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }, [rubbingFilteredViews]);
+  const rubbingAverageBooks = useMemo(() => {
+    const values = rubbingFilteredViews.map((view) => view.books).filter((value): value is number => value != null && !Number.isNaN(value));
+    if (!values.length) return null;
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+  }, [rubbingFilteredViews]);
+  const rubbingWatchCount = useMemo(
+    () => rubbingFilteredViews.filter((view) => isAvailabilityWatch(view.row)).length,
+    [rubbingFilteredViews],
+  );
+  const rubbingHighConfidenceCount = useMemo(
+    () => rubbingFilteredViews.filter((view) => (view.conf ?? 0) >= 70).length,
+    [rubbingFilteredViews],
   );
   const featured = useMemo(() => {
     const lead = precision[0]?.view;
@@ -1451,6 +1596,12 @@ export default function NewDashboard({
           : 'No board picks yet',
       kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
     },
+    rubbing: {
+      detail: rubbingFilteredViews.length
+        ? `${n(rubbingFilteredViews.length, 0)} active props | ${n(rubbingRemovedViews.length, 0)} removed`
+        : 'No active props loaded',
+      kind: rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER',
+    },
     research: {
       detail: slatePlayers.length ? `${n(slatePlayers.length, 0)} slate players` : 'Slate not loaded',
       kind: slatePlayers.length ? 'LIVE' : 'PLACEHOLDER',
@@ -1571,6 +1722,12 @@ export default function NewDashboard({
     setTrackerPage((current) => Math.min(current, Math.max(trackerPageCount - 1, 0)));
   }, [trackerPageCount]);
   useEffect(() => {
+    setRubbingPage(0);
+  }, [deferredRubbingSearchQuery, rubbingMarketFilter, rubbingSort]);
+  useEffect(() => {
+    setRubbingPage((current) => Math.min(current, Math.max(rubbingPageCount - 1, 0)));
+  }, [rubbingPageCount]);
+  useEffect(() => {
     if (!expandedTrackerKey) return;
     if (!trackViews.some((view) => trackerRowKey(view) === expandedTrackerKey)) {
       setExpandedTrackerKey(null);
@@ -1672,6 +1829,10 @@ export default function NewDashboard({
     precision: {
       title: 'Precision Picks',
       detail: 'Only the promoted model-qualified picks live here, with audit status and current-slate performance.',
+    },
+    rubbing: {
+      title: 'Rubbing Hands',
+      detail: 'Every active player prop from the current model payload, with confidence, line context, and injury-aware availability.',
     },
     research: {
       title: 'Player research',
@@ -2755,6 +2916,203 @@ export default function NewDashboard({
                     />
                   </div>
                 )}
+              </div>
+            </section>
+          ) : tab === 'rubbing' ? (
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">All model player props with confidence</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      This board reads from the same live model payload as the rest of the site. Confirmed OUT, DOUBTFUL, and 0% availability players are removed from the actionable list, while questionable players stay visible as injury-watch props.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                    Last board refresh <span className="font-semibold text-[var(--text)]">{boardRefreshRelative}</span>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                  Injury and external context comes through the board query: Rotowire availability, lineup starter status, projected minutes, live book count, defender notes, and teammate synergy are all shown when present in the current payload.
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                <Stat dense label="Active props" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Actionable rows after current filters" />
+                <Stat dense label="Removed" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
+                <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
+                <Stat dense label="70+ confidence" value={n(rubbingHighConfidenceCount, 0)} kind={rubbingHighConfidenceCount ? 'MODEL' : 'PLACEHOLDER'} note="Model confidence at or above 70%" />
+                <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
+                <Stat dense label="Avg books live" value={rubbingAverageBooks == null ? '-' : n(rubbingAverageBooks)} kind={rubbingAverageBooks == null ? 'PLACEHOLDER' : 'LIVE'} note="Live sportsbook depth" />
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(2,minmax(0,0.8fr))]">
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Search player</span>
+                    <input
+                      value={rubbingSearchQuery}
+                      onChange={(event) => setRubbingSearchQuery(event.target.value)}
+                      placeholder="Search player, team, matchup, or market"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Sort</span>
+                    <select
+                      value={rubbingSort}
+                      onChange={(event) => setRubbingSort(event.target.value as RubbingSort)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="confidence">Highest confidence</option>
+                      <option value="edge">Biggest model gap</option>
+                      <option value="books">Most books live</option>
+                    </select>
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Market</span>
+                    <select
+                      value={rubbingMarketFilter}
+                      onChange={(event) => setRubbingMarketFilter(event.target.value as 'ALL' | SnapshotMarket)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="ALL">All markets</option>
+                      {MARKETS.map((market) => (
+                        <option key={market} value={market}>
+                          {MARKET_LABELS[market]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                  <div className="text-sm text-[var(--text-2)]">
+                    {rubbingFilteredViews.length === 0
+                      ? 'No active model props match the current filters.'
+                      : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} active model props.`}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRubbingPage((current) => Math.max(current - 1, 0))}
+                      disabled={rubbingPage === 0 || rubbingFilteredViews.length === 0}
+                      className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
+                        rubbingPage === 0 || rubbingFilteredViews.length === 0
+                          ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                      }`}
+                    >
+                      Previous 24
+                    </button>
+                    <div className="min-w-[88px] text-center text-xs font-medium uppercase tracking-[0.14em] text-[var(--muted)]">
+                      Page {n(rubbingPageDisplay, 0)} / {n(rubbingPageTotalDisplay, 0)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRubbingPage((current) => Math.min(current + 1, rubbingPageCount - 1))}
+                      disabled={rubbingPage >= rubbingPageCount - 1 || rubbingFilteredViews.length === 0}
+                      className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
+                        rubbingPage >= rubbingPageCount - 1 || rubbingFilteredViews.length === 0
+                          ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                      }`}
+                    >
+                      Next 24
+                    </button>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="sticky top-0 z-10 bg-[var(--surface-2)] text-[var(--text-2)]">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium">Player</th>
+                        <th className="px-4 py-3 text-left font-medium">Prop</th>
+                        <th className="px-4 py-3 text-right font-medium">Line</th>
+                        <th className="px-4 py-3 text-right font-medium">Projection</th>
+                        <th className="px-4 py-3 text-right font-medium">Gap</th>
+                        <th className="px-4 py-3 text-right font-medium">Confidence</th>
+                        <th className="px-4 py-3 text-left font-medium">Availability</th>
+                        <th className="px-4 py-3 text-left font-medium">External context</th>
+                        <th className="px-4 py-3 text-right font-medium">Open</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rubbingViews.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-6">
+                            <EmptyState
+                              eyebrow="Rubbing Hands"
+                              title="No active model props match the current filters."
+                              detail="Clear the search or choose all markets to restore the full active prop board."
+                              actionLabel="Refresh slate"
+                              onAction={refreshSlate}
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        rubbingViews.map((v, index) => {
+                          const rowRank = rubbingRangeStart + index;
+                          return (
+                            <tr key={`${trackerRowKey(v)}:rubbing`} className="border-t border-[color:rgba(216,204,186,0.68)] transition hover:bg-[var(--surface-2)]">
+                              <td className="px-4 py-4 align-top">
+                                <div className="flex items-start gap-3">
+                                  <Badge label={`#${rowRank}`} kind="DERIVED" />
+                                  <div className="min-w-0">
+                                    <div className="font-semibold text-[var(--text)]">{v.row.playerName}</div>
+                                    <div className="mt-1 text-xs text-[var(--text-2)]">
+                                      {v.row.matchupKey.replace('@', ' @ ')} | {v.row.gameTimeEt}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 align-top">
+                                <div className="font-semibold text-[var(--text)]">{recommendationHeadline(v)}</div>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  <Pill label={rubbingLaneLabel(v)} tone={v.precision?.qualified ? 'cyan' : 'default'} />
+                                  <Pill label={MARKET_LABELS[v.market]} tone="amber" />
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-right align-top text-[var(--text)]">
+                                <div>{v.live == null ? (v.fair == null ? '-' : n(v.fair)) : n(v.live)}</div>
+                                <div className="mt-1 text-xs text-[var(--text-2)]">{v.live == null ? 'Fair fallback' : 'Live consensus'}</div>
+                              </td>
+                              <td className="px-4 py-4 text-right align-top text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
+                              <td className={`px-4 py-4 text-right align-top ${v.edge == null ? 'text-[var(--muted)]' : v.edge > 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
+                                {v.edge == null ? '-' : gapRead(v.edge)}
+                              </td>
+                              <td className="px-4 py-4 text-right align-top text-[var(--text)]">
+                                <div className="font-semibold">{v.conf == null ? '-' : pct(v.conf, 0)}</div>
+                                <div className="mt-1 text-xs text-[var(--text-2)]">{signalGradeValue(v.signalGrade)}</div>
+                              </td>
+                              <td className="px-4 py-4 align-top">
+                                <div className="flex flex-wrap gap-2">
+                                  <Pill label={rubbingPropStatusLabel(v.row)} tone={rubbingPropStatusTone(v.row)} />
+                                  <Pill label={rubbingAvailabilityLabel(v.row)} tone={rubbingAvailabilityTone(v.row)} />
+                                </div>
+                              </td>
+                              <td className="max-w-[360px] px-4 py-4 align-top text-sm leading-6 text-[var(--text-2)]">
+                                {rubbingExternalNote(v)}
+                              </td>
+                              <td className="px-4 py-4 text-right align-top">
+                                <button
+                                  type="button"
+                                  onClick={() => setResearch(v.row.playerId)}
+                                  className={`${ACTION_CLASS} rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                                >
+                                  Dossier
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
           ) : tab === 'research' ? (

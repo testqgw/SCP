@@ -56,7 +56,9 @@ export function isSnapshotBoardDatabaseUnavailableError(error: unknown): boolean
   return [
     "Error querying the database",
     "Can't reach database server",
+    "does not exist in the current database",
     "No space left on device",
+    "P2021",
     "could not write init file",
     "Timed out fetching a new connection",
   ].some((fragment) => message.includes(fragment));
