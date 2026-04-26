@@ -28,6 +28,7 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
+const RUBBING_MIN_MODEL_PICK_CONFIDENCE = 70;
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
@@ -44,7 +45,7 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'overview', label: 'Overview', hint: 'Best board setups' },
   { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
-  { id: 'rubbing', label: 'Rubbing Hands', hint: 'All model props' },
+  { id: 'rubbing', label: 'Rubbing Hands', hint: 'Model picks only' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
@@ -586,11 +587,19 @@ function rubbingPropStatusTone(row: SnapshotDashboardRow): 'default' | 'cyan' | 
   return 'cyan';
 }
 
+function isRubbingModelPick(view: View) {
+  const hasUsableLine = view.live != null || view.fair != null;
+  const hasProjection = view.proj != null;
+  const hasDirection = view.side !== 'NEUTRAL';
+  const precisionPick = view.precision?.qualified === true;
+  const confidencePick = (view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE;
+  return hasUsableLine && hasProjection && hasDirection && (precisionPick || confidencePick);
+}
+
 function rubbingLaneLabel(view: View) {
-  if (view.precision?.qualified) return 'Precision model';
-  if (view.live != null) return 'Live model';
-  if (view.fair != null) return 'Fair model';
-  return 'Projection model';
+  if (view.precision?.qualified) return 'Precision pick';
+  if ((view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE) return 'Confidence pick';
+  return 'Model pick';
 }
 
 function rubbingExternalNote(view: View) {
@@ -1082,7 +1091,7 @@ export default function NewDashboard({
     [boardRows],
   );
   const rubbingBaseViews = useMemo(
-    () => allViews.filter((view) => view.live != null || view.fair != null || view.proj != null || view.conf != null),
+    () => allViews.filter((view) => isRubbingModelPick(view)),
     [allViews],
   );
   const rubbingRemovedViews = useMemo(
@@ -1129,17 +1138,16 @@ export default function NewDashboard({
     if (!values.length) return null;
     return values.reduce((sum, value) => sum + value, 0) / values.length;
   }, [rubbingFilteredViews]);
-  const rubbingAverageBooks = useMemo(() => {
-    const values = rubbingFilteredViews.map((view) => view.books).filter((value): value is number => value != null && !Number.isNaN(value));
-    if (!values.length) return null;
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
-  }, [rubbingFilteredViews]);
   const rubbingWatchCount = useMemo(
     () => rubbingFilteredViews.filter((view) => isAvailabilityWatch(view.row)).length,
     [rubbingFilteredViews],
   );
-  const rubbingHighConfidenceCount = useMemo(
-    () => rubbingFilteredViews.filter((view) => (view.conf ?? 0) >= 70).length,
+  const rubbingPrecisionPickCount = useMemo(
+    () => rubbingFilteredViews.filter((view) => view.precision?.qualified).length,
+    [rubbingFilteredViews],
+  );
+  const rubbingConfidenceGateCount = useMemo(
+    () => rubbingFilteredViews.filter((view) => !view.precision?.qualified && (view.conf ?? 0) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE).length,
     [rubbingFilteredViews],
   );
   const featured = useMemo(() => {
@@ -1598,8 +1606,8 @@ export default function NewDashboard({
     },
     rubbing: {
       detail: rubbingFilteredViews.length
-        ? `${n(rubbingFilteredViews.length, 0)} active props | ${n(rubbingRemovedViews.length, 0)} removed`
-        : 'No active props loaded',
+        ? `${n(rubbingFilteredViews.length, 0)} model picks | ${n(rubbingRemovedViews.length, 0)} removed`
+        : 'No model picks loaded',
       kind: rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
@@ -1832,7 +1840,7 @@ export default function NewDashboard({
     },
     rubbing: {
       title: 'Rubbing Hands',
-      detail: 'Every active player prop from the current model payload, with confidence, line context, and injury-aware availability.',
+      detail: 'Only the model-selected player prop picks, with confidence, line context, and injury-aware availability.',
     },
     research: {
       title: 'Player research',
@@ -2924,9 +2932,9 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
-                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">All model player props with confidence</h3>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Model picks only</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
-                      This board reads from the same live model payload as the rest of the site. Confirmed OUT, DOUBTFUL, and 0% availability players are removed from the actionable list, while questionable players stay visible as injury-watch props.
+                      This section only shows props the model is actually selecting: precision-qualified picks or picks above the confidence gate. Confirmed OUT, DOUBTFUL, and 0% availability players are removed from the actionable list, while questionable players stay visible as injury-watch picks.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -2938,13 +2946,13 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-                <Stat dense label="Active props" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Actionable rows after current filters" />
-                <Stat dense label="Removed" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <Stat dense label="Model picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Selected picks after current filters" />
+                <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="70+ confidence" value={n(rubbingHighConfidenceCount, 0)} kind={rubbingHighConfidenceCount ? 'MODEL' : 'PLACEHOLDER'} note="Model confidence at or above 70%" />
+                <Stat dense label="Precision picks" value={n(rubbingPrecisionPickCount, 0)} kind={rubbingPrecisionPickCount ? 'MODEL' : 'PLACEHOLDER'} note="Precision-qualified model selections" />
+                <Stat dense label="Confidence gate" value={n(rubbingConfidenceGateCount, 0)} kind={rubbingConfidenceGateCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_MIN_MODEL_PICK_CONFIDENCE, 0)}%+ non-precision selections`} />
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
-                <Stat dense label="Avg books live" value={rubbingAverageBooks == null ? '-' : n(rubbingAverageBooks)} kind={rubbingAverageBooks == null ? 'PLACEHOLDER' : 'LIVE'} note="Live sportsbook depth" />
               </div>
 
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
@@ -2992,8 +3000,8 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div className="text-sm text-[var(--text-2)]">
                     {rubbingFilteredViews.length === 0
-                      ? 'No active model props match the current filters.'
-                      : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} active model props.`}
+                      ? 'No model picks match the current filters.'
+                      : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} model picks.`}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -3030,7 +3038,7 @@ export default function NewDashboard({
                     <thead className="sticky top-0 z-10 bg-[var(--surface-2)] text-[var(--text-2)]">
                       <tr>
                         <th className="px-4 py-3 text-left font-medium">Player</th>
-                        <th className="px-4 py-3 text-left font-medium">Prop</th>
+                        <th className="px-4 py-3 text-left font-medium">Model pick</th>
                         <th className="px-4 py-3 text-right font-medium">Line</th>
                         <th className="px-4 py-3 text-right font-medium">Projection</th>
                         <th className="px-4 py-3 text-right font-medium">Gap</th>
@@ -3046,8 +3054,8 @@ export default function NewDashboard({
                           <td colSpan={9} className="px-4 py-6">
                             <EmptyState
                               eyebrow="Rubbing Hands"
-                              title="No active model props match the current filters."
-                              detail="Clear the search or choose all markets to restore the full active prop board."
+                              title="No model picks match the current filters."
+                              detail="Clear the search or choose all markets to restore the model-selected pick board."
                               actionLabel="Refresh slate"
                               onAction={refreshSlate}
                             />
@@ -3072,7 +3080,8 @@ export default function NewDashboard({
                               <td className="px-4 py-4 align-top">
                                 <div className="font-semibold text-[var(--text)]">{recommendationHeadline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                  <Pill label={rubbingLaneLabel(v)} tone={v.precision?.qualified ? 'cyan' : 'default'} />
+                                  <Pill label="Model pick" tone="cyan" />
+                                  <Pill label={rubbingLaneLabel(v)} tone={v.precision?.qualified ? 'cyan' : 'amber'} />
                                   <Pill label={MARKET_LABELS[v.market]} tone="amber" />
                                 </div>
                               </td>
