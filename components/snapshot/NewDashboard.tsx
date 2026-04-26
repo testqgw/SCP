@@ -20,6 +20,7 @@ import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
 type RubbingSort = 'confidence' | 'edge' | 'books';
+type RubbingPickFilter = 'all' | 'precision' | 'confidence';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
 type TrackerBooksFilter = 'all' | '3plus' | '5plus';
@@ -602,6 +603,12 @@ function rubbingLaneLabel(view: View) {
   return 'Model pick';
 }
 
+function rubbingPickFilterLabel(value: RubbingPickFilter) {
+  if (value === 'precision') return 'precision picks';
+  if (value === 'confidence') return 'confidence picks';
+  return 'model picks';
+}
+
 function rubbingExternalNote(view: View) {
   const notes: string[] = [];
   const context = view.row.playerContext;
@@ -1026,6 +1033,7 @@ export default function NewDashboard({
   const [rubbingSort, setRubbingSort] = useState<RubbingSort>('confidence');
   const [rubbingSearchQuery, setRubbingSearchQuery] = useState('');
   const [rubbingMarketFilter, setRubbingMarketFilter] = useState<'ALL' | SnapshotMarket>('ALL');
+  const [rubbingPickFilter, setRubbingPickFilter] = useState<RubbingPickFilter>('all');
   const [rubbingPage, setRubbingPage] = useState(0);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -1102,14 +1110,23 @@ export default function NewDashboard({
     () => rubbingBaseViews.filter((view) => !isAvailabilityRemoved(view.row)),
     [rubbingBaseViews],
   );
-  const rubbingFilteredViews = useMemo(() => {
-    const views = rubbingActiveBaseViews.filter((view) => {
+  const rubbingPoolViews = useMemo(() => {
+    return rubbingActiveBaseViews.filter((view) => {
       if (rubbingMarketFilter !== 'ALL' && view.market !== rubbingMarketFilter) return false;
       if (!deferredRubbingSearchQuery) return true;
       return [view.row.playerName, view.row.teamCode, view.row.opponentCode, view.row.matchupKey, view.label]
         .join(' ')
         .toLowerCase()
         .includes(deferredRubbingSearchQuery);
+    });
+  }, [deferredRubbingSearchQuery, rubbingActiveBaseViews, rubbingMarketFilter]);
+  const rubbingFilteredViews = useMemo(() => {
+    const views = rubbingPoolViews.filter((view) => {
+      if (rubbingPickFilter === 'precision') return view.precision?.qualified === true;
+      if (rubbingPickFilter === 'confidence') {
+        return !view.precision?.qualified && (view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE;
+      }
+      return true;
     });
 
     views.sort((a, b) => {
@@ -1123,7 +1140,7 @@ export default function NewDashboard({
     });
 
     return views;
-  }, [deferredRubbingSearchQuery, rubbingActiveBaseViews, rubbingMarketFilter, rubbingSort]);
+  }, [rubbingPickFilter, rubbingPoolViews, rubbingSort]);
   const rubbingPageCount = Math.max(1, Math.ceil(rubbingFilteredViews.length / RUBBING_PAGE_SIZE));
   const rubbingViews = useMemo(() => {
     const start = rubbingPage * RUBBING_PAGE_SIZE;
@@ -1143,12 +1160,12 @@ export default function NewDashboard({
     [rubbingFilteredViews],
   );
   const rubbingPrecisionPickCount = useMemo(
-    () => rubbingFilteredViews.filter((view) => view.precision?.qualified).length,
-    [rubbingFilteredViews],
+    () => rubbingPoolViews.filter((view) => view.precision?.qualified).length,
+    [rubbingPoolViews],
   );
   const rubbingConfidenceGateCount = useMemo(
-    () => rubbingFilteredViews.filter((view) => !view.precision?.qualified && (view.conf ?? 0) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE).length,
-    [rubbingFilteredViews],
+    () => rubbingPoolViews.filter((view) => !view.precision?.qualified && (view.conf ?? 0) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE).length,
+    [rubbingPoolViews],
   );
   const featured = useMemo(() => {
     const lead = precision[0]?.view;
@@ -1731,7 +1748,7 @@ export default function NewDashboard({
   }, [trackerPageCount]);
   useEffect(() => {
     setRubbingPage(0);
-  }, [deferredRubbingSearchQuery, rubbingMarketFilter, rubbingSort]);
+  }, [deferredRubbingSearchQuery, rubbingMarketFilter, rubbingPickFilter, rubbingSort]);
   useEffect(() => {
     setRubbingPage((current) => Math.min(current, Math.max(rubbingPageCount - 1, 0)));
   }, [rubbingPageCount]);
@@ -2947,16 +2964,16 @@ export default function NewDashboard({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <Stat dense label="Model picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note="Selected picks after current filters" />
+                <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)} after filters`} />
                 <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="Precision picks" value={n(rubbingPrecisionPickCount, 0)} kind={rubbingPrecisionPickCount ? 'MODEL' : 'PLACEHOLDER'} note="Precision-qualified model selections" />
-                <Stat dense label="Confidence gate" value={n(rubbingConfidenceGateCount, 0)} kind={rubbingConfidenceGateCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_MIN_MODEL_PICK_CONFIDENCE, 0)}%+ non-precision selections`} />
+                <Stat dense label="Precision picks" value={n(rubbingPrecisionPickCount, 0)} kind={rubbingPrecisionPickCount ? 'MODEL' : 'PLACEHOLDER'} note="Available in selected search/market" />
+                <Stat dense label="Confidence picks" value={n(rubbingConfidenceGateCount, 0)} kind={rubbingConfidenceGateCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_MIN_MODEL_PICK_CONFIDENCE, 0)}%+ non-precision picks`} />
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
               </div>
 
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
-                <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(2,minmax(0,0.8fr))]">
+                <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(3,minmax(0,0.8fr))]">
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Search player</span>
                     <input
@@ -2965,6 +2982,18 @@ export default function NewDashboard({
                       placeholder="Search player, team, matchup, or market"
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     />
+                  </label>
+                  <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Pick type</span>
+                    <select
+                      value={rubbingPickFilter}
+                      onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                    >
+                      <option value="all">All model picks</option>
+                      <option value="precision">Precision picks</option>
+                      <option value="confidence">Confidence picks</option>
+                    </select>
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Sort</span>
@@ -3000,8 +3029,8 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div className="text-sm text-[var(--text-2)]">
                     {rubbingFilteredViews.length === 0
-                      ? 'No model picks match the current filters.'
-                      : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} model picks.`}
+                      ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`
+                      : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} ${rubbingPickFilterLabel(rubbingPickFilter)}.`}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -3054,8 +3083,8 @@ export default function NewDashboard({
                           <td colSpan={9} className="px-4 py-6">
                             <EmptyState
                               eyebrow="Rubbing Hands"
-                              title="No model picks match the current filters."
-                              detail="Clear the search or choose all markets to restore the model-selected pick board."
+                              title={`No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`}
+                              detail="Clear the search, choose all markets, or switch the pick type to restore the model-selected board."
                               actionLabel="Refresh slate"
                               onAction={refreshSlate}
                             />
