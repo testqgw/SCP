@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-26",
+  "generatedAt": "2026-04-28",
   "source": "exports/ultimate-live-quality-current-details.json",
   "playerPoolSize": 115,
   "minTrainDates": 21,
@@ -2076,35 +2076,68 @@
     "coverageVsWalkForwardPlayerDaysPct": 100.0
   },
   "best90ResearchLane": {
-    "playerDays": 286,
-    "correct": 263,
-    "wrong": 23,
-    "accuracyPct": 91.96,
-    "uniquePlayers": 16,
-    "activeDates": 115,
-    "avgPlayersPerSlate": 2.49,
-    "last30AccuracyPct": 96.84,
-    "last14AccuracyPct": 97.92,
+    "playerDays": 344,
+    "correct": 310,
+    "wrong": 34,
+    "accuracyPct": 90.12,
+    "uniquePlayers": 18,
+    "activeDates": 123,
+    "avgPlayersPerSlate": 2.8,
+    "last30AccuracyPct": 96.36,
+    "last14AccuracyPct": 98.11,
     "byMarket": {
-      "AST": 146,
-      "PA": 94,
-      "THREES": 46
+      "AST": 149,
+      "PA": 82,
+      "RA": 66,
+      "THREES": 47
     },
-    "label": "target_90_research_lane",
+    "label": "expanded_90_research_lane",
     "pool": "top35_quality_rank",
-    "rule": "qualityRank <= 35; market in AST,PA,THREES; honest walk-forward wfConfidence >= 0.725",
-    "threshold": 0.725,
+    "rule": "qualityRank <= 35; market in AST,PA,RA,THREES; honest walk-forward wfConfidence >= 0.700",
+    "threshold": 0.7,
     "rankMax": 35,
     "markets": [
       "AST",
       "PA",
+      "RA",
       "THREES"
     ],
-    "coverageVsWalkForwardPlayerDaysPct": 10.48,
+    "coverageVsWalkForwardPlayerDaysPct": 12.6,
     "clearsTargetAccuracy": true,
     "clearsTargetAllWindows": true
   },
   "ninetyResearchLanes": [
+    {
+      "playerDays": 344,
+      "correct": 310,
+      "wrong": 34,
+      "accuracyPct": 90.12,
+      "uniquePlayers": 18,
+      "activeDates": 123,
+      "avgPlayersPerSlate": 2.8,
+      "last30AccuracyPct": 96.36,
+      "last14AccuracyPct": 98.11,
+      "byMarket": {
+        "AST": 149,
+        "PA": 82,
+        "RA": 66,
+        "THREES": 47
+      },
+      "label": "expanded_90_research_lane",
+      "pool": "top35_quality_rank",
+      "rule": "qualityRank <= 35; market in AST,PA,RA,THREES; honest walk-forward wfConfidence >= 0.700",
+      "threshold": 0.7,
+      "rankMax": 35,
+      "markets": [
+        "AST",
+        "PA",
+        "RA",
+        "THREES"
+      ],
+      "coverageVsWalkForwardPlayerDaysPct": 12.6,
+      "clearsTargetAccuracy": true,
+      "clearsTargetAllWindows": true
+    },
     {
       "playerDays": 286,
       "correct": 263,
