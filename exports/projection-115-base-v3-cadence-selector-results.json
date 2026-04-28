@@ -1,0 +1,386 @@
+{
+  "generatedAt": "2026-04-28",
+  "source": "exports/ultimate-live-quality-current-details.json",
+  "contextSource": "exports/projection-backtest-allplayers-with-rows-live-team-context.json",
+  "modelArtifact": "exports/projection-115-live-quality-walkforward-playerday-results.json",
+  "playerPoolSize": 115,
+  "bestCadence": {
+    "minTrainDates": 7,
+    "testDates": 7
+  },
+  "existingBase115": {
+    "playerDays": 3154,
+    "correct": 2547,
+    "wrong": 607,
+    "accuracyPct": 80.75,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 83.23,
+    "last14AccuracyPct": 77.13,
+    "byMarket": {
+      "REB": 726,
+      "PTS": 701,
+      "AST": 661,
+      "PR": 280,
+      "PRA": 267,
+      "PA": 194,
+      "RA": 163,
+      "THREES": 162
+    },
+    "coldStartCutoffDate": "2025-11-13",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "pool": "top115_quality",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward by wfConfidence"
+  },
+  "existingNoExclusionSourceRouter": {
+    "playerDays": 3154,
+    "correct": 2558,
+    "wrong": 596,
+    "accuracyPct": 81.1,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 83.86,
+    "last14AccuracyPct": 74.47,
+    "byMarket": {
+      "REB": 799,
+      "AST": 673,
+      "PTS": 651,
+      "PR": 351,
+      "PRA": 318,
+      "PA": 145,
+      "THREES": 118,
+      "RA": 99
+    },
+    "pool": "top115_quality",
+    "rule": "no-exclusion source router: 0.3 player-source-market prior + 0.4 source-market prior + 0.3 source confidence",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "warmAccuracyPct": 82.93,
+    "warmCorrect": 2264,
+    "warmWrong": 466,
+    "bySource": {
+      "wf": 2332,
+      "cold_current_final": 424,
+      "final": 392,
+      "raw": 6
+    },
+    "coverageVsWalkForwardPlayerDaysPct": 100.0
+  },
+  "baseV2MarketSelector": {
+    "playerDays": 3154,
+    "correct": 2547,
+    "wrong": 607,
+    "accuracyPct": 80.75,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 83.23,
+    "last14AccuracyPct": 77.13,
+    "byMarket": {
+      "REB": 726,
+      "PTS": 701,
+      "AST": 661,
+      "PR": 280,
+      "PRA": 267,
+      "PA": 194,
+      "RA": 163,
+      "THREES": 162
+    },
+    "coldStartCutoffDate": "2025-11-13",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "pool": "top115_quality",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward by wfConfidence",
+    "label": "existing_base_115"
+  },
+  "baseV3CadenceSelector": {
+    "playerDays": 3154,
+    "correct": 2635,
+    "wrong": 519,
+    "accuracyPct": 83.54,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 85.12,
+    "last14AccuracyPct": 76.06,
+    "byMarket": {
+      "REB": 721,
+      "AST": 716,
+      "PTS": 702,
+      "PR": 309,
+      "PRA": 237,
+      "RA": 167,
+      "THREES": 151,
+      "PA": 151
+    },
+    "pool": "top115_quality",
+    "label": "base_v3_cadence_current_final_market_ranker",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward HGB market ranker trained to predict whether the current-final side is correct",
+    "coldStartCutoffDate": "2025-10-30",
+    "coldStartPlayerDays": 131,
+    "walkForwardPlayerDays": 3023,
+    "warmAccuracyPct": 84.22,
+    "warmCorrect": 2546,
+    "warmWrong": 477,
+    "folds": [
+      {
+        "fold": 1,
+        "testFrom": "2025-10-30",
+        "testTo": "2025-11-05",
+        "trainRows": 4897,
+        "testRows": 4654,
+        "ungroupedCurrentFinalAccuracyPct": 65.19
+      },
+      {
+        "fold": 2,
+        "testFrom": "2025-11-06",
+        "testTo": "2025-11-12",
+        "trainRows": 9551,
+        "testRows": 4983,
+        "ungroupedCurrentFinalAccuracyPct": 67.89
+      },
+      {
+        "fold": 3,
+        "testFrom": "2025-11-13",
+        "testTo": "2025-11-19",
+        "trainRows": 14534,
+        "testRows": 4200,
+        "ungroupedCurrentFinalAccuracyPct": 66.48
+      },
+      {
+        "fold": 4,
+        "testFrom": "2025-11-20",
+        "testTo": "2025-11-26",
+        "trainRows": 18734,
+        "testRows": 4272,
+        "ungroupedCurrentFinalAccuracyPct": 66.92
+      },
+      {
+        "fold": 5,
+        "testFrom": "2025-11-28",
+        "testTo": "2025-12-04",
+        "trainRows": 23006,
+        "testRows": 5034,
+        "ungroupedCurrentFinalAccuracyPct": 66.19
+      },
+      {
+        "fold": 6,
+        "testFrom": "2025-12-05",
+        "testTo": "2025-12-11",
+        "trainRows": 28040,
+        "testRows": 3289,
+        "ungroupedCurrentFinalAccuracyPct": 68.01
+      },
+      {
+        "fold": 7,
+        "testFrom": "2025-12-12",
+        "testTo": "2025-12-18",
+        "trainRows": 31329,
+        "testRows": 3309,
+        "ungroupedCurrentFinalAccuracyPct": 66.61
+      },
+      {
+        "fold": 8,
+        "testFrom": "2025-12-19",
+        "testTo": "2025-12-26",
+        "trainRows": 34638,
+        "testRows": 5251,
+        "ungroupedCurrentFinalAccuracyPct": 67.99
+      },
+      {
+        "fold": 9,
+        "testFrom": "2025-12-27",
+        "testTo": "2026-01-02",
+        "trainRows": 39889,
+        "testRows": 5195,
+        "ungroupedCurrentFinalAccuracyPct": 68.43
+      },
+      {
+        "fold": 10,
+        "testFrom": "2026-01-03",
+        "testTo": "2026-01-09",
+        "trainRows": 45084,
+        "testRows": 5113,
+        "ungroupedCurrentFinalAccuracyPct": 68.1
+      },
+      {
+        "fold": 11,
+        "testFrom": "2026-01-10",
+        "testTo": "2026-01-16",
+        "trainRows": 50197,
+        "testRows": 4915,
+        "ungroupedCurrentFinalAccuracyPct": 67.2
+      },
+      {
+        "fold": 12,
+        "testFrom": "2026-01-17",
+        "testTo": "2026-01-23",
+        "trainRows": 55112,
+        "testRows": 5363,
+        "ungroupedCurrentFinalAccuracyPct": 67.44
+      },
+      {
+        "fold": 13,
+        "testFrom": "2026-01-24",
+        "testTo": "2026-01-30",
+        "trainRows": 60475,
+        "testRows": 5116,
+        "ungroupedCurrentFinalAccuracyPct": 69.33
+      },
+      {
+        "fold": 14,
+        "testFrom": "2026-01-31",
+        "testTo": "2026-02-06",
+        "trainRows": 65591,
+        "testRows": 4910,
+        "ungroupedCurrentFinalAccuracyPct": 67.82
+      },
+      {
+        "fold": 15,
+        "testFrom": "2026-02-07",
+        "testTo": "2026-02-19",
+        "trainRows": 70501,
+        "testRows": 5544,
+        "ungroupedCurrentFinalAccuracyPct": 66.79
+      },
+      {
+        "fold": 16,
+        "testFrom": "2026-02-20",
+        "testTo": "2026-02-26",
+        "trainRows": 76045,
+        "testRows": 5749,
+        "ungroupedCurrentFinalAccuracyPct": 66.76
+      },
+      {
+        "fold": 17,
+        "testFrom": "2026-02-27",
+        "testTo": "2026-03-05",
+        "trainRows": 81794,
+        "testRows": 5010,
+        "ungroupedCurrentFinalAccuracyPct": 67.21
+      },
+      {
+        "fold": 18,
+        "testFrom": "2026-03-06",
+        "testTo": "2026-03-12",
+        "trainRows": 86804,
+        "testRows": 5567,
+        "ungroupedCurrentFinalAccuracyPct": 67.54
+      },
+      {
+        "fold": 19,
+        "testFrom": "2026-03-13",
+        "testTo": "2026-03-19",
+        "trainRows": 92371,
+        "testRows": 5708,
+        "ungroupedCurrentFinalAccuracyPct": 65.89
+      },
+      {
+        "fold": 20,
+        "testFrom": "2026-03-20",
+        "testTo": "2026-03-26",
+        "trainRows": 98079,
+        "testRows": 5303,
+        "ungroupedCurrentFinalAccuracyPct": 68.0
+      },
+      {
+        "fold": 21,
+        "testFrom": "2026-03-27",
+        "testTo": "2026-04-02",
+        "trainRows": 103382,
+        "testRows": 5728,
+        "ungroupedCurrentFinalAccuracyPct": 67.79
+      },
+      {
+        "fold": 22,
+        "testFrom": "2026-04-03",
+        "testTo": "2026-04-09",
+        "trainRows": 109110,
+        "testRows": 4892,
+        "ungroupedCurrentFinalAccuracyPct": 67.13
+      },
+      {
+        "fold": 23,
+        "testFrom": "2026-04-10",
+        "testTo": "2026-04-19",
+        "trainRows": 114002,
+        "testRows": 3822,
+        "ungroupedCurrentFinalAccuracyPct": 62.45
+      },
+      {
+        "fold": 24,
+        "testFrom": "2026-04-20",
+        "testTo": "2026-04-23",
+        "trainRows": 117824,
+        "testRows": 864,
+        "ungroupedCurrentFinalAccuracyPct": 51.39
+      }
+    ],
+    "cadence": "7 active dates warmup, then 7-date walk-forward retrains",
+    "clears90BaseTarget": false
+  },
+  "anyMarketCurrentFinalOracle": {
+    "label": "any_market_current_final_oracle",
+    "description": "Upper bound if a selector could always choose the correct market while keeping the current-final side.",
+    "playerDays": 3023,
+    "correct": 2974,
+    "wrong": 49,
+    "accuracyPct": 98.38
+  },
+  "cadenceSearch": [
+    {
+      "label": "21 train / 7 test",
+      "minTrainDates": 21,
+      "testDates": 7,
+      "accuracyPct": 82.75,
+      "correct": 2610,
+      "wrong": 544,
+      "warmAccuracyPct": 84.84,
+      "coldStartPlayerDays": 424,
+      "last30AccuracyPct": 85.12,
+      "last14AccuracyPct": 76.06
+    },
+    {
+      "label": "14 train / 7 test",
+      "minTrainDates": 14,
+      "testDates": 7,
+      "accuracyPct": 83.39,
+      "correct": 2630,
+      "wrong": 524,
+      "warmAccuracyPct": 84.72,
+      "coldStartPlayerDays": 267,
+      "last30AccuracyPct": 85.12,
+      "last14AccuracyPct": 76.06
+    },
+    {
+      "label": "7 train / 7 test",
+      "minTrainDates": 7,
+      "testDates": 7,
+      "accuracyPct": 83.54,
+      "correct": 2635,
+      "wrong": 519,
+      "warmAccuracyPct": 84.22,
+      "coldStartPlayerDays": 131,
+      "last30AccuracyPct": 85.12,
+      "last14AccuracyPct": 76.06
+    },
+    {
+      "label": "5 train / 7 test",
+      "minTrainDates": 5,
+      "testDates": 7,
+      "accuracyPct": 82.72,
+      "correct": 2609,
+      "wrong": 545,
+      "warmAccuracyPct": 83.21,
+      "coldStartPlayerDays": 93,
+      "last30AccuracyPct": 83.23,
+      "last14AccuracyPct": 73.4
+    }
+  ],
+  "clears90BaseTarget": false,
+  "conclusion": "The 7-date warmup / 7-date retrain cadence is the best full 115-player base replay found in this pass at 83.54%. It improves the base but is still not a 90% base model.",
+  "honestyNote": "Features are limited to row/model/context fields available in the source snapshots plus rolling reliability computed only from earlier dates. actualValue, actualSide, correctness flags, and actualMinutes are not used as model inputs."
+}
