@@ -19,6 +19,7 @@ import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/
 import {
   RUBBING_HANDS_115_ALL_WINDOW_LANE,
   RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT,
+  RUBBING_HANDS_115_BASE_LANE,
   RUBBING_HANDS_115_MODEL_GENERATED_AT,
   RUBBING_HANDS_115_MODEL_LABEL,
   RUBBING_HANDS_115_POOL_SIZE,
@@ -44,6 +45,7 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
+const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
@@ -622,6 +624,24 @@ function rubbingHands115Headline(view: View) {
   return recommendationHeadline({ ...view, side: rubbingHands115Side(view) });
 }
 
+function rubbingHands115SideSource(view: View) {
+  const runtime = marketRuntimeFor(view.row, view.market);
+  if (isDirectionalSide(runtime?.finalSide)) {
+    if (runtime?.source === 'player_override') return 'Player override side';
+    if (runtime?.source === 'universal_qualified') return 'Universal model side';
+    if (runtime?.source === 'baseline') return 'Baseline side';
+    return 'Runtime side';
+  }
+  if (view.precision?.qualified && isDirectionalSide(view.precision.side)) return 'Precision side';
+  return 'Projection side';
+}
+
+function rubbingProjectionLeanLabel(view: View) {
+  const projectionSide = isDirectionalSide(view.side) ? view.side : null;
+  if (!projectionSide) return null;
+  return projectionSide === rubbingHands115Side(view) ? 'Projection agrees' : `Projection leans ${projectionSide}`;
+}
+
 function rubbingHands115PlayerKey(view: View) {
   return rubbingHands115Player(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
 }
@@ -675,14 +695,14 @@ function isRubbingHands115ResearchPick(view: View) {
 }
 
 function rubbingLaneLabel(view: View) {
-  if (isRubbingHands115ResearchPick(view)) return '90% research lane';
-  if (isRubbingHands115AllWindowPick(view)) return '80% all-window lane';
+  if (isRubbingHands115ResearchPick(view)) return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane`;
+  if (isRubbingHands115AllWindowPick(view)) return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane`;
   return '115-player lane';
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
-  if (value === 'allWindow') return '80% all-window picks';
-  if (value === 'research') return '90% research picks';
+  if (value === 'allWindow') return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window picks`;
+  if (value === 'research') return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research picks`;
   return '115-player picks';
 }
 
@@ -1699,10 +1719,10 @@ export default function NewDashboard({
       kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
     },
     rubbing: {
-      detail: rubbingFilteredViews.length
-        ? `${n(rubbingFilteredViews.length, 0)} 115-model picks | ${n(rubbingRemovedViews.length, 0)} removed`
+      detail: rubbingActiveBaseViews.length
+        ? `${n(rubbingFilteredViews.length, 0)} shown / ${n(rubbingActiveBaseViews.length, 0)} 115-model picks | ${n(rubbingRemovedViews.length, 0)} removed`
         : 'No 115-model picks loaded',
-      kind: rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER',
+      kind: rubbingActiveBaseViews.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
       detail: slatePlayers.length ? `${n(slatePlayers.length, 0)} slate players` : 'Slate not loaded',
@@ -3030,23 +3050,27 @@ export default function NewDashboard({
                     <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
                       This section is wired to the separate 115-player quality model, not the regular board filter. It keeps the fixed quality pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
+                    <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                      The pick side is the model/runtime side. Board projection and projection gap are shown as context, so they can disagree when a player override or universal side model takes the other side.
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
                     Last board refresh <span className="font-semibold text-[var(--text)]">{boardRefreshRelative}</span>
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_PRIMARY_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_PRIMARY_LANE.uniquePlayers, 0)} players. Injury and external context still comes through the live board payload.
+                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_PRIMARY_LANE.playerDays, 0)} player-days. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
                 <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
                 <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% primary replay`} />
-                <Stat dense label="80%+ lane" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n((RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE).accuracyPct, 2)}% replay lane`} />
-                <Stat dense label="90% research" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />
+                <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% base replay`} />
+                <Stat dense label="Source replay" value={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%`} kind="MODEL" note="Runtime/source-router side" />
+                <Stat dense label="All-window picks" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% replay lane`} />
+                <Stat dense label="Research picks" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
               </div>
 
@@ -3069,8 +3093,8 @@ export default function NewDashboard({
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="all">115-player picks</option>
-                      <option value="allWindow">80% all-window lane</option>
-                      <option value="research">90% research lane</option>
+                      <option value="allWindow">{n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane</option>
+                      <option value="research">{n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
@@ -3147,8 +3171,8 @@ export default function NewDashboard({
                         <th className="px-4 py-3 text-left font-medium">Player</th>
                         <th className="px-4 py-3 text-left font-medium">Model pick</th>
                         <th className="px-4 py-3 text-right font-medium">Line</th>
-                        <th className="px-4 py-3 text-right font-medium">Projection</th>
-                        <th className="px-4 py-3 text-right font-medium">Gap</th>
+                        <th className="px-4 py-3 text-right font-medium">Board projection</th>
+                        <th className="px-4 py-3 text-right font-medium">Proj gap</th>
                         <th className="px-4 py-3 text-right font-medium">Confidence</th>
                         <th className="px-4 py-3 text-left font-medium">Availability</th>
                         <th className="px-4 py-3 text-left font-medium">External context</th>
@@ -3188,7 +3212,14 @@ export default function NewDashboard({
                                 <div className="font-semibold text-[var(--text)]">{rubbingHands115Headline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
                                   <Pill label="115 model" tone="cyan" />
+                                  <Pill label={rubbingHands115SideSource(v)} tone="default" />
                                   <Pill label={rubbingLaneLabel(v)} tone={isRubbingHands115AllWindowPick(v) ? 'cyan' : 'amber'} />
+                                  {rubbingProjectionLeanLabel(v) ? (
+                                    <Pill
+                                      label={rubbingProjectionLeanLabel(v) ?? ''}
+                                      tone={rubbingProjectionLeanLabel(v) === 'Projection agrees' ? 'cyan' : 'amber'}
+                                    />
+                                  ) : null}
                                   <Pill label={MARKET_LABELS[v.market]} tone="amber" />
                                 </div>
                               </td>
@@ -3197,7 +3228,7 @@ export default function NewDashboard({
                                 <div className="mt-1 text-xs text-[var(--text-2)]">{v.live == null ? 'Fair fallback' : 'Live consensus'}</div>
                               </td>
                               <td className="px-4 py-4 text-right align-top text-[var(--text)]">{v.proj == null ? '-' : n(v.proj)}</td>
-                              <td className={`px-4 py-4 text-right align-top ${v.edge == null ? 'text-[var(--muted)]' : v.edge > 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
+                              <td className={`px-4 py-4 text-right align-top ${v.edge == null ? 'text-[var(--muted)]' : 'text-[var(--text)]'}`}>
                                 {v.edge == null ? '-' : gapRead(v.edge)}
                               </td>
                               <td className="px-4 py-4 text-right align-top text-[var(--text)]">

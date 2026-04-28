@@ -68,6 +68,7 @@ export const RUBBING_HANDS_115_MODEL_LABEL = '115-player quality model';
 export const RUBBING_HANDS_115_MODEL_GENERATED_AT = artifact.generatedAt;
 export const RUBBING_HANDS_115_MODEL_SOURCE = artifact.source;
 export const RUBBING_HANDS_115_POOL_SIZE = artifact.playerPoolSize;
+export const RUBBING_HANDS_115_BASE_LANE = artifact.best115;
 export const RUBBING_HANDS_115_PRIMARY_LANE = artifact.noExclusionSourceRouter ?? artifact.best115;
 export const RUBBING_HANDS_115_WALK_FORWARD_LANE = artifact.best80Top115;
 export const RUBBING_HANDS_115_ALL_WINDOW_LANE = artifact.best80Top115AllRecent ?? null;
