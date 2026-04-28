@@ -16,11 +16,25 @@ import type {
   SnapshotPrecisionPickSignal,
 } from '@/lib/types/snapshot';
 import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/lib/snapshot/confidenceRating';
+import {
+  RUBBING_HANDS_115_ALL_WINDOW_LANE,
+  RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT,
+  RUBBING_HANDS_115_MODEL_GENERATED_AT,
+  RUBBING_HANDS_115_MODEL_LABEL,
+  RUBBING_HANDS_115_POOL_SIZE,
+  RUBBING_HANDS_115_PRIMARY_LANE,
+  RUBBING_HANDS_115_RESEARCH_LANE,
+  RUBBING_HANDS_115_RESEARCH_CONFIDENCE_PCT,
+  RUBBING_HANDS_115_RESEARCH_MARKETS,
+  RUBBING_HANDS_115_RESEARCH_RANK_MAX,
+  RUBBING_HANDS_115_WALK_FORWARD_LANE,
+  getRubbingHands115Player,
+} from '@/lib/snapshot/rubbingHands115Model';
 
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
 type RubbingSort = 'confidence' | 'edge' | 'books';
-type RubbingPickFilter = 'all' | 'precision' | 'confidence';
+type RubbingPickFilter = 'all' | 'allWindow' | 'research';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
 type TrackerBooksFilter = 'all' | '3plus' | '5plus';
@@ -29,7 +43,8 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
-const RUBBING_MIN_MODEL_PICK_CONFIDENCE = 70;
+const RUBBING_115_MIN_LIVE_BOOKS = 3;
+const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
@@ -46,7 +61,7 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'overview', label: 'Overview', hint: 'Best board setups' },
   { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
-  { id: 'rubbing', label: 'Rubbing Hands', hint: 'Model picks only' },
+  { id: 'rubbing', label: 'Rubbing Hands', hint: '115-player model' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
@@ -588,29 +603,93 @@ function rubbingPropStatusTone(row: SnapshotDashboardRow): 'default' | 'cyan' | 
   return 'cyan';
 }
 
+function isDirectionalSide(side: SnapshotModelSide | null | undefined): side is Exclude<SnapshotModelSide, 'NEUTRAL'> {
+  return side === 'OVER' || side === 'UNDER';
+}
+
+function rubbingHands115Player(view: View) {
+  return getRubbingHands115Player({ playerId: view.row.playerId, playerName: view.row.playerName });
+}
+
+function rubbingHands115Side(view: View): SnapshotModelSide {
+  const runtimeSide = marketRuntimeFor(view.row, view.market)?.finalSide;
+  if (isDirectionalSide(runtimeSide)) return runtimeSide;
+  if (view.precision?.qualified && isDirectionalSide(view.precision.side)) return view.precision.side;
+  return isDirectionalSide(view.side) ? view.side : 'NEUTRAL';
+}
+
+function rubbingHands115Headline(view: View) {
+  return recommendationHeadline({ ...view, side: rubbingHands115Side(view) });
+}
+
+function rubbingHands115PlayerKey(view: View) {
+  return rubbingHands115Player(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
+}
+
+function compareRubbingHands115Views(a: View, b: View) {
+  const confidence = (b.conf ?? -1) - (a.conf ?? -1);
+  if (confidence !== 0) return confidence;
+  const edge = Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0);
+  if (edge !== 0) return edge;
+  const score = b.score - a.score;
+  if (score !== 0) return score;
+  const books = (b.books ?? -1) - (a.books ?? -1);
+  if (books !== 0) return books;
+  return (rubbingHands115Player(a)?.qualityRank ?? 999) - (rubbingHands115Player(b)?.qualityRank ?? 999);
+}
+
 function isRubbingModelPick(view: View) {
-  const hasUsableLine = view.live != null || view.fair != null;
+  const modelPlayer = rubbingHands115Player(view);
+  const modelSide = rubbingHands115Side(view);
+  const hasUsableLine = view.live != null && (view.books ?? 0) >= RUBBING_115_MIN_LIVE_BOOKS;
   const hasProjection = view.proj != null;
-  const hasDirection = view.side !== 'NEUTRAL';
-  const precisionPick = view.precision?.qualified === true;
-  const confidencePick = (view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE;
-  return hasUsableLine && hasProjection && hasDirection && (precisionPick || confidencePick);
+  const hasDirection = modelSide !== 'NEUTRAL';
+  const hasConfidence = view.conf != null;
+  return Boolean(modelPlayer && hasUsableLine && hasProjection && hasDirection && hasConfidence);
+}
+
+function selectRubbingHands115Views(views: View[]) {
+  const bestByPlayer = new Map<string, View>();
+  views.forEach((view) => {
+    if (!isRubbingModelPick(view)) return;
+    const key = rubbingHands115PlayerKey(view);
+    const current = bestByPlayer.get(key);
+    if (!current || compareRubbingHands115Views(view, current) < 0) {
+      bestByPlayer.set(key, view);
+    }
+  });
+  return Array.from(bestByPlayer.values()).sort(compareRubbingHands115Views);
+}
+
+function isRubbingHands115AllWindowPick(view: View) {
+  return (view.conf ?? -1) >= RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT;
+}
+
+function isRubbingHands115ResearchPick(view: View) {
+  const modelPlayer = rubbingHands115Player(view);
+  return (
+    (modelPlayer?.qualityRank ?? Number.POSITIVE_INFINITY) <= RUBBING_HANDS_115_RESEARCH_RANK_MAX &&
+    RUBBING_115_RESEARCH_MARKET_SET.has(view.market) &&
+    (view.conf ?? -1) >= RUBBING_HANDS_115_RESEARCH_CONFIDENCE_PCT
+  );
 }
 
 function rubbingLaneLabel(view: View) {
-  if (view.precision?.qualified) return 'Precision pick';
-  if ((view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE) return 'Confidence pick';
-  return 'Model pick';
+  if (isRubbingHands115ResearchPick(view)) return '90% research lane';
+  if (isRubbingHands115AllWindowPick(view)) return '80% all-window lane';
+  return '115-player lane';
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
-  if (value === 'precision') return 'precision picks';
-  if (value === 'confidence') return 'confidence picks';
-  return 'model picks';
+  if (value === 'allWindow') return '80% all-window picks';
+  if (value === 'research') return '90% research picks';
+  return '115-player picks';
 }
 
 function rubbingExternalNote(view: View) {
   const notes: string[] = [];
+  const modelPlayer = rubbingHands115Player(view);
+  if (modelPlayer) notes.push(`#${n(modelPlayer.qualityRank, 0)} in 115-player quality pool`);
   const context = view.row.playerContext;
   const availability = availabilityRead(context);
   if (availability) notes.push(availability);
@@ -1099,7 +1178,7 @@ export default function NewDashboard({
     [boardRows],
   );
   const rubbingBaseViews = useMemo(
-    () => allViews.filter((view) => isRubbingModelPick(view)),
+    () => selectRubbingHands115Views(allViews),
     [allViews],
   );
   const rubbingRemovedViews = useMemo(
@@ -1122,10 +1201,8 @@ export default function NewDashboard({
   }, [deferredRubbingSearchQuery, rubbingActiveBaseViews, rubbingMarketFilter]);
   const rubbingFilteredViews = useMemo(() => {
     const views = rubbingPoolViews.filter((view) => {
-      if (rubbingPickFilter === 'precision') return view.precision?.qualified === true;
-      if (rubbingPickFilter === 'confidence') {
-        return !view.precision?.qualified && (view.conf ?? -1) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE;
-      }
+      if (rubbingPickFilter === 'allWindow') return isRubbingHands115AllWindowPick(view);
+      if (rubbingPickFilter === 'research') return isRubbingHands115ResearchPick(view);
       return true;
     });
 
@@ -1159,12 +1236,12 @@ export default function NewDashboard({
     () => rubbingFilteredViews.filter((view) => isAvailabilityWatch(view.row)).length,
     [rubbingFilteredViews],
   );
-  const rubbingPrecisionPickCount = useMemo(
-    () => rubbingPoolViews.filter((view) => view.precision?.qualified).length,
+  const rubbingAllWindowPickCount = useMemo(
+    () => rubbingPoolViews.filter((view) => isRubbingHands115AllWindowPick(view)).length,
     [rubbingPoolViews],
   );
-  const rubbingConfidenceGateCount = useMemo(
-    () => rubbingPoolViews.filter((view) => !view.precision?.qualified && (view.conf ?? 0) >= RUBBING_MIN_MODEL_PICK_CONFIDENCE).length,
+  const rubbingResearchPickCount = useMemo(
+    () => rubbingPoolViews.filter((view) => isRubbingHands115ResearchPick(view)).length,
     [rubbingPoolViews],
   );
   const featured = useMemo(() => {
@@ -1623,8 +1700,8 @@ export default function NewDashboard({
     },
     rubbing: {
       detail: rubbingFilteredViews.length
-        ? `${n(rubbingFilteredViews.length, 0)} model picks | ${n(rubbingRemovedViews.length, 0)} removed`
-        : 'No model picks loaded',
+        ? `${n(rubbingFilteredViews.length, 0)} 115-model picks | ${n(rubbingRemovedViews.length, 0)} removed`
+        : 'No 115-model picks loaded',
       kind: rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
@@ -1857,7 +1934,7 @@ export default function NewDashboard({
     },
     rubbing: {
       title: 'Rubbing Hands',
-      detail: 'Only the model-selected player prop picks, with confidence, line context, and injury-aware availability.',
+      detail: 'The separate 115-player quality model, reduced to one live market per player with injury-aware availability.',
     },
     research: {
       title: 'Player research',
@@ -2949,9 +3026,9 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
-                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Model picks only</h3>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">{RUBBING_HANDS_115_MODEL_LABEL}</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
-                      This section only shows props the model is actually selecting: precision-qualified picks or picks above the confidence gate. Confirmed OUT, DOUBTFUL, and 0% availability players are removed from the actionable list, while questionable players stay visible as injury-watch picks.
+                      This section is wired to the separate 115-player quality model, not the regular board filter. It keeps the fixed quality pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -2959,16 +3036,17 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Injury and external context comes through the board query: Rotowire availability, lineup starter status, projected minutes, live book count, defender notes, and teammate synergy are all shown when present in the current payload.
+                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_PRIMARY_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_PRIMARY_LANE.uniquePlayers, 0)} players. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)} after filters`} />
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+                <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
                 <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="Precision picks" value={n(rubbingPrecisionPickCount, 0)} kind={rubbingPrecisionPickCount ? 'MODEL' : 'PLACEHOLDER'} note="Available in selected search/market" />
-                <Stat dense label="Confidence picks" value={n(rubbingConfidenceGateCount, 0)} kind={rubbingConfidenceGateCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_MIN_MODEL_PICK_CONFIDENCE, 0)}%+ non-precision picks`} />
+                <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% primary replay`} />
+                <Stat dense label="80%+ lane" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n((RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE).accuracyPct, 2)}% replay lane`} />
+                <Stat dense label="90% research" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
               </div>
 
@@ -2990,9 +3068,9 @@ export default function NewDashboard({
                       onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
-                      <option value="all">All model picks</option>
-                      <option value="precision">Precision picks</option>
-                      <option value="confidence">Confidence picks</option>
+                      <option value="all">115-player picks</option>
+                      <option value="allWindow">80% all-window lane</option>
+                      <option value="research">90% research lane</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
@@ -3107,10 +3185,10 @@ export default function NewDashboard({
                                 </div>
                               </td>
                               <td className="px-4 py-4 align-top">
-                                <div className="font-semibold text-[var(--text)]">{recommendationHeadline(v)}</div>
+                                <div className="font-semibold text-[var(--text)]">{rubbingHands115Headline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                  <Pill label="Model pick" tone="cyan" />
-                                  <Pill label={rubbingLaneLabel(v)} tone={v.precision?.qualified ? 'cyan' : 'amber'} />
+                                  <Pill label="115 model" tone="cyan" />
+                                  <Pill label={rubbingLaneLabel(v)} tone={isRubbingHands115AllWindowPick(v) ? 'cyan' : 'amber'} />
                                   <Pill label={MARKET_LABELS[v.market]} tone="amber" />
                                 </div>
                               </td>
