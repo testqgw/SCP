@@ -2075,6 +2075,38 @@
     },
     "coverageVsWalkForwardPlayerDaysPct": 100.0
   },
+  "baseV2MarketSelector": {
+    "playerDays": 3154,
+    "correct": 2611,
+    "wrong": 543,
+    "accuracyPct": 82.78,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 85.12,
+    "last14AccuracyPct": 75.53,
+    "byMarket": {
+      "REB": 729,
+      "AST": 709,
+      "PTS": 674,
+      "PR": 321,
+      "PRA": 243,
+      "RA": 171,
+      "THREES": 157,
+      "PA": 150
+    },
+    "pool": "top115_quality",
+    "label": "base_v2_current_final_market_ranker",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward HGB market ranker trained to predict whether the current-final side is correct",
+    "coldStartCutoffDate": "2025-11-13",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "warmAccuracyPct": 84.87,
+    "warmCorrect": 2317,
+    "warmWrong": 413,
+    "clears90BaseTarget": false,
+    "report": "exports/projection-115-base-v2-market-selector-results.md"
+  },
   "best90ResearchLane": {
     "playerDays": 344,
     "correct": 310,

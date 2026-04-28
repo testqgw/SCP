@@ -20,6 +20,7 @@ import {
   RUBBING_HANDS_115_ALL_WINDOW_LANE,
   RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT,
   RUBBING_HANDS_115_BASE_LANE,
+  RUBBING_HANDS_115_BASE_V2_LANE,
   RUBBING_HANDS_115_MODEL_GENERATED_AT,
   RUBBING_HANDS_115_MODEL_LABEL,
   RUBBING_HANDS_115_POOL_SIZE,
@@ -3059,15 +3060,16 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_PRIMARY_LANE.playerDays, 0)} player-days. Injury and external context still comes through the live board payload.
+                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; base V2 market-selector test {n(RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-9">
                 <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
                 <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
                 <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% base replay`} />
+                <Stat dense label="Base V2 test" value={`${n(RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%`} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_V2_LANE?.warmAccuracyPct ?? null, 2)}% warm; not 90`} />
                 <Stat dense label="Source replay" value={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%`} kind="MODEL" note="Runtime/source-router side" />
                 <Stat dense label="All-window picks" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% replay lane`} />
                 <Stat dense label="Research picks" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />

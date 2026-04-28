@@ -1,0 +1,202 @@
+{
+  "generatedAt": "2026-04-28",
+  "source": "exports/ultimate-live-quality-current-details.json",
+  "contextSource": "exports/projection-backtest-allplayers-with-rows-live-team-context.json",
+  "modelArtifact": "exports/projection-115-live-quality-walkforward-playerday-results.json",
+  "playerPoolSize": 115,
+  "minTrainDates": 21,
+  "testDates": 14,
+  "coldStartCutoffDate": "2025-11-13",
+  "existingBase115": {
+    "playerDays": 3154,
+    "correct": 2547,
+    "wrong": 607,
+    "accuracyPct": 80.75,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 83.23,
+    "last14AccuracyPct": 77.13,
+    "byMarket": {
+      "REB": 726,
+      "PTS": 701,
+      "AST": 661,
+      "PR": 280,
+      "PRA": 267,
+      "PA": 194,
+      "RA": 163,
+      "THREES": 162
+    },
+    "coldStartCutoffDate": "2025-11-13",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "pool": "top115_quality",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward by wfConfidence"
+  },
+  "existingNoExclusionSourceRouter": {
+    "playerDays": 3154,
+    "correct": 2558,
+    "wrong": 596,
+    "accuracyPct": 81.1,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 83.86,
+    "last14AccuracyPct": 74.47,
+    "byMarket": {
+      "REB": 799,
+      "AST": 673,
+      "PTS": 651,
+      "PR": 351,
+      "PRA": 318,
+      "PA": 145,
+      "THREES": 118,
+      "RA": 99
+    },
+    "pool": "top115_quality",
+    "rule": "no-exclusion source router: 0.3 player-source-market prior + 0.4 source-market prior + 0.3 source confidence",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "warmAccuracyPct": 82.93,
+    "warmCorrect": 2264,
+    "warmWrong": 466,
+    "bySource": {
+      "wf": 2332,
+      "cold_current_final": 424,
+      "final": 392,
+      "raw": 6
+    },
+    "coverageVsWalkForwardPlayerDaysPct": 100.0
+  },
+  "baseV2MarketSelector": {
+    "playerDays": 3154,
+    "correct": 2611,
+    "wrong": 543,
+    "accuracyPct": 82.78,
+    "uniquePlayers": 115,
+    "activeDates": 172,
+    "avgPlayersPerSlate": 18.34,
+    "last30AccuracyPct": 85.12,
+    "last14AccuracyPct": 75.53,
+    "byMarket": {
+      "REB": 729,
+      "AST": 709,
+      "PTS": 674,
+      "PR": 321,
+      "PRA": 243,
+      "RA": 171,
+      "THREES": 157,
+      "PA": 150
+    },
+    "pool": "top115_quality",
+    "label": "base_v2_current_final_market_ranker",
+    "rule": "cold current-final by projectionWinScore, then honest walk-forward HGB market ranker trained to predict whether the current-final side is correct",
+    "coldStartCutoffDate": "2025-11-13",
+    "coldStartPlayerDays": 424,
+    "walkForwardPlayerDays": 2730,
+    "warmAccuracyPct": 84.87,
+    "warmCorrect": 2317,
+    "warmWrong": 413,
+    "folds": [
+      {
+        "fold": 1,
+        "testFrom": "2025-11-13",
+        "testTo": "2025-11-26",
+        "trainRows": 14534,
+        "testRows": 8472,
+        "ungroupedCurrentFinalAccuracyPct": 66.7
+      },
+      {
+        "fold": 2,
+        "testFrom": "2025-11-28",
+        "testTo": "2025-12-11",
+        "trainRows": 23006,
+        "testRows": 8323,
+        "ungroupedCurrentFinalAccuracyPct": 66.91
+      },
+      {
+        "fold": 3,
+        "testFrom": "2025-12-12",
+        "testTo": "2025-12-26",
+        "trainRows": 31329,
+        "testRows": 8560,
+        "ungroupedCurrentFinalAccuracyPct": 67.45
+      },
+      {
+        "fold": 4,
+        "testFrom": "2025-12-27",
+        "testTo": "2026-01-09",
+        "trainRows": 39889,
+        "testRows": 10308,
+        "ungroupedCurrentFinalAccuracyPct": 68.27
+      },
+      {
+        "fold": 5,
+        "testFrom": "2026-01-10",
+        "testTo": "2026-01-23",
+        "trainRows": 50197,
+        "testRows": 10278,
+        "ungroupedCurrentFinalAccuracyPct": 67.33
+      },
+      {
+        "fold": 6,
+        "testFrom": "2026-01-24",
+        "testTo": "2026-02-06",
+        "trainRows": 60475,
+        "testRows": 10026,
+        "ungroupedCurrentFinalAccuracyPct": 68.59
+      },
+      {
+        "fold": 7,
+        "testFrom": "2026-02-07",
+        "testTo": "2026-02-26",
+        "trainRows": 70501,
+        "testRows": 11293,
+        "ungroupedCurrentFinalAccuracyPct": 66.78
+      },
+      {
+        "fold": 8,
+        "testFrom": "2026-02-27",
+        "testTo": "2026-03-12",
+        "trainRows": 81794,
+        "testRows": 10577,
+        "ungroupedCurrentFinalAccuracyPct": 67.38
+      },
+      {
+        "fold": 9,
+        "testFrom": "2026-03-13",
+        "testTo": "2026-03-26",
+        "trainRows": 92371,
+        "testRows": 11011,
+        "ungroupedCurrentFinalAccuracyPct": 66.91
+      },
+      {
+        "fold": 10,
+        "testFrom": "2026-03-27",
+        "testTo": "2026-04-09",
+        "trainRows": 103382,
+        "testRows": 10620,
+        "ungroupedCurrentFinalAccuracyPct": 67.49
+      },
+      {
+        "fold": 11,
+        "testFrom": "2026-04-10",
+        "testTo": "2026-04-23",
+        "trainRows": 114002,
+        "testRows": 4686,
+        "ungroupedCurrentFinalAccuracyPct": 60.41
+      }
+    ]
+  },
+  "anyMarketCurrentFinalOracle": {
+    "label": "any_market_current_final_oracle",
+    "description": "Upper bound if a selector could always choose the correct market while keeping the current-final side.",
+    "playerDays": 2730,
+    "correct": 2687,
+    "wrong": 43,
+    "accuracyPct": 98.42
+  },
+  "clears90BaseTarget": false,
+  "conclusion": "Base V2 improves the full 115-player replay, but it is not a 90% base model yet. Do not promote this as a 90% model; treat it as the strongest honest base-direction move found so far.",
+  "honestyNote": "Features are limited to row/model/context fields available in the source snapshots plus rolling reliability computed only from earlier dates. actualValue, actualSide, correctness flags, and actualMinutes are not used as model inputs."
+}
