@@ -53,6 +53,7 @@ type TopPlayer200CurrentSlateScore = {
   wfProbOver: number;
   wfConfidence: number;
   wfSide: 'OVER' | 'UNDER';
+  metaProbCorrect?: number | null;
   runtimeFinalSide?: 'OVER' | 'UNDER' | 'NEUTRAL';
   line: number | null;
   projectedValue: number | null;
@@ -60,10 +61,24 @@ type TopPlayer200CurrentSlateScore = {
   sportsbookCount: number | null;
 };
 
+type TopPlayer200MetaExpandedLane = {
+  label: string;
+  accuracyPct: number;
+  playerDays: number;
+  last30AccuracyPct: number;
+  last14AccuracyPct: number;
+  activeDates: number;
+  avgPlayersPerSlate: number;
+  metaThreshold: number;
+  minWfConfidence: number;
+  rule: string;
+};
+
 type TopPlayer200CurrentSlateScoresArtifact = {
   generatedAt: string;
   dateEt: string;
   source: string;
+  metaExpandedLane?: TopPlayer200MetaExpandedLane;
   rows: TopPlayer200CurrentSlateScore[];
 };
 
@@ -103,6 +118,24 @@ export const TOP_PLAYER_200_SAMPLE_VOLUME_CONFIDENCE_PCT =
   (TOP_PLAYER_200_SAMPLE_VOLUME_LANE.threshold ?? 0.8) * 100;
 export const TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_GENERATED_AT = currentScoresArtifact.generatedAt;
 export const TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET = currentScoresArtifact.dateEt;
+export const TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE =
+  currentScoresArtifact.metaExpandedLane ?? {
+    label: 'top200_meta_reliability_expanded',
+    accuracyPct: 83.11,
+    playerDays: 4215,
+    last30AccuracyPct: 84.44,
+    last14AccuracyPct: 81.97,
+    activeDates: 128,
+    avgPlayersPerSlate: 32.93,
+    metaThreshold: 0.825,
+    minWfConfidence: 0.75,
+    rule: 'top200 meta reliability gate: one highest metaProbCorrect market per player, metaProbCorrect >= 0.825 and wfConfidence >= 0.750',
+  };
+export const TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT = TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT =
+  TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.metaThreshold * 100;
+export const TOP_PLAYER_200_SAMPLE_META_MIN_HGB_CONFIDENCE_PCT =
+  TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.minWfConfidence * 100;
 
 export const TOP_PLAYER_200_SAMPLE_POOL: TopPlayer200SampleModelPlayer[] = artifact.primaryPlayerPool.map(
   (player, index) => ({

@@ -20,6 +20,18 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
+META_EXPANDED_LANE = {
+    "label": "top200_meta_reliability_expanded",
+    "accuracyPct": 83.11,
+    "playerDays": 4215,
+    "last30AccuracyPct": 84.44,
+    "last14AccuracyPct": 81.97,
+    "activeDates": 128,
+    "avgPlayersPerSlate": 32.93,
+    "metaThreshold": 0.825,
+    "minWfConfidence": 0.75,
+    "rule": "top200 meta reliability gate: one highest metaProbCorrect market per player, metaProbCorrect >= 0.825 and wfConfidence >= 0.750",
+}
 MARKET_SIGNAL_KEYS = {
     "PTS": "ptsSignal",
     "REB": "rebSignal",
@@ -181,6 +193,106 @@ def attach_prior_reliability_for_live_score(gate: Any, df: pd.DataFrame, dates: 
     return num_cols
 
 
+def build_top_player_ids(df: pd.DataFrame, min_samples: int = 200, top_count: int = 200) -> set[str]:
+    players: list[tuple[str, int, int, float, int]] = []
+    for player_id, group in df.groupby("playerId"):
+        sample_count = int(len(group))
+        if sample_count < min_samples:
+            continue
+        minutes = pd.to_numeric(group["projectedMinutes"], errors="coerce")
+        players.append(
+            (
+                str(player_id),
+                sample_count,
+                int(group["market"].nunique()),
+                float(minutes.fillna(0).mean()),
+                int(group["gameDateEt"].nunique()),
+            )
+        )
+    players.sort(key=lambda row: (row[1], row[2], row[3], row[4]), reverse=True)
+    return {player_id for player_id, *_ in players[:top_count]}
+
+
+def attach_meta_features(df: pd.DataFrame) -> None:
+    line_gap = pd.to_numeric(df["lineGap"], errors="coerce")
+    df["projectionSide"] = np.where(line_gap > 0, "OVER", np.where(line_gap < 0, "UNDER", "NEUTRAL"))
+    df["sideAgreesProjection"] = df["wfSide"].astype(str).eq(df["projectionSide"].astype(str)).astype(int)
+
+
+def add_meta_reliability_scores(
+    gate: Any,
+    historical: pd.DataFrame,
+    current: pd.DataFrame,
+    cat_cols: list[str],
+    num_cols: list[str],
+) -> pd.DataFrame:
+    meta_historical = historical.copy()
+    historical_dates = sorted(meta_historical["gameDateEt"].unique().tolist())
+    gate.score_walk_forward(meta_historical, historical_dates, gate.build_folds(historical_dates, 7, 7), cat_cols, num_cols)
+    meta_historical = meta_historical[meta_historical["eligibleWalkForward"]].copy()
+    top_player_ids = build_top_player_ids(meta_historical)
+    meta_historical = meta_historical[meta_historical["playerId"].isin(top_player_ids)].copy()
+    meta_historical["targetCorrect"] = meta_historical["finalCorrectBool"].astype(int)
+    attach_meta_features(meta_historical)
+
+    current = current.copy()
+    attach_meta_features(current)
+
+    meta_cat_cols = ["playerId", "market", "wfSide", "projectionSide"]
+    meta_num_cols = [
+        "wfConfidence",
+        "wfProbOver",
+        "absLineGap",
+        "lineGap",
+        "projectedValue",
+        "line",
+        "projectedMinutes",
+        "sideAgreesProjection",
+        *[col for col in meta_historical.columns if col.endswith("_n") or col.endswith("_acc")],
+    ]
+
+    for col in meta_cat_cols:
+        if col not in current.columns:
+            current[col] = "NA"
+        meta_historical[col] = meta_historical[col].fillna("NA").astype(str)
+        current[col] = current[col].fillna("NA").astype(str)
+    for col in meta_num_cols:
+        if col not in meta_historical.columns:
+            meta_historical[col] = np.nan
+        if col not in current.columns:
+            current[col] = np.nan
+        meta_historical[col] = pd.to_numeric(meta_historical[col], errors="coerce")
+        current[col] = pd.to_numeric(current[col], errors="coerce")
+
+    preprocessor = ColumnTransformer(
+        [
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False), meta_cat_cols),
+            (
+                "num",
+                Pipeline(
+                    [
+                        ("impute", SimpleImputer(strategy="median")),
+                        ("scale", StandardScaler()),
+                    ]
+                ),
+                meta_num_cols,
+            ),
+        ]
+    )
+    classifier = HistGradientBoostingClassifier(
+        max_iter=120,
+        learning_rate=0.045,
+        max_leaf_nodes=31,
+        l2_regularization=0.05,
+        random_state=11,
+    )
+    pipeline = Pipeline([("pre", preprocessor), ("clf", classifier)])
+    feature_cols = meta_cat_cols + meta_num_cols
+    pipeline.fit(meta_historical[feature_cols], meta_historical["targetCorrect"])
+    current["metaProbCorrect"] = pipeline.predict_proba(current[feature_cols])[:, 1]
+    return current
+
+
 def main() -> None:
     args = parse_args()
     root = Path.cwd()
@@ -241,6 +353,7 @@ def main() -> None:
     score["wfProbOver"] = proba
     score["wfConfidence"] = np.maximum(proba, 1 - proba)
     score["wfSide"] = np.where(proba >= 0.5, "OVER", "UNDER")
+    score = add_meta_reliability_scores(gate, train, score, cat_cols, num_cols)
     score = score[~score["removed"].eq(True)].copy()
 
     rows = []
@@ -254,6 +367,7 @@ def main() -> None:
                 "wfProbOver": clean_float(row.wfProbOver),
                 "wfConfidence": clean_float(row.wfConfidence),
                 "wfSide": row.wfSide,
+                "metaProbCorrect": clean_float(row.metaProbCorrect),
                 "runtimeFinalSide": row.finalSide,
                 "line": clean_float(row.line, 2),
                 "projectedValue": clean_float(row.projectedValue, 2),
@@ -266,6 +380,7 @@ def main() -> None:
         "generatedAt": date.today().isoformat(),
         "dateEt": board["dateEt"],
         "source": args.board_json or args.board_url,
+        "metaExpandedLane": META_EXPANDED_LANE,
         "rows": rows,
     }
     Path(args.out).write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
