@@ -765,6 +765,13 @@ function rubbingPickFilterLabel(value: RubbingPickFilter) {
   return 'legacy 115-player picks';
 }
 
+function rubbingPoolLabel(value: RubbingPickFilter) {
+  if (value === 'sample200') return '200+ sample eligible rows';
+  if (value === 'allWindow') return 'all-window eligible rows';
+  if (value === 'research') return 'research eligible rows';
+  return 'legacy 115-player eligible rows';
+}
+
 function rubbingExternalNote(view: View) {
   const notes: string[] = [];
   const modelPlayer = rubbingHands115Player(view);
@@ -1356,6 +1363,15 @@ export default function NewDashboard({
     () => topPlayer200SamplePoolViews.filter((view) => isTopPlayer200SampleLanePick(view)).length,
     [topPlayer200SamplePoolViews],
   );
+  const rubbingHasManualFilter = Boolean(deferredRubbingSearchQuery) || rubbingMarketFilter !== 'ALL';
+  const rubbingEmptyTitle =
+    rubbingPickFilter === 'sample200' && !rubbingHasManualFilter
+      ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} cleared the ${pct(TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT, 0)} confidence gate for this slate.`
+      : `No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`;
+  const rubbingEmptyDetail =
+    rubbingPickFilter === 'sample200' && !rubbingHasManualFilter
+      ? 'The eligible 200+ sample pool is loaded, but today none cleared the strict default threshold.'
+      : 'Clear the search, choose all markets, or switch the pick type to restore the model-selected board.';
   const featured = useMemo(() => {
     const lead = precision[0]?.view;
     if (lead) return lead;
@@ -1812,7 +1828,7 @@ export default function NewDashboard({
     },
     rubbing: {
       detail: rubbingDisplayedActiveBaseViews.length
-        ? `${n(rubbingFilteredViews.length, 0)} shown / ${n(rubbingDisplayedActiveBaseViews.length, 0)} ${rubbingPickFilterLabel(rubbingPickFilter)} | ${n(rubbingDisplayedRemovedViews.length, 0)} removed`
+        ? `${n(rubbingFilteredViews.length, 0)} shown / ${n(rubbingDisplayedActiveBaseViews.length, 0)} ${rubbingPoolLabel(rubbingPickFilter)} | ${n(rubbingDisplayedRemovedViews.length, 0)} removed`
         : 'No Rubbing Hands picks loaded',
       kind: rubbingDisplayedActiveBaseViews.length ? 'LIVE' : 'PLACEHOLDER',
     },
@@ -3226,7 +3242,7 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div className="text-sm text-[var(--text-2)]">
                     {rubbingFilteredViews.length === 0
-                      ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`
+                      ? rubbingEmptyTitle
                       : `Showing ${n(rubbingRangeStart, 0)}-${n(rubbingRangeEnd, 0)} of ${n(rubbingFilteredViews.length, 0)} ${rubbingPickFilterLabel(rubbingPickFilter)}.`}
                   </div>
                   <div className="flex items-center gap-2">
@@ -3280,8 +3296,8 @@ export default function NewDashboard({
                           <td colSpan={9} className="px-4 py-6">
                             <EmptyState
                               eyebrow="Rubbing Hands"
-                              title={`No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`}
-                              detail="Clear the search, choose all markets, or switch the pick type to restore the model-selected board."
+                              title={rubbingEmptyTitle}
+                              detail={rubbingEmptyDetail}
                               actionLabel="Refresh slate"
                               onAction={refreshSlate}
                             />
