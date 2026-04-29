@@ -136,6 +136,22 @@ export const TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT =
   TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.metaThreshold * 100;
 export const TOP_PLAYER_200_SAMPLE_META_MIN_HGB_CONFIDENCE_PCT =
   TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.minWfConfidence * 100;
+export const TOP_PLAYER_200_SAMPLE_TOP6_LANE = {
+  label: 'top200_ranked_top6_action',
+  accuracyPct: 82.35,
+  playerDays: 986,
+  last30AccuracyPct: 76.7,
+  last14AccuracyPct: 66.25,
+  activeDates: 165,
+  avgPlayersPerSlate: 5.98,
+  maxPicksPerSlate: 6,
+  minWfConfidence: 0.78,
+  rule: 'top200 ranked action lane: up to 6 highest HGB-confidence players per slate, wfConfidence >= 0.780',
+};
+export const TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT =
+  TOP_PLAYER_200_SAMPLE_TOP6_LANE.minWfConfidence * 100;
+export const TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.maxPicksPerSlate;
 
 export const TOP_PLAYER_200_SAMPLE_POOL: TopPlayer200SampleModelPlayer[] = artifact.primaryPlayerPool.map(
   (player, index) => ({

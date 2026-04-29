@@ -41,8 +41,11 @@ import {
   TOP_PLAYER_200_SAMPLE_PRIMARY_LANE,
   TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT,
   TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT,
+  TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT,
+  TOP_PLAYER_200_SAMPLE_TOP6_LANE,
+  TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT,
+  TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT,
   TOP_PLAYER_200_SAMPLE_VOLUME_CONFIDENCE_PCT,
-  TOP_PLAYER_200_SAMPLE_VOLUME_LANE,
   TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT,
   getTopPlayer200SampleCurrentSlateScore,
   getTopPlayer200SamplePropPlayer,
@@ -51,7 +54,7 @@ import {
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
 type RubbingSort = 'confidence' | 'edge' | 'books';
-type RubbingPickFilter = 'all' | 'allWindow' | 'research' | 'sample200' | 'sample200Volume' | 'sample200Meta';
+type RubbingPickFilter = 'all' | 'allWindow' | 'research' | 'sample200' | 'sample200Volume' | 'sample200Meta' | 'sample200Top6';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
 type TrackerBooksFilter = 'all' | '3plus' | '5plus';
@@ -60,7 +63,7 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
-const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Meta';
+const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Top6';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
@@ -698,7 +701,7 @@ function compareRubbingHands115Views(a: View, b: View) {
 }
 
 function isTopPlayer200SampleFilter(filter: RubbingPickFilter) {
-  return filter === 'sample200' || filter === 'sample200Volume' || filter === 'sample200Meta';
+  return filter === 'sample200' || filter === 'sample200Volume' || filter === 'sample200Meta' || filter === 'sample200Top6';
 }
 
 function topPlayer200SampleHgbConfidencePct(view: View, dateEt: string) {
@@ -793,6 +796,12 @@ function isTopPlayer200SampleLanePick(view: View, dateEt: string, filter: Rubbin
       (topPlayer200SampleHgbConfidencePct(view, dateEt) ?? -1) >= TOP_PLAYER_200_SAMPLE_META_MIN_HGB_CONFIDENCE_PCT
     );
   }
+  if (filter === 'sample200Top6') {
+    return (
+      topPlayer200SamplePlayer(view) != null &&
+      (topPlayer200SampleHgbConfidencePct(view, dateEt) ?? -1) >= TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT
+    );
+  }
   const threshold = filter === 'sample200Volume' ? TOP_PLAYER_200_SAMPLE_VOLUME_CONFIDENCE_PCT : TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT;
   return topPlayer200SamplePlayer(view) != null && (topPlayer200SampleHgbConfidencePct(view, dateEt) ?? -1) >= threshold;
 }
@@ -807,6 +816,7 @@ function isRubbingHands115ResearchPick(view: View) {
 }
 
 function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAULT_PICK_FILTER, dateEt = '') {
+  if (filter === 'sample200Top6' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane`;
   if (filter === 'sample200Meta' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta lane`;
   if (filter === 'sample200Volume' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT, 2)}% 200+ volume lane`;
   if (filter === 'sample200' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ strict lane`;
@@ -816,6 +826,7 @@ function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAUL
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
+  if (value === 'sample200Top6') return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 picks`;
   if (value === 'sample200Meta') return `${n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta picks`;
   if (value === 'sample200') return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ strict picks`;
   if (value === 'sample200Volume') return `${n(TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT, 2)}% 200+ volume picks`;
@@ -1409,6 +1420,10 @@ export default function NewDashboard({
       return (b.conf ?? -1) - (a.conf ?? -1) || Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0) || b.score - a.score;
     });
 
+    if (rubbingPickFilter === 'sample200Top6') {
+      return views.slice(0, TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT);
+    }
+
     return views;
   }, [data.dateEt, rubbingPickFilter, rubbingPoolViews, rubbingSort, topPlayer200SamplePoolViews]);
   const rubbingDisplayedRemovedViews = isTopPlayer200SampleFilter(rubbingPickFilter) ? topPlayer200SampleRemovedViews : rubbingRemovedViews;
@@ -1458,11 +1473,20 @@ export default function NewDashboard({
     () => topPlayer200SampleMetaBaseViews.filter((view) => !isAvailabilityRemoved(view.row) && isTopPlayer200SampleLanePick(view, data.dateEt, 'sample200Meta')).length,
     [data.dateEt, topPlayer200SampleMetaBaseViews],
   );
+  const topPlayer200SampleTop6PickCount = useMemo(
+    () =>
+      topPlayer200SampleStrictBaseViews
+        .filter((view) => !isAvailabilityRemoved(view.row) && isTopPlayer200SampleLanePick(view, data.dateEt, 'sample200Top6'))
+        .slice(0, TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT).length,
+    [data.dateEt, topPlayer200SampleStrictBaseViews],
+  );
   const rubbingHasManualFilter = Boolean(deferredRubbingSearchQuery) || rubbingMarketFilter !== 'ALL';
   const rubbingUsesCurrentHgbScores = data.dateEt === TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET;
   const rubbingIsSample200Filter = isTopPlayer200SampleFilter(rubbingPickFilter);
   const rubbingCurrentThreshold =
-    rubbingPickFilter === 'sample200Meta'
+    rubbingPickFilter === 'sample200Top6'
+      ? TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT
+      : rubbingPickFilter === 'sample200Meta'
       ? TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT
       : rubbingPickFilter === 'sample200Volume'
         ? TOP_PLAYER_200_SAMPLE_VOLUME_CONFIDENCE_PCT
@@ -3266,7 +3290,7 @@ export default function NewDashboard({
                       This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The default Rubbing Hands pick type now uses the expanded HGB+meta reliability gate generated {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_GENERATED_AT}. It backtests at {n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% with last-30 and last-14 windows still above 80%.
+                      The default Rubbing Hands pick type now shows the ranked top-6 HGB action lane generated {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_GENERATED_AT}. It is built to give a usable slate count while keeping the stricter meta and HGB lanes selectable.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -3274,7 +3298,7 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: meta lane {n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.last14AccuracyPct, 2)}%; strict lane {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_PRIMARY_LANE.playerDays, 0)} player-days; volume lane {n(TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_VOLUME_LANE.playerDays, 0)} player-days. Current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
+                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: top-6 action lane {n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last14AccuracyPct, 2)}%; meta lane {n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.playerDays, 0)} player-days; strict lane {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_PRIMARY_LANE.playerDays, 0)} player-days. Current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
@@ -3284,6 +3308,7 @@ export default function NewDashboard({
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
                 <Stat dense label="200+ pool" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side replay`} />
                 <Stat dense label="Qualified" value={n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ samples this season`} />
+                <Stat dense label="Top-6 gate" value={pct(TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT, 0)} kind="MODEL" note={`${n(topPlayer200SampleTop6PickCount, 0)} current picks`} />
                 <Stat dense label="Meta gate" value={pct(TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleMetaPickCount, 0)} current picks`} />
                 <Stat dense label="Strict gate" value={pct(TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT, 0)} kind="MODEL" note={`${n(topPlayer200SamplePickCount, 0)} current picks`} />
                 <Stat dense label="Volume gate" value={pct(TOP_PLAYER_200_SAMPLE_VOLUME_CONFIDENCE_PCT, 0)} kind="MODEL" note={`${n(topPlayer200SampleVolumePickCount, 0)} current picks`} />
@@ -3310,6 +3335,7 @@ export default function NewDashboard({
                       onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
+                      <option value="sample200Top6">{n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane</option>
                       <option value="sample200Meta">{n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta lane</option>
                       <option value="sample200">{n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ strict lane</option>
                       <option value="sample200Volume">{n(TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT, 2)}% 200+ volume lane</option>
