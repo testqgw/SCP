@@ -239,6 +239,64 @@ def summarize_recent_form_lane(selected: pd.DataFrame, full_player_days: int) ->
     return stats
 
 
+def select_coverage_frontier_lane(df: pd.DataFrame, player_ids: set[str]) -> pd.DataFrame:
+    pool = df[df["playerId"].isin(player_ids)].copy()
+    if pool.empty:
+        return pool
+
+    pool["absLineGap"] = pd.to_numeric(pool["lineGap"], errors="coerce").abs()
+    pool["projectedMinutes"] = pd.to_numeric(pool["projectedMinutes"], errors="coerce")
+    pool["projectionSide"] = pool["lineGap"].map(projection_side_from_gap)
+    selected = pool[
+        pool["market"].isin(["PTS", "REB", "AST"])
+        & pool["finalSource"].eq("player_override")
+        & pool["finalSide"].isin(["OVER", "UNDER"])
+        & pool["projectionSide"].isin(["OVER", "UNDER"])
+        & pool["finalSide"].ne(pool["projectionSide"])
+        & pool["absLineGap"].ge(1.0)
+        & pool["projectedMinutes"].ge(24.0)
+    ].copy()
+    if selected.empty:
+        return selected
+
+    parts = []
+    for _, day in selected.groupby("gameDateEt", sort=True):
+        best = (
+            day.sort_values(["absLineGap", "projectedMinutes"], ascending=[False, False])
+            .groupby("playerId", as_index=False)
+            .head(1)
+        )
+        parts.append(best)
+    return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
+
+
+def summarize_coverage_frontier_lane(selected: pd.DataFrame, full_player_days: int) -> dict[str, Any]:
+    selected = selected.copy()
+    selected["selectedCorrect"] = selected["finalCorrectBool"].astype(int)
+    stats = summarize_selection(selected)
+    stats.update(
+        {
+            "label": "top200_coverage_frontier_projection_disagreement",
+            "threshold": None,
+            "poolSize": 200,
+            "coverageVsEligiblePlayerDaysPct": (
+                round(stats["playerDays"] / full_player_days * 100, 2) if full_player_days else 0
+            ),
+            "markets": ["PTS", "REB", "AST"],
+            "requiredSource": "player_override",
+            "projectionMode": "disagree",
+            "requiredSide": "any",
+            "minAbsLineGap": 1.0,
+            "minProjectedMinutes": 24.0,
+            "rule": (
+                "top200 coverage frontier: one largest-gap PTS/REB/AST market per player, "
+                "player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24"
+            ),
+        }
+    )
+    return stats
+
+
 def scan_pool(
     df: pd.DataFrame,
     label: str,
@@ -300,6 +358,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     primary = output["primaryLane"]
     accuracy = output["accuracyFirstLane"]
     widest = output["widestOverall80Lane"]
+    coverage = output["coverageFrontierLane"]
     recent = output["recentFormLane"]
 
     lines = [
@@ -350,6 +409,11 @@ def markdown_report(output: dict[str, Any]) -> str:
             f"| Widest 80 overall: {widest['label']} | {widest['accuracyPct']:.2f}% | {widest['playerDays']:,} | "
             f"{widest['last30AccuracyPct']:.2f}% | {widest['last14AccuracyPct']:.2f}% | "
             f"{widest['coverageVsEligiblePlayerDaysPct']:.2f}% | {widest['correct']:,} / {widest['wrong']:,} |"
+        ),
+        (
+            f"| Coverage frontier: {coverage['label']} | {coverage['accuracyPct']:.2f}% | {coverage['playerDays']:,} | "
+            f"{coverage['last30AccuracyPct']:.2f}% | {coverage['last14AccuracyPct']:.2f}% | "
+            f"{coverage['coverageVsEligiblePlayerDaysPct']:.2f}% | {coverage['correct']:,} / {coverage['wrong']:,} |"
         ),
         (
             f"| Recent-form projection fade: {recent['label']} | {recent['accuracyPct']:.2f}% | {recent['playerDays']:,} | "
@@ -456,6 +520,10 @@ def main() -> None:
         select_recent_form_lane(warm, primary_ids),
         primary_full_player_days,
     )
+    coverage_frontier_lane = summarize_coverage_frontier_lane(
+        select_coverage_frontier_lane(warm, primary_ids),
+        primary_full_player_days,
+    )
 
     target_clearing = [
         row for row in scan_rows if row["threshold"] is not None and row["clearsTargetAllWindows"]
@@ -500,6 +568,7 @@ def main() -> None:
         "primaryLane": primary_lane,
         "accuracyFirstLane": accuracy_first,
         "widestOverall80Lane": widest_overall,
+        "coverageFrontierLane": coverage_frontier_lane,
         "recentFormLane": recent_form_lane,
         "targetClearingLanes": target_clearing,
         "topOverall80Lanes": overall_80[:25],

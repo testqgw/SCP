@@ -8148,6 +8148,44 @@
     "clearsTargetAllWindows": false,
     "rule": "all_min200: one highest wfConfidence market per player, wfConfidence >= 0.790"
   },
+  "coverageFrontierLane": {
+    "playerDays": 1925,
+    "correct": 1585,
+    "wrong": 340,
+    "accuracyPct": 82.34,
+    "runtimeFinalCorrect": 1585,
+    "runtimeFinalWrong": 340,
+    "runtimeFinalAccuracyPct": 82.34,
+    "runtimeFinalLast30AccuracyPct": 82.66,
+    "runtimeFinalLast14AccuracyPct": 81.74,
+    "sideAgreementPct": null,
+    "sideDisagreements": null,
+    "uniquePlayers": 161,
+    "activeDates": 171,
+    "avgPlayersPerSlate": 11.26,
+    "last30AccuracyPct": 82.66,
+    "last14AccuracyPct": 81.74,
+    "byMarket": {
+      "PTS": 1514,
+      "REB": 243,
+      "AST": 168
+    },
+    "label": "top200_coverage_frontier_projection_disagreement",
+    "threshold": null,
+    "poolSize": 200,
+    "coverageVsEligiblePlayerDaysPct": 14.96,
+    "markets": [
+      "PTS",
+      "REB",
+      "AST"
+    ],
+    "requiredSource": "player_override",
+    "projectionMode": "disagree",
+    "requiredSide": "any",
+    "minAbsLineGap": 1.0,
+    "minProjectedMinutes": 24.0,
+    "rule": "top200 coverage frontier: one largest-gap PTS/REB/AST market per player, player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24"
+  },
   "recentFormLane": {
     "playerDays": 739,
     "correct": 611,

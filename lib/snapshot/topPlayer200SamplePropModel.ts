@@ -23,8 +23,9 @@ type TopPlayer200Lane = {
 type TopPlayer200RecentFormLane = TopPlayer200Lane & {
   markets: string[];
   requiredSource: string;
-  requiredSide: 'OVER' | 'UNDER';
-  requiredProjectionSide: 'OVER' | 'UNDER';
+  requiredSide: 'OVER' | 'UNDER' | 'any';
+  requiredProjectionSide?: 'OVER' | 'UNDER';
+  projectionMode?: 'agree' | 'disagree' | 'any';
   minAbsLineGap: number;
   minProjectedMinutes: number;
 };
@@ -48,6 +49,7 @@ type TopPlayer200Artifact = {
   primaryPlayerPool: TopPlayer200PoolPlayer[];
   primaryLane: TopPlayer200Lane;
   accuracyFirstLane: TopPlayer200Lane;
+  coverageFrontierLane?: TopPlayer200RecentFormLane;
   recentFormLane?: TopPlayer200RecentFormLane;
   topOverall80Lanes?: TopPlayer200Lane[];
   widestOverall80Lane?: TopPlayer200Lane;
@@ -162,6 +164,37 @@ export const TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT = TOP_PLAYER_200_SAMPLE_TOP
 export const TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT =
   TOP_PLAYER_200_SAMPLE_TOP6_LANE.minWfConfidence * 100;
 export const TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.maxPicksPerSlate;
+export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE: TopPlayer200RecentFormLane =
+  artifact.coverageFrontierLane ?? {
+    label: 'top200_coverage_frontier_projection_disagreement',
+    accuracyPct: 82.34,
+    playerDays: 1925,
+    correct: 1585,
+    wrong: 340,
+    runtimeFinalAccuracyPct: 82.34,
+    runtimeFinalCorrect: 1585,
+    runtimeFinalWrong: 340,
+    sideAgreementPct: null,
+    uniquePlayers: 161,
+    activeDates: 171,
+    avgPlayersPerSlate: 11.26,
+    last30AccuracyPct: 82.66,
+    last14AccuracyPct: 81.74,
+    threshold: null,
+    rule:
+      'top200 coverage frontier: one largest-gap PTS/REB/AST market per player, player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24',
+    markets: ['PTS', 'REB', 'AST'],
+    requiredSource: 'player_override',
+    projectionMode: 'disagree',
+    requiredSide: 'any',
+    minAbsLineGap: 1,
+    minProjectedMinutes: 24,
+  };
+export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT =
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.runtimeFinalAccuracyPct ??
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_MARKETS =
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.markets;
 export const TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE: TopPlayer200RecentFormLane =
   artifact.recentFormLane ?? {
     label: 'top200_recent_form_projection_fade_under',
@@ -185,6 +218,7 @@ export const TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE: TopPlayer200RecentFormLane 
     requiredSource: 'player_override',
     requiredSide: 'UNDER',
     requiredProjectionSide: 'OVER',
+    projectionMode: 'disagree',
     minAbsLineGap: 1,
     minProjectedMinutes: 28,
   };

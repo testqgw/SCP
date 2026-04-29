@@ -34,6 +34,7 @@ Rule: `top200_sample_count: one highest wfConfidence market per player, wfConfid
 | Primary: top200_sample_count | 82.39% | 2,431 | 80.26% | 81.74% | 19.76% | 2,003 / 428 |
 | Accuracy-first: top200_sample_count | 86.79% | 212 | 92.59% | 95.24% | 1.72% | 184 / 28 |
 | Widest 80 overall: all_min200 | 80.14% | 10,952 | 79.13% | 70.48% | 77.95% | 8,777 / 2,175 |
+| Coverage frontier: top200_coverage_frontier_projection_disagreement | 82.34% | 1,925 | 82.66% | 81.74% | 14.96% | 1,585 / 340 |
 | Recent-form projection fade: top200_recent_form_projection_fade_under | 82.68% | 739 | 85.82% | 85.45% | 6.01% | 611 / 128 |
 
 ## Primary Market Mix

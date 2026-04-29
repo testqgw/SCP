@@ -28,10 +28,12 @@ import {
 } from '@/lib/snapshot/rubbingHands115Model';
 import {
   TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT,
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT,
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE,
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_MARKETS,
   TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET,
   TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT,
   TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT,
-  TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE,
   TOP_PLAYER_200_SAMPLE_META_MIN_HGB_CONFIDENCE_PCT,
   TOP_PLAYER_200_SAMPLE_MIN_SAMPLES,
   TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT,
@@ -63,6 +65,7 @@ type RubbingPickFilter =
   | 'sample200Volume'
   | 'sample200Meta'
   | 'sample200Top6'
+  | 'sample200Coverage'
   | 'sample200Recent';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
@@ -72,12 +75,15 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
-const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Recent';
+const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Coverage';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
   TOP_PLAYER_200_SAMPLE_RECENT_FORM_MARKETS as SnapshotMarket[],
+);
+const TOP_PLAYER_200_COVERAGE_FRONTIER_MARKET_SET = new Set<SnapshotMarket>(
+  TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_MARKETS as SnapshotMarket[],
 );
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
@@ -718,6 +724,7 @@ function isTopPlayer200SampleFilter(filter: RubbingPickFilter) {
     filter === 'sample200Volume' ||
     filter === 'sample200Meta' ||
     filter === 'sample200Top6' ||
+    filter === 'sample200Coverage' ||
     filter === 'sample200Recent'
   );
 }
@@ -728,6 +735,10 @@ function isTopPlayer200HgbFilter(filter: RubbingPickFilter) {
 
 function isTopPlayer200RecentFormFilter(filter: RubbingPickFilter) {
   return filter === 'sample200Recent';
+}
+
+function isTopPlayer200CoverageFilter(filter: RubbingPickFilter) {
+  return filter === 'sample200Coverage';
 }
 
 function projectionSideFromEdge(edge: number | null | undefined): SnapshotModelSide {
@@ -748,7 +759,7 @@ function topPlayer200SampleMetaConfidencePct(view: View, dateEt: string) {
 }
 
 function topPlayer200SampleLaneConfidencePct(view: View, dateEt: string, filter: RubbingPickFilter = RUBBING_DEFAULT_PICK_FILTER) {
-  if (filter === 'sample200Recent') return view.conf;
+  if (filter === 'sample200Coverage' || filter === 'sample200Recent') return view.conf;
   if (filter === 'sample200Meta') return topPlayer200SampleMetaConfidencePct(view, dateEt);
   return topPlayer200SampleHgbConfidencePct(view, dateEt);
 }
@@ -866,6 +877,42 @@ function selectTopPlayer200RecentFormViews(views: View[]) {
   return Array.from(bestByPlayer.values()).sort(compareTopPlayer200RecentFormViews);
 }
 
+function isTopPlayer200CoverageFrontierLanePick(view: View) {
+  const runtime = marketRuntimeFor(view.row, view.market);
+  const modelPlayer = topPlayer200SamplePlayer(view);
+  const projectionSide = projectionSideFromEdge(view.edge);
+  const modelSide = rubbingHands115Side(view);
+  const projectedMinutes = view.row.playerContext.projectedMinutes;
+  return Boolean(
+    modelPlayer &&
+      TOP_PLAYER_200_COVERAGE_FRONTIER_MARKET_SET.has(view.market) &&
+      view.live != null &&
+      (view.books ?? 0) >= RUBBING_115_MIN_LIVE_BOOKS &&
+      view.proj != null &&
+      runtime?.source === TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.requiredSource &&
+      modelSide !== 'NEUTRAL' &&
+      projectionSide !== 'NEUTRAL' &&
+      modelSide !== projectionSide &&
+      (view.edge ?? 0) !== 0 &&
+      Math.abs(view.edge ?? 0) >= TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minAbsLineGap &&
+      projectedMinutes != null &&
+      projectedMinutes >= TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minProjectedMinutes,
+  );
+}
+
+function selectTopPlayer200CoverageFrontierViews(views: View[]) {
+  const bestByPlayer = new Map<string, View>();
+  views.forEach((view) => {
+    if (!isTopPlayer200CoverageFrontierLanePick(view)) return;
+    const key = topPlayer200SamplePlayerKey(view);
+    const current = bestByPlayer.get(key);
+    if (!current || compareTopPlayer200RecentFormViews(view, current) < 0) {
+      bestByPlayer.set(key, view);
+    }
+  });
+  return Array.from(bestByPlayer.values()).sort(compareTopPlayer200RecentFormViews);
+}
+
 function isRubbingHands115AllWindowPick(view: View) {
   return (view.conf ?? -1) >= RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT;
 }
@@ -898,6 +945,7 @@ function isRubbingHands115ResearchPick(view: View) {
 }
 
 function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAULT_PICK_FILTER, dateEt = '') {
+  if (filter === 'sample200Coverage' && isTopPlayer200CoverageFrontierLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded lane`;
   if (filter === 'sample200Recent' && isTopPlayer200RecentFormLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form lane`;
   if (filter === 'sample200Top6' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane`;
   if (filter === 'sample200Meta' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta lane`;
@@ -909,6 +957,7 @@ function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAUL
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
+  if (value === 'sample200Coverage') return `${n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded picks`;
   if (value === 'sample200Recent') return `${n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form picks`;
   if (value === 'sample200Top6') return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 picks`;
   if (value === 'sample200Meta') return `${n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta picks`;
@@ -1439,8 +1488,14 @@ export default function NewDashboard({
     () => selectTopPlayer200RecentFormViews(allViews),
     [allViews],
   );
+  const topPlayer200SampleCoverageBaseViews = useMemo(
+    () => selectTopPlayer200CoverageFrontierViews(allViews),
+    [allViews],
+  );
   const topPlayer200SampleBaseViews =
-    rubbingPickFilter === 'sample200Recent'
+    rubbingPickFilter === 'sample200Coverage'
+      ? topPlayer200SampleCoverageBaseViews
+      : rubbingPickFilter === 'sample200Recent'
       ? topPlayer200SampleRecentBaseViews
       : rubbingPickFilter === 'sample200Meta'
       ? topPlayer200SampleMetaBaseViews
@@ -1486,6 +1541,9 @@ export default function NewDashboard({
   const rubbingFilteredViews = useMemo(() => {
     const sourceViews = isTopPlayer200SampleFilter(rubbingPickFilter) ? topPlayer200SamplePoolViews : rubbingPoolViews;
     const views = sourceViews.filter((view) => {
+      if (isTopPlayer200CoverageFilter(rubbingPickFilter)) {
+        return isTopPlayer200CoverageFrontierLanePick(view);
+      }
       if (isTopPlayer200RecentFormFilter(rubbingPickFilter)) {
         return isTopPlayer200RecentFormLanePick(view);
       }
@@ -1498,6 +1556,12 @@ export default function NewDashboard({
     });
 
     views.sort((a, b) => {
+      if (isTopPlayer200CoverageFilter(rubbingPickFilter)) {
+        if (rubbingSort === 'books') {
+          return (b.books ?? -1) - (a.books ?? -1) || compareTopPlayer200RecentFormViews(a, b);
+        }
+        return compareTopPlayer200RecentFormViews(a, b);
+      }
       if (isTopPlayer200RecentFormFilter(rubbingPickFilter)) {
         if (rubbingSort === 'books') {
           return (b.books ?? -1) - (a.books ?? -1) || compareTopPlayer200RecentFormViews(a, b);
@@ -1583,6 +1647,10 @@ export default function NewDashboard({
     () => topPlayer200SampleRecentBaseViews.filter((view) => !isAvailabilityRemoved(view.row)).length,
     [topPlayer200SampleRecentBaseViews],
   );
+  const topPlayer200SampleCoveragePickCount = useMemo(
+    () => topPlayer200SampleCoverageBaseViews.filter((view) => !isAvailabilityRemoved(view.row)).length,
+    [topPlayer200SampleCoverageBaseViews],
+  );
   const rubbingHasManualFilter = Boolean(deferredRubbingSearchQuery) || rubbingMarketFilter !== 'ALL';
   const rubbingUsesCurrentHgbScores = data.dateEt === TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET;
   const rubbingUsesHgbScores = isTopPlayer200HgbFilter(rubbingPickFilter);
@@ -1599,6 +1667,8 @@ export default function NewDashboard({
       ? `Current 200+ model scores are for ${TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}, not ${data.dateEt}.`
       : rubbingUsesHgbScores && !rubbingHasManualFilter
         ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} cleared the ${pct(rubbingCurrentThreshold, 0)} model-confidence gate for this slate.`
+      : isTopPlayer200CoverageFilter(rubbingPickFilter) && !rubbingHasManualFilter
+        ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} matched the expanded disagreement rule for this slate.`
       : isTopPlayer200RecentFormFilter(rubbingPickFilter) && !rubbingHasManualFilter
         ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} matched the recent-form rule for this slate.`
       : `No ${rubbingPickFilterLabel(rubbingPickFilter)} match the current filters.`;
@@ -1607,6 +1677,8 @@ export default function NewDashboard({
       ? 'Regenerate the current-slate HGB score artifact before using this lane on a different slate date.'
       : rubbingUsesHgbScores && !rubbingHasManualFilter
         ? 'The eligible 200+ sample pool is loaded, but no player cleared this model-confidence threshold.'
+      : isTopPlayer200CoverageFilter(rubbingPickFilter) && !rubbingHasManualFilter
+        ? 'The eligible 200+ sample pool is loaded, but no player matched the player-override, projection-disagreement, minutes, and gap requirements.'
       : isTopPlayer200RecentFormFilter(rubbingPickFilter) && !rubbingHasManualFilter
         ? 'The eligible 200+ sample pool is loaded, but no player matched the player-override, projection-fade, minutes, and gap requirements.'
       : 'Clear the search, choose all markets, or switch the pick type to restore the model-selected board.';
@@ -3397,7 +3469,7 @@ export default function NewDashboard({
                       This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The default Rubbing Hands pick type now uses the recent-form projection-fade lane: top-200 sample players, PTS/REB/AST, player-override UNDER sides, projection leaning OVER, gap at least {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.minAbsLineGap, 1)}, and projected minutes at least {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.minProjectedMinutes, 0)}.
+                      The default Rubbing Hands pick type now uses the expanded projection-disagreement lane: top-200 sample players, PTS/REB/AST, player-override sides that disagree with the board projection, gap at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minAbsLineGap, 1)}, and projected minutes at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minProjectedMinutes, 0)}.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -3405,7 +3477,7 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last14AccuracyPct, 2)}%; top-6 HGB lane {n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last14AccuracyPct, 2)}%; meta lane {n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% on {n(TOP_PLAYER_200_SAMPLE_META_EXPANDED_LANE.playerDays, 0)} player-days. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
+                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: expanded lane {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last14AccuracyPct, 2)}%; tighter recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last14AccuracyPct, 2)}%; top-6 HGB lane {n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last14AccuracyPct, 2)}%. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
@@ -3415,6 +3487,7 @@ export default function NewDashboard({
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
                 <Stat dense label="200+ pool" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side replay`} />
                 <Stat dense label="Qualified" value={n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ samples this season`} />
+                <Stat dense label="Expanded" value={pct(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleCoveragePickCount, 0)} current picks`} />
                 <Stat dense label="Recent form" value={pct(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleRecentPickCount, 0)} current picks`} />
                 <Stat dense label="Top-6 gate" value={pct(TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT, 0)} kind="MODEL" note={`${n(topPlayer200SampleTop6PickCount, 0)} current picks`} />
                 <Stat dense label="Meta gate" value={pct(TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleMetaPickCount, 0)} current picks`} />
@@ -3443,6 +3516,7 @@ export default function NewDashboard({
                       onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
+                      <option value="sample200Coverage">{n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded lane</option>
                       <option value="sample200Recent">{n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form lane</option>
                       <option value="sample200Top6">{n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane</option>
                       <option value="sample200Meta">{n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta lane</option>
@@ -3553,6 +3627,7 @@ export default function NewDashboard({
                           const rowRank = rubbingRangeStart + index;
                           const isSample200Row = isTopPlayer200SampleFilter(rubbingPickFilter);
                           const isHgbRow = isTopPlayer200HgbFilter(rubbingPickFilter);
+                          const isCoverageRow = isTopPlayer200CoverageFilter(rubbingPickFilter);
                           const isRecentRow = isTopPlayer200RecentFormFilter(rubbingPickFilter);
                           const isMetaRow = rubbingPickFilter === 'sample200Meta';
                           const sampleScore = isHgbRow ? topPlayer200SampleScore(v, data.dateEt) : null;
@@ -3575,9 +3650,9 @@ export default function NewDashboard({
                               <td className="px-4 py-4 align-top">
                                 <div className="font-semibold text-[var(--text)]">{sampleScore ? topPlayer200SampleHeadline(v, data.dateEt) : rubbingHands115Headline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                  <Pill label={isRecentRow ? '200+ recent-form model' : isMetaRow ? '200+ HGB+meta model' : isSample200Row ? '200+ HGB model' : '115 model'} tone="cyan" />
-                                  <Pill label={isRecentRow ? 'Projection-fade override' : isMetaRow ? 'Meta reliability gate' : sampleScore ? 'HGB model side' : rubbingHands115SideSource(v)} tone="default" />
-                                  <Pill label={rubbingLaneLabel(v, rubbingPickFilter, data.dateEt)} tone={isRubbingHands115AllWindowPick(v) || (isRecentRow && isTopPlayer200RecentFormLanePick(v)) || (isHgbRow && isTopPlayer200SampleLanePick(v, data.dateEt, rubbingPickFilter)) ? 'cyan' : 'amber'} />
+                                  <Pill label={isCoverageRow ? '200+ expanded model' : isRecentRow ? '200+ recent-form model' : isMetaRow ? '200+ HGB+meta model' : isSample200Row ? '200+ HGB model' : '115 model'} tone="cyan" />
+                                  <Pill label={isCoverageRow ? 'Projection-disagreement override' : isRecentRow ? 'Projection-fade override' : isMetaRow ? 'Meta reliability gate' : sampleScore ? 'HGB model side' : rubbingHands115SideSource(v)} tone="default" />
+                                  <Pill label={rubbingLaneLabel(v, rubbingPickFilter, data.dateEt)} tone={isRubbingHands115AllWindowPick(v) || (isCoverageRow && isTopPlayer200CoverageFrontierLanePick(v)) || (isRecentRow && isTopPlayer200RecentFormLanePick(v)) || (isHgbRow && isTopPlayer200SampleLanePick(v, data.dateEt, rubbingPickFilter)) ? 'cyan' : 'amber'} />
                                   {projectionLean ? (
                                     <Pill
                                       label={projectionLean}
@@ -3597,7 +3672,7 @@ export default function NewDashboard({
                               </td>
                               <td className="px-4 py-4 text-right align-top text-[var(--text)]">
                                 <div className="font-semibold">{displayConfidence == null ? '-' : pct(displayConfidence, 0)}</div>
-                                <div className="mt-1 text-xs text-[var(--text-2)]">{isRecentRow ? signalGradeValue(v.signalGrade) : isMetaRow ? 'Meta reliability' : sampleScore ? 'HGB score' : signalGradeValue(v.signalGrade)}</div>
+                                <div className="mt-1 text-xs text-[var(--text-2)]">{isCoverageRow || isRecentRow ? signalGradeValue(v.signalGrade) : isMetaRow ? 'Meta reliability' : sampleScore ? 'HGB score' : signalGradeValue(v.signalGrade)}</div>
                                 {isMetaRow && sampleScore ? (
                                   <div className="mt-1 text-xs text-[var(--text-2)]">HGB {pct(sampleScore.wfConfidence * 100, 0)}</div>
                                 ) : null}
