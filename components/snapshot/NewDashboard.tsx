@@ -20,11 +20,7 @@ import {
   RUBBING_HANDS_115_ALL_WINDOW_LANE,
   RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT,
   RUBBING_HANDS_115_BASE_LANE,
-  RUBBING_HANDS_115_BASE_V2_LANE,
-  RUBBING_HANDS_115_BASE_V3_LANE,
   RUBBING_HANDS_115_MODEL_GENERATED_AT,
-  RUBBING_HANDS_115_MODEL_LABEL,
-  RUBBING_HANDS_115_POOL_SIZE,
   RUBBING_HANDS_115_PRIMARY_LANE,
   RUBBING_HANDS_115_RESEARCH_LANE,
   RUBBING_HANDS_115_RESEARCH_CONFIDENCE_PCT,
@@ -57,6 +53,7 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
+const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
@@ -76,7 +73,7 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
   { id: 'overview', label: 'Overview', hint: 'Best board setups' },
   { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
-  { id: 'rubbing', label: 'Rubbing Hands', hint: '115-player model' },
+  { id: 'rubbing', label: 'Rubbing Hands', hint: '200+ sample model' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
@@ -754,18 +751,18 @@ function isRubbingHands115ResearchPick(view: View) {
   );
 }
 
-function rubbingLaneLabel(view: View, filter: RubbingPickFilter = 'all') {
+function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAULT_PICK_FILTER) {
   if (filter === 'sample200' && isTopPlayer200SampleLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample lane`;
   if (isRubbingHands115ResearchPick(view)) return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane`;
   if (isRubbingHands115AllWindowPick(view)) return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane`;
-  return '115-player lane';
+  return 'Legacy 115-player lane';
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
   if (value === 'sample200') return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample picks`;
   if (value === 'allWindow') return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window picks`;
   if (value === 'research') return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research picks`;
-  return '115-player picks';
+  return 'legacy 115-player picks';
 }
 
 function rubbingExternalNote(view: View) {
@@ -1196,7 +1193,7 @@ export default function NewDashboard({
   const [rubbingSort, setRubbingSort] = useState<RubbingSort>('confidence');
   const [rubbingSearchQuery, setRubbingSearchQuery] = useState('');
   const [rubbingMarketFilter, setRubbingMarketFilter] = useState<'ALL' | SnapshotMarket>('ALL');
-  const [rubbingPickFilter, setRubbingPickFilter] = useState<RubbingPickFilter>('all');
+  const [rubbingPickFilter, setRubbingPickFilter] = useState<RubbingPickFilter>(RUBBING_DEFAULT_PICK_FILTER);
   const [rubbingPage, setRubbingPage] = useState(0);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -2049,7 +2046,7 @@ export default function NewDashboard({
     },
     rubbing: {
       title: 'Rubbing Hands',
-      detail: 'The separate 115-player quality model, reduced to one live market per player with injury-aware availability.',
+      detail: 'The 200+ sample top-player model, reduced to one live market per player with injury-aware availability.',
     },
     research: {
       title: 'Player research',
@@ -3141,12 +3138,12 @@ export default function NewDashboard({
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
-                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">{RUBBING_HANDS_115_MODEL_LABEL}</h3>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">{TOP_PLAYER_200_SAMPLE_MODEL_LABEL}</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
-                      This section is wired to separate player-prop model lanes, not the regular board filter. It keeps fixed player pools, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
+                      This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The pick side is the model/runtime side. Board projection and projection gap are shown as context, so they can disagree when a player override or universal side model takes the other side.
+                      The default Rubbing Hands pick type is the stricter {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side 200+ sample lane. The model pick column is official; board projection stays as context, and the old 115-player lanes are selectable for comparison.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -3154,7 +3151,7 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; base V3 cadence test {n(RUBBING_HANDS_115_BASE_V3_LANE?.accuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%. {TOP_PLAYER_200_SAMPLE_MODEL_LABEL} generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side check on {n(TOP_PLAYER_200_SAMPLE_PRIMARY_LANE.playerDays, 0)} player-days with {n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ season samples, using the top {n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} of {n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} qualified players. Injury and external context still comes through the live board payload.
+                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side check on {n(TOP_PLAYER_200_SAMPLE_PRIMARY_LANE.playerDays, 0)} player-days with {n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ season samples, using the top {n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} of {n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} qualified players. Legacy 115 reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
@@ -3162,9 +3159,9 @@ export default function NewDashboard({
                 <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
                 <Stat dense label="Removed picks" value={n(rubbingDisplayedRemovedViews.length, 0)} kind={rubbingDisplayedRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% base replay`} />
-                <Stat dense label="Base V3 test" value={`${n(RUBBING_HANDS_115_BASE_V3_LANE?.accuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%`} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_V3_LANE?.warmAccuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.warmAccuracyPct ?? null, 2)}% warm; not 90`} />
-                <Stat dense label="Source replay" value={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%`} kind="MODEL" note="Runtime/source-router side" />
+                <Stat dense label="200+ pool" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side replay`} />
+                <Stat dense label="Qualified" value={n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ samples this season`} />
+                <Stat dense label="Confidence gate" value={pct(TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT, 0)} kind="MODEL" note="Strict default threshold" />
                 <Stat dense label="All-window picks" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% replay lane`} />
                 <Stat dense label="Research picks" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />
                 <Stat dense label="200+ picks" value={n(topPlayer200SamplePickCount, 0)} kind={topPlayer200SamplePickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side lane`} />
@@ -3189,10 +3186,10 @@ export default function NewDashboard({
                       onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
-                      <option value="all">115-player picks</option>
+                      <option value="sample200">{n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample lane</option>
+                      <option value="all">Legacy 115-player picks</option>
                       <option value="allWindow">{n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane</option>
                       <option value="research">{n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane</option>
-                      <option value="sample200">{n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample lane</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
