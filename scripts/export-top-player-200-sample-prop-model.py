@@ -171,6 +171,74 @@ def select_one_per_player(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(parts, ignore_index=True) if parts else df.iloc[0:0].copy()
 
 
+def projection_side_from_gap(value: Any) -> str:
+    gap = finite_float(value)
+    if gap is None:
+        return "NEUTRAL"
+    if gap > 0:
+        return "OVER"
+    if gap < 0:
+        return "UNDER"
+    return "NEUTRAL"
+
+
+def select_recent_form_lane(df: pd.DataFrame, player_ids: set[str]) -> pd.DataFrame:
+    pool = df[df["playerId"].isin(player_ids)].copy()
+    if pool.empty:
+        return pool
+
+    pool["absLineGap"] = pd.to_numeric(pool["lineGap"], errors="coerce").abs()
+    pool["projectedMinutes"] = pd.to_numeric(pool["projectedMinutes"], errors="coerce")
+    pool["projectionSide"] = pool["lineGap"].map(projection_side_from_gap)
+    selected = pool[
+        pool["market"].isin(["PTS", "REB", "AST"])
+        & pool["finalSource"].eq("player_override")
+        & pool["finalSide"].eq("UNDER")
+        & pool["projectionSide"].eq("OVER")
+        & pool["absLineGap"].ge(1.0)
+        & pool["projectedMinutes"].ge(28.0)
+    ].copy()
+    if selected.empty:
+        return selected
+
+    parts = []
+    for _, day in selected.groupby("gameDateEt", sort=True):
+        best = (
+            day.sort_values(["absLineGap", "projectedMinutes"], ascending=[False, False])
+            .groupby("playerId", as_index=False)
+            .head(1)
+        )
+        parts.append(best)
+    return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
+
+
+def summarize_recent_form_lane(selected: pd.DataFrame, full_player_days: int) -> dict[str, Any]:
+    selected = selected.copy()
+    selected["selectedCorrect"] = selected["finalCorrectBool"].astype(int)
+    stats = summarize_selection(selected)
+    stats.update(
+        {
+            "label": "top200_recent_form_projection_fade_under",
+            "threshold": None,
+            "poolSize": 200,
+            "coverageVsEligiblePlayerDaysPct": (
+                round(stats["playerDays"] / full_player_days * 100, 2) if full_player_days else 0
+            ),
+            "markets": ["PTS", "REB", "AST"],
+            "requiredSource": "player_override",
+            "requiredSide": "UNDER",
+            "requiredProjectionSide": "OVER",
+            "minAbsLineGap": 1.0,
+            "minProjectedMinutes": 28.0,
+            "rule": (
+                "top200 recent-form projection fade: one largest-gap PTS/REB/AST market per player, "
+                "player_override side UNDER, projection side OVER, abs projection gap >= 1.0, projected minutes >= 28"
+            ),
+        }
+    )
+    return stats
+
+
 def scan_pool(
     df: pd.DataFrame,
     label: str,
@@ -232,6 +300,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     primary = output["primaryLane"]
     accuracy = output["accuracyFirstLane"]
     widest = output["widestOverall80Lane"]
+    recent = output["recentFormLane"]
 
     lines = [
         "# Top Player 200-Sample NBA Prop Model",
@@ -281,6 +350,11 @@ def markdown_report(output: dict[str, Any]) -> str:
             f"| Widest 80 overall: {widest['label']} | {widest['accuracyPct']:.2f}% | {widest['playerDays']:,} | "
             f"{widest['last30AccuracyPct']:.2f}% | {widest['last14AccuracyPct']:.2f}% | "
             f"{widest['coverageVsEligiblePlayerDaysPct']:.2f}% | {widest['correct']:,} / {widest['wrong']:,} |"
+        ),
+        (
+            f"| Recent-form projection fade: {recent['label']} | {recent['accuracyPct']:.2f}% | {recent['playerDays']:,} | "
+            f"{recent['last30AccuracyPct']:.2f}% | {recent['last14AccuracyPct']:.2f}% | "
+            f"{recent['coverageVsEligiblePlayerDaysPct']:.2f}% | {recent['correct']:,} / {recent['wrong']:,} |"
         ),
         "",
         "## Primary Market Mix",
@@ -362,6 +436,9 @@ def main() -> None:
     qualified_ids = {row["playerId"] for row in qualified_players}
     primary_ids = {row["playerId"] for row in primary_pool}
     warm = df[df["eligibleWalkForward"] & df["playerId"].isin(qualified_ids)].copy()
+    primary_full_player_days = int(
+        warm[warm["playerId"].isin(primary_ids)].groupby(["gameDateEt", "playerId"]).ngroups
+    )
 
     thresholds = threshold_values(args.threshold_start, args.threshold_stop, args.threshold_step)
     scan_rows: list[dict[str, Any]] = []
@@ -375,6 +452,10 @@ def main() -> None:
         )
     )
     scan_rows.extend(scan_pool(warm, f"all_min{args.min_samples}", qualified_ids, thresholds, args.target_accuracy))
+    recent_form_lane = summarize_recent_form_lane(
+        select_recent_form_lane(warm, primary_ids),
+        primary_full_player_days,
+    )
 
     target_clearing = [
         row for row in scan_rows if row["threshold"] is not None and row["clearsTargetAllWindows"]
@@ -419,6 +500,7 @@ def main() -> None:
         "primaryLane": primary_lane,
         "accuracyFirstLane": accuracy_first,
         "widestOverall80Lane": widest_overall,
+        "recentFormLane": recent_form_lane,
         "targetClearingLanes": target_clearing,
         "topOverall80Lanes": overall_80[:25],
         "folds": fold_summaries,

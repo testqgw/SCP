@@ -20,6 +20,15 @@ type TopPlayer200Lane = {
   rule: string;
 };
 
+type TopPlayer200RecentFormLane = TopPlayer200Lane & {
+  markets: string[];
+  requiredSource: string;
+  requiredSide: 'OVER' | 'UNDER';
+  requiredProjectionSide: 'OVER' | 'UNDER';
+  minAbsLineGap: number;
+  minProjectedMinutes: number;
+};
+
 type TopPlayer200PoolPlayer = {
   playerId: string;
   playerName: string;
@@ -39,6 +48,7 @@ type TopPlayer200Artifact = {
   primaryPlayerPool: TopPlayer200PoolPlayer[];
   primaryLane: TopPlayer200Lane;
   accuracyFirstLane: TopPlayer200Lane;
+  recentFormLane?: TopPlayer200RecentFormLane;
   topOverall80Lanes?: TopPlayer200Lane[];
   widestOverall80Lane?: TopPlayer200Lane;
 };
@@ -152,6 +162,36 @@ export const TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT = TOP_PLAYER_200_SAMPLE_TOP
 export const TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT =
   TOP_PLAYER_200_SAMPLE_TOP6_LANE.minWfConfidence * 100;
 export const TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.maxPicksPerSlate;
+export const TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE: TopPlayer200RecentFormLane =
+  artifact.recentFormLane ?? {
+    label: 'top200_recent_form_projection_fade_under',
+    accuracyPct: 82.68,
+    playerDays: 739,
+    correct: 611,
+    wrong: 128,
+    runtimeFinalAccuracyPct: 82.68,
+    runtimeFinalCorrect: 611,
+    runtimeFinalWrong: 128,
+    sideAgreementPct: 99.73,
+    uniquePlayers: 124,
+    activeDates: 153,
+    avgPlayersPerSlate: 4.83,
+    last30AccuracyPct: 85.82,
+    last14AccuracyPct: 85.45,
+    threshold: null,
+    rule:
+      'top200 recent-form projection fade: one largest-gap PTS/REB/AST market per player, player_override side UNDER, projection side OVER, abs projection gap >= 1.0, projected minutes >= 28',
+    markets: ['PTS', 'REB', 'AST'],
+    requiredSource: 'player_override',
+    requiredSide: 'UNDER',
+    requiredProjectionSide: 'OVER',
+    minAbsLineGap: 1,
+    minProjectedMinutes: 28,
+  };
+export const TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT =
+  TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.runtimeFinalAccuracyPct ??
+  TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_RECENT_FORM_MARKETS = TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.markets;
 
 export const TOP_PLAYER_200_SAMPLE_POOL: TopPlayer200SampleModelPlayer[] = artifact.primaryPlayerPool.map(
   (player, index) => ({
