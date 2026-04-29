@@ -33,11 +33,22 @@ import {
   RUBBING_HANDS_115_WALK_FORWARD_LANE,
   getRubbingHands115Player,
 } from '@/lib/snapshot/rubbingHands115Model';
+import {
+  TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT,
+  TOP_PLAYER_200_SAMPLE_MIN_SAMPLES,
+  TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT,
+  TOP_PLAYER_200_SAMPLE_MODEL_LABEL,
+  TOP_PLAYER_200_SAMPLE_POOL_SIZE,
+  TOP_PLAYER_200_SAMPLE_PRIMARY_LANE,
+  TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT,
+  TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT,
+  getTopPlayer200SamplePropPlayer,
+} from '@/lib/snapshot/topPlayer200SamplePropModel';
 
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
 type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
 type RubbingSort = 'confidence' | 'edge' | 'books';
-type RubbingPickFilter = 'all' | 'allWindow' | 'research';
+type RubbingPickFilter = 'all' | 'allWindow' | 'research' | 'sample200';
 type TrackerSort = 'gap' | 'confidence' | 'books';
 type TrackerStatusFilter = 'all' | 'pregame' | 'locked' | 'fair';
 type TrackerBooksFilter = 'all' | '3plus' | '5plus';
@@ -615,6 +626,10 @@ function rubbingHands115Player(view: View) {
   return getRubbingHands115Player({ playerId: view.row.playerId, playerName: view.row.playerName });
 }
 
+function topPlayer200SamplePlayer(view: View) {
+  return getTopPlayer200SamplePropPlayer({ playerId: view.row.playerId, playerName: view.row.playerName });
+}
+
 function rubbingHands115Side(view: View): SnapshotModelSide {
   const runtimeSide = marketRuntimeFor(view.row, view.market)?.finalSide;
   if (isDirectionalSide(runtimeSide)) return runtimeSide;
@@ -648,6 +663,10 @@ function rubbingHands115PlayerKey(view: View) {
   return rubbingHands115Player(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
 }
 
+function topPlayer200SamplePlayerKey(view: View) {
+  return topPlayer200SamplePlayer(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
+}
+
 function compareRubbingHands115Views(a: View, b: View) {
   const confidence = (b.conf ?? -1) - (a.conf ?? -1);
   if (confidence !== 0) return confidence;
@@ -660,8 +679,30 @@ function compareRubbingHands115Views(a: View, b: View) {
   return (rubbingHands115Player(a)?.qualityRank ?? 999) - (rubbingHands115Player(b)?.qualityRank ?? 999);
 }
 
+function compareTopPlayer200SampleViews(a: View, b: View) {
+  const confidence = (b.conf ?? -1) - (a.conf ?? -1);
+  if (confidence !== 0) return confidence;
+  const edge = Math.abs(b.edge ?? 0) - Math.abs(a.edge ?? 0);
+  if (edge !== 0) return edge;
+  const score = b.score - a.score;
+  if (score !== 0) return score;
+  const books = (b.books ?? -1) - (a.books ?? -1);
+  if (books !== 0) return books;
+  return (topPlayer200SamplePlayer(a)?.sampleRank ?? 999) - (topPlayer200SamplePlayer(b)?.sampleRank ?? 999);
+}
+
 function isRubbingModelPick(view: View) {
   const modelPlayer = rubbingHands115Player(view);
+  const modelSide = rubbingHands115Side(view);
+  const hasUsableLine = view.live != null && (view.books ?? 0) >= RUBBING_115_MIN_LIVE_BOOKS;
+  const hasProjection = view.proj != null;
+  const hasDirection = modelSide !== 'NEUTRAL';
+  const hasConfidence = view.conf != null;
+  return Boolean(modelPlayer && hasUsableLine && hasProjection && hasDirection && hasConfidence);
+}
+
+function isTopPlayer200SampleModelPick(view: View) {
+  const modelPlayer = topPlayer200SamplePlayer(view);
   const modelSide = rubbingHands115Side(view);
   const hasUsableLine = view.live != null && (view.books ?? 0) >= RUBBING_115_MIN_LIVE_BOOKS;
   const hasProjection = view.proj != null;
@@ -683,8 +724,25 @@ function selectRubbingHands115Views(views: View[]) {
   return Array.from(bestByPlayer.values()).sort(compareRubbingHands115Views);
 }
 
+function selectTopPlayer200SampleViews(views: View[]) {
+  const bestByPlayer = new Map<string, View>();
+  views.forEach((view) => {
+    if (!isTopPlayer200SampleModelPick(view)) return;
+    const key = topPlayer200SamplePlayerKey(view);
+    const current = bestByPlayer.get(key);
+    if (!current || compareTopPlayer200SampleViews(view, current) < 0) {
+      bestByPlayer.set(key, view);
+    }
+  });
+  return Array.from(bestByPlayer.values()).sort(compareTopPlayer200SampleViews);
+}
+
 function isRubbingHands115AllWindowPick(view: View) {
   return (view.conf ?? -1) >= RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT;
+}
+
+function isTopPlayer200SampleLanePick(view: View) {
+  return topPlayer200SamplePlayer(view) != null && (view.conf ?? -1) >= TOP_PLAYER_200_SAMPLE_CONFIDENCE_PCT;
 }
 
 function isRubbingHands115ResearchPick(view: View) {
@@ -696,13 +754,15 @@ function isRubbingHands115ResearchPick(view: View) {
   );
 }
 
-function rubbingLaneLabel(view: View) {
+function rubbingLaneLabel(view: View, filter: RubbingPickFilter = 'all') {
+  if (filter === 'sample200' && isTopPlayer200SampleLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample lane`;
   if (isRubbingHands115ResearchPick(view)) return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane`;
   if (isRubbingHands115AllWindowPick(view)) return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane`;
   return '115-player lane';
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
+  if (value === 'sample200') return `${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample picks`;
   if (value === 'allWindow') return `${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window picks`;
   if (value === 'research') return `${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research picks`;
   return '115-player picks';
@@ -711,7 +771,9 @@ function rubbingPickFilterLabel(value: RubbingPickFilter) {
 function rubbingExternalNote(view: View) {
   const notes: string[] = [];
   const modelPlayer = rubbingHands115Player(view);
+  const samplePlayer = topPlayer200SamplePlayer(view);
   if (modelPlayer) notes.push(`#${n(modelPlayer.qualityRank, 0)} in 115-player quality pool`);
+  if (samplePlayer) notes.push(`#${n(samplePlayer.sampleRank, 0)} in 200+ sample pool; ${n(samplePlayer.samples, 0)} rows`);
   const context = view.row.playerContext;
   const availability = availabilityRead(context);
   if (availability) notes.push(availability);
@@ -1203,13 +1265,25 @@ export default function NewDashboard({
     () => selectRubbingHands115Views(allViews),
     [allViews],
   );
+  const topPlayer200SampleBaseViews = useMemo(
+    () => selectTopPlayer200SampleViews(allViews),
+    [allViews],
+  );
   const rubbingRemovedViews = useMemo(
     () => rubbingBaseViews.filter((view) => isAvailabilityRemoved(view.row)),
     [rubbingBaseViews],
   );
+  const topPlayer200SampleRemovedViews = useMemo(
+    () => topPlayer200SampleBaseViews.filter((view) => isAvailabilityRemoved(view.row)),
+    [topPlayer200SampleBaseViews],
+  );
   const rubbingActiveBaseViews = useMemo(
     () => rubbingBaseViews.filter((view) => !isAvailabilityRemoved(view.row)),
     [rubbingBaseViews],
+  );
+  const topPlayer200SampleActiveBaseViews = useMemo(
+    () => topPlayer200SampleBaseViews.filter((view) => !isAvailabilityRemoved(view.row)),
+    [topPlayer200SampleBaseViews],
   );
   const rubbingPoolViews = useMemo(() => {
     return rubbingActiveBaseViews.filter((view) => {
@@ -1221,8 +1295,20 @@ export default function NewDashboard({
         .includes(deferredRubbingSearchQuery);
     });
   }, [deferredRubbingSearchQuery, rubbingActiveBaseViews, rubbingMarketFilter]);
+  const topPlayer200SamplePoolViews = useMemo(() => {
+    return topPlayer200SampleActiveBaseViews.filter((view) => {
+      if (rubbingMarketFilter !== 'ALL' && view.market !== rubbingMarketFilter) return false;
+      if (!deferredRubbingSearchQuery) return true;
+      return [view.row.playerName, view.row.teamCode, view.row.opponentCode, view.row.matchupKey, view.label]
+        .join(' ')
+        .toLowerCase()
+        .includes(deferredRubbingSearchQuery);
+    });
+  }, [deferredRubbingSearchQuery, topPlayer200SampleActiveBaseViews, rubbingMarketFilter]);
   const rubbingFilteredViews = useMemo(() => {
-    const views = rubbingPoolViews.filter((view) => {
+    const sourceViews = rubbingPickFilter === 'sample200' ? topPlayer200SamplePoolViews : rubbingPoolViews;
+    const views = sourceViews.filter((view) => {
+      if (rubbingPickFilter === 'sample200') return isTopPlayer200SampleLanePick(view);
       if (rubbingPickFilter === 'allWindow') return isRubbingHands115AllWindowPick(view);
       if (rubbingPickFilter === 'research') return isRubbingHands115ResearchPick(view);
       return true;
@@ -1239,7 +1325,10 @@ export default function NewDashboard({
     });
 
     return views;
-  }, [rubbingPickFilter, rubbingPoolViews, rubbingSort]);
+  }, [rubbingPickFilter, rubbingPoolViews, rubbingSort, topPlayer200SamplePoolViews]);
+  const rubbingDisplayedRemovedViews = rubbingPickFilter === 'sample200' ? topPlayer200SampleRemovedViews : rubbingRemovedViews;
+  const rubbingDisplayedActiveBaseViews =
+    rubbingPickFilter === 'sample200' ? topPlayer200SampleActiveBaseViews : rubbingActiveBaseViews;
   const rubbingPageCount = Math.max(1, Math.ceil(rubbingFilteredViews.length / RUBBING_PAGE_SIZE));
   const rubbingViews = useMemo(() => {
     const start = rubbingPage * RUBBING_PAGE_SIZE;
@@ -1265,6 +1354,10 @@ export default function NewDashboard({
   const rubbingResearchPickCount = useMemo(
     () => rubbingPoolViews.filter((view) => isRubbingHands115ResearchPick(view)).length,
     [rubbingPoolViews],
+  );
+  const topPlayer200SamplePickCount = useMemo(
+    () => topPlayer200SamplePoolViews.filter((view) => isTopPlayer200SampleLanePick(view)).length,
+    [topPlayer200SamplePoolViews],
   );
   const featured = useMemo(() => {
     const lead = precision[0]?.view;
@@ -1721,10 +1814,10 @@ export default function NewDashboard({
       kind: precision.length ? 'LIVE' : 'PLACEHOLDER',
     },
     rubbing: {
-      detail: rubbingActiveBaseViews.length
-        ? `${n(rubbingFilteredViews.length, 0)} shown / ${n(rubbingActiveBaseViews.length, 0)} 115-model picks | ${n(rubbingRemovedViews.length, 0)} removed`
-        : 'No 115-model picks loaded',
-      kind: rubbingActiveBaseViews.length ? 'LIVE' : 'PLACEHOLDER',
+      detail: rubbingDisplayedActiveBaseViews.length
+        ? `${n(rubbingFilteredViews.length, 0)} shown / ${n(rubbingDisplayedActiveBaseViews.length, 0)} ${rubbingPickFilterLabel(rubbingPickFilter)} | ${n(rubbingDisplayedRemovedViews.length, 0)} removed`
+        : 'No Rubbing Hands picks loaded',
+      kind: rubbingDisplayedActiveBaseViews.length ? 'LIVE' : 'PLACEHOLDER',
     },
     research: {
       detail: slatePlayers.length ? `${n(slatePlayers.length, 0)} slate players` : 'Slate not loaded',
@@ -3050,7 +3143,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
                     <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">{RUBBING_HANDS_115_MODEL_LABEL}</h3>
                     <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
-                      This section is wired to the separate 115-player quality model, not the regular board filter. It keeps the fixed quality pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
+                      This section is wired to separate player-prop model lanes, not the regular board filter. It keeps fixed player pools, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                       The pick side is the model/runtime side. Board projection and projection gap are shown as context, so they can disagree when a player override or universal side model takes the other side.
@@ -3061,19 +3154,20 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; base V3 cadence test {n(RUBBING_HANDS_115_BASE_V3_LANE?.accuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%. Injury and external context still comes through the live board payload.
+                  Model reference generated {RUBBING_HANDS_115_MODEL_GENERATED_AT}: base 115 replay {n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% on {n(RUBBING_HANDS_115_BASE_LANE.playerDays, 0)} player-days across {n(RUBBING_HANDS_115_BASE_LANE.uniquePlayers, 0)} players; base V3 cadence test {n(RUBBING_HANDS_115_BASE_V3_LANE?.accuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%; source-router replay {n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%. {TOP_PLAYER_200_SAMPLE_MODEL_LABEL} generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: {n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side check on {n(TOP_PLAYER_200_SAMPLE_PRIMARY_LANE.playerDays, 0)} player-days with {n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ season samples, using the top {n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} of {n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} qualified players. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-9">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 2xl:grid-cols-10">
                 <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
-                <Stat dense label="Removed picks" value={n(rubbingRemovedViews.length, 0)} kind={rubbingRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
+                <Stat dense label="Removed picks" value={n(rubbingDisplayedRemovedViews.length, 0)} kind={rubbingDisplayedRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
                 <Stat dense label="115 pool" value={n(RUBBING_HANDS_115_POOL_SIZE, 0)} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_LANE.accuracyPct, 2)}% base replay`} />
                 <Stat dense label="Base V3 test" value={`${n(RUBBING_HANDS_115_BASE_V3_LANE?.accuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.accuracyPct ?? null, 2)}%`} kind="MODEL" note={`${n(RUBBING_HANDS_115_BASE_V3_LANE?.warmAccuracyPct ?? RUBBING_HANDS_115_BASE_V2_LANE?.warmAccuracyPct ?? null, 2)}% warm; not 90`} />
                 <Stat dense label="Source replay" value={`${n(RUBBING_HANDS_115_PRIMARY_LANE.accuracyPct, 2)}%`} kind="MODEL" note="Runtime/source-router side" />
                 <Stat dense label="All-window picks" value={n(rubbingAllWindowPickCount, 0)} kind={rubbingAllWindowPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% replay lane`} />
                 <Stat dense label="Research picks" value={n(rubbingResearchPickCount, 0)} kind={rubbingResearchPickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% replay lane`} />
+                <Stat dense label="200+ picks" value={n(topPlayer200SamplePickCount, 0)} kind={topPlayer200SamplePickCount ? 'MODEL' : 'PLACEHOLDER'} note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side lane`} />
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
               </div>
 
@@ -3098,6 +3192,7 @@ export default function NewDashboard({
                       <option value="all">115-player picks</option>
                       <option value="allWindow">{n(RUBBING_115_ALL_WINDOW_REPLAY_LANE.accuracyPct, 2)}% all-window lane</option>
                       <option value="research">{n(RUBBING_HANDS_115_RESEARCH_LANE?.accuracyPct ?? null, 2)}% research lane</option>
+                      <option value="sample200">{n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% 200+ sample lane</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
@@ -3198,6 +3293,7 @@ export default function NewDashboard({
                       ) : (
                         rubbingViews.map((v, index) => {
                           const rowRank = rubbingRangeStart + index;
+                          const isSample200Row = rubbingPickFilter === 'sample200';
                           return (
                             <tr key={`${trackerRowKey(v)}:rubbing`} className="border-t border-[color:rgba(216,204,186,0.68)] transition hover:bg-[var(--surface-2)]">
                               <td className="px-4 py-4 align-top">
@@ -3214,9 +3310,9 @@ export default function NewDashboard({
                               <td className="px-4 py-4 align-top">
                                 <div className="font-semibold text-[var(--text)]">{rubbingHands115Headline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                  <Pill label="115 model" tone="cyan" />
+                                  <Pill label={isSample200Row ? '200+ sample model' : '115 model'} tone="cyan" />
                                   <Pill label={rubbingHands115SideSource(v)} tone="default" />
-                                  <Pill label={rubbingLaneLabel(v)} tone={isRubbingHands115AllWindowPick(v) ? 'cyan' : 'amber'} />
+                                  <Pill label={rubbingLaneLabel(v, rubbingPickFilter)} tone={isRubbingHands115AllWindowPick(v) || isTopPlayer200SampleLanePick(v) ? 'cyan' : 'amber'} />
                                   {rubbingProjectionLeanLabel(v) ? (
                                     <Pill
                                       label={rubbingProjectionLeanLabel(v) ?? ''}
