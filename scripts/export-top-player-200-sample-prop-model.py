@@ -270,15 +270,19 @@ def select_coverage_frontier_lane(df: pd.DataFrame, player_ids: set[str]) -> pd.
     return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
 
 
-def summarize_coverage_frontier_lane(selected: pd.DataFrame, full_player_days: int) -> dict[str, Any]:
+def summarize_coverage_frontier_lane(
+    selected: pd.DataFrame,
+    full_player_days: int,
+    pool_size: int,
+) -> dict[str, Any]:
     selected = selected.copy()
     selected["selectedCorrect"] = selected["finalCorrectBool"].astype(int)
     stats = summarize_selection(selected)
     stats.update(
         {
-            "label": "top200_coverage_frontier_projection_disagreement",
+            "label": "all_min200_coverage_frontier_projection_disagreement",
             "threshold": None,
-            "poolSize": 200,
+            "poolSize": pool_size,
             "coverageVsEligiblePlayerDaysPct": (
                 round(stats["playerDays"] / full_player_days * 100, 2) if full_player_days else 0
             ),
@@ -289,7 +293,7 @@ def summarize_coverage_frontier_lane(selected: pd.DataFrame, full_player_days: i
             "minAbsLineGap": 1.0,
             "minProjectedMinutes": 24.0,
             "rule": (
-                "top200 coverage frontier: one largest-gap PTS/REB/AST market per player, "
+                "all 200+ sample-qualified coverage frontier: one largest-gap PTS/REB/AST market per player, "
                 "player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24"
             ),
         }
@@ -500,6 +504,7 @@ def main() -> None:
     qualified_ids = {row["playerId"] for row in qualified_players}
     primary_ids = {row["playerId"] for row in primary_pool}
     warm = df[df["eligibleWalkForward"] & df["playerId"].isin(qualified_ids)].copy()
+    qualified_full_player_days = int(warm.groupby(["gameDateEt", "playerId"]).ngroups) if not warm.empty else 0
     primary_full_player_days = int(
         warm[warm["playerId"].isin(primary_ids)].groupby(["gameDateEt", "playerId"]).ngroups
     )
@@ -521,8 +526,9 @@ def main() -> None:
         primary_full_player_days,
     )
     coverage_frontier_lane = summarize_coverage_frontier_lane(
-        select_coverage_frontier_lane(warm, primary_ids),
-        primary_full_player_days,
+        select_coverage_frontier_lane(warm, qualified_ids),
+        qualified_full_player_days,
+        len(qualified_ids),
     )
 
     target_clearing = [

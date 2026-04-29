@@ -21,6 +21,8 @@ type TopPlayer200Lane = {
 };
 
 type TopPlayer200RecentFormLane = TopPlayer200Lane & {
+  poolSize?: number;
+  coverageVsEligiblePlayerDaysPct?: number;
   markets: string[];
   requiredSource: string;
   requiredSide: 'OVER' | 'UNDER' | 'any';
@@ -46,6 +48,7 @@ type TopPlayer200Artifact = {
   minSamples: number;
   topPlayerCount: number;
   qualifiedPlayerCount: number;
+  qualifiedPlayerPool?: TopPlayer200PoolPlayer[];
   primaryPlayerPool: TopPlayer200PoolPlayer[];
   primaryLane: TopPlayer200Lane;
   accuracyFirstLane: TopPlayer200Lane;
@@ -166,23 +169,25 @@ export const TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT =
 export const TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.maxPicksPerSlate;
 export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE: TopPlayer200RecentFormLane =
   artifact.coverageFrontierLane ?? {
-    label: 'top200_coverage_frontier_projection_disagreement',
-    accuracyPct: 82.34,
-    playerDays: 1925,
-    correct: 1585,
-    wrong: 340,
-    runtimeFinalAccuracyPct: 82.34,
-    runtimeFinalCorrect: 1585,
-    runtimeFinalWrong: 340,
-    sideAgreementPct: null,
-    uniquePlayers: 161,
-    activeDates: 171,
-    avgPlayersPerSlate: 11.26,
-    last30AccuracyPct: 82.66,
-    last14AccuracyPct: 81.74,
+    label: 'all_min200_coverage_frontier_projection_disagreement',
+    accuracyPct: 82.73,
+    playerDays: 1922,
+    correct: 1590,
+    wrong: 332,
+    runtimeFinalAccuracyPct: 82.73,
+    runtimeFinalCorrect: 1590,
+    runtimeFinalWrong: 332,
+    sideAgreementPct: 99.84,
+    uniquePlayers: 178,
+    activeDates: 164,
+    avgPlayersPerSlate: 11.72,
+    last30AccuracyPct: 82.64,
+    last14AccuracyPct: 82.4,
     threshold: null,
+    poolSize: artifact.qualifiedPlayerCount,
+    coverageVsEligiblePlayerDaysPct: 13.68,
     rule:
-      'top200 coverage frontier: one largest-gap PTS/REB/AST market per player, player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24',
+      'all 200+ sample-qualified coverage frontier: one largest-gap PTS/REB/AST market per player, player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24',
     markets: ['PTS', 'REB', 'AST'],
     requiredSource: 'player_override',
     projectionMode: 'disagree',
@@ -233,10 +238,22 @@ export const TOP_PLAYER_200_SAMPLE_POOL: TopPlayer200SampleModelPlayer[] = artif
     sampleRank: index + 1,
   }),
 );
+export const TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL: TopPlayer200SampleModelPlayer[] = (
+  artifact.qualifiedPlayerPool ?? artifact.primaryPlayerPool
+).map((player, index) => ({
+  ...player,
+  sampleRank: index + 1,
+}));
 
 const playerById = new Map(TOP_PLAYER_200_SAMPLE_POOL.map((player) => [player.playerId, player] as const));
 const playerByName = new Map(
   TOP_PLAYER_200_SAMPLE_POOL.map((player) => [normalizePlayerName(player.playerName), player] as const),
+);
+const qualifiedPlayerById = new Map(
+  TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL.map((player) => [player.playerId, player] as const),
+);
+const qualifiedPlayerByName = new Map(
+  TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL.map((player) => [normalizePlayerName(player.playerName), player] as const),
 );
 const currentScoreByPlayerMarket = new Map(
   currentScoresArtifact.rows.map((row) => [`${row.playerId}:${row.market}`, row] as const),
@@ -249,6 +266,15 @@ export function getTopPlayer200SamplePropPlayer(input: {
   const byId = input.playerId ? playerById.get(input.playerId) : null;
   if (byId) return byId;
   return playerByName.get(normalizePlayerName(input.playerName)) ?? null;
+}
+
+export function getTopPlayer200SampleQualifiedPropPlayer(input: {
+  playerId: string | null | undefined;
+  playerName?: string | null | undefined;
+}) {
+  const byId = input.playerId ? qualifiedPlayerById.get(input.playerId) : null;
+  if (byId) return byId;
+  return qualifiedPlayerByName.get(normalizePlayerName(input.playerName)) ?? null;
 }
 
 export function isTopPlayer200SamplePropPlayer(input: {

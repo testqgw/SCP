@@ -52,6 +52,7 @@ import {
   TOP_PLAYER_200_SAMPLE_VOLUME_RUNTIME_ACCURACY_PCT,
   getTopPlayer200SampleCurrentSlateScore,
   getTopPlayer200SamplePropPlayer,
+  getTopPlayer200SampleQualifiedPropPlayer,
 } from '@/lib/snapshot/topPlayer200SamplePropModel';
 
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
@@ -655,6 +656,10 @@ function topPlayer200SamplePlayer(view: View) {
   return getTopPlayer200SamplePropPlayer({ playerId: view.row.playerId, playerName: view.row.playerName });
 }
 
+function topPlayer200CoveragePlayer(view: View) {
+  return getTopPlayer200SampleQualifiedPropPlayer({ playerId: view.row.playerId, playerName: view.row.playerName });
+}
+
 function topPlayer200SampleScore(view: View, dateEt: string) {
   return getTopPlayer200SampleCurrentSlateScore({ dateEt, playerId: view.row.playerId, market: view.market });
 }
@@ -704,6 +709,10 @@ function rubbingHands115PlayerKey(view: View) {
 
 function topPlayer200SamplePlayerKey(view: View) {
   return topPlayer200SamplePlayer(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
+}
+
+function topPlayer200CoveragePlayerKey(view: View) {
+  return topPlayer200CoveragePlayer(view)?.playerId ?? view.row.playerId ?? view.row.playerName;
 }
 
 function compareRubbingHands115Views(a: View, b: View) {
@@ -793,7 +802,9 @@ function compareTopPlayer200RecentFormViews(a: View, b: View) {
   if (confidence !== 0) return confidence;
   const books = (b.books ?? -1) - (a.books ?? -1);
   if (books !== 0) return books;
-  return (topPlayer200SamplePlayer(a)?.sampleRank ?? 999) - (topPlayer200SamplePlayer(b)?.sampleRank ?? 999);
+  const aRank = topPlayer200SamplePlayer(a)?.sampleRank ?? topPlayer200CoveragePlayer(a)?.sampleRank ?? 999;
+  const bRank = topPlayer200SamplePlayer(b)?.sampleRank ?? topPlayer200CoveragePlayer(b)?.sampleRank ?? 999;
+  return aRank - bRank;
 }
 
 function isRubbingModelPick(view: View) {
@@ -879,7 +890,7 @@ function selectTopPlayer200RecentFormViews(views: View[]) {
 
 function isTopPlayer200CoverageFrontierLanePick(view: View) {
   const runtime = marketRuntimeFor(view.row, view.market);
-  const modelPlayer = topPlayer200SamplePlayer(view);
+  const modelPlayer = topPlayer200CoveragePlayer(view);
   const projectionSide = projectionSideFromEdge(view.edge);
   const modelSide = rubbingHands115Side(view);
   const projectedMinutes = view.row.playerContext.projectedMinutes;
@@ -904,7 +915,7 @@ function selectTopPlayer200CoverageFrontierViews(views: View[]) {
   const bestByPlayer = new Map<string, View>();
   views.forEach((view) => {
     if (!isTopPlayer200CoverageFrontierLanePick(view)) return;
-    const key = topPlayer200SamplePlayerKey(view);
+    const key = topPlayer200CoveragePlayerKey(view);
     const current = bestByPlayer.get(key);
     if (!current || compareTopPlayer200RecentFormViews(view, current) < 0) {
       bestByPlayer.set(key, view);
@@ -979,8 +990,12 @@ function rubbingExternalNote(view: View) {
   const notes: string[] = [];
   const modelPlayer = rubbingHands115Player(view);
   const samplePlayer = topPlayer200SamplePlayer(view);
+  const qualifiedPlayer = topPlayer200CoveragePlayer(view);
   if (modelPlayer) notes.push(`#${n(modelPlayer.qualityRank, 0)} in 115-player quality pool`);
   if (samplePlayer) notes.push(`#${n(samplePlayer.sampleRank, 0)} in 200+ sample pool; ${n(samplePlayer.samples, 0)} rows`);
+  if (!samplePlayer && qualifiedPlayer) {
+    notes.push(`#${n(qualifiedPlayer.sampleRank, 0)} in 200+ qualified pool; ${n(qualifiedPlayer.samples, 0)} rows`);
+  }
   const context = view.row.playerContext;
   const availability = availabilityRead(context);
   if (availability) notes.push(availability);
@@ -3469,7 +3484,7 @@ export default function NewDashboard({
                       This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The default Rubbing Hands pick type now uses the expanded projection-disagreement lane: top-200 sample players, PTS/REB/AST, player-override sides that disagree with the board projection, gap at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minAbsLineGap, 1)}, and projected minutes at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minProjectedMinutes, 0)}.
+                      The default Rubbing Hands pick type now uses the expanded projection-disagreement lane: all players with 200+ season samples, PTS/REB/AST, player-override sides that disagree with the board projection, gap at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minAbsLineGap, 1)}, and projected minutes at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minProjectedMinutes, 0)}.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -3477,7 +3492,7 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: expanded lane {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last14AccuracyPct, 2)}%; tighter recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last14AccuracyPct, 2)}%; top-6 HGB lane {n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last14AccuracyPct, 2)}%. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
+                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: expanded 200+ qualified lane {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last14AccuracyPct, 2)}%; tighter recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last14AccuracyPct, 2)}%; top-6 HGB lane {n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_TOP6_LANE.last14AccuracyPct, 2)}%. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
@@ -3485,7 +3500,7 @@ export default function NewDashboard({
                 <Stat dense label="Shown picks" value={n(rubbingFilteredViews.length, 0)} kind={rubbingFilteredViews.length ? 'LIVE' : 'PLACEHOLDER'} note={`${rubbingPickFilterLabel(rubbingPickFilter)}; one per player`} />
                 <Stat dense label="Removed picks" value={n(rubbingDisplayedRemovedViews.length, 0)} kind={rubbingDisplayedRemovedViews.length ? 'DERIVED' : 'PLACEHOLDER'} note="OUT, DOUBTFUL, or 0% to play" />
                 <Stat dense label="Injury watch" value={n(rubbingWatchCount, 0)} kind={rubbingWatchCount ? 'DERIVED' : 'PLACEHOLDER'} note="Questionable or reduced availability" />
-                <Stat dense label="200+ pool" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% runtime-side replay`} />
+                <Stat dense label="Top-200" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% strict replay`} />
                 <Stat dense label="Qualified" value={n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ samples this season`} />
                 <Stat dense label="Expanded" value={pct(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleCoveragePickCount, 0)} current picks`} />
                 <Stat dense label="Recent form" value={pct(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleRecentPickCount, 0)} current picks`} />
