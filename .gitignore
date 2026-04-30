@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local live line-movement captures
+/exports/line-movement-snapshots/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
