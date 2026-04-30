@@ -27,9 +27,14 @@ type TopPlayer200RecentFormLane = TopPlayer200Lane & {
   requiredSource: string;
   requiredSide: 'OVER' | 'UNDER' | 'any';
   requiredProjectionSide?: 'OVER' | 'UNDER';
+  requiredWfSide?: 'OVER' | 'UNDER';
   projectionMode?: 'agree' | 'disagree' | 'any';
   minAbsLineGap: number;
+  maxAbsLineGap?: number;
   minProjectedMinutes: number;
+  maxProjectedMinutes?: number;
+  minWfConfidence?: number;
+  maxWfConfidence?: number;
 };
 
 type TopPlayer200PoolPlayer = {
@@ -52,6 +57,7 @@ type TopPlayer200Artifact = {
   primaryPlayerPool: TopPlayer200PoolPlayer[];
   primaryLane: TopPlayer200Lane;
   accuracyFirstLane: TopPlayer200Lane;
+  premiumPtsOverLane?: TopPlayer200RecentFormLane;
   coverageFrontierLane?: TopPlayer200RecentFormLane;
   recentFormLane?: TopPlayer200RecentFormLane;
   topOverall80Lanes?: TopPlayer200Lane[];
@@ -167,6 +173,45 @@ export const TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT = TOP_PLAYER_200_SAMPLE_TOP
 export const TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT =
   TOP_PLAYER_200_SAMPLE_TOP6_LANE.minWfConfidence * 100;
 export const TOP_PLAYER_200_SAMPLE_TOP6_PICK_COUNT = TOP_PLAYER_200_SAMPLE_TOP6_LANE.maxPicksPerSlate;
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE: TopPlayer200RecentFormLane =
+  artifact.premiumPtsOverLane ?? {
+    label: 'all_min200_premium_pts_over_agreement_sweet_spot',
+    accuracyPct: 91,
+    playerDays: 100,
+    correct: 91,
+    wrong: 9,
+    runtimeFinalAccuracyPct: 91,
+    runtimeFinalCorrect: 91,
+    runtimeFinalWrong: 9,
+    sideAgreementPct: 100,
+    uniquePlayers: 44,
+    activeDates: 73,
+    avgPlayersPerSlate: 1.37,
+    last30AccuracyPct: 100,
+    last14AccuracyPct: 100,
+    threshold: null,
+    poolSize: artifact.qualifiedPlayerCount,
+    coverageVsEligiblePlayerDaysPct: 0.71,
+    rule:
+      'all 200+ sample-qualified 90 premium lane: one PTS market per player, player_override OVER, HGB side OVER, projection side OVER, abs projection gap >= 0.5 and < 1.25, projected minutes >= 20 and < 24, HGB confidence >= 0.780 and < 0.850',
+    markets: ['PTS'],
+    requiredSource: 'player_override',
+    requiredSide: 'OVER',
+    requiredProjectionSide: 'OVER',
+    requiredWfSide: 'OVER',
+    projectionMode: 'agree',
+    minAbsLineGap: 0.5,
+    maxAbsLineGap: 1.25,
+    minProjectedMinutes: 20,
+    maxProjectedMinutes: 24,
+    minWfConfidence: 0.78,
+    maxWfConfidence: 0.85,
+  };
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT =
+  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.runtimeFinalAccuracyPct ??
+  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_MARKETS =
+  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.markets;
 export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE: TopPlayer200RecentFormLane =
   artifact.coverageFrontierLane ?? {
     label: 'all_min200_coverage_frontier_projection_disagreement',

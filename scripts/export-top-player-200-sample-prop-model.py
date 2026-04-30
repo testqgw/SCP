@@ -270,6 +270,76 @@ def select_coverage_frontier_lane(df: pd.DataFrame, player_ids: set[str]) -> pd.
     return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
 
 
+def select_premium_pts_over_lane(df: pd.DataFrame, player_ids: set[str]) -> pd.DataFrame:
+    pool = df[df["playerId"].isin(player_ids)].copy()
+    if pool.empty:
+        return pool
+
+    pool["absLineGap"] = pd.to_numeric(pool["lineGap"], errors="coerce").abs()
+    pool["projectedMinutes"] = pd.to_numeric(pool["projectedMinutes"], errors="coerce")
+    pool["wfConfidence"] = pd.to_numeric(pool["wfConfidence"], errors="coerce")
+    pool["projectionSide"] = pool["lineGap"].map(projection_side_from_gap)
+    selected = pool[
+        pool["market"].eq("PTS")
+        & pool["finalSource"].eq("player_override")
+        & pool["finalSide"].eq("OVER")
+        & pool["wfSide"].eq("OVER")
+        & pool["projectionSide"].eq("OVER")
+        & pool["absLineGap"].ge(0.5)
+        & pool["absLineGap"].lt(1.25)
+        & pool["projectedMinutes"].ge(20.0)
+        & pool["projectedMinutes"].lt(24.0)
+        & pool["wfConfidence"].ge(0.78)
+        & pool["wfConfidence"].lt(0.85)
+    ].copy()
+    if selected.empty:
+        return selected
+
+    parts = []
+    for _, day in selected.groupby("gameDateEt", sort=True):
+        best = (
+            day.sort_values(["wfConfidence", "absLineGap"], ascending=[False, False])
+            .groupby("playerId", as_index=False)
+            .head(1)
+        )
+        parts.append(best)
+    return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
+
+
+def summarize_premium_pts_over_lane(selected: pd.DataFrame, full_player_days: int, pool_size: int) -> dict[str, Any]:
+    selected = selected.copy()
+    selected["selectedCorrect"] = selected["finalCorrectBool"].astype(int)
+    stats = summarize_selection(selected)
+    stats.update(
+        {
+            "label": "all_min200_premium_pts_over_agreement_sweet_spot",
+            "threshold": None,
+            "poolSize": pool_size,
+            "coverageVsEligiblePlayerDaysPct": (
+                round(stats["playerDays"] / full_player_days * 100, 2) if full_player_days else 0
+            ),
+            "markets": ["PTS"],
+            "requiredSource": "player_override",
+            "requiredSide": "OVER",
+            "requiredProjectionSide": "OVER",
+            "requiredWfSide": "OVER",
+            "projectionMode": "agree",
+            "minAbsLineGap": 0.5,
+            "maxAbsLineGap": 1.25,
+            "minProjectedMinutes": 20.0,
+            "maxProjectedMinutes": 24.0,
+            "minWfConfidence": 0.78,
+            "maxWfConfidence": 0.85,
+            "rule": (
+                "all 200+ sample-qualified 90 premium lane: one PTS market per player, "
+                "player_override OVER, HGB side OVER, projection side OVER, abs projection gap >= 0.5 and < 1.25, "
+                "projected minutes >= 20 and < 24, HGB confidence >= 0.780 and < 0.850"
+            ),
+        }
+    )
+    return stats
+
+
 def summarize_coverage_frontier_lane(
     selected: pd.DataFrame,
     full_player_days: int,
@@ -363,6 +433,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     accuracy = output["accuracyFirstLane"]
     widest = output["widestOverall80Lane"]
     coverage = output["coverageFrontierLane"]
+    premium = output["premiumPtsOverLane"]
     recent = output["recentFormLane"]
 
     lines = [
@@ -413,6 +484,11 @@ def markdown_report(output: dict[str, Any]) -> str:
             f"| Widest 80 overall: {widest['label']} | {widest['accuracyPct']:.2f}% | {widest['playerDays']:,} | "
             f"{widest['last30AccuracyPct']:.2f}% | {widest['last14AccuracyPct']:.2f}% | "
             f"{widest['coverageVsEligiblePlayerDaysPct']:.2f}% | {widest['correct']:,} / {widest['wrong']:,} |"
+        ),
+        (
+            f"| 90 premium PTS over: {premium['label']} | {premium['accuracyPct']:.2f}% | {premium['playerDays']:,} | "
+            f"{premium['last30AccuracyPct']:.2f}% | {premium['last14AccuracyPct']:.2f}% | "
+            f"{premium['coverageVsEligiblePlayerDaysPct']:.2f}% | {premium['correct']:,} / {premium['wrong']:,} |"
         ),
         (
             f"| Coverage frontier: {coverage['label']} | {coverage['accuracyPct']:.2f}% | {coverage['playerDays']:,} | "
@@ -530,6 +606,11 @@ def main() -> None:
         qualified_full_player_days,
         len(qualified_ids),
     )
+    premium_pts_over_lane = summarize_premium_pts_over_lane(
+        select_premium_pts_over_lane(warm, qualified_ids),
+        qualified_full_player_days,
+        len(qualified_ids),
+    )
 
     target_clearing = [
         row for row in scan_rows if row["threshold"] is not None and row["clearsTargetAllWindows"]
@@ -574,15 +655,18 @@ def main() -> None:
         "primaryLane": primary_lane,
         "accuracyFirstLane": accuracy_first,
         "widestOverall80Lane": widest_overall,
+        "premiumPtsOverLane": premium_pts_over_lane,
         "coverageFrontierLane": coverage_frontier_lane,
         "recentFormLane": recent_form_lane,
         "targetClearingLanes": target_clearing,
         "topOverall80Lanes": overall_80[:25],
         "folds": fold_summaries,
         "decision": (
-            f"Promote the top-{args.top_player_count} sample-count lane as the clean 200+ sample model. "
-            f"It clears {args.target_accuracy:.0f}% overall, last 30, and last 14 active-date windows while "
-            "using all eight prop markets and one selected market per player per slate."
+            "Use the coverage-frontier lane as the Rubbing Hands dashboard default because it keeps "
+            "the 200+ sample-qualified pool playable while clearing "
+            f"{args.target_accuracy:.0f}% overall, last 30, and last 14 active-date windows. "
+            f"The top-{args.top_player_count} HGB lane and the 90 premium lane stay in the artifact "
+            "as tighter precision modes."
         ),
         "honestyNote": (
             "This is a strict learned-only walk-forward replay after the first training window. "

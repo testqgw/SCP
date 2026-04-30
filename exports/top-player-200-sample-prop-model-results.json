@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-29",
+  "generatedAt": "2026-04-30",
   "source": "exports/ultimate-live-quality-current-details.json",
   "markets": [
     "PTS",
@@ -8148,6 +8148,46 @@
     "clearsTargetAllWindows": false,
     "rule": "all_min200: one highest wfConfidence market per player, wfConfidence >= 0.790"
   },
+  "premiumPtsOverLane": {
+    "playerDays": 100,
+    "correct": 91,
+    "wrong": 9,
+    "accuracyPct": 91.0,
+    "runtimeFinalCorrect": 91,
+    "runtimeFinalWrong": 9,
+    "runtimeFinalAccuracyPct": 91.0,
+    "runtimeFinalLast30AccuracyPct": 94.87,
+    "runtimeFinalLast14AccuracyPct": 100.0,
+    "sideAgreementPct": 100.0,
+    "sideDisagreements": 0,
+    "uniquePlayers": 44,
+    "activeDates": 73,
+    "avgPlayersPerSlate": 1.37,
+    "last30AccuracyPct": 94.87,
+    "last14AccuracyPct": 100.0,
+    "byMarket": {
+      "PTS": 100
+    },
+    "label": "all_min200_premium_pts_over_agreement_sweet_spot",
+    "threshold": null,
+    "poolSize": 246,
+    "coverageVsEligiblePlayerDaysPct": 0.71,
+    "markets": [
+      "PTS"
+    ],
+    "requiredSource": "player_override",
+    "requiredSide": "OVER",
+    "requiredProjectionSide": "OVER",
+    "requiredWfSide": "OVER",
+    "projectionMode": "agree",
+    "minAbsLineGap": 0.5,
+    "maxAbsLineGap": 1.25,
+    "minProjectedMinutes": 20.0,
+    "maxProjectedMinutes": 24.0,
+    "minWfConfidence": 0.78,
+    "maxWfConfidence": 0.85,
+    "rule": "all 200+ sample-qualified 90 premium lane: one PTS market per player, player_override OVER, HGB side OVER, projection side OVER, abs projection gap >= 0.5 and < 1.25, projected minutes >= 20 and < 24, HGB confidence >= 0.780 and < 0.850"
+  },
   "coverageFrontierLane": {
     "playerDays": 1922,
     "correct": 1590,
@@ -10215,6 +10255,6 @@
       "ungatedAccuracyPct": 52.08
     }
   ],
-  "decision": "Promote the top-200 sample-count lane as the clean 200+ sample model. It clears 80% overall, last 30, and last 14 active-date windows while using all eight prop markets and one selected market per player per slate.",
+  "decision": "Use the coverage-frontier lane as the Rubbing Hands dashboard default because it keeps the 200+ sample-qualified pool playable while clearing 80% overall, last 30, and last 14 active-date windows. The top-200 HGB lane and the 90 premium lane stay in the artifact as tighter precision modes.",
   "honestyNote": "This is a strict learned-only walk-forward replay after the first training window. Each fold trains only on earlier dates, then predicts the actual OVER/UNDER side on later dates. The player pool is selected by season row sample count, not by future win rate. No actualValue, actualSide, or correctness fields are used as model inputs."
 }

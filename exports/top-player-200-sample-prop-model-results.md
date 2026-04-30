@@ -1,10 +1,10 @@
 # Top Player 200-Sample NBA Prop Model
 
-Generated: 2026-04-29
+Generated: 2026-04-30
 
 ## Decision
 
-Promote the top-200 sample-count lane as the clean 200+ sample model. It clears 80% overall, last 30, and last 14 active-date windows while using all eight prop markets and one selected market per player per slate.
+Use the coverage-frontier lane as the Rubbing Hands dashboard default because it keeps the 200+ sample-qualified pool playable while clearing 80% overall, last 30, and last 14 active-date windows. The top-200 HGB lane and the 90 premium lane stay in the artifact as tighter precision modes.
 
 ## Primary Lane
 
@@ -34,6 +34,7 @@ Rule: `top200_sample_count: one highest wfConfidence market per player, wfConfid
 | Primary: top200_sample_count | 82.39% | 2,431 | 80.26% | 81.74% | 19.76% | 2,003 / 428 |
 | Accuracy-first: top200_sample_count | 86.79% | 212 | 92.59% | 95.24% | 1.72% | 184 / 28 |
 | Widest 80 overall: all_min200 | 80.14% | 10,952 | 79.13% | 70.48% | 77.95% | 8,777 / 2,175 |
+| 90 premium PTS over: all_min200_premium_pts_over_agreement_sweet_spot | 91.00% | 100 | 94.87% | 100.00% | 0.71% | 91 / 9 |
 | Coverage frontier: all_min200_coverage_frontier_projection_disagreement | 82.73% | 1,922 | 82.64% | 82.40% | 13.68% | 1,590 / 332 |
 | Recent-form projection fade: top200_recent_form_projection_fade_under | 82.68% | 739 | 85.82% | 85.45% | 6.01% | 611 / 128 |
 
