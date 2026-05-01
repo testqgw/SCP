@@ -369,9 +369,15 @@ def main() -> None:
                 "wfSide": row.wfSide,
                 "metaProbCorrect": clean_float(row.metaProbCorrect),
                 "runtimeFinalSide": row.finalSide,
+                "runtimeFinalSource": row.finalSource,
+                "projectionSide": row.projectionSide,
                 "line": clean_float(row.line, 2),
                 "projectedValue": clean_float(row.projectedValue, 2),
+                "lineGap": clean_float(row.lineGap, 2),
                 "absLineGap": clean_float(row.absLineGap, 2),
+                "projectedMinutes": clean_float(row.projectedMinutes, 2),
+                "priorMarketSourceSideAcc": clean_float(row.prior_market_source_side_acc),
+                "priorMarketFinalSideAcc": clean_float(row.prior_market_final_side_acc),
                 "sportsbookCount": None if pd.isna(row.sportsbookCount) else int(row.sportsbookCount),
             }
         )

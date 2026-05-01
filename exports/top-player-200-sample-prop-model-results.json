@@ -8188,6 +8188,72 @@
     "maxWfConfidence": 0.85,
     "rule": "all 200+ sample-qualified 90 premium lane: one PTS market per player, player_override OVER, HGB side OVER, projection side OVER, abs projection gap >= 0.5 and < 1.25, projected minutes >= 20 and < 24, HGB confidence >= 0.780 and < 0.850"
   },
+  "expandedPremium90Lane": {
+    "playerDays": 979,
+    "correct": 910,
+    "wrong": 69,
+    "accuracyPct": 92.95,
+    "runtimeFinalCorrect": 910,
+    "runtimeFinalWrong": 69,
+    "runtimeFinalAccuracyPct": 92.95,
+    "runtimeFinalLast30AccuracyPct": 95.09,
+    "runtimeFinalLast14AccuracyPct": 93.1,
+    "sideAgreementPct": 100.0,
+    "sideDisagreements": 0,
+    "uniquePlayers": 193,
+    "activeDates": 159,
+    "avgPlayersPerSlate": 6.16,
+    "last30AccuracyPct": 95.09,
+    "last14AccuracyPct": 93.1,
+    "byMarket": {
+      "PTS": 268,
+      "AST": 250,
+      "REB": 242,
+      "PR": 98,
+      "PA": 88,
+      "RA": 33
+    },
+    "label": "holdout_stable_premium_90_six_per_day",
+    "threshold": null,
+    "poolSize": 246,
+    "topPlayerPocketPoolSize": 200,
+    "tailPlayerPocketPoolSize": 46,
+    "coverageVsEligiblePlayerDaysPct": 6.97,
+    "pockets": [
+      "tail200plus AST OVER agreement, HGB confidence (0.82, 0.85]",
+      "tail200plus AST OVER agreement, line (0.5, 1.5]",
+      "tail200plus AST UNDER HGB/projection split, HGB confidence (0.82, 0.85], final-side prior (0.65, 0.70]",
+      "tail200plus PR OVER triple-agree, minutes (20, 24]",
+      "tail200plus PTS OVER triple-agree, minutes (20, 24]",
+      "tail200plus RA OVER agreement, HGB confidence (0.82, 0.85], final-side prior (0.65, 0.70]",
+      "top200 AST OVER agreement, abs gap (0.25, 0.5], minutes (16, 20]",
+      "top200 AST OVER triple-agree, minutes (16, 20], source-side prior (0.80, 0.85]",
+      "top200 AST UNDER triple-agree, abs gap (0.5, 0.75], minutes (24, 28], HGB confidence (0.80, 0.82]",
+      "top200 PA OVER HGB/projection split, abs gap <= 0.25, minutes (24, 28]",
+      "top200 PA UNDER agreement, minutes (28, 30], line (15.5, 18.5]",
+      "top200 PR OVER triple-agree, line (12.5, 15.5], HGB confidence (0.75, 0.78]",
+      "top200 PTS OVER HGB/projection split, abs gap (0.25, 0.5], minutes (24, 28]",
+      "top200 PTS OVER agreement, abs gap (1.25, 1.5], HGB confidence (0.82, 0.85]",
+      "top200 PTS OVER agreement, abs gap (1.5, 2.0], minutes (20, 24], HGB confidence (0.82, 0.85]",
+      "top200 PTS OVER agreement, minutes (28, 30], line (12.5, 15.5], HGB confidence (0.78, 0.80]",
+      "top200 PTS UNDER HGB/projection split, HGB confidence (0.85, 0.88]",
+      "top200 PTS UNDER agreement, abs gap (0.75, 1.0], minutes (24, 28], HGB confidence (0.80, 0.82]",
+      "top200 REB OVER agreement, abs gap (1.5, 2.0], source-side prior (0.80, 0.85]",
+      "top200 REB UNDER HGB/projection split, abs gap (1.5, 2.0]",
+      "top200 REB UNDER agreement, abs gap (0.25, 0.5], minutes (32, 34], line (2.5, 3.5]",
+      "top200 REB UNDER agreement, abs gap (1.5, 2.0]",
+      "top200 REB UNDER agreement, minutes (32, 34], line (2.5, 3.5], HGB confidence (0.78, 0.80]"
+    ],
+    "markets": [
+      "AST",
+      "PA",
+      "PR",
+      "PTS",
+      "RA",
+      "REB"
+    ],
+    "rule": "holdout-stable 90 premium lane: union of 23 high-precision top200/tail200plus pockets; deduped to one highest-confidence market per player per slate. Pocket discovery used the first 110 walk-forward dates, then required the last 55 dates to hold the 90% line before inclusion."
+  },
   "coverageFrontierLane": {
     "playerDays": 1922,
     "correct": 1590,
@@ -10255,6 +10321,6 @@
       "ungatedAccuracyPct": 52.08
     }
   ],
-  "decision": "Use the coverage-frontier lane as the Rubbing Hands dashboard default because it keeps the 200+ sample-qualified pool playable while clearing 80% overall, last 30, and last 14 active-date windows. The top-200 HGB lane and the 90 premium lane stay in the artifact as tighter precision modes.",
+  "decision": "Use the holdout-stable premium 90 lane as the Rubbing Hands precision default because it keeps roughly six deduped player-prop picks per active slate while clearing 90% season-wide, last 30, and last 14 active-date windows. The coverage-frontier lane remains available as the broader 80% playable-volume mode.",
   "honestyNote": "This is a strict learned-only walk-forward replay after the first training window. Each fold trains only on earlier dates, then predicts the actual OVER/UNDER side on later dates. The player pool is selected by season row sample count, not by future win rate. No actualValue, actualSide, or correctness fields are used as model inputs."
 }

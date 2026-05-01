@@ -39,9 +39,9 @@ import {
   TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT,
   TOP_PLAYER_200_SAMPLE_MODEL_LABEL,
   TOP_PLAYER_200_SAMPLE_POOL_SIZE,
-  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT,
-  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE,
-  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_MARKETS,
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT,
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE,
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_MARKETS,
   TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT,
   TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT,
   TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE,
@@ -55,6 +55,7 @@ import {
   getTopPlayer200SampleCurrentSlateScore,
   getTopPlayer200SamplePropPlayer,
   getTopPlayer200SampleQualifiedPropPlayer,
+  getTopPlayer200SampleTailPropPlayer,
 } from '@/lib/snapshot/topPlayer200SamplePropModel';
 
 type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
@@ -79,7 +80,7 @@ type HighlightTarget = { kind: 'player' | 'matchup'; key: string } | null;
 
 const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
-const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Coverage';
+const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Premium';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
@@ -89,8 +90,8 @@ const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
 const TOP_PLAYER_200_COVERAGE_FRONTIER_MARKET_SET = new Set<SnapshotMarket>(
   TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_MARKETS as SnapshotMarket[],
 );
-const TOP_PLAYER_200_PREMIUM_PTS_OVER_MARKET_SET = new Set<SnapshotMarket>(
-  TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_MARKETS as SnapshotMarket[],
+const TOP_PLAYER_200_PREMIUM_90_MARKET_SET = new Set<SnapshotMarket>(
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_MARKETS as SnapshotMarket[],
 );
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
@@ -666,6 +667,10 @@ function topPlayer200CoveragePlayer(view: View) {
   return getTopPlayer200SampleQualifiedPropPlayer({ playerId: view.row.playerId, playerName: view.row.playerName });
 }
 
+function topPlayer200TailPlayer(view: View) {
+  return getTopPlayer200SampleTailPropPlayer({ playerId: view.row.playerId, playerName: view.row.playerName });
+}
+
 function topPlayer200SampleScore(view: View, dateEt: string) {
   return getTopPlayer200SampleCurrentSlateScore({ dateEt, playerId: view.row.playerId, market: view.market });
 }
@@ -945,43 +950,210 @@ function selectTopPlayer200CoverageFrontierViews(views: View[]) {
   return Array.from(bestByPlayer.values()).sort(compareTopPlayer200RecentFormViews);
 }
 
-function isTopPlayer200PremiumPtsOverLanePick(view: View, dateEt: string) {
+function inOpenClosed(value: number | null | undefined, low: number, high: number) {
+  return value != null && value > low && value <= high;
+}
+
+function isTopPlayer200Premium90LanePick(view: View, dateEt: string) {
   const runtime = marketRuntimeFor(view.row, view.market);
   const score = topPlayer200SampleScore(view, dateEt);
-  const modelPlayer = topPlayer200CoveragePlayer(view);
-  const projectionSide = projectionSideFromEdge(view.edge);
+  const primaryPlayer = topPlayer200SamplePlayer(view);
+  const tailPlayer = topPlayer200TailPlayer(view);
+  const projectionSide = projectionSideFromEdge(view.edge) || score?.projectionSide || 'NEUTRAL';
   const modelSide = rubbingHands115Side(view);
-  const projectedMinutes = view.row.playerContext.projectedMinutes;
+  const source = runtime?.source ?? score?.runtimeFinalSource ?? null;
+  const projectedMinutes = view.row.playerContext.projectedMinutes ?? score?.projectedMinutes ?? null;
   const absGap = Math.abs(view.edge ?? 0);
-  return Boolean(
-    modelPlayer &&
-      score &&
-      TOP_PLAYER_200_PREMIUM_PTS_OVER_MARKET_SET.has(view.market) &&
+  const line = view.live ?? score?.line ?? null;
+  const priorSource = score?.priorMarketSourceSideAcc ?? null;
+  const priorFinal = score?.priorMarketFinalSideAcc ?? null;
+  const wfAgreement = score?.wfSide === modelSide;
+  const isTop200 = primaryPlayer != null;
+  const isTail200Plus = tailPlayer != null;
+  const hasBaseInputs = Boolean(
+    score &&
+      TOP_PLAYER_200_PREMIUM_90_MARKET_SET.has(view.market) &&
       view.live != null &&
       (view.books ?? 0) >= RUBBING_115_MIN_LIVE_BOOKS &&
       view.proj != null &&
-      runtime?.source === TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.requiredSource &&
-      modelSide === TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.requiredSide &&
-      projectionSide === TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.requiredProjectionSide &&
-      score.wfSide === TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.requiredWfSide &&
-      absGap >= TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.minAbsLineGap &&
-      (TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxAbsLineGap == null ||
-        absGap < TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxAbsLineGap) &&
-      projectedMinutes != null &&
-      projectedMinutes >= TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.minProjectedMinutes &&
-      (TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxProjectedMinutes == null ||
-        projectedMinutes < TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxProjectedMinutes) &&
-      (TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.minWfConfidence == null ||
-        score.wfConfidence >= TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.minWfConfidence) &&
-      (TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxWfConfidence == null ||
-        score.wfConfidence < TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.maxWfConfidence),
+      modelSide !== 'NEUTRAL',
+  );
+  if (!hasBaseInputs || !score) return false;
+
+  const hasSource = source === 'player_override';
+
+  return Boolean(
+    (isTop200 &&
+      view.market === 'REB' &&
+      hasSource &&
+      modelSide === 'UNDER' &&
+      wfAgreement &&
+      inOpenClosed(absGap, 1.5, 2.0)) ||
+      (isTail200Plus &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(score.wfConfidence, 0.82, 0.85)) ||
+      (isTop200 &&
+        view.market === 'REB' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 1.5, 2.0) &&
+        inOpenClosed(priorSource, 0.8, 0.85)) ||
+      (isTail200Plus && view.market === 'AST' && hasSource && modelSide === 'OVER' && wfAgreement && inOpenClosed(line, 0.5, 1.5)) ||
+      (isTop200 &&
+        view.market === 'PR' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(line, 12.5, 15.5) &&
+        inOpenClosed(score.wfConfidence, 0.75, 0.78)) ||
+      (isTop200 &&
+        view.market === 'REB' &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(absGap, 1.5, 2.0)) ||
+      (isTop200 &&
+        view.market === 'PA' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        wfAgreement &&
+        inOpenClosed(projectedMinutes, 28, 30) &&
+        inOpenClosed(line, 15.5, 18.5)) ||
+      (isTop200 &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 0.25, 0.5) &&
+        inOpenClosed(projectedMinutes, 16, 20)) ||
+      (isTail200Plus &&
+        view.market === 'PR' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(projectedMinutes, 20, 24)) ||
+      (isTail200Plus &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(projectedMinutes, 20, 24)) ||
+      (isTop200 &&
+        view.market === 'REB' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        wfAgreement &&
+        inOpenClosed(projectedMinutes, 32, 34) &&
+        inOpenClosed(line, 2.5, 3.5) &&
+        inOpenClosed(score.wfConfidence, 0.78, 0.8)) ||
+      (isTail200Plus &&
+        view.market === 'RA' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(score.wfConfidence, 0.82, 0.85) &&
+        inOpenClosed(priorFinal, 0.65, 0.7)) ||
+      (isTop200 &&
+        view.market === 'REB' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 0.25, 0.5) &&
+        inOpenClosed(projectedMinutes, 32, 34) &&
+        inOpenClosed(line, 2.5, 3.5)) ||
+      (isTop200 &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(projectedMinutes, 16, 20) &&
+        inOpenClosed(priorSource, 0.8, 0.85)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(projectedMinutes, 28, 30) &&
+        inOpenClosed(line, 12.5, 15.5) &&
+        inOpenClosed(score.wfConfidence, 0.78, 0.8)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 1.5, 2.0) &&
+        inOpenClosed(projectedMinutes, 20, 24) &&
+        inOpenClosed(score.wfConfidence, 0.82, 0.85)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 1.25, 1.5) &&
+        inOpenClosed(score.wfConfidence, 0.82, 0.85)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(score.wfConfidence, 0.85, 0.88)) ||
+      (isTop200 &&
+        view.market === 'PA' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'UNDER' &&
+        absGap <= 0.25 &&
+        inOpenClosed(projectedMinutes, 24, 28)) ||
+      (isTail200Plus &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(score.wfConfidence, 0.82, 0.85) &&
+        inOpenClosed(priorFinal, 0.65, 0.7)) ||
+      (isTop200 &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'UNDER' &&
+        inOpenClosed(absGap, 0.5, 0.75) &&
+        inOpenClosed(projectedMinutes, 24, 28) &&
+        inOpenClosed(score.wfConfidence, 0.8, 0.82)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'UNDER' &&
+        inOpenClosed(absGap, 0.25, 0.5) &&
+        inOpenClosed(projectedMinutes, 24, 28)) ||
+      (isTop200 &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        wfAgreement &&
+        inOpenClosed(absGap, 0.75, 1.0) &&
+        inOpenClosed(projectedMinutes, 24, 28) &&
+        inOpenClosed(score.wfConfidence, 0.8, 0.82))
   );
 }
 
-function selectTopPlayer200PremiumPtsOverViews(views: View[], dateEt: string) {
+function selectTopPlayer200Premium90Views(views: View[], dateEt: string) {
   const bestByPlayer = new Map<string, View>();
   views.forEach((view) => {
-    if (!isTopPlayer200PremiumPtsOverLanePick(view, dateEt)) return;
+    if (!isTopPlayer200Premium90LanePick(view, dateEt)) return;
     const key = topPlayer200CoveragePlayerKey(view);
     const current = bestByPlayer.get(key);
     if (!current || compareTopPlayer200SampleViews(view, current, dateEt, 'sample200Premium') < 0) {
@@ -1025,7 +1197,7 @@ function isRubbingHands115ResearchPick(view: View) {
 }
 
 function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAULT_PICK_FILTER, dateEt = '') {
-  if (filter === 'sample200Premium' && isTopPlayer200PremiumPtsOverLanePick(view, dateEt)) return `${n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT, 2)}% premium lane`;
+  if (filter === 'sample200Premium' && isTopPlayer200Premium90LanePick(view, dateEt)) return `${n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 2)}% premium lane`;
   if (filter === 'sample200Coverage' && isTopPlayer200CoverageFrontierLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded lane`;
   if (filter === 'sample200Recent' && isTopPlayer200RecentFormLanePick(view)) return `${n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form lane`;
   if (filter === 'sample200Top6' && isTopPlayer200SampleLanePick(view, dateEt, filter)) return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane`;
@@ -1038,7 +1210,7 @@ function rubbingLaneLabel(view: View, filter: RubbingPickFilter = RUBBING_DEFAUL
 }
 
 function rubbingPickFilterLabel(value: RubbingPickFilter) {
-  if (value === 'sample200Premium') return `${n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT, 2)}% premium picks`;
+  if (value === 'sample200Premium') return `${n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 2)}% premium picks`;
   if (value === 'sample200Coverage') return `${n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded picks`;
   if (value === 'sample200Recent') return `${n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form picks`;
   if (value === 'sample200Top6') return `${n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 picks`;
@@ -1575,7 +1747,7 @@ export default function NewDashboard({
     [allViews],
   );
   const topPlayer200SamplePremiumBaseViews = useMemo(
-    () => selectTopPlayer200PremiumPtsOverViews(allViews, data.dateEt),
+    () => selectTopPlayer200Premium90Views(allViews, data.dateEt),
     [allViews, data.dateEt],
   );
   const topPlayer200SampleCoverageBaseViews = useMemo(
@@ -1637,7 +1809,7 @@ export default function NewDashboard({
         return isTopPlayer200CoverageFrontierLanePick(view);
       }
       if (isTopPlayer200PremiumFilter(rubbingPickFilter)) {
-        return isTopPlayer200PremiumPtsOverLanePick(view, data.dateEt);
+        return isTopPlayer200Premium90LanePick(view, data.dateEt);
       }
       if (isTopPlayer200RecentFormFilter(rubbingPickFilter)) {
         return isTopPlayer200RecentFormLanePick(view);
@@ -1763,7 +1935,7 @@ export default function NewDashboard({
     rubbingPickFilter === 'sample200Top6'
       ? TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT
       : rubbingPickFilter === 'sample200Premium'
-      ? (TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.minWfConfidence ?? 0) * 100
+      ? TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT
       : rubbingPickFilter === 'sample200Meta'
       ? TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT
       : rubbingPickFilter === 'sample200Volume'
@@ -1773,7 +1945,7 @@ export default function NewDashboard({
     rubbingUsesHgbScores && !rubbingUsesCurrentHgbScores
       ? `Current 200+ model scores are for ${TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}, not ${data.dateEt}.`
       : isTopPlayer200PremiumFilter(rubbingPickFilter) && !rubbingHasManualFilter
-        ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} matched the 90% premium PTS-over rule for this slate.`
+        ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} matched the holdout-stable 90% premium rule for this slate.`
       : rubbingUsesHgbScores && !rubbingHasManualFilter
         ? `No ${rubbingPickFilterLabel(rubbingPickFilter)} cleared the ${pct(rubbingCurrentThreshold, 0)} model-confidence gate for this slate.`
       : isTopPlayer200CoverageFilter(rubbingPickFilter) && !rubbingHasManualFilter
@@ -1785,7 +1957,7 @@ export default function NewDashboard({
     rubbingUsesHgbScores && !rubbingUsesCurrentHgbScores
       ? 'Regenerate the current-slate HGB score artifact before using this lane on a different slate date.'
       : isTopPlayer200PremiumFilter(rubbingPickFilter) && !rubbingHasManualFilter
-        ? 'The eligible 200+ sample pool is loaded, but no player matched the PTS-over, agreement, minutes, gap, and HGB-confidence sweet spot.'
+        ? 'The eligible 200+ sample pool is loaded, but no player matched the premium pocket rules across side, market, minutes, line, gap, HGB-confidence, and prior-reliability checks.'
       : rubbingUsesHgbScores && !rubbingHasManualFilter
         ? 'The eligible 200+ sample pool is loaded, but no player cleared this model-confidence threshold.'
       : isTopPlayer200CoverageFilter(rubbingPickFilter) && !rubbingHasManualFilter
@@ -3580,7 +3752,7 @@ export default function NewDashboard({
                       This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The default Rubbing Hands pick type now uses the expanded 200+ coverage lane for playable volume: all players with 200+ season samples, one largest-gap PTS/REB/AST market per player, player-override side disagreeing with the projection side, gap at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minAbsLineGap, 2)}, and projected minutes at least {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.minProjectedMinutes, 0)}. The 90% premium PTS-over lane stays available as a low-volume precision mode.
+                      The default Rubbing Hands pick type now uses the holdout-stable 90% premium lane: 200+ sample players, one highest-confidence market per player, and 23 validated pockets across PTS, REB, AST, PR, PA, and RA. The expanded 80% coverage lane stays available as the broader playable-volume mode.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
@@ -3588,7 +3760,7 @@ export default function NewDashboard({
                   </div>
                 </div>
                 <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: expanded 200+ qualified lane {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE.last14AccuracyPct, 2)}%; 90 premium lane {n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.last14AccuracyPct, 2)}%; tighter recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide, last 30 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_LANE.last14AccuracyPct, 2)}%. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
+                  Rubbing Hands default generated {TOP_PLAYER_200_SAMPLE_MODEL_GENERATED_AT}: premium 90 lane {n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 2)}% season-wide on {n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.playerDays, 0)} player-days, last 30 {n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.last30AccuracyPct, 2)}%, last 14 {n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.last14AccuracyPct, 2)}%, avg {n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.avgPlayersPerSlate, 2)} picks per active slate; expanded 200+ qualified lane {n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% season-wide; tighter recent-form lane {n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% season-wide. HGB current slate scores are for {TOP_PLAYER_200_SAMPLE_CURRENT_SLATE_DATE_ET}. Injury and external context still comes through the live board payload.
                 </div>
               </div>
 
@@ -3599,7 +3771,7 @@ export default function NewDashboard({
                 <Stat dense label="Top-200" value={n(TOP_PLAYER_200_SAMPLE_POOL_SIZE, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_RUNTIME_ACCURACY_PCT, 2)}% strict replay`} />
                 <Stat dense label="Qualified" value={n(TOP_PLAYER_200_SAMPLE_QUALIFIED_COUNT, 0)} kind="MODEL" note={`${n(TOP_PLAYER_200_SAMPLE_MIN_SAMPLES, 0)}+ samples this season`} />
                 <Stat dense label="Expanded" value={pct(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleCoveragePickCount, 0)} current picks`} />
-                <Stat dense label="Premium 90" value={pct(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SamplePremiumPickCount, 0)} current picks`} />
+                <Stat dense label="Premium 90" value={pct(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SamplePremiumPickCount, 0)} current picks`} />
                 <Stat dense label="Recent form" value={pct(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleRecentPickCount, 0)} current picks`} />
                 <Stat dense label="Top-6 gate" value={pct(TOP_PLAYER_200_SAMPLE_TOP6_MIN_HGB_CONFIDENCE_PCT, 0)} kind="MODEL" note={`${n(topPlayer200SampleTop6PickCount, 0)} current picks`} />
                 <Stat dense label="Meta gate" value={pct(TOP_PLAYER_200_SAMPLE_META_CONFIDENCE_PCT, 1)} kind="MODEL" note={`${n(topPlayer200SampleMetaPickCount, 0)} current picks`} />
@@ -3629,7 +3801,7 @@ export default function NewDashboard({
                       className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="sample200Coverage">{n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded lane</option>
-                      <option value="sample200Premium">{n(TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT, 2)}% premium lane</option>
+                      <option value="sample200Premium">{n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 2)}% premium lane</option>
                       <option value="sample200Recent">{n(TOP_PLAYER_200_SAMPLE_RECENT_FORM_ACCURACY_PCT, 2)}% recent-form lane</option>
                       <option value="sample200Top6">{n(TOP_PLAYER_200_SAMPLE_TOP6_ACCURACY_PCT, 2)}% 200+ top-6 lane</option>
                       <option value="sample200Meta">{n(TOP_PLAYER_200_SAMPLE_META_ACCURACY_PCT, 2)}% 200+ meta lane</option>
@@ -3764,9 +3936,9 @@ export default function NewDashboard({
                               <td className="px-4 py-4 align-top">
                                 <div className="font-semibold text-[var(--text)]">{sampleScore ? topPlayer200SampleHeadline(v, data.dateEt) : rubbingHands115Headline(v)}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                  <Pill label={isPremiumRow ? '200+ premium PTS model' : isCoverageRow ? '200+ expanded model' : isRecentRow ? '200+ recent-form model' : isMetaRow ? '200+ HGB+meta model' : isSample200Row ? '200+ HGB model' : '115 model'} tone="cyan" />
-                                  <Pill label={isPremiumRow ? 'Agreement sweet spot' : isCoverageRow ? 'Projection-disagreement override' : isRecentRow ? 'Projection-fade override' : isMetaRow ? 'Meta reliability gate' : sampleScore ? 'HGB model side' : rubbingHands115SideSource(v)} tone="default" />
-                                  <Pill label={rubbingLaneLabel(v, rubbingPickFilter, data.dateEt)} tone={isRubbingHands115AllWindowPick(v) || (isPremiumRow && isTopPlayer200PremiumPtsOverLanePick(v, data.dateEt)) || (isCoverageRow && isTopPlayer200CoverageFrontierLanePick(v)) || (isRecentRow && isTopPlayer200RecentFormLanePick(v)) || (isHgbRow && isTopPlayer200SampleLanePick(v, data.dateEt, rubbingPickFilter)) ? 'cyan' : 'amber'} />
+                                  <Pill label={isPremiumRow ? '200+ premium model' : isCoverageRow ? '200+ expanded model' : isRecentRow ? '200+ recent-form model' : isMetaRow ? '200+ HGB+meta model' : isSample200Row ? '200+ HGB model' : '115 model'} tone="cyan" />
+                                  <Pill label={isPremiumRow ? 'Holdout-stable pocket' : isCoverageRow ? 'Projection-disagreement override' : isRecentRow ? 'Projection-fade override' : isMetaRow ? 'Meta reliability gate' : sampleScore ? 'HGB model side' : rubbingHands115SideSource(v)} tone="default" />
+                                  <Pill label={rubbingLaneLabel(v, rubbingPickFilter, data.dateEt)} tone={isRubbingHands115AllWindowPick(v) || (isPremiumRow && isTopPlayer200Premium90LanePick(v, data.dateEt)) || (isCoverageRow && isTopPlayer200CoverageFrontierLanePick(v)) || (isRecentRow && isTopPlayer200RecentFormLanePick(v)) || (isHgbRow && isTopPlayer200SampleLanePick(v, data.dateEt, rubbingPickFilter)) ? 'cyan' : 'amber'} />
                                   {projectionLean ? (
                                     <Pill
                                       label={projectionLean}

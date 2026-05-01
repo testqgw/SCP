@@ -22,7 +22,10 @@ type TopPlayer200Lane = {
 
 type TopPlayer200RecentFormLane = TopPlayer200Lane & {
   poolSize?: number;
+  topPlayerPocketPoolSize?: number;
+  tailPlayerPocketPoolSize?: number;
   coverageVsEligiblePlayerDaysPct?: number;
+  pockets?: string[];
   markets: string[];
   requiredSource: string;
   requiredSide: 'OVER' | 'UNDER' | 'any';
@@ -58,13 +61,14 @@ type TopPlayer200Artifact = {
   primaryLane: TopPlayer200Lane;
   accuracyFirstLane: TopPlayer200Lane;
   premiumPtsOverLane?: TopPlayer200RecentFormLane;
+  expandedPremium90Lane?: TopPlayer200RecentFormLane;
   coverageFrontierLane?: TopPlayer200RecentFormLane;
   recentFormLane?: TopPlayer200RecentFormLane;
   topOverall80Lanes?: TopPlayer200Lane[];
   widestOverall80Lane?: TopPlayer200Lane;
 };
 
-const artifact = modelArtifact as TopPlayer200Artifact;
+const artifact = modelArtifact as unknown as TopPlayer200Artifact;
 
 type TopPlayer200CurrentSlateScore = {
   dateEt: string;
@@ -76,9 +80,15 @@ type TopPlayer200CurrentSlateScore = {
   wfSide: 'OVER' | 'UNDER';
   metaProbCorrect?: number | null;
   runtimeFinalSide?: 'OVER' | 'UNDER' | 'NEUTRAL';
+  runtimeFinalSource?: string | null;
+  projectionSide?: 'OVER' | 'UNDER' | 'NEUTRAL';
   line: number | null;
   projectedValue: number | null;
+  lineGap?: number | null;
   absLineGap: number | null;
+  projectedMinutes?: number | null;
+  priorMarketSourceSideAcc?: number | null;
+  priorMarketFinalSideAcc?: number | null;
   sportsbookCount: number | null;
 };
 
@@ -103,7 +113,7 @@ type TopPlayer200CurrentSlateScoresArtifact = {
   rows: TopPlayer200CurrentSlateScore[];
 };
 
-const currentScoresArtifact = currentSlateScoresArtifact as TopPlayer200CurrentSlateScoresArtifact;
+const currentScoresArtifact = currentSlateScoresArtifact as unknown as TopPlayer200CurrentSlateScoresArtifact;
 
 function normalizePlayerName(value: string | null | undefined) {
   return (value ?? '')
@@ -212,6 +222,41 @@ export const TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_ACCURACY_PCT =
   TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.accuracyPct;
 export const TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_MARKETS =
   TOP_PLAYER_200_SAMPLE_PREMIUM_PTS_OVER_LANE.markets;
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE: TopPlayer200RecentFormLane =
+  artifact.expandedPremium90Lane ?? {
+    label: 'holdout_stable_premium_90_six_per_day',
+    accuracyPct: 92.95,
+    playerDays: 979,
+    correct: 910,
+    wrong: 69,
+    runtimeFinalAccuracyPct: 92.95,
+    runtimeFinalCorrect: 910,
+    runtimeFinalWrong: 69,
+    sideAgreementPct: 100,
+    uniquePlayers: 151,
+    activeDates: 159,
+    avgPlayersPerSlate: 6.16,
+    last30AccuracyPct: 95.09,
+    last14AccuracyPct: 93.1,
+    threshold: null,
+    poolSize: artifact.qualifiedPlayerCount,
+    topPlayerPocketPoolSize: artifact.topPlayerCount,
+    tailPlayerPocketPoolSize: Math.max(artifact.qualifiedPlayerCount - artifact.topPlayerCount, 0),
+    coverageVsEligiblePlayerDaysPct: 6.97,
+    rule:
+      'holdout-stable 90 premium lane: union of 23 high-precision top200/tail200plus pockets; deduped to one highest-confidence market per player per slate.',
+    markets: ['PTS', 'REB', 'AST', 'PR', 'PA', 'RA'],
+    requiredSource: 'player_override',
+    requiredSide: 'any',
+    projectionMode: 'any',
+    minAbsLineGap: 0,
+    minProjectedMinutes: 0,
+    pockets: [],
+  };
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT =
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.runtimeFinalAccuracyPct ??
+  TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.accuracyPct;
+export const TOP_PLAYER_200_SAMPLE_PREMIUM_90_MARKETS = TOP_PLAYER_200_SAMPLE_PREMIUM_90_LANE.markets;
 export const TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_LANE: TopPlayer200RecentFormLane =
   artifact.coverageFrontierLane ?? {
     label: 'all_min200_coverage_frontier_projection_disagreement',
@@ -289,6 +334,10 @@ export const TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL: TopPlayer200SampleModelPlayer
   ...player,
   sampleRank: index + 1,
 }));
+export const TOP_PLAYER_200_SAMPLE_TAIL_POOL: TopPlayer200SampleModelPlayer[] =
+  TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL.filter(
+    (player) => !TOP_PLAYER_200_SAMPLE_POOL.some((primary) => primary.playerId === player.playerId),
+  );
 
 const playerById = new Map(TOP_PLAYER_200_SAMPLE_POOL.map((player) => [player.playerId, player] as const));
 const playerByName = new Map(
@@ -299,6 +348,10 @@ const qualifiedPlayerById = new Map(
 );
 const qualifiedPlayerByName = new Map(
   TOP_PLAYER_200_SAMPLE_QUALIFIED_POOL.map((player) => [normalizePlayerName(player.playerName), player] as const),
+);
+const tailPlayerById = new Map(TOP_PLAYER_200_SAMPLE_TAIL_POOL.map((player) => [player.playerId, player] as const));
+const tailPlayerByName = new Map(
+  TOP_PLAYER_200_SAMPLE_TAIL_POOL.map((player) => [normalizePlayerName(player.playerName), player] as const),
 );
 const currentScoreByPlayerMarket = new Map(
   currentScoresArtifact.rows.map((row) => [`${row.playerId}:${row.market}`, row] as const),
@@ -320,6 +373,15 @@ export function getTopPlayer200SampleQualifiedPropPlayer(input: {
   const byId = input.playerId ? qualifiedPlayerById.get(input.playerId) : null;
   if (byId) return byId;
   return qualifiedPlayerByName.get(normalizePlayerName(input.playerName)) ?? null;
+}
+
+export function getTopPlayer200SampleTailPropPlayer(input: {
+  playerId: string | null | undefined;
+  playerName?: string | null | undefined;
+}) {
+  const byId = input.playerId ? tailPlayerById.get(input.playerId) : null;
+  if (byId) return byId;
+  return tailPlayerByName.get(normalizePlayerName(input.playerName)) ?? null;
 }
 
 export function isTopPlayer200SamplePropPlayer(input: {

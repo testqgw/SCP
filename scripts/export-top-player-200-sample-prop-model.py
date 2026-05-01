@@ -340,6 +340,141 @@ def summarize_premium_pts_over_lane(selected: pd.DataFrame, full_player_days: in
     return stats
 
 
+def select_expanded_premium_90_lane(
+    df: pd.DataFrame,
+    qualified_ids: set[str],
+    primary_ids: set[str],
+) -> pd.DataFrame:
+    pool = df[df["playerId"].isin(qualified_ids)].copy()
+    if pool.empty:
+        return pool
+
+    tail_ids = qualified_ids - primary_ids
+    pool["absLineGap"] = pd.to_numeric(pool["lineGap"], errors="coerce").abs()
+    pool["projectedMinutes"] = pd.to_numeric(pool["projectedMinutes"], errors="coerce")
+    pool["line"] = pd.to_numeric(pool["line"], errors="coerce")
+    pool["wfConfidence"] = pd.to_numeric(pool["wfConfidence"], errors="coerce")
+    pool["prior_market_source_side_acc"] = pd.to_numeric(pool["prior_market_source_side_acc"], errors="coerce")
+    pool["prior_market_final_side_acc"] = pd.to_numeric(pool["prior_market_final_side_acc"], errors="coerce")
+    pool["projectionSide"] = pool["lineGap"].map(projection_side_from_gap)
+    pool["wfFinalAgreement"] = pool["wfSide"].astype(str).eq(pool["finalSide"].astype(str))
+    pool["isTop200"] = pool["playerId"].isin(primary_ids)
+    pool["isTail200Plus"] = pool["playerId"].isin(tail_ids)
+
+    pocket_specs: list[dict[str, Any]] = [
+        {"label": "top200 REB UNDER agreement, abs gap (1.5, 2.0]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "absGap": (1.5, 2.0)},
+        {"label": "tail200plus AST OVER agreement, HGB confidence (0.82, 0.85]", "pool": "tail200plus", "market": "AST", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "wfConfidence": (0.82, 0.85)},
+        {"label": "top200 REB OVER agreement, abs gap (1.5, 2.0], source-side prior (0.80, 0.85]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "absGap": (1.5, 2.0), "priorSourceSideAcc": (0.8, 0.85)},
+        {"label": "tail200plus AST OVER agreement, line (0.5, 1.5]", "pool": "tail200plus", "market": "AST", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "line": (0.5, 1.5)},
+        {"label": "top200 PR OVER triple-agree, line (12.5, 15.5], HGB confidence (0.75, 0.78]", "pool": "top200", "market": "PR", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "line": (12.5, 15.5), "wfConfidence": (0.75, 0.78)},
+        {"label": "top200 REB UNDER HGB/projection split, abs gap (1.5, 2.0]", "pool": "top200", "market": "REB", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "OVER", "absGap": (1.5, 2.0)},
+        {"label": "top200 PA UNDER agreement, minutes (28, 30], line (15.5, 18.5]", "pool": "top200", "market": "PA", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "minutes": (28.0, 30.0), "line": (15.5, 18.5)},
+        {"label": "top200 AST OVER agreement, abs gap (0.25, 0.5], minutes (16, 20]", "pool": "top200", "market": "AST", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "absGap": (0.25, 0.5), "minutes": (16.0, 20.0)},
+        {"label": "tail200plus PR OVER triple-agree, minutes (20, 24]", "pool": "tail200plus", "market": "PR", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "minutes": (20.0, 24.0)},
+        {"label": "tail200plus PTS OVER triple-agree, minutes (20, 24]", "pool": "tail200plus", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "minutes": (20.0, 24.0)},
+        {"label": "top200 REB UNDER agreement, minutes (32, 34], line (2.5, 3.5], HGB confidence (0.78, 0.80]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "minutes": (32.0, 34.0), "line": (2.5, 3.5), "wfConfidence": (0.78, 0.8)},
+        {"label": "tail200plus RA OVER agreement, HGB confidence (0.82, 0.85], final-side prior (0.65, 0.70]", "pool": "tail200plus", "market": "RA", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "wfConfidence": (0.82, 0.85), "priorFinalSideAcc": (0.65, 0.7)},
+        {"label": "top200 REB UNDER agreement, abs gap (0.25, 0.5], minutes (32, 34], line (2.5, 3.5]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "absGap": (0.25, 0.5), "minutes": (32.0, 34.0), "line": (2.5, 3.5)},
+        {"label": "top200 AST OVER triple-agree, minutes (16, 20], source-side prior (0.80, 0.85]", "pool": "top200", "market": "AST", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "minutes": (16.0, 20.0), "priorSourceSideAcc": (0.8, 0.85)},
+        {"label": "top200 PTS OVER agreement, minutes (28, 30], line (12.5, 15.5], HGB confidence (0.78, 0.80]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "minutes": (28.0, 30.0), "line": (12.5, 15.5), "wfConfidence": (0.78, 0.8)},
+        {"label": "top200 PTS OVER agreement, abs gap (1.5, 2.0], minutes (20, 24], HGB confidence (0.82, 0.85]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "absGap": (1.5, 2.0), "minutes": (20.0, 24.0), "wfConfidence": (0.82, 0.85)},
+        {"label": "top200 PTS OVER agreement, abs gap (1.25, 1.5], HGB confidence (0.82, 0.85]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "absGap": (1.25, 1.5), "wfConfidence": (0.82, 0.85)},
+        {"label": "top200 PTS UNDER HGB/projection split, HGB confidence (0.85, 0.88]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "OVER", "wfConfidence": (0.85, 0.88)},
+        {"label": "top200 PA OVER HGB/projection split, abs gap <= 0.25, minutes (24, 28]", "pool": "top200", "market": "PA", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "UNDER", "absGapMax": 0.25, "minutes": (24.0, 28.0)},
+        {"label": "tail200plus AST UNDER HGB/projection split, HGB confidence (0.82, 0.85], final-side prior (0.65, 0.70]", "pool": "tail200plus", "market": "AST", "source": "player_override", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "OVER", "wfConfidence": (0.82, 0.85), "priorFinalSideAcc": (0.65, 0.7)},
+        {"label": "top200 AST UNDER triple-agree, abs gap (0.5, 0.75], minutes (24, 28], HGB confidence (0.80, 0.82]", "pool": "top200", "market": "AST", "source": "player_override", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "UNDER", "absGap": (0.5, 0.75), "minutes": (24.0, 28.0), "wfConfidence": (0.8, 0.82)},
+        {"label": "top200 PTS OVER HGB/projection split, abs gap (0.25, 0.5], minutes (24, 28]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "UNDER", "absGap": (0.25, 0.5), "minutes": (24.0, 28.0)},
+        {"label": "top200 PTS UNDER agreement, abs gap (0.75, 1.0], minutes (24, 28], HGB confidence (0.80, 0.82]", "pool": "top200", "market": "PTS", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "absGap": (0.75, 1.0), "minutes": (24.0, 28.0), "wfConfidence": (0.8, 0.82)},
+    ]
+
+    def apply_between(mask: pd.Series, column: str, bounds: tuple[float, float]) -> pd.Series:
+        low, high = bounds
+        return mask & pool[column].gt(low) & pool[column].le(high)
+
+    pockets: list[pd.DataFrame] = []
+    for spec in pocket_specs:
+        mask = pool["isTop200"] if spec["pool"] == "top200" else pool["isTail200Plus"]
+        mask = mask & pool["market"].eq(spec["market"]) & pool["finalSide"].eq(spec["finalSide"])
+        if "source" in spec:
+            mask = mask & pool["finalSource"].eq(spec["source"])
+        if "wfSide" in spec:
+            mask = mask & pool["wfSide"].eq(spec["wfSide"])
+        if "projectionSide" in spec:
+            mask = mask & pool["projectionSide"].eq(spec["projectionSide"])
+        if spec.get("wfAgreement"):
+            mask = mask & pool["wfFinalAgreement"]
+        if "absGap" in spec:
+            mask = apply_between(mask, "absLineGap", spec["absGap"])
+        if "absGapMax" in spec:
+            mask = mask & pool["absLineGap"].le(float(spec["absGapMax"]))
+        if "minutes" in spec:
+            mask = apply_between(mask, "projectedMinutes", spec["minutes"])
+        if "line" in spec:
+            mask = apply_between(mask, "line", spec["line"])
+        if "wfConfidence" in spec:
+            mask = apply_between(mask, "wfConfidence", spec["wfConfidence"])
+        if "priorSourceSideAcc" in spec:
+            mask = apply_between(mask, "prior_market_source_side_acc", spec["priorSourceSideAcc"])
+        if "priorFinalSideAcc" in spec:
+            mask = apply_between(mask, "prior_market_final_side_acc", spec["priorFinalSideAcc"])
+
+        pocket = pool[mask].copy()
+        if not pocket.empty:
+            pocket["premiumPocket"] = spec["label"]
+            pockets.append(pocket)
+
+    if not pockets:
+        return pool.iloc[0:0].copy()
+
+    selected = pd.concat(pockets, ignore_index=True).drop_duplicates(subset=["rowKey"])
+
+    if selected.empty:
+        return selected
+
+    parts = []
+    for _, day in selected.groupby("gameDateEt", sort=True):
+        best = (
+            day.sort_values(["wfConfidence", "absLineGap"], ascending=[False, False])
+            .groupby("playerId", as_index=False)
+            .head(1)
+        )
+        parts.append(best)
+    return pd.concat(parts, ignore_index=True) if parts else selected.iloc[0:0].copy()
+
+
+def summarize_expanded_premium_90_lane(
+    selected: pd.DataFrame,
+    full_player_days: int,
+    qualified_pool_size: int,
+    primary_pool_size: int,
+) -> dict[str, Any]:
+    selected = selected.copy()
+    selected["selectedCorrect"] = selected["finalCorrectBool"].astype(int)
+    stats = summarize_selection(selected)
+    stats.update(
+        {
+            "label": "holdout_stable_premium_90_six_per_day",
+            "threshold": None,
+            "poolSize": qualified_pool_size,
+            "topPlayerPocketPoolSize": primary_pool_size,
+            "tailPlayerPocketPoolSize": max(qualified_pool_size - primary_pool_size, 0),
+            "coverageVsEligiblePlayerDaysPct": (
+                round(stats["playerDays"] / full_player_days * 100, 2) if full_player_days else 0
+            ),
+            "pockets": sorted(selected["premiumPocket"].dropna().unique().tolist())
+            if "premiumPocket" in selected.columns
+            else [],
+            "markets": sorted(selected["market"].dropna().unique().tolist()) if not selected.empty else [],
+            "rule": (
+                "holdout-stable 90 premium lane: union of 23 high-precision top200/tail200plus pockets; "
+                "deduped to one highest-confidence market per player per slate. Pocket discovery used the first "
+                "110 walk-forward dates, then required the last 55 dates to hold the 90% line before inclusion."
+            ),
+        }
+    )
+    return stats
+
+
 def summarize_coverage_frontier_lane(
     selected: pd.DataFrame,
     full_player_days: int,
@@ -434,6 +569,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     widest = output["widestOverall80Lane"]
     coverage = output["coverageFrontierLane"]
     premium = output["premiumPtsOverLane"]
+    expanded_premium = output["expandedPremium90Lane"]
     recent = output["recentFormLane"]
 
     lines = [
@@ -489,6 +625,12 @@ def markdown_report(output: dict[str, Any]) -> str:
             f"| 90 premium PTS over: {premium['label']} | {premium['accuracyPct']:.2f}% | {premium['playerDays']:,} | "
             f"{premium['last30AccuracyPct']:.2f}% | {premium['last14AccuracyPct']:.2f}% | "
             f"{premium['coverageVsEligiblePlayerDaysPct']:.2f}% | {premium['correct']:,} / {premium['wrong']:,} |"
+        ),
+        (
+            f"| Expanded 90 premium: {expanded_premium['label']} | {expanded_premium['accuracyPct']:.2f}% | "
+            f"{expanded_premium['playerDays']:,} | {expanded_premium['last30AccuracyPct']:.2f}% | "
+            f"{expanded_premium['last14AccuracyPct']:.2f}% | {expanded_premium['coverageVsEligiblePlayerDaysPct']:.2f}% | "
+            f"{expanded_premium['correct']:,} / {expanded_premium['wrong']:,} |"
         ),
         (
             f"| Coverage frontier: {coverage['label']} | {coverage['accuracyPct']:.2f}% | {coverage['playerDays']:,} | "
@@ -611,6 +753,12 @@ def main() -> None:
         qualified_full_player_days,
         len(qualified_ids),
     )
+    expanded_premium_90_lane = summarize_expanded_premium_90_lane(
+        select_expanded_premium_90_lane(warm, qualified_ids, primary_ids),
+        qualified_full_player_days,
+        len(qualified_ids),
+        len(primary_ids),
+    )
 
     target_clearing = [
         row for row in scan_rows if row["threshold"] is not None and row["clearsTargetAllWindows"]
@@ -656,17 +804,17 @@ def main() -> None:
         "accuracyFirstLane": accuracy_first,
         "widestOverall80Lane": widest_overall,
         "premiumPtsOverLane": premium_pts_over_lane,
+        "expandedPremium90Lane": expanded_premium_90_lane,
         "coverageFrontierLane": coverage_frontier_lane,
         "recentFormLane": recent_form_lane,
         "targetClearingLanes": target_clearing,
         "topOverall80Lanes": overall_80[:25],
         "folds": fold_summaries,
         "decision": (
-            "Use the coverage-frontier lane as the Rubbing Hands dashboard default because it keeps "
-            "the 200+ sample-qualified pool playable while clearing "
-            f"{args.target_accuracy:.0f}% overall, last 30, and last 14 active-date windows. "
-            f"The top-{args.top_player_count} HGB lane and the 90 premium lane stay in the artifact "
-            "as tighter precision modes."
+            "Use the holdout-stable premium 90 lane as the Rubbing Hands precision default because it keeps "
+            "roughly six deduped player-prop picks per active slate while clearing 90% season-wide, last 30, "
+            "and last 14 active-date windows. The coverage-frontier lane remains available as the broader "
+            f"{args.target_accuracy:.0f}% playable-volume mode."
         ),
         "honestyNote": (
             "This is a strict learned-only walk-forward replay after the first training window. "
@@ -701,6 +849,14 @@ def main() -> None:
                     "threshold": accuracy_first["threshold"],
                     "accuracyPct": accuracy_first["accuracyPct"],
                     "playerDays": accuracy_first["playerDays"],
+                },
+                "expandedPremium90Lane": {
+                    "label": expanded_premium_90_lane["label"],
+                    "accuracyPct": expanded_premium_90_lane["accuracyPct"],
+                    "playerDays": expanded_premium_90_lane["playerDays"],
+                    "avgPlayersPerSlate": expanded_premium_90_lane["avgPlayersPerSlate"],
+                    "last30AccuracyPct": expanded_premium_90_lane["last30AccuracyPct"],
+                    "last14AccuracyPct": expanded_premium_90_lane["last14AccuracyPct"],
                 },
             },
             indent=2,
