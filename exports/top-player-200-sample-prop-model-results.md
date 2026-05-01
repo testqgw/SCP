@@ -1,6 +1,6 @@
 # Top Player 200-Sample NBA Prop Model
 
-Generated: 2026-04-30
+Generated: 2026-05-01
 
 ## Decision
 
@@ -35,7 +35,7 @@ Rule: `top200_sample_count: one highest wfConfidence market per player, wfConfid
 | Accuracy-first: top200_sample_count | 86.79% | 212 | 92.59% | 95.24% | 1.72% | 184 / 28 |
 | Widest 80 overall: all_min200 | 80.14% | 10,952 | 79.13% | 70.48% | 77.95% | 8,777 / 2,175 |
 | 90 premium PTS over: all_min200_premium_pts_over_agreement_sweet_spot | 91.00% | 100 | 94.87% | 100.00% | 0.71% | 91 / 9 |
-| Expanded 90 premium: holdout_stable_premium_90_six_per_day | 92.95% | 979 | 95.09% | 93.10% | 6.97% | 910 / 69 |
+| Expanded 90 premium: holdout_stable_premium_90_six_per_day | 93.15% | 1,065 | 94.86% | 93.44% | 7.58% | 992 / 73 |
 | Coverage frontier: all_min200_coverage_frontier_projection_disagreement | 82.73% | 1,922 | 82.64% | 82.40% | 13.68% | 1,590 / 332 |
 | Recent-form projection fade: top200_recent_form_projection_fade_under | 82.68% | 739 | 85.82% | 85.45% | 6.01% | 611 / 128 |
 

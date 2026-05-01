@@ -1045,6 +1045,34 @@ function isTopPlayer200Premium90LanePick(view: View, dateEt: string) {
         score.wfSide === 'OVER' &&
         projectionSide === 'OVER' &&
         inOpenClosed(projectedMinutes, 20, 24)) ||
+      (isTail200Plus &&
+        view.market === 'REB' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(line, 0.5, 1.5)) ||
+      (isTail200Plus &&
+        view.market === 'AST' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'UNDER' &&
+        inOpenClosed(score.wfConfidence, 0.8, 0.82)) ||
+      (isTail200Plus &&
+        view.market === 'PTS' &&
+        hasSource &&
+        modelSide === 'OVER' &&
+        score.wfSide === 'OVER' &&
+        projectionSide === 'OVER' &&
+        inOpenClosed(score.wfConfidence, 0.85, 0.88)) ||
+      (isTail200Plus &&
+        view.market === 'THREES' &&
+        hasSource &&
+        modelSide === 'UNDER' &&
+        score.wfSide === 'UNDER' &&
+        projectionSide === 'UNDER' &&
+        inOpenClosed(score.wfConfidence, 0.78, 0.8)) ||
       (isTop200 &&
         view.market === 'REB' &&
         hasSource &&
@@ -3752,7 +3780,7 @@ export default function NewDashboard({
                       This section now opens on the 200+ sample top-player prop model, not the regular board filter. It keeps the fixed high-sample player pool, requires live book depth, selects one strongest market per player, and removes confirmed OUT, DOUBTFUL, and 0% availability players from the actionable list.
                     </p>
                     <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                      The default Rubbing Hands pick type now uses the holdout-stable 90% premium lane: 200+ sample players, one highest-confidence market per player, and 23 validated pockets across PTS, REB, AST, PR, PA, and RA. The expanded 80% coverage lane stays available as the broader playable-volume mode.
+                      The default Rubbing Hands pick type now uses the holdout-stable 90% premium lane: 200+ sample players, one highest-confidence market per player, and 27 validated pockets across PTS, REB, AST, THREES, PR, PA, and RA. The expanded 80% coverage lane stays available as the broader playable-volume mode.
                     </p>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">

@@ -372,6 +372,10 @@ def select_expanded_premium_90_lane(
         {"label": "top200 AST OVER agreement, abs gap (0.25, 0.5], minutes (16, 20]", "pool": "top200", "market": "AST", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "absGap": (0.25, 0.5), "minutes": (16.0, 20.0)},
         {"label": "tail200plus PR OVER triple-agree, minutes (20, 24]", "pool": "tail200plus", "market": "PR", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "minutes": (20.0, 24.0)},
         {"label": "tail200plus PTS OVER triple-agree, minutes (20, 24]", "pool": "tail200plus", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "minutes": (20.0, 24.0)},
+        {"label": "tail200plus REB OVER triple-agree, line (0.5, 1.5]", "pool": "tail200plus", "market": "REB", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "line": (0.5, 1.5)},
+        {"label": "tail200plus AST UNDER triple-agree, HGB confidence (0.80, 0.82]", "pool": "tail200plus", "market": "AST", "source": "player_override", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "UNDER", "wfConfidence": (0.8, 0.82)},
+        {"label": "tail200plus PTS OVER triple-agree, HGB confidence (0.85, 0.88]", "pool": "tail200plus", "market": "PTS", "source": "player_override", "finalSide": "OVER", "wfSide": "OVER", "projectionSide": "OVER", "wfConfidence": (0.85, 0.88)},
+        {"label": "tail200plus THREES UNDER triple-agree, HGB confidence (0.78, 0.80]", "pool": "tail200plus", "market": "THREES", "source": "player_override", "finalSide": "UNDER", "wfSide": "UNDER", "projectionSide": "UNDER", "wfConfidence": (0.78, 0.8)},
         {"label": "top200 REB UNDER agreement, minutes (32, 34], line (2.5, 3.5], HGB confidence (0.78, 0.80]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "minutes": (32.0, 34.0), "line": (2.5, 3.5), "wfConfidence": (0.78, 0.8)},
         {"label": "tail200plus RA OVER agreement, HGB confidence (0.82, 0.85], final-side prior (0.65, 0.70]", "pool": "tail200plus", "market": "RA", "source": "player_override", "finalSide": "OVER", "wfAgreement": True, "wfConfidence": (0.82, 0.85), "priorFinalSideAcc": (0.65, 0.7)},
         {"label": "top200 REB UNDER agreement, abs gap (0.25, 0.5], minutes (32, 34], line (2.5, 3.5]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "absGap": (0.25, 0.5), "minutes": (32.0, 34.0), "line": (2.5, 3.5)},
@@ -466,7 +470,7 @@ def summarize_expanded_premium_90_lane(
             else [],
             "markets": sorted(selected["market"].dropna().unique().tolist()) if not selected.empty else [],
             "rule": (
-                "holdout-stable 90 premium lane: union of 23 high-precision top200/tail200plus pockets; "
+                "holdout-stable 90 premium lane: union of 27 high-precision top200/tail200plus pockets; "
                 "deduped to one highest-confidence market per player per slate. Pocket discovery used the first "
                 "110 walk-forward dates, then required the last 55 dates to hold the 90% line before inclusion."
             ),
