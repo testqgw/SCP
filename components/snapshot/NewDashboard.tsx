@@ -101,6 +101,14 @@ const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 93.35;
 const FINAL_V1_SELECTED_RECORD = '898-64';
 const FINAL_V1_SELECTED_VOLUME = 962;
 const FINAL_V1_AVG_PICKS_PER_SLATE = 5.83;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Top 3 non-PTS, fallback top 2';
+const FINAL_V1_DAILY_COMBO_HIT_PCT = 81.82;
+const FINAL_V1_DAILY_COMBO_DAYS = '135-30';
+const FINAL_V1_DAILY_COMBO_RECORD = '419-62';
+const FINAL_V1_DAILY_COMBO_LEGS = 488;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 2.96;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 2.92;
+const FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT = 67.88;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1821,6 +1829,29 @@ export default function NewDashboard({
     () => finalModelPicks.map((pick) => pick.view).filter((view): view is View => view != null),
     [finalModelPicks],
   );
+  const finalModelComboLegs = useMemo(() => {
+    const nonPts = finalModelPicks.filter((pick) => pick.modelRow.market !== 'PTS').slice(0, 3);
+    return nonPts.length >= 2 ? nonPts : finalModelPicks.slice(0, 2);
+  }, [finalModelPicks]);
+  const finalModelDailyCombos = useMemo(() => {
+    const combos: Array<{
+      id: string;
+      legA: (typeof finalModelComboLegs)[number];
+      legB: (typeof finalModelComboLegs)[number];
+    }> = [];
+    for (let a = 0; a < finalModelComboLegs.length; a += 1) {
+      for (let b = a + 1; b < finalModelComboLegs.length; b += 1) {
+        const legA = finalModelComboLegs[a];
+        const legB = finalModelComboLegs[b];
+        combos.push({
+          id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}`,
+          legA,
+          legB,
+        });
+      }
+    }
+    return combos;
+  }, [finalModelComboLegs]);
   const rubbingBaseViews = useMemo(
     () => selectRubbingHands115Views(allViews),
     [allViews],
@@ -2283,7 +2314,7 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | Full-board WF ${pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | Daily combos ${pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -3752,12 +3783,61 @@ export default function NewDashboard({
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
+                <Stat dense label="Daily combos" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_DAYS} all-combo days`} />
+                <Stat dense label="Combo record" value={FINAL_V1_DAILY_COMBO_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_COMBO_AVG_COMBOS, 2)} combos/day`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
                 <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
                 <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
                 <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
                 <Stat dense label="Warnings" value={n(finalModel?.summary.warningCount ?? finalModel?.warnings.length ?? 0, 0)} kind={finalModel?.warnings.length ? 'DERIVED' : 'LIVE'} note="Artifact warnings" />
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily all-combo layer</div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">{FINAL_V1_DAILY_COMBO_RULE_LABEL}</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
+                      Historical replay uses every two-leg combination from the filtered daily Final V1 set. Baseline all-selected daily all-combo rate was {pct(FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT, 2)}.
+                    </p>
+                  </div>
+                  <Pill label="Replay optimized" tone="amber" />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <CompactMetric label="Daily hit rate" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} />
+                  <CompactMetric label="Combo record" value={FINAL_V1_DAILY_COMBO_RECORD} />
+                  <CompactMetric label="Avg legs/day" value={n(FINAL_V1_DAILY_COMBO_AVG_LEGS, 2)} />
+                  <CompactMetric label="Historical legs" value={n(FINAL_V1_DAILY_COMBO_LEGS, 0)} />
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                  <span className="font-semibold text-[var(--text)]">Today&apos;s combo set:</span>{' '}
+                  {finalModelComboLegs.length >= 2
+                    ? `${n(finalModelComboLegs.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg combos.`
+                    : 'Waiting for at least two Final V1 picks.'}
+                </div>
+                {finalModelDailyCombos.length ? (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                    {finalModelDailyCombos.map(({ id, legA, legB }, index) => (
+                      <div key={id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Combo {index + 1}</div>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
+                          {[legA, legB].map(({ modelRow, view }) => (
+                            <div key={`${id}:${modelRow.candidateId}`} className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold">{modelRow.playerName}</div>
+                                <div className="text-xs text-[var(--text-2)]">
+                                  {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                                </div>
+                              </div>
+                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
