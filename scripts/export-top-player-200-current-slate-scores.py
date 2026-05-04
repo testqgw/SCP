@@ -6,7 +6,7 @@ import json
 import sys
 import urllib.request
 from collections import defaultdict
-from datetime import date
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -120,6 +120,10 @@ def current_rows_from_board(board: dict[str, Any]) -> pd.DataFrame:
                     "gameDateEt": board["dateEt"],
                     "playerId": row.get("playerId"),
                     "playerName": row.get("playerName"),
+                    "teamCode": row.get("teamCode"),
+                    "opponentCode": row.get("opponentCode"),
+                    "matchupKey": row.get("matchupKey"),
+                    "gameTimeEt": row.get("gameTimeEt"),
                     "market": market,
                     "baselineSide": baseline_side,
                     "rawSide": signal.get("side") or final_side,
@@ -363,6 +367,10 @@ def main() -> None:
                 "dateEt": board["dateEt"],
                 "playerId": row.playerId,
                 "playerName": row.playerName,
+                "teamCode": getattr(row, "teamCode", None),
+                "opponentCode": getattr(row, "opponentCode", None),
+                "matchupKey": getattr(row, "matchupKey", None),
+                "gameTimeEt": getattr(row, "gameTimeEt", None),
                 "market": row.market,
                 "wfProbOver": clean_float(row.wfProbOver),
                 "wfConfidence": clean_float(row.wfConfidence),
@@ -382,9 +390,20 @@ def main() -> None:
             }
         )
 
+    game_times = sorted(
+        {
+            str(item)
+            for item in score.get("gameTimeEt", pd.Series(dtype=str)).dropna().tolist()
+            if str(item).strip()
+        }
+    )
+    generated_at_utc = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     output = {
-        "generatedAt": date.today().isoformat(),
+        "generatedAt": generated_at_utc,
+        "generatedAtUtc": generated_at_utc,
         "dateEt": board["dateEt"],
+        "firstGameTimeEt": game_times[0] if game_times else None,
+        "scheduledGameTimesEt": game_times,
         "source": args.board_json or args.board_url,
         "metaExpandedLane": META_EXPANDED_LANE,
         "rows": rows,

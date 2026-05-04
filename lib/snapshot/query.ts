@@ -61,6 +61,7 @@ import {
   type SnapshotPrecisionPregameLock,
 } from "@/lib/snapshot/precisionPregameLock";
 import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
+import { loadFinalPlayerPropModelV1 } from "@/lib/snapshot/finalPlayerPropModelV1";
 import {
   evaluateLiveUniversalModelSide,
   inspectLiveUniversalModelSide,
@@ -90,7 +91,7 @@ import {
   type TeamSynergyInput,
 } from "@/lib/snapshot/projection";
 import { computeBenchBigRoleStability, computeMissingFrontcourtLoad } from "@/lib/snapshot/benchBigRoleStability";
-import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from "@/lib/snapshot/confidenceRating";
+import { resolvePickConfidenceRating } from "@/lib/snapshot/confidenceRating";
 import { buildModelLineRecord } from "@/lib/snapshot/modelLines";
 import {
   buildPairwiseTeammateSynergyInput,
@@ -126,7 +127,6 @@ import type {
   SnapshotDashboardModelLine,
   SnapshotDashboardModelLineRecord,
   SnapshotDashboardPlayerContext,
-  SnapshotDashboardPrecisionSignal,
   SnapshotDashboardRow,
   SnapshotDashboardSignal,
   SnapshotGameIntel,
@@ -400,11 +400,11 @@ function readPersistedSnapshotBoardSetting(value: unknown): PersistedSnapshotBoa
   };
 }
 
-function getSnapshotBoardViewFallbackOrThrow(dateEt: string, error: unknown): SnapshotBoardViewData {
+async function getSnapshotBoardViewFallbackOrThrow(dateEt: string, error: unknown): Promise<SnapshotBoardViewData> {
   if (isSnapshotBoardDatabaseUnavailableError(error)) {
     const fallback = loadBundledSnapshotBoardViewFallback(dateEt);
     if (fallback) {
-      return fallback;
+      return await withFinalOnlySnapshotBoardViewData(fallback);
     }
   }
   throw error;
@@ -1043,12 +1043,6 @@ function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): Snapsh
   };
 }
 
-function getMeaningfulPrecisionHistoricalAccuracy(
-  signal: Pick<SnapshotPrecisionPickSignal, "historicalAccuracy"> | null | undefined,
-): number | null {
-  return getMeaningfulHistoricalAccuracy(signal);
-}
-
 function resolveSnapshotDisplayConfidence(input: {
   precisionSignal?:
     | Pick<
@@ -1065,43 +1059,6 @@ function resolveSnapshotDisplayConfidence(input: {
   liveSignal?: Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount"> | null;
 }): number | null {
   return resolvePickConfidenceRating(input);
-}
-
-function toDashboardPrecisionSignal(
-  signal: SnapshotPrecisionPickSignal | null | undefined,
-): SnapshotDashboardPrecisionSignal | null {
-  if (!signal) return null;
-  return {
-    side: signal.side,
-    qualified: signal.qualified,
-    historicalAccuracy: getMeaningfulPrecisionHistoricalAccuracy(signal),
-    projectionWinProbability: signal.projectionWinProbability,
-    projectionPriceEdge: signal.projectionPriceEdge ?? null,
-    absLineGap: signal.absLineGap ?? null,
-    selectionScore: signal.selectionScore ?? null,
-    selectorFamily: signal.selectorFamily ?? null,
-    selectorTier: signal.selectorTier ?? null,
-    reasons: signal.reasons?.slice(0, 4),
-  };
-}
-
-function toDashboardPrecisionSignals(
-  signals: Partial<Record<SnapshotMarket, SnapshotPrecisionPickSignal>> | undefined,
-): Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>> | undefined {
-  if (!signals) return undefined;
-
-  const entries = Object.entries(signals)
-    .map(([market, signal]) => {
-      const dashboardSignal = toDashboardPrecisionSignal(signal);
-      return dashboardSignal ? ([market, dashboardSignal] as const) : null;
-    })
-    .filter((entry): entry is readonly [string, SnapshotDashboardPrecisionSignal] => entry !== null);
-
-  if (entries.length === 0) {
-    return undefined;
-  }
-
-  return Object.fromEntries(entries) as Partial<Record<SnapshotMarket, SnapshotDashboardPrecisionSignal>>;
 }
 
 function toDashboardModelLines(modelLines: SnapshotRow["modelLines"]): SnapshotDashboardModelLineRecord {
@@ -1192,7 +1149,7 @@ function toDashboardSnapshotRow(row: SnapshotRow): SnapshotDashboardRow {
     prSignal: toDashboardSignal(row.prSignal),
     raSignal: toDashboardSignal(row.raSignal),
     marketRuntime: row.marketRuntime,
-    precisionSignals: toDashboardPrecisionSignals(row.precisionSignals),
+    precisionSignals: undefined,
     dataCompleteness: toDashboardDataCompleteness(row.dataCompleteness),
     playerContext: toDashboardPlayerContext(row.playerContext),
     gameIntel: toDashboardGameIntel(row.gameIntel),
@@ -1202,7 +1159,33 @@ function toDashboardSnapshotRow(row: SnapshotRow): SnapshotDashboardRow {
 export function toSnapshotBoardViewData(data: SnapshotBoardData): SnapshotBoardViewData {
   return {
     ...data,
+    precisionCard: [],
+    precisionCardSummary: null,
+    precisionSystem: null,
+    precisionDashboard: null,
     rows: data.rows.map((row) => toDashboardSnapshotRow(row)),
+  };
+}
+
+async function withFinalPlayerPropModelV1(data: SnapshotBoardData): Promise<SnapshotBoardData> {
+  return {
+    ...data,
+    finalModel: await loadFinalPlayerPropModelV1(data.dateEt),
+  };
+}
+
+async function withFinalOnlySnapshotBoardViewData(data: SnapshotBoardViewData): Promise<SnapshotBoardViewData> {
+  return {
+    ...data,
+    finalModel: data.finalModel ?? (await loadFinalPlayerPropModelV1(data.dateEt)),
+    precisionCard: [],
+    precisionCardSummary: null,
+    precisionSystem: null,
+    precisionDashboard: null,
+    rows: data.rows.map((row) => ({
+      ...row,
+      precisionSignals: undefined,
+    })),
   };
 }
 
@@ -4157,34 +4140,46 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     const lineupMap = buildLineupSignalMap(parseLineupSnapshot(lineupSetting?.value ?? null, dateEt));
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
-      return preferBundledSnapshotBoardViewFallbackWhenBroken(
-        dateEt,
-        toSnapshotBoardViewData(
-          await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data, lineupMap), { dateEt }),
+      return await withFinalOnlySnapshotBoardViewData(
+        preferBundledSnapshotBoardViewFallbackWhenBroken(
+          dateEt,
+          toSnapshotBoardViewData(
+            await withFinalPlayerPropModelV1(
+              await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data, lineupMap), { dateEt }),
+            ),
+          ),
         ),
       );
     }
-    return preferBundledSnapshotBoardViewFallbackWhenBroken(
-      dateEt,
-      toSnapshotBoardViewData(
-        await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, !isTodayEt), { dateEt }),
+    return await withFinalOnlySnapshotBoardViewData(
+      preferBundledSnapshotBoardViewFallbackWhenBroken(
+        dateEt,
+        toSnapshotBoardViewData(
+          await withFinalPlayerPropModelV1(
+            await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, !isTodayEt), { dateEt }),
+          ),
+        ),
       ),
     );
   } catch (error) {
-    return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
+    return await getSnapshotBoardViewFallbackOrThrow(dateEt, error);
   }
 }
 
 export async function getSnapshotBoardViewData(dateEt: string, bustCache = false): Promise<SnapshotBoardViewData> {
   try {
-    return preferBundledSnapshotBoardViewFallbackWhenBroken(
-      dateEt,
-      toSnapshotBoardViewData(
-        await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+    return await withFinalOnlySnapshotBoardViewData(
+      preferBundledSnapshotBoardViewFallbackWhenBroken(
+        dateEt,
+        toSnapshotBoardViewData(
+          await withFinalPlayerPropModelV1(
+            await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, bustCache), { dateEt }),
+          ),
+        ),
       ),
     );
   } catch (error) {
-    return getSnapshotBoardViewFallbackOrThrow(dateEt, error);
+    return await getSnapshotBoardViewFallbackOrThrow(dateEt, error);
   }
 }
 

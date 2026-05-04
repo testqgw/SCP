@@ -172,6 +172,80 @@ export type SnapshotPrecisionDashboard = {
   entries: SnapshotPrecisionAuditEntry[];
 };
 
+export type SnapshotFinalModelTier = "S" | "A" | "B" | "C" | "D";
+
+export type SnapshotFinalModelAction = "SELECTED" | "CANDIDATE" | "COVERAGE";
+
+export type SnapshotFinalModelComponent = {
+  id: string;
+  label: string;
+  accuracyPct: number | null;
+  playerDays: number | null;
+};
+
+export type SnapshotFinalModelBoardRow = {
+  candidateId: string;
+  slateDate: string;
+  playerId: string | null;
+  playerName: string;
+  team: string | null;
+  opponent: string | null;
+  matchupKey: string | null;
+  gameTimeEt: string | null;
+  market: SnapshotMarket;
+  side: SnapshotModelSide;
+  line: number | null;
+  projectedValue: number | null;
+  lineGap: number | null;
+  absLineGap: number | null;
+  wfConfidence: number | null;
+  metaProbCorrect: number | null;
+  projectedMinutes: number | null;
+  sportsbookCount: number | null;
+  tier: SnapshotFinalModelTier;
+  modelAction: SnapshotFinalModelAction;
+  selectedRank: number | null;
+  estimatedAccuracyPriorPct: number | null;
+  baseScore: number | null;
+  correlationPenalty: number | null;
+  finalScore: number | null;
+  sourceComponents: SnapshotFinalModelComponent[];
+  riskFlags: string[];
+  reasons: string[];
+  rejectionReason: string | null;
+};
+
+export type SnapshotFinalModelSummary = {
+  totalBoardRows: number;
+  scoredBoardRows: number;
+  boardCoveragePct: number;
+  candidateCount: number;
+  selectedCount: number;
+  selectedByTier: Partial<Record<SnapshotFinalModelTier, number>>;
+  boardRowsByTier: Partial<Record<SnapshotFinalModelTier, number>>;
+  boardRowsByAction: Partial<Record<SnapshotFinalModelAction, number>>;
+  averageEstimatedAccuracyPriorPct: number | null;
+  averageFinalScore: number | null;
+  correlationMultiplier: number | null;
+  warningCount: number;
+};
+
+export type SnapshotFinalModelData = {
+  artifactStatus: "LOADED" | "MISSING";
+  generatedAt: string | null;
+  modelId: "final-player-prop-model-v1";
+  modelName: string;
+  modelVersion: string | null;
+  mode: string;
+  slateDate: string;
+  currentDateEt: string | null;
+  claimBoundary: string;
+  summary: SnapshotFinalModelSummary;
+  warnings: string[];
+  selectedRows: SnapshotFinalModelBoardRow[];
+  candidateRows: SnapshotFinalModelBoardRow[];
+};
+
 export type SnapshotUniversalSystemSummary = {
   label: string;
   honest14dRawAccuracy: number;
@@ -366,6 +440,7 @@ export type SnapshotBoardData = {
   precisionCardSummary?: SnapshotPrecisionCardSummary | null;
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   precisionDashboard?: SnapshotPrecisionDashboard | null;
+  finalModel?: SnapshotFinalModelData | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
   boardFeed?: SnapshotBoardFeed | null;
 };

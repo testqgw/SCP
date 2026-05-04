@@ -1,0 +1,5 @@
+selected_rank,candidate_id,slate_date,player,team,opponent,matchup_key,game_time_et,market,side,line,projected_value,line_gap,wf_confidence,meta_prob_correct,estimated_accuracy_prior_pct,tier,model_action,base_score,correlation_penalty,final_score,risk_flags,premium_pockets
+1,4f8dd5c62e5b42b02b9a,2026-05-04,Luke Kornet,SAS,MIN,MIN@SAS,"May 4, 9:30 PM",REB,OVER,3.5,5.71,2.21,0.840173,0.829541,90.16,B,SELECTED,0.863352,0,0.863352,low_projected_minutes,
+2,557bfd1743d5eca4be6f,2026-05-04,Andre Drummond,PHI,NYK,PHI@NYK,"May 4, 8:00 PM",REB,OVER,3.5,6.04,2.54,0.883889,0.812608,89.06,C,SELECTED,0.848086,0.006,0.842086,low_projected_minutes,
+3,cd8f26152f15ee0eb510,2026-05-04,Julius Randle,MIN,SAS,MIN@SAS,"May 4, 9:30 PM",PA,UNDER,22.5,25.47,2.97,0.733875,0.711478,89.06,C,SELECTED,0.853392,0.025,0.828392,projection_side_split,
+4,39a0695c1923b07de86f,2026-05-04,Mitchell Robinson,NYK,PHI,PHI@NYK,"May 4, 8:00 PM",PR,OVER,12.5,10.17,-2.33,0.817287,0.720799,89.06,C,SELECTED,0.812645,0.025,0.787645,low_projected_minutes; projection_side_split,

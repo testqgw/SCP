@@ -9,6 +9,7 @@ import type {
   SnapshotDashboardPrecisionSignal,
   SnapshotDashboardRow,
   SnapshotDashboardSignal,
+  SnapshotFinalModelBoardRow,
   SnapshotMarket,
   SnapshotModelSide,
   SnapshotPropSignalGrade,
@@ -58,8 +59,8 @@ import {
   getTopPlayer200SampleTailPropPlayer,
 } from '@/lib/snapshot/topPlayer200SamplePropModel';
 
-type Tab = 'overview' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
-type ViewKey = 'overview' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
+type Tab = 'overview' | 'final' | 'precision' | 'rubbing' | 'research' | 'scout' | 'tracking';
+type ViewKey = 'overview' | 'final' | 'precision' | 'rubbing' | 'players' | 'feed' | 'tracker' | 'method';
 type RubbingSort = 'confidence' | 'edge' | 'books';
 type RubbingPickFilter =
   | 'all'
@@ -95,6 +96,11 @@ const TOP_PLAYER_200_PREMIUM_90_MARKET_SET = new Set<SnapshotMarket>(
 );
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
+const FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT = 88.86;
+const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 93.35;
+const FINAL_V1_SELECTED_RECORD = '898-64';
+const FINAL_V1_SELECTED_VOLUME = 962;
+const FINAL_V1_AVG_PICKS_PER_SLATE = 5.83;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -107,9 +113,8 @@ const MARKET_LABELS: Record<SnapshotMarket, string> = {
 };
 
 const TABS: Array<{ id: Tab; label: string; hint: string }> = [
-  { id: 'overview', label: 'Overview', hint: 'Best board setups' },
-  { id: 'precision', label: 'Precision Picks', hint: 'Promoted model picks' },
-  { id: 'rubbing', label: 'Rubbing Hands', hint: '200+ sample model' },
+  { id: 'overview', label: 'Overview', hint: 'Final V1 board' },
+  { id: 'final', label: 'Final V1', hint: 'Only model picks' },
   { id: 'research', label: 'Players', hint: 'Player dossiers' },
   { id: 'scout', label: 'Feed', hint: 'Live board signals' },
   { id: 'tracking', label: 'Tracker', hint: 'Sortable market tracker' },
@@ -117,6 +122,7 @@ const TABS: Array<{ id: Tab; label: string; hint: string }> = [
 
 const TAB_TO_VIEW: Record<Tab, ViewKey> = {
   overview: 'overview',
+  final: 'final',
   precision: 'precision',
   rubbing: 'rubbing',
   research: 'players',
@@ -126,8 +132,9 @@ const TAB_TO_VIEW: Record<Tab, ViewKey> = {
 
 const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
   overview: 'overview',
-  precision: 'precision',
-  rubbing: 'rubbing',
+  final: 'final',
+  precision: 'final',
+  rubbing: 'final',
   players: 'research',
   feed: 'scout',
   tracker: 'tracking',
@@ -135,8 +142,7 @@ const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
 
 const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
   { label: 'Overview', tab: 'overview' },
-  { label: 'Precision Picks', tab: 'precision' },
-  { label: 'Rubbing Hands', tab: 'rubbing' },
+  { label: 'Final V1', tab: 'final' },
   { label: 'Players', tab: 'research' },
   { label: 'Feed', tab: 'scout' },
   { label: 'Tracker', tab: 'tracking' },
@@ -388,7 +394,7 @@ type View = {
 };
 
 type PrecisionStateSummary = {
-  label: 'Precision pick' | 'Precision qualified' | 'Board read only';
+  label: 'Final V1 pick' | 'Final V1 context' | 'Board read only';
   tone: 'default' | 'cyan' | 'amber';
   kind: Kind;
   summary: string;
@@ -475,14 +481,6 @@ function signalTokenLabel(value: string | null | undefined) {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
-}
-
-function selectorFamilyLabel(value: string | null | undefined) {
-  return signalTokenLabel(value);
-}
-
-function selectorTierLabel(value: string | null | undefined) {
-  return signalTokenLabel(value);
 }
 
 function cleanReasonLine(value: string | null | undefined) {
@@ -1548,6 +1546,52 @@ function viewFor(
   };
 }
 
+function finalModelSourceLabel(row: SnapshotFinalModelBoardRow) {
+  const labels = row.sourceComponents.map((component) => component.label).filter(Boolean);
+  return labels.length ? labels.slice(0, 2).join(' + ') : 'Final V1 selector';
+}
+
+function finalModelRiskLabel(row: SnapshotFinalModelBoardRow) {
+  return row.riskFlags.length ? row.riskFlags.slice(0, 2).map(signalTokenLabel).filter(Boolean).join(', ') : 'Clean rule path';
+}
+
+function viewForFinalModelRow(row: SnapshotDashboardRow, modelRow: SnapshotFinalModelBoardRow): View {
+  const base = viewFor(row, modelRow.market, null);
+  const live = modelRow.line ?? base.live;
+  const proj = modelRow.projectedValue ?? base.proj;
+  const edge =
+    modelRow.lineGap ??
+    (proj != null && live != null ? Number((proj - live).toFixed(1)) : base.edge);
+  const confidence = modelRow.estimatedAccuracyPriorPct ?? base.conf;
+  const reasons = [
+    ...modelRow.reasons,
+    ...modelRow.sourceComponents.map((component) => component.label),
+    ...modelRow.riskFlags.map((flag) => `Risk: ${signalTokenLabel(flag) ?? flag}`),
+  ].filter(Boolean).slice(0, 4);
+  return {
+    ...base,
+    live,
+    proj,
+    edge,
+    conf: confidence,
+    books: modelRow.sportsbookCount ?? base.books,
+    side: modelRow.side,
+    liveKind: live != null ? 'LIVE' : base.liveKind,
+    liveLineKind: live != null ? 'LIVE' : base.liveLineKind,
+    projKind: proj != null ? 'MODEL' : base.projKind,
+    edgeKind: edge != null ? 'DERIVED' : base.edgeKind,
+    confKind: confidence != null ? 'MODEL' : base.confKind,
+    booksKind: modelRow.sportsbookCount != null ? 'LIVE' : base.booksKind,
+    sideKind: 'MODEL',
+    rank: modelRow.selectedRank ? `#${modelRow.selectedRank}` : null,
+    source: `Final V1 ${modelRow.modelAction.toLowerCase()}`,
+    note: finalModelSourceLabel(modelRow),
+    score: (modelRow.finalScore ?? 0) * 100 + (confidence ?? 0),
+    reasons,
+    precision: null,
+  };
+}
+
 function trendRead(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return 'Recent-versus-season trend is not available yet.';
   if (value >= 1.5) return `Running clearly above season baseline at ${signed(value, 1)}.`;
@@ -1597,7 +1641,8 @@ function slugifyParam(value: string) {
 }
 
 function parseViewParam(value: string | null): ViewKey {
-  if (value === 'precision' || value === 'rubbing' || value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
+  if (value === 'precision' || value === 'rubbing') return 'final';
+  if (value === 'final' || value === 'players' || value === 'feed' || value === 'tracker' || value === 'method') return value;
   if (value === 'lines') return 'tracker';
   return 'overview';
 }
@@ -1607,7 +1652,7 @@ function viewKeepsPlayerParam(view: ViewKey) {
 }
 
 function viewKeepsMatchupParam(view: ViewKey) {
-  return view === 'overview' || view === 'rubbing' || view === 'players' || view === 'feed' || view === 'tracker';
+  return view === 'overview' || view === 'final' || view === 'players' || view === 'feed' || view === 'tracker';
 }
 
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
@@ -1753,6 +1798,28 @@ export default function NewDashboard({
         MARKETS.map((market) => viewFor(row, market, null)),
       ),
     [boardRows],
+  );
+  const finalModel = data.finalModel ?? null;
+  const finalModelPicks = useMemo(
+    () =>
+      (finalModel?.selectedRows ?? [])
+        .map((modelRow) => {
+          const row =
+            (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
+            boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
+            null;
+          return {
+            modelRow,
+            row,
+            view: row ? viewForFinalModelRow(row, modelRow) : null,
+          };
+        })
+        .sort((a, b) => (a.modelRow.selectedRank ?? 999) - (b.modelRow.selectedRank ?? 999)),
+    [allRowById, boardRows, finalModel?.selectedRows],
+  );
+  const finalModelViews = useMemo(
+    () => finalModelPicks.map((pick) => pick.view).filter((view): view is View => view != null),
+    [finalModelPicks],
   );
   const rubbingBaseViews = useMemo(
     () => selectRubbingHands115Views(allViews),
@@ -1994,18 +2061,19 @@ export default function NewDashboard({
         ? 'The eligible 200+ sample pool is loaded, but no player matched the player-override, projection-fade, minutes, and gap requirements.'
       : 'Clear the search, choose all markets, or switch the pick type to restore the model-selected board.';
   const featured = useMemo(() => {
-    const lead = precision[0]?.view;
+    const lead = finalModelViews[0];
     if (lead) return lead;
     return (
       allViews
-        .filter((v) => v.live != null || v.precision?.qualified || v.conf != null || v.edge != null)
+        .filter((v) => v.live != null || v.conf != null || v.edge != null)
         .sort((a, b) => b.score - a.score || (b.conf ?? 0) - (a.conf ?? 0) || a.row.playerName.localeCompare(b.row.playerName))[0] ?? null
     );
-  }, [allViews, precision]);
+  }, [allViews, finalModelViews]);
   const slatePlayers = useMemo(() => {
     const ids = new Set<string>();
     const out: SnapshotDashboardRow[] = [];
-    precision.forEach(({ row }) => {
+    finalModelPicks.forEach(({ row }) => {
+      if (!row) return;
       if (!ids.has(row.playerId)) {
         ids.add(row.playerId);
         out.push(row);
@@ -2019,9 +2087,9 @@ export default function NewDashboard({
           ids.add(row.playerId);
           out.push(row);
         }
-      });
+    });
     return out;
-  }, [boardRows, precision]);
+  }, [boardRows, finalModelPicks]);
   const researchRows = useMemo(() => slatePlayers.slice(0, 12), [slatePlayers]);
   const searchResults = useMemo(() => {
     if (!deferredSearchQuery) return [];
@@ -2080,13 +2148,13 @@ export default function NewDashboard({
   );
   const researchLiveViews = useMemo(() => researchViews.filter((view) => view.live != null), [researchViews]);
   const researchLeadView = useMemo(() => leadViewFromViews(researchViews), [researchViews]);
-  const researchTopPrecision = useMemo(
-    () => (researchRow ? precision.find((item) => item.row.playerId === researchRow.playerId) ?? null : null),
-    [precision, researchRow],
+  const researchTopFinalModel = useMemo(
+    () => (researchRow ? finalModelPicks.find((item) => item.row?.playerId === researchRow.playerId) ?? null : null),
+    [finalModelPicks, researchRow],
   );
   const researchQualifiedView = useMemo(
-    () => (researchRow ? researchTopPrecision?.view ?? researchViews.find((view) => view.precision?.qualified) ?? null : null),
-    [researchRow, researchTopPrecision, researchViews],
+    () => (researchRow ? researchTopFinalModel?.view ?? null : null),
+    [researchRow, researchTopFinalModel],
   );
   const teamMatchup = useMemo(
     () => (researchRow ? data.teamMatchups.find((m) => m.matchupKey === researchRow.matchupKey) ?? null : null),
@@ -2212,13 +2280,13 @@ export default function NewDashboard({
   const boardPulseNote =
     refreshNotice?.detail ??
     (featured
-      ? `${recommendationHeadline(featured)} is leading the board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
+      ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
-  const boardModeLabel = 'Full board';
-  const boardModeDetail = universalSystem
-    ? `Honest 14d ${pct(universalSystem.honest14dRawAccuracy, 2)} | Honest 30d ${pct(universalSystem.honest30dRawAccuracy, 2)} | Latest fold ${pct(universalSystem.latestFoldRawAccuracy, 2)}`
-    : 'Honest recent holdout metrics are not loaded for the board yet.';
-  const boardModeCountLabel = `${n(allViews.length, 0)} current full-board views`;
+  const boardModeLabel = 'Final V1';
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | Full-board WF ${pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeCountLabel = finalModel?.summary.totalBoardRows
+    ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
+    : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
   const researchWhyInteresting = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player and the board will explain why that slate row is worth a deeper look.';
@@ -2270,17 +2338,15 @@ export default function NewDashboard({
     if (!researchRow || !researchLeadView) return [] as string[];
 
     const drivers: string[] = [];
-    const precisionReason = researchTopPrecision?.entry.precisionSignal?.reasons?.[0];
+    const finalReason = researchTopFinalModel?.modelRow.reasons[0] ?? researchTopFinalModel?.modelRow.sourceComponents[0]?.label;
     if (researchLeadView.live != null && researchLeadView.edge != null) {
       drivers.push(`${researchLeadView.label} is ${signed(researchLeadView.edge, 1)} away from the live board price.`);
     }
-    if (researchLeadView.precision?.qualified) {
-      drivers.push(
-        `${researchLeadView.label} is precision-qualified${researchLeadView.precision.selectorFamily ? ` through ${researchLeadView.precision.selectorFamily}` : ''}.`,
-      );
+    if (researchTopFinalModel?.view?.market === researchLeadView.market) {
+      drivers.push(`${researchLeadView.label} is selected by Final V1.`);
     }
-    if (precisionReason) {
-      drivers.push(precisionReason);
+    if (finalReason) {
+      drivers.push(finalReason);
     }
     if (researchLeadView.books != null && researchLeadView.books >= 4) {
       drivers.push(`${n(researchLeadView.books, 0)} books are contributing to the live consensus line.`);
@@ -2298,7 +2364,7 @@ export default function NewDashboard({
     }
 
     return drivers.slice(0, 4);
-  }, [researchLeadOpponentDelta, researchLeadTrend, researchLeadView, researchRow, researchTopPrecision]);
+  }, [researchLeadOpponentDelta, researchLeadTrend, researchLeadView, researchRow, researchTopFinalModel]);
   const researchCautionDrivers = useMemo(() => {
     if (!researchRow || !researchLeadView) return [] as string[];
 
@@ -2309,8 +2375,8 @@ export default function NewDashboard({
     if (researchLeadView.books != null && researchLeadView.books > 0 && researchLeadView.books < 3) {
       cautions.push(`Live market depth is thin at ${n(researchLeadView.books, 0)} books.`);
     }
-    if (!researchLeadView.precision?.qualified) {
-      cautions.push(`${researchLeadView.label} is not precision-qualified right now, so this is a board read rather than a promoted card spot.`);
+    if (researchTopFinalModel?.view?.market !== researchLeadView.market) {
+      cautions.push(`${researchLeadView.label} is not a selected Final V1 pick right now, so treat it as context only.`);
     }
     if (researchRow.dataCompleteness.score < 70) {
       cautions.push(`Data completeness is only ${pct(researchRow.dataCompleteness.score, 0)} (${researchRow.dataCompleteness.tier}).`);
@@ -2328,21 +2394,21 @@ export default function NewDashboard({
     }
 
     return cautions.slice(0, 4);
-  }, [researchLeadView, researchMinutesBandWidth, researchRow]);
+  }, [researchLeadView, researchMinutesBandWidth, researchRow, researchTopFinalModel]);
   const researchPrecisionState = useMemo<PrecisionStateSummary>(() => {
     if (!researchRow || !researchLeadView) {
       return {
         label: 'Board read only',
         tone: 'default',
         kind: 'LIVE',
-        summary: 'Open a player and the board will show whether the current read is promoted, qualified, or just a broader board lean.',
+        summary: 'Open a player and the board will show whether the current read is selected by Final V1 or just a broader board lean.',
         detail: null,
         reasons: [],
       };
     }
 
-    const precisionView = researchQualifiedView;
-    const focusView = precisionView ?? researchLeadView;
+    const finalView = researchQualifiedView;
+    const focusView = finalView ?? researchLeadView;
     const basisLabel = focusView.live != null ? 'live line' : focusView.fair != null ? 'board fair line' : 'current board basis';
     const reasonSet = new Set<string>();
     if (focusView.edge != null) {
@@ -2354,40 +2420,40 @@ export default function NewDashboard({
     if (focusView.conf != null) {
       reasonSet.add(`Confidence is ${pct(focusView.conf, 0)} on ${focusView.label}.`);
     }
-    const precisionReason = cleanReasonLine((focusView.precision?.reasons ?? [])[0]);
-    if (precisionReason) {
-      reasonSet.add(precisionReason);
+    const finalReason = cleanReasonLine(researchTopFinalModel?.modelRow.reasons[0] ?? researchTopFinalModel?.modelRow.sourceComponents[0]?.label);
+    if (finalReason) {
+      reasonSet.add(finalReason);
     }
     const reasons = Array.from(reasonSet).slice(0, 3);
-    const precisionDetail =
-      precisionView && precisionView.market !== researchLeadView.market
-        ? `Precision market: ${recommendationHeadline(precisionView)}`
+    const finalDetail =
+      finalView && finalView.market !== researchLeadView.market
+        ? `Final V1 market: ${recommendationHeadline(finalView)}`
         : `Current board lead: ${recommendationHeadline(researchLeadView)}`;
 
-    if (researchTopPrecision?.entry.rank === 1) {
+    if (researchTopFinalModel?.modelRow.selectedRank === 1) {
       return {
-        label: 'Precision pick',
+        label: 'Final V1 pick',
         tone: 'cyan',
         kind: 'MODEL',
         summary:
-          precisionView && precisionView.market !== researchLeadView.market
-            ? `${recommendationHeadline(precisionView)} is the promoted precision market for this player right now.`
-            : 'This player is the promoted board selection right now.',
-        detail: precisionDetail,
+          finalView && finalView.market !== researchLeadView.market
+            ? `${recommendationHeadline(finalView)} is the selected Final V1 market for this player right now.`
+            : 'This player is the lead Final V1 board selection right now.',
+        detail: finalDetail,
         reasons,
       };
     }
 
-    if (precisionView) {
+    if (finalView) {
       return {
-        label: 'Precision qualified',
+        label: 'Final V1 context',
         tone: 'amber',
         kind: 'DERIVED',
         summary:
-          precisionView.market !== researchLeadView.market
-            ? `${recommendationHeadline(precisionView)} clears the precision rules, even though ${researchLeadView.label} is the broader player read.`
-            : 'This lead market clears the current precision rules, but it is not the promoted board pick.',
-        detail: precisionDetail,
+          finalView.market !== researchLeadView.market
+            ? `${recommendationHeadline(finalView)} is the Final V1 selected market, even though ${researchLeadView.label} is the broader player read.`
+            : 'This lead market is selected by Final V1, but it is not the top ranked board pick.',
+        detail: finalDetail,
         reasons,
       };
     }
@@ -2396,11 +2462,11 @@ export default function NewDashboard({
       label: 'Board read only',
       tone: 'default',
       kind: 'LIVE',
-      summary: 'This player has a usable board read, but the current lead market is not one of the promoted precision spots right now.',
-      detail: precisionDetail,
+      summary: 'This player has a usable board read, but it is not one of the current Final V1 selected picks.',
+      detail: finalDetail,
       reasons,
     };
-  }, [researchLeadView, researchQualifiedView, researchRow, researchTopPrecision]);
+  }, [researchLeadView, researchQualifiedView, researchRow, researchTopFinalModel]);
   const researchMatchupRead = useMemo(() => {
     if (!researchRow || !researchLeadView) {
       return 'Select a player to see matchup interpretation.';
@@ -2438,6 +2504,14 @@ export default function NewDashboard({
     overview: {
       detail: featured ? `${featured.row.playerName} ${featured.label}` : 'Waiting for board read',
       kind: featured ? 'LIVE' : 'PLACEHOLDER',
+    },
+    final: {
+      detail: finalModel?.summary.selectedCount
+        ? `${n(finalModel.summary.selectedCount, 0)} selected | ${pct(finalModel.summary.boardCoveragePct, 0)} coverage`
+        : finalModel?.artifactStatus === 'MISSING'
+          ? 'No current Final V1 artifact'
+          : 'Waiting for Final V1 picks',
+      kind: finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER',
     },
     precision: {
       detail: precisionDashboard
@@ -2587,8 +2661,7 @@ export default function NewDashboard({
   const latestBoardFeedEvent = boardFeedEvents[0] ?? null;
   const featuredReasonList = useMemo(() => {
     if (!featured) return [] as string[];
-    const reasons = featured.precision?.reasons?.length ? featured.precision.reasons : featured.reasons;
-    return reasons.slice(0, 3);
+    return featured.reasons.slice(0, 3);
   }, [featured]);
   const featuredLeadReason =
     (featured ? conciseLeadReason(featured, featuredReasonList[0] ?? null) : null) ??
@@ -2599,32 +2672,31 @@ export default function NewDashboard({
     'The board surfaced this number as one of the strongest live player-market pairs on the slate.';
   const featuredWhySupport = useMemo(() => {
     if (!featured) return null;
-    const precisionLabel = selectorFamilyLabel(featured.precision?.selectorFamily);
-    const tierLabel = selectorTierLabel(featured.precision?.selectorTier);
+    const finalPick = finalModelPicks.find((pick) => pick.view === featured);
     const coverage = booksLiveLabel(featured.books);
     const parts = [
-      featured.rank ? `Rank ${featured.rank}` : null,
-      tierLabel ? `${tierLabel} signal` : featured.precision?.qualified ? 'Precision qualified' : null,
-      precisionLabel,
+      finalPick?.modelRow.selectedRank ? `Rank #${finalPick.modelRow.selectedRank}` : featured.rank,
+      finalPick?.modelRow.tier ? `Tier ${finalPick.modelRow.tier}` : null,
+      finalPick ? finalModelSourceLabel(finalPick.modelRow) : null,
       coverage,
     ].filter(Boolean);
     return parts.length ? parts.slice(0, 3).join(' | ') : null;
-  }, [featured]);
-  const precisionCardKeys = useMemo(
-    () => new Set(precision.map(({ row, view }) => `${row.playerId}:${view.market}`)),
-    [precision],
+  }, [featured, finalModelPicks]);
+  const finalModelPickKeys = useMemo(
+    () => new Set(finalModelPicks.map(({ row, modelRow }) => `${row?.playerId ?? modelRow.playerId ?? modelRow.playerName}:${modelRow.market}`)),
+    [finalModelPicks],
   );
   const nextBestNumbers = useMemo(() => {
     const seen = new Set<string>();
     const candidates = [...scoutViews, ...selectedMatchupViews, ...allViews].filter((view) => {
       if (view.live == null) return false;
       const key = `${view.row.playerId}:${view.market}`;
-      if (precisionCardKeys.has(key) || seen.has(key)) return false;
+      if (finalModelPickKeys.has(key) || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
     return rankViews(candidates).slice(0, 6);
-  }, [allViews, precisionCardKeys, scoutViews, selectedMatchupViews]);
+  }, [allViews, finalModelPickKeys, scoutViews, selectedMatchupViews]);
   const promotedPrecisionLiveCount = useMemo(
     () => precision.filter(({ view }) => view.live != null).length,
     [precision],
@@ -2675,7 +2747,11 @@ export default function NewDashboard({
   const workspaceCopy: Record<Tab, { title: string; detail: string }> = {
     overview: {
       title: 'Overview workspace',
-      detail: 'Best pick, next best numbers, matchup shortcuts, and the day-long board feed stay grouped here.',
+      detail: 'Final V1 lead pick, next best board context, matchup shortcuts, and the day-long board feed stay grouped here.',
+    },
+    final: {
+      title: 'Final Player Prop Model V1',
+      detail: 'Only Final V1 selected picks live here, with coverage, correlation controls, historical walk-forward context, and current artifact status.',
     },
     precision: {
       title: 'Precision Picks',
@@ -3309,7 +3385,7 @@ export default function NewDashboard({
                   title={hasBoardRows ? 'The board has not surfaced a featured signal yet.' : 'Waiting for board data to load.'}
                   detail={
                     hasBoardRows
-                      ? 'As soon as a precision-card entry or high-signal live market is available, the lead recommendation will anchor here.'
+                      ? 'As soon as a Final V1 selected pick or high-signal live market is available, the lead recommendation will anchor here.'
                       : 'The board will promote the strongest slate recommendation here once SnapshotBoardData finishes loading.'
                   }
                   actionLabel="Refresh slate"
@@ -3351,11 +3427,11 @@ export default function NewDashboard({
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Next best numbers</div>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Good board reads outside the promoted precision group</h2>
-                <p className="mt-1 text-sm text-[var(--text-2)]">Actionable live numbers that still deserve a look even though they are not the current promoted precision picks.</p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Good board reads outside Final V1 selections</h2>
+                <p className="mt-1 text-sm text-[var(--text-2)]">Actionable live numbers that still deserve a look even though they are not current Final V1 selected picks.</p>
               </div>
               <div className="text-xs text-[var(--text-2)] sm:text-sm">
-                {nextBestNumbers.length ? `${n(nextBestNumbers.length, 0)} live cards ready to open` : 'Waiting for a broader set of non-promoted live numbers'}
+                {nextBestNumbers.length ? `${n(nextBestNumbers.length, 0)} live cards ready to open` : 'Waiting for broader non-selected live numbers'}
               </div>
             </div>
             {nextBestNumbers.length ? (
@@ -3371,7 +3447,7 @@ export default function NewDashboard({
                       <div className="min-w-0">
                         <div className="flex flex-wrap gap-2">
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
-                          <Pill label={view.precision?.qualified ? 'Precision qualified' : 'Board read only'} tone={view.precision?.qualified ? 'amber' : 'default'} />
+                          <Pill label="Board context" tone="default" />
                           <Pill label={view.label} tone="amber" />
                         </div>
                         <div className="mt-1.5 text-lg font-semibold leading-tight text-[var(--text)] md:text-[1.02rem]">{view.row.playerName}</div>
@@ -3397,8 +3473,8 @@ export default function NewDashboard({
               <div className="mt-4">
                 <EmptyState
                   eyebrow="Next best numbers"
-                  title="The board has not surfaced additional non-promoted live numbers yet."
-                  detail="As more live prices settle, this strip will separate the broader board reads from the promoted precision group above."
+                  title="The board has not surfaced additional non-selected live numbers yet."
+                  detail="As more live prices settle, this strip will separate broader board reads from the Final V1 selected group above."
                   actionLabel="Refresh slate"
                   onAction={refreshSlate}
                 />
@@ -3644,7 +3720,122 @@ export default function NewDashboard({
                 </div>
               </div>
             </div>
-          {tab === 'precision' ? (
+          {tab === 'final' ? (
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Final V1</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Only the final selector is active on this site</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      Final V1 is the 100% board-coverage model with correlation-aware selected picks. This is the only model surface exposed on the site.
+                    </p>
+                  </div>
+                  <Pill
+                    label={finalModel?.artifactStatus === 'LOADED' ? 'Artifact loaded' : 'Artifact missing'}
+                    tone={finalModel?.artifactStatus === 'LOADED' ? 'cyan' : 'amber'}
+                  />
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                  <span className="font-semibold text-[var(--text)]">Status:</span>{' '}
+                  {finalModel?.artifactStatus === 'LOADED'
+                    ? `${finalModel.modelName} ${finalModel.modelVersion ?? ''} generated ${ts(finalModel.generatedAt)} for ${finalModel.slateDate}.`
+                    : finalModel?.warnings[0] ?? 'No Final V1 artifact is available for this slate yet.'}
+                </div>
+                {finalModel?.warnings.length ? (
+                  <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] px-4 py-3 text-sm leading-6 text-[var(--warning)]">
+                    {finalModel.warnings[0]}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
+                <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
+                <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
+                <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
+                <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
+                <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
+                <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
+                <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
+                <Stat dense label="Warnings" value={n(finalModel?.summary.warningCount ?? finalModel?.warnings.length ?? 0, 0)} kind={finalModel?.warnings.length ? 'DERIVED' : 'LIVE'} note="Artifact warnings" />
+              </div>
+
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selected picks</div>
+                    <div className="mt-1 text-sm text-[var(--text-2)]">
+                      {finalModelPicks.length
+                        ? `${n(finalModelPicks.length, 0)} Final V1 picks, sorted by selected rank.`
+                        : 'Waiting for a current Final V1 selected-pick artifact.'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshSlate}
+                    className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                  >
+                    Refresh slate
+                  </button>
+                </div>
+                {finalModelPicks.length ? (
+                  <div className="grid gap-4 p-4 lg:grid-cols-2">
+                    {finalModelPicks.map(({ modelRow, row, view }) => (
+                      <button
+                        key={`${modelRow.candidateId}:final-v1`}
+                        type="button"
+                        onClick={() => row && setResearch(row.playerId)}
+                        className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${row ? CARD_BUTTON_CLASS : ''}`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                              <Pill label={`Tier ${modelRow.tier}`} tone={modelRow.tier === 'S' || modelRow.tier === 'A' ? 'cyan' : 'amber'} />
+                              <Pill label={MARKET_LABELS[modelRow.market]} tone="amber" />
+                            </div>
+                            <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{modelRow.playerName}</div>
+                            <div className="mt-1 text-sm text-[var(--text-2)]">
+                              {row ? matchup(row) : modelRow.matchupKey ?? 'Matchup pending'}
+                            </div>
+                            <div className="mt-2 text-base font-semibold text-[var(--text)]">
+                              {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-[var(--text-2)]">
+                            <div>{booksLiveLabel(modelRow.sportsbookCount) ?? 'Books pending'}</div>
+                            <div className="mt-1">Score {modelRow.finalScore == null ? '-' : n(modelRow.finalScore, 4)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <CompactMetric label="Line" value={modelRow.line == null ? '-' : n(modelRow.line)} compact />
+                          <CompactMetric label="Projection" value={modelRow.projectedValue == null ? '-' : n(modelRow.projectedValue)} compact />
+                          <CompactMetric label="Gap" value={modelRow.lineGap == null ? '-' : signed(modelRow.lineGap)} compact />
+                          <CompactMetric label="Prior" value={modelRow.estimatedAccuracyPriorPct == null ? '-' : pct(modelRow.estimatedAccuracyPriorPct, 1)} compact />
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Pill label={finalModelSourceLabel(modelRow)} tone="cyan" />
+                          <Pill label={finalModelRiskLabel(modelRow) || 'Clean rule path'} tone={modelRow.riskFlags.length ? 'amber' : 'default'} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <EmptyState
+                      eyebrow="Final V1"
+                      title="No current Final V1 selected picks are loaded."
+                      detail={finalModel?.warnings[0] ?? 'Run the current slate score export, then run the Final V1 exporter so the site has a model artifact for this slate.'}
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : tab === 'precision' ? (
             <section className="mt-5 space-y-5">
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -4165,7 +4356,7 @@ export default function NewDashboard({
                       <div className={`mt-5 rounded-[24px] border p-4 sm:p-5 ${SURFACE_TONE_CLASS[researchPrecisionState.tone]}`}>
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Precision state</div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Final V1 state</div>
                             <div
                               className={`mt-2 text-xl font-semibold tracking-tight ${
                                 researchPrecisionState.tone === 'cyan'
@@ -4185,9 +4376,9 @@ export default function NewDashboard({
                           <Badge
                             label={
                               researchPrecisionState.kind === 'MODEL'
-                                ? 'PROMOTED'
+                                ? 'FINAL V1'
                                 : researchPrecisionState.kind === 'DERIVED'
-                                  ? 'QUALIFIED'
+                                  ? 'CONTEXT'
                                   : 'BOARD READ'
                             }
                             kind={researchPrecisionState.kind}
@@ -4288,7 +4479,7 @@ export default function NewDashboard({
                                 <th className="px-4 py-3 text-right font-medium">Confidence</th>
                                 <th className="px-4 py-3 text-right font-medium">Signal</th>
                                 <th className="px-4 py-3 text-right font-medium">Books</th>
-                                <th className="px-4 py-3 text-left font-medium">Precision</th>
+                                <th className="px-4 py-3 text-left font-medium">Final V1</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -4312,11 +4503,7 @@ export default function NewDashboard({
                                   <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{signalGradeValue(v.signalGrade)}</td>
                                   <td className="px-4 py-3 text-right font-medium text-[var(--text)]">{v.books == null ? '-' : n(v.books, 0)}</td>
                                   <td className="px-4 py-3 text-[var(--text-2)]">
-                                    {researchTopPrecision?.entry.market === v.market
-                                      ? 'Precision pick'
-                                      : v.precision?.qualified
-                                        ? 'Precision qualified'
-                                        : 'Board read only'}
+                                    {researchTopFinalModel?.view?.market === v.market ? 'Final V1 pick' : 'Board context'}
                                   </td>
                                 </tr>
                               ))}
