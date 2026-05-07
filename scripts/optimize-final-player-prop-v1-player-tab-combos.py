@@ -14,6 +14,7 @@ MODEL_VERSION = "2026-05-06-portfolio-guard-v1"
 PLAYER_TAB_RULE = "player_tab_best_market_one_per_player_v1"
 PAIR_RULE = "player_tab_rank_pair_cards_all_but_odd_v1"
 TRIPLET_RULE = "player_tab_premium_game_component_triplets_v2"
+QUAD_RULE = "player_tab_cs_non_ast_quartets_v1"
 MARKET_ORDER = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 
 
@@ -120,6 +121,27 @@ def optimized_triplet_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def optimized_quad_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    guarded = [
+        row
+        for row in rows
+        if row.get("tier") not in {"A", "B"}
+        and row.get("market") != "AST"
+    ]
+    return sorted(
+        guarded,
+        key=lambda row: (
+            row.get("tier") or "",
+            int(row["_finalScore"] * 20),
+            component_signature(row),
+            -row["_finalScore"],
+            -row["_prior"],
+            row["playerName"],
+        ),
+        reverse=True,
+    )
+
+
 def chunk_by_rank(rows: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
     used_count = (len(rows) // size) * size
     used = rows[:used_count]
@@ -210,7 +232,7 @@ def card_rows(
     row_transform=lambda rows: rows,
 ) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
-    labels = ["legA", "legB", "legC"]
+    labels = ["legA", "legB", "legC", "legD"]
     for date, rows in sorted(selected_by_date.items()):
         transformed_rows = row_transform(rows)
         groups = chunk_by_rank(transformed_rows, size)
@@ -256,6 +278,7 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def markdown_report(report: dict[str, Any]) -> str:
     pair = report["pairCoverageRule"]
     triplet = report["tripletCoverageRule"]
+    quad = report["quadCoverageRule"]
     lines = [
         "# Final V1 Player-Tab Combo Optimizer",
         "",
@@ -267,6 +290,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "- Pick exactly one best market per player per date using the highest Final V1 board score.",
         "- Two-leg cards group the player-tab picks in rank chunks of 2 and leave only the odd final leg out.",
         "- Three-leg premium cards require Final V1 score >= 0.70, remove tier B, 3PM, and baseline-source rows, then cluster by tier/score-bucket/component signature before chunking by 3.",
+        "- Four-leg premium cards use only C/S-tier non-AST player-tab legs, then cluster by tier/score-bucket/component signature before chunking by 4.",
         "",
         "## Coverage Results",
         "",
@@ -274,6 +298,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "|---|---|---:|---:|---:|---:|---:|",
         f"| 2-leg | {pair['name']} | {pct_fmt(pair['legCoveragePct'])} | {pair['cards']} | {pair['avgCardsPerActiveDay']} | {pct_fmt(pair['cardAccuracyPct'])} | {pct_fmt(pair['dailyAllCardsHitPct'])} |",
         f"| 3-leg | {triplet['name']} | {pct_fmt(triplet['legCoveragePct'])} | {triplet['cards']} | {triplet['avgCardsPerActiveDay']} | {pct_fmt(triplet['cardAccuracyPct'])} | {pct_fmt(triplet['dailyAllCardsHitPct'])} |",
+        f"| 4-leg | {quad['name']} | {pct_fmt(quad['legCoveragePct'])} | {quad['cards']} | {quad['avgCardsPerActiveDay']} | {pct_fmt(quad['cardAccuracyPct'])} | {pct_fmt(quad['dailyAllCardsHitPct'])} |",
         "",
         "## Interpretation",
         "",
@@ -296,6 +321,7 @@ def main() -> None:
 
     pair = evaluate_cards(selected_by_date, PAIR_RULE, 2, total_selected_rows)
     triplet = evaluate_cards(selected_by_date, TRIPLET_RULE, 3, total_selected_rows, optimized_triplet_rows)
+    quad = evaluate_cards(selected_by_date, QUAD_RULE, 4, total_selected_rows, optimized_quad_rows)
     report = {
         "generatedAt": utc_now(),
         "modelId": MODEL_ID,
@@ -311,10 +337,12 @@ def main() -> None:
         },
         "pairCoverageRule": pair,
         "tripletCoverageRule": triplet,
+        "quadCoverageRule": quad,
         "interpretation": [
             "This corrected layer uses the player-tab source: one best market per player from the full Final V1 board.",
             "It covers 99.50% of player-tab picks for two-leg cards.",
             "The 3-leg layer is now a premium guard: score < 0.70, tier B, 3PM, and baseline-source rows are excluded before tier/score/component clustering, so coverage drops but card accuracy clears the 80% target.",
+            "The 4-leg layer is stricter: only C/S-tier non-AST player-tab legs are used, giving a smaller but stronger quartet pool.",
             "Card accuracy is the useful betting-card metric here. Daily all-card hit rate is naturally low because this layer can create dozens of cards per slate.",
             "This is historical replay evidence and still needs locked-forward tracking before live-edge claims.",
         ],
@@ -327,7 +355,9 @@ def main() -> None:
     md_path.write_text(markdown_report(report), encoding="utf-8")
     write_csv(
         cards_path,
-        card_rows(selected_by_date, PAIR_RULE, 2) + card_rows(selected_by_date, TRIPLET_RULE, 3, optimized_triplet_rows),
+        card_rows(selected_by_date, PAIR_RULE, 2)
+        + card_rows(selected_by_date, TRIPLET_RULE, 3, optimized_triplet_rows)
+        + card_rows(selected_by_date, QUAD_RULE, 4, optimized_quad_rows),
     )
 
     print(
@@ -345,6 +375,11 @@ def main() -> None:
                 "tripletCards": triplet["cards"],
                 "tripletAvgCardsPerDay": triplet["avgCardsPerActiveDay"],
                 "tripletCardAccuracyPct": triplet["cardAccuracyPct"],
+                "quadRule": quad["name"],
+                "quadLegCoveragePct": quad["legCoveragePct"],
+                "quadCards": quad["cards"],
+                "quadAvgCardsPerDay": quad["avgCardsPerActiveDay"],
+                "quadCardAccuracyPct": quad["cardAccuracyPct"],
                 "outputs": {"json": str(json_path), "md": str(md_path), "cardsCsv": str(cards_path)},
             },
             indent=2,
