@@ -224,7 +224,7 @@ type FinalModelCard = {
   generatedAt: string;
   modelId: "final-player-prop-model-v1";
   modelName: "Final Correlation-Aware Player Prop Model V1";
-  modelVersion: "2026-05-06-portfolio-guard-v1";
+  modelVersion: typeof MODEL_VERSION;
   mode: Mode;
   slateDate: string;
   currentDateEt: string;
@@ -264,7 +264,7 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-06-portfolio-guard-v1" as const;
+const MODEL_VERSION = "2026-05-07-projection-confidence-v2" as const;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
@@ -1135,7 +1135,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-06 portfolio guard. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and stricter portfolio guards that veto selected PR/PA legs, cap combo markets to one, and raise the selected score floor.",
+    "This is a correlation-aware meta-selector with the 2026-05-07 projection/confidence calibration and the 2026-05-06 portfolio guard. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and stricter portfolio guards that veto selected PR/PA legs, cap combo markets to one, and raise the selected score floor.",
   );
   lines.push("");
   lines.push("## Claim Boundary");
@@ -1241,7 +1241,7 @@ async function main(): Promise<void> {
   const warnings = buildWarnings(mode, selected, candidates, scores, todayEt);
   const generatedAt = new Date().toISOString();
   const claimBoundary =
-    "This is a portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage but applies a stricter selected-pick guard; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.";
+    "This is a projection-calibrated, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage but applies a stricter selected-pick guard; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.";
 
   const card: FinalModelCard = {
     generatedAt,

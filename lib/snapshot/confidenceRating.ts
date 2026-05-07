@@ -10,7 +10,7 @@ type PrecisionConfidenceSignal = {
   selectionScore?: number | null;
 };
 
-type LiveConfidenceSignal = Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount">;
+type LiveConfidenceSignal = Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount" | "side">;
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -52,6 +52,16 @@ function bookSupportBonus(liveSignal: LiveConfidenceSignal | null | undefined) {
   return clamp((sportsbookCount - 2) * 0.28, 0, 1.8);
 }
 
+function sideAgreementAdjustment(
+  precisionSignal: PrecisionConfidenceSignal | null | undefined,
+  liveSignal: LiveConfidenceSignal | null | undefined,
+) {
+  const precisionSide = precisionSignal?.side;
+  const liveSide = liveSignal?.side;
+  if (!precisionSide || !liveSide || precisionSide === "NEUTRAL" || liveSide === "NEUTRAL") return 0;
+  return precisionSide === liveSide ? 0.8 : -3.5;
+}
+
 function capForSupport(input: {
   confidence: number;
   precisionSignal: PrecisionConfidenceSignal | null;
@@ -64,6 +74,7 @@ function capForSupport(input: {
   const historicalAccuracy = getMeaningfulHistoricalAccuracy(input.precisionSignal);
   const liveConfidence = input.liveSignal?.confidence ?? null;
   const sportsbookCount = input.liveSignal?.sportsbookCount ?? 0;
+  const absLineGap = input.precisionSignal?.absLineGap ?? null;
   let cap = 94;
 
   if (projectionPct != null && projectionPct < 55) cap = Math.min(cap, 72);
@@ -72,6 +83,18 @@ function capForSupport(input: {
   if (historicalAccuracy != null && historicalAccuracy < 66) cap = Math.min(cap, 74);
   if (liveConfidence != null && liveConfidence < 58) cap = Math.min(cap, 77);
   if (sportsbookCount > 0 && sportsbookCount < 3) cap = Math.min(cap, 76);
+  else if (sportsbookCount > 0 && sportsbookCount < 5) cap = Math.min(cap, 88);
+
+  if (absLineGap != null && absLineGap < 0.35 && projectionPct != null && projectionPct < 63) {
+    const strongHistoricalSupport = historicalAccuracy != null && historicalAccuracy >= 88;
+    if (!strongHistoricalSupport) cap = Math.min(cap, 82);
+  }
+
+  const precisionSide = input.precisionSignal?.side;
+  const liveSide = input.liveSignal?.side;
+  if (precisionSide && liveSide && precisionSide !== "NEUTRAL" && liveSide !== "NEUTRAL" && precisionSide !== liveSide) {
+    cap = Math.min(cap, 84);
+  }
 
   return Math.min(input.confidence, cap);
 }
@@ -90,9 +113,9 @@ export function resolvePickConfidenceRating(input: {
   const liveConfidence = liveSignal?.confidence == null ? null : clamp(liveSignal.confidence, 45, 92);
 
   let confidence = weightedAverage([
-    { value: projectionPct, weight: projectionPct == null ? 0 : 0.56 },
-    { value: historicalAccuracy, weight: historicalAccuracy == null ? 0 : 0.3 },
-    { value: liveConfidence, weight: liveConfidence == null ? 0 : 0.14 },
+    { value: projectionPct, weight: projectionPct == null ? 0 : 0.5 },
+    { value: historicalAccuracy, weight: historicalAccuracy == null ? 0 : 0.34 },
+    { value: liveConfidence, weight: liveConfidence == null ? 0 : 0.16 },
   ]);
 
   if (confidence == null && liveConfidence != null) {
@@ -103,6 +126,7 @@ export function resolvePickConfidenceRating(input: {
   if (precisionSignal) {
     confidence += selectionScoreBonus(precisionSignal.selectionScore);
     confidence += edgeBonus(precisionSignal);
+    confidence += sideAgreementAdjustment(precisionSignal, liveSignal);
     if (precisionSignal.qualified && precisionSignal.side != null && precisionSignal.side !== "NEUTRAL") confidence += 1.2;
   }
   confidence += bookSupportBonus(liveSignal);

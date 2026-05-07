@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-06-portfolio-guard-v1"
+MODEL_VERSION = "2026-05-07-projection-confidence-v2"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
 SELECTED_MARKET_VETO = {"PR", "PA"}
@@ -676,7 +676,7 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-06 portfolio guard keeps full-board coverage but vetoes selected PR/PA legs, caps combo markets to one, and raises the selected score floor to 0.84.",
+            "- The 2026-05-07 projection/confidence calibration keeps the 2026-05-06 portfolio guard intact: full-board coverage, selected PR/PA veto, one combo-market cap, and a selected score floor of 0.84.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
             "- ROI and CLV require the market-line and settlement ledgers.",

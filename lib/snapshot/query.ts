@@ -83,6 +83,7 @@ import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
   buildSameOpponentProjectionSignal,
+  calibrateProjectionToMarketLine,
   projectMinutesProfile,
   projectTonightMetrics,
   type MinutesProjectionProfile,
@@ -1056,7 +1057,7 @@ function resolveSnapshotDisplayConfidence(input: {
         | "selectionScore"
       >
     | null;
-  liveSignal?: Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount"> | null;
+  liveSignal?: Pick<SnapshotPtsSignal, "confidence" | "sportsbookCount" | "side"> | null;
 }): number | null {
   return resolvePickConfidenceRating(input);
 }
@@ -5198,6 +5199,40 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       teammateCore,
       playerProfile,
     });
+    const projectionMarketLines = {
+      PTS: ptsMarketLine,
+      REB: rebMarketLine,
+      AST: astMarketLine,
+      THREES: threesMarketLine,
+      PRA: praMarketLine,
+      PA: paMarketLine,
+      PR: prMarketLine,
+      RA: raMarketLine,
+    } satisfies Record<SnapshotMarket, { line: number | null; sportsbookCount?: number | null } | null>;
+    SNAPSHOT_MARKETS.forEach((market) => {
+      const marketLine = projectionMarketLines[market];
+      projectedTonight[market] = calibrateProjectionToMarketLine({
+        market,
+        projectedValue: projectedTonight[market],
+        marketLine: marketLine?.line ?? null,
+        sportsbookCount: marketLine?.sportsbookCount ?? null,
+        dataCompletenessScore: dataCompleteness.score,
+      });
+    });
+    if (projectedTonight.PTS != null && projectedTonight.REB != null && projectedTonight.AST != null) {
+      if (projectionMarketLines.PRA?.line == null) {
+        projectedTonight.PRA = round(projectedTonight.PTS + projectedTonight.REB + projectedTonight.AST, 2);
+      }
+      if (projectionMarketLines.PA?.line == null) {
+        projectedTonight.PA = round(projectedTonight.PTS + projectedTonight.AST, 2);
+      }
+      if (projectionMarketLines.PR?.line == null) {
+        projectedTonight.PR = round(projectedTonight.PTS + projectedTonight.REB, 2);
+      }
+      if (projectionMarketLines.RA?.line == null) {
+        projectedTonight.RA = round(projectedTonight.REB + projectedTonight.AST, 2);
+      }
+    }
     const modelLines = buildModelLineRecord({
       projectedTonight,
       last10ByMarket,

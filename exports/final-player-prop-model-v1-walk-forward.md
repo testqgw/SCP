@@ -1,7 +1,7 @@
 # Final Player Prop Model V1 Walk-Forward Backtest
 
-Generated: 2026-05-07T00:36:56.631124+00:00
-Model version: `2026-05-06-portfolio-guard-v1`
+Generated: 2026-05-07T22:28:15.999863+00:00
+Model version: `2026-05-07-projection-confidence-v2`
 Input: `C:\Users\quinc\Desktop\Sports Betting Snapshot\compliance-reminder-saas\exports\live-quality-full-season-router-v9-details.json`
 
 ## Headline
@@ -44,7 +44,7 @@ Input: `C:\Users\quinc\Desktop\Sports Betting Snapshot\compliance-reminder-saas\
 ## Claim Boundary
 
 - This is the first dedicated replay for the final selector as written.
-- The 2026-05-06 portfolio guard keeps full-board coverage but vetoes selected PR/PA legs, caps combo markets to one, and raises the selected score floor to 0.84.
+- The 2026-05-07 projection/confidence calibration keeps the 2026-05-06 portfolio guard intact: full-board coverage, selected PR/PA veto, one combo-market cap, and a selected score floor of 0.84.
 - The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.
 - This is still historical replay, not locked-forward proof.
 - ROI and CLV require the market-line and settlement ledgers.

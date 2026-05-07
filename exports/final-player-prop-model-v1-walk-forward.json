@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-07T00:36:56.631124+00:00",
+  "generatedAt": "2026-05-07T22:28:15.999863+00:00",
   "modelId": "final-player-prop-model-v1",
-  "modelVersion": "2026-05-06-portfolio-guard-v1",
+  "modelVersion": "2026-05-07-projection-confidence-v2",
   "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
   "dateRange": {
     "from": "2025-10-30",

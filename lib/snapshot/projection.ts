@@ -7,6 +7,17 @@ import {
 
 export const SNAPSHOT_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 
+const MARKET_LINE_CALIBRATION_CAP_BY_MARKET: Record<SnapshotMarket, number> = {
+  PTS: 1.2,
+  REB: 0.65,
+  AST: 0.65,
+  THREES: 0.28,
+  PRA: 1.8,
+  PA: 1.25,
+  PR: 1.25,
+  RA: 0.9,
+};
+
 type PersonalMarketModel = {
   slope: number;
   intercept: number;
@@ -715,6 +726,28 @@ function weightedBlend(parts: Array<{ value: number | null; weight: number }>): 
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export function calibrateProjectionToMarketLine(input: {
+  market: SnapshotMarket;
+  projectedValue: number | null;
+  marketLine: number | null;
+  sportsbookCount?: number | null;
+  dataCompletenessScore?: number | null;
+}): number | null {
+  if (input.projectedValue == null || input.marketLine == null) return input.projectedValue;
+  if (!Number.isFinite(input.projectedValue) || !Number.isFinite(input.marketLine)) return input.projectedValue;
+
+  const bookSupport = clamp((input.sportsbookCount ?? 0) / 10, 0, 1);
+  const completenessDrag =
+    input.dataCompletenessScore == null ? 0.08 : clamp((88 - input.dataCompletenessScore) / 100, 0, 0.18);
+  const gap = Math.abs(input.projectedValue - input.marketLine);
+  const gapWeight = clamp(Math.min(gap, 4) * 0.025, 0, 0.1);
+  const weight = clamp(0.12 + bookSupport * 0.04 + completenessDrag + gapWeight, 0.08, 0.32);
+  const cap = MARKET_LINE_CALIBRATION_CAP_BY_MARKET[input.market];
+  const shift = clamp((input.marketLine - input.projectedValue) * weight, -cap, cap);
+
+  return round(Math.max(0, input.projectedValue + shift), 2);
 }
 
 export function buildSameOpponentProjectionSignal(input: {
