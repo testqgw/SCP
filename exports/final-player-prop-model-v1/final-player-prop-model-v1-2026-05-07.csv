@@ -1,0 +1,2 @@
+selected_rank,candidate_id,slate_date,player,team,opponent,matchup_key,game_time_et,market,side,line,projected_value,line_gap,wf_confidence,meta_prob_correct,estimated_accuracy_prior_pct,tier,model_action,base_score,correlation_penalty,final_score,risk_flags,premium_pockets
+1,25727b922290106a4ca6,2026-05-07,Deandre Ayton,LAL,OKC,LAL@OKC,"May 7, 9:30 PM",REB,UNDER,8.5,10.23,1.73,0.673719,0.575997,94.8,S,SELECTED,0.843332,0,0.843332,projection_side_split,"top200 REB UNDER HGB/projection split, abs gap (1.5, 2.0]; top200 REB UNDER agreement, abs gap (1.5, 2.0]"
