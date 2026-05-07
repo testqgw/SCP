@@ -128,6 +128,15 @@ const FINAL_V1_DAILY_QUAD_LEGS = 4152;
 const FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT = 24.80;
 const FINAL_V1_DAILY_QUAD_AVG_LEGS = 25.63;
 const FINAL_V1_DAILY_QUAD_AVG_COMBOS = 6.41;
+const FINAL_V1_DAILY_QUINT_RULE_LABEL = 'Player-tab C/S non-AST quintets';
+const FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT = 82.18;
+const FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT = 41.51;
+const FINAL_V1_DAILY_QUINT_DAYS = '66-93';
+const FINAL_V1_DAILY_QUINT_RECORD = '664-144';
+const FINAL_V1_DAILY_QUINT_LEGS = 4040;
+const FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT = 24.13;
+const FINAL_V1_DAILY_QUINT_AVG_LEGS = 25.41;
+const FINAL_V1_DAILY_QUINT_AVG_COMBOS = 5.08;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1626,6 +1635,10 @@ function isFinalModelPremiumQuartetLeg(row: SnapshotFinalModelBoardRow) {
   return row.tier !== 'A' && row.tier !== 'B' && row.market !== 'AST';
 }
 
+function isFinalModelPremiumQuintetLeg(row: SnapshotFinalModelBoardRow) {
+  return isFinalModelPremiumQuartetLeg(row);
+}
+
 function compareFinalModelPremiumTripletLegs(
   a: { modelRow: SnapshotFinalModelBoardRow },
   b: { modelRow: SnapshotFinalModelBoardRow },
@@ -2328,6 +2341,50 @@ export default function NewDashboard({
     }
     return cards;
   }, [playerTabQuadLegs]);
+  const playerTabQuintCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter((pick) => pick.modelRow == null || isFinalModelPremiumQuintetLeg(pick.modelRow))
+        .sort((a, b) => {
+          if (a.modelRow && b.modelRow) return compareFinalModelPremiumTripletLegs(a, b);
+          return (
+            b.view.score - a.view.score ||
+            (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
+            a.row.playerName.localeCompare(b.row.playerName)
+          );
+        }),
+    [playerTabComboPicks],
+  );
+  const playerTabQuintLegs = useMemo(
+    () => playerTabQuintCandidates.slice(0, Math.floor(playerTabQuintCandidates.length / 5) * 5),
+    [playerTabQuintCandidates],
+  );
+  const playerTabQuintCards = useMemo(() => {
+    const cards: Array<{
+      id: string;
+      legA: (typeof playerTabQuintLegs)[number];
+      legB: (typeof playerTabQuintLegs)[number];
+      legC: (typeof playerTabQuintLegs)[number];
+      legD: (typeof playerTabQuintLegs)[number];
+      legE: (typeof playerTabQuintLegs)[number];
+    }> = [];
+    for (let index = 0; index < playerTabQuintLegs.length; index += 5) {
+      const legA = playerTabQuintLegs[index];
+      const legB = playerTabQuintLegs[index + 1];
+      const legC = playerTabQuintLegs[index + 2];
+      const legD = playerTabQuintLegs[index + 3];
+      const legE = playerTabQuintLegs[index + 4];
+      cards.push({
+        id: `${legA.row.playerId}:${legA.view.market}:${legB.row.playerId}:${legB.view.market}:${legC.row.playerId}:${legC.view.market}:${legD.row.playerId}:${legD.view.market}:${legE.row.playerId}:${legE.view.market}`,
+        legA,
+        legB,
+        legC,
+        legD,
+        legE,
+      });
+    }
+    return cards;
+  }, [playerTabQuintLegs]);
   const researchRows = useMemo(() => slatePlayers.slice(0, 12), [slatePlayers]);
   const searchResults = useMemo(() => {
     if (!deferredSearchQuery) return [];
@@ -2521,7 +2578,7 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L cards ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L cards ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | 4L cards ${pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L cards ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L cards ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | 4L cards ${pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} | 5L cards ${pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -3996,6 +4053,8 @@ export default function NewDashboard({
                 <Stat dense label="3-leg record" value={FINAL_V1_DAILY_TRIPLET_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_TRIPLET_AVG_COMBOS, 2)} cards/day, ${n(FINAL_V1_DAILY_TRIPLET_AVG_LEGS, 2)} legs/day`} />
                 <Stat dense label="4-leg cards" value={pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUAD_RECORD}; ${FINAL_V1_DAILY_QUAD_DAYS} all-card days`} />
                 <Stat dense label="4-leg record" value={FINAL_V1_DAILY_QUAD_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_QUAD_AVG_COMBOS, 2)} cards/day, ${n(FINAL_V1_DAILY_QUAD_AVG_LEGS, 2)} legs/day`} />
+                <Stat dense label="5-leg cards" value={pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUINT_RECORD}; ${FINAL_V1_DAILY_QUINT_DAYS} all-card days`} />
+                <Stat dense label="5-leg record" value={FINAL_V1_DAILY_QUINT_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_QUINT_AVG_COMBOS, 2)} cards/day, ${n(FINAL_V1_DAILY_QUINT_AVG_LEGS, 2)} legs/day`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
                 <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
@@ -4010,7 +4069,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
                     <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the broader player-tab board, picks one best market per player, then leaves only unavoidable remainder legs. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. 4-leg rule: {FINAL_V1_DAILY_QUAD_RULE_LABEL}.
+                      Historical replay uses the broader player-tab board, picks one best market per player, then leaves only unavoidable remainder legs. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. 4-leg rule: {FINAL_V1_DAILY_QUAD_RULE_LABEL}. 5-leg rule: {FINAL_V1_DAILY_QUINT_RULE_LABEL}.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
@@ -4028,8 +4087,12 @@ export default function NewDashboard({
                   <CompactMetric label="4L record" value={FINAL_V1_DAILY_QUAD_RECORD} />
                   <CompactMetric label="4L coverage" value={pct(FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT, 2)} />
                   <CompactMetric label="4L used legs" value={n(FINAL_V1_DAILY_QUAD_LEGS, 0)} />
+                  <CompactMetric label="5L card acc" value={pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} />
+                  <CompactMetric label="5L record" value={FINAL_V1_DAILY_QUINT_RECORD} />
+                  <CompactMetric label="5L coverage" value={pct(FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT, 2)} />
+                  <CompactMetric label="5L used legs" value={n(FINAL_V1_DAILY_QUINT_LEGS, 0)} />
                 </div>
-                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 2-leg set:</span>{' '}
                     {playerTabPairLegs.length >= 2
@@ -4048,9 +4111,15 @@ export default function NewDashboard({
                       ? `${n(playerTabQuadLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabQuadCards.length, 0)} premium four-leg cards.`
                       : 'Waiting for at least four premium player-tab picks.'}
                   </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                    <span className="font-semibold text-[var(--text)]">Today&apos;s 5-leg set:</span>{' '}
+                    {playerTabQuintLegs.length >= 5
+                      ? `${n(playerTabQuintLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabQuintCards.length, 0)} premium five-leg cards.`
+                      : 'Waiting for at least five premium player-tab picks.'}
+                  </div>
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Two-leg cards still use nearly every leg. Three- and four-leg cards trade coverage for accuracy: 3L uses {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)} of historical legs, while 4L uses {pct(FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT, 2)} and reaches {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} card accuracy. Daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2L, {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3L, and {pct(FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT, 2)} for 4L days.
+                  Two-leg cards still use nearly every leg. Three-, four-, and five-leg cards trade coverage for accuracy: 3L uses {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)} of historical legs, 4L uses {pct(FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT, 2)}, and 5L uses {pct(FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT, 2)} while reaching {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} card accuracy. Daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2L, {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3L, {pct(FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT, 2)} for 4L, and {pct(FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT, 2)} for 5L days.
                 </div>
                 {playerTabPairCards.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -4103,6 +4172,28 @@ export default function NewDashboard({
                         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">4-leg card {index + 1}</div>
                         <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
                           {[legA, legB, legC, legD].map(({ row, view }) => (
+                            <div key={`${id}:${row.playerId}:${view.market}`} className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold">{row.playerName}</div>
+                                <div className="text-xs text-[var(--text-2)]">
+                                  {recommendationHeadline(view)}
+                                </div>
+                              </div>
+                              <Badge label={MARKET_LABELS[view.market]} kind="DERIVED" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {playerTabQuintCards.length ? (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                    {playerTabQuintCards.map(({ id, legA, legB, legC, legD, legE }, index) => (
+                      <div key={id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">5-leg card {index + 1}</div>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
+                          {[legA, legB, legC, legD, legE].map(({ row, view }) => (
                             <div key={`${id}:${row.playerId}:${view.market}`} className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate font-semibold">{row.playerName}</div>
