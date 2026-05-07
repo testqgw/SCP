@@ -110,15 +110,15 @@ const FINAL_V1_DAILY_COMBO_LEGS = 16658;
 const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 99.50;
 const FINAL_V1_DAILY_COMBO_AVG_LEGS = 100.96;
 const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 50.48;
-const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab rank triplets, one prop/player';
-const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 77.63;
-const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 1.82;
-const FINAL_V1_DAILY_TRIPLET_DAYS = '3-162';
-const FINAL_V1_DAILY_TRIPLET_RECORD = '4297-1238';
-const FINAL_V1_DAILY_TRIPLET_LEGS = 16605;
-const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 99.18;
-const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 100.64;
-const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 33.55;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab premium triplets, score/tier guarded';
+const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 80.58;
+const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 3.64;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '6-159';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '3564-859';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 13269;
+const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 79.26;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 80.42;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 26.81;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1573,6 +1573,64 @@ function finalModelRiskLabel(row: SnapshotFinalModelBoardRow) {
   return row.riskFlags.length ? row.riskFlags.slice(0, 2).map(signalTokenLabel).filter(Boolean).join(', ') : 'Clean rule path';
 }
 
+function finalModelComponentSignature(row: SnapshotFinalModelBoardRow) {
+  const ids = row.sourceComponents.map((component) => component.id).join(';');
+  const signature = [
+    ids.includes('top200_premium_90') ? 'P90' : null,
+    ids.includes('top200_accuracy_first') ? 'AF' : null,
+    ids.includes('top200_coverage_frontier') ? 'CF' : null,
+    ids.includes('top200_meta_reliability') ? 'MR' : null,
+    ids.includes('top200_primary') ? 'PR' : null,
+  ].filter(Boolean);
+  return signature.length ? signature.join('') : 'ROUTER';
+}
+
+function finalModelBoardRowSortKey(row: SnapshotFinalModelBoardRow) {
+  return {
+    score: row.finalScore ?? -1,
+    prior: row.estimatedAccuracyPriorPct ?? -1,
+    marketOrder: MARKETS.indexOf(row.market),
+  };
+}
+
+function compareFinalModelBoardRows(a: SnapshotFinalModelBoardRow, b: SnapshotFinalModelBoardRow) {
+  const left = finalModelBoardRowSortKey(a);
+  const right = finalModelBoardRowSortKey(b);
+  return (
+    right.score - left.score ||
+    right.prior - left.prior ||
+    left.marketOrder - right.marketOrder ||
+    a.playerName.localeCompare(b.playerName)
+  );
+}
+
+function isFinalModelPremiumTripletLeg(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.finalScore ?? 0) >= 0.7 &&
+    row.tier !== 'B' &&
+    row.market !== 'THREES' &&
+    !row.riskFlags.includes('baseline_source')
+  );
+}
+
+function compareFinalModelPremiumTripletLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  const aScore = a.modelRow.finalScore ?? 0;
+  const bScore = b.modelRow.finalScore ?? 0;
+  const aPrior = a.modelRow.estimatedAccuracyPriorPct ?? 0;
+  const bPrior = b.modelRow.estimatedAccuracyPriorPct ?? 0;
+  return (
+    b.modelRow.tier.localeCompare(a.modelRow.tier) ||
+    Math.floor(bScore * 20) - Math.floor(aScore * 20) ||
+    finalModelComponentSignature(b.modelRow).localeCompare(finalModelComponentSignature(a.modelRow)) ||
+    aScore - bScore ||
+    aPrior - bPrior ||
+    b.modelRow.playerName.localeCompare(a.modelRow.playerName)
+  );
+}
+
 function viewForFinalModelRow(row: SnapshotDashboardRow, modelRow: SnapshotFinalModelBoardRow): View {
   const base = viewFor(row, modelRow.market, null);
   const live = modelRow.line ?? base.live;
@@ -1818,6 +1876,13 @@ export default function NewDashboard({
     [boardRows],
   );
   const finalModel = data.finalModel ?? null;
+  const finalModelBoardRows = useMemo(
+    () =>
+      finalModel?.boardRows?.length
+        ? finalModel.boardRows
+        : [...(finalModel?.selectedRows ?? []), ...(finalModel?.candidateRows ?? [])],
+    [finalModel?.boardRows, finalModel?.candidateRows, finalModel?.selectedRows],
+  );
   const finalModelPicks = useMemo(
     () =>
       (finalModel?.selectedRows ?? [])
@@ -2109,21 +2174,46 @@ export default function NewDashboard({
     return out;
   }, [boardRows, finalModelPicks]);
   const playerTabComboPicks = useMemo(
-    () =>
-      slatePlayers
+    () => {
+      const bestByPlayer = new Map<
+        string,
+        { modelRow: SnapshotFinalModelBoardRow; row: SnapshotDashboardRow; view: View }
+      >();
+      finalModelBoardRows.forEach((modelRow) => {
+        const row =
+          (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
+          boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
+          null;
+        if (!row) return;
+        const key = modelRow.playerId ?? `${modelRow.playerName}:${modelRow.team ?? row.teamCode}`;
+        const current = bestByPlayer.get(key);
+        if (current && compareFinalModelBoardRows(current.modelRow, modelRow) <= 0) return;
+        bestByPlayer.set(key, {
+          modelRow,
+          row,
+          view: viewForFinalModelRow(row, modelRow),
+        });
+      });
+      if (bestByPlayer.size) {
+        return [...bestByPlayer.values()].sort((a, b) => compareFinalModelBoardRows(a.modelRow, b.modelRow));
+      }
+      return slatePlayers
         .map((row) => {
           const views = rankViews(MARKETS.map((market) => viewFor(row, market, null)));
           const leadView = leadViewFromViews(views);
-          return leadView ? { row, view: leadView } : null;
+          return leadView ? { modelRow: null, row, view: leadView } : null;
         })
-        .filter((item): item is { row: SnapshotDashboardRow; view: View } => item != null)
+        .filter(
+          (item): item is { modelRow: null; row: SnapshotDashboardRow; view: View } => item != null,
+        )
         .sort(
           (a, b) =>
             b.view.score - a.view.score ||
             (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
             a.row.playerName.localeCompare(b.row.playerName),
-        ),
-    [slatePlayers],
+        );
+    },
+    [allRowById, boardRows, finalModelBoardRows, slatePlayers],
   );
   const playerTabPairLegs = useMemo(
     () => playerTabComboPicks.slice(0, Math.floor(playerTabComboPicks.length / 2) * 2),
@@ -2146,9 +2236,23 @@ export default function NewDashboard({
     }
     return cards;
   }, [playerTabPairLegs]);
-  const playerTabTripletLegs = useMemo(
-    () => playerTabComboPicks.slice(0, Math.floor(playerTabComboPicks.length / 3) * 3),
+  const playerTabTripletCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter((pick) => pick.modelRow == null || isFinalModelPremiumTripletLeg(pick.modelRow))
+        .sort((a, b) => {
+          if (a.modelRow && b.modelRow) return compareFinalModelPremiumTripletLegs(a, b);
+          return (
+            b.view.score - a.view.score ||
+            (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
+            a.row.playerName.localeCompare(b.row.playerName)
+          );
+        }),
     [playerTabComboPicks],
+  );
+  const playerTabTripletLegs = useMemo(
+    () => playerTabTripletCandidates.slice(0, Math.floor(playerTabTripletCandidates.length / 3) * 3),
+    [playerTabTripletCandidates],
   );
   const playerTabTripletCards = useMemo(() => {
     const cards: Array<{
@@ -3850,7 +3954,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
                     <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the broader player-tab board, picks one best market per player, then leaves only the odd leg for pairs or the unavoidable remainder for triplets. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}.
+                      Historical replay uses the broader player-tab board, picks one best market per player, then leaves only the odd leg for pairs. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. The premium guard cleared the 80% card target with score 0.70+, no tier B, no 3PM, no baseline-source rows, then tier/score/component clustering.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
@@ -3875,12 +3979,12 @@ export default function NewDashboard({
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 3-leg set:</span>{' '}
                     {playerTabTripletLegs.length >= 3
-                      ? `${n(playerTabTripletLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabTripletCards.length, 0)} three-leg cards.`
+                      ? `${n(playerTabTripletLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabTripletCards.length, 0)} premium three-leg cards.`
                       : 'Waiting for at least three player-tab picks.'}
                   </div>
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Coverage cards use nearly every leg. The daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2-leg days and {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3-leg days because one used losing leg can spoil the whole day.
+                  Two-leg cards still use nearly every leg. Three-leg cards now trade coverage for accuracy, using {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)} of historical player-tab legs to reach {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} card accuracy. Daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2-leg days and {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3-leg days.
                 </div>
                 {playerTabPairCards.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">

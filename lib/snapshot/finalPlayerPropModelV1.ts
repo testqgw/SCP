@@ -113,6 +113,7 @@ function missingArtifact(dateEt: string): SnapshotFinalModelData {
     warnings: [
       `No Final V1 card artifact was found for ${dateEt}. Run the Final V1 exporter after the current slate score export.`,
     ],
+    boardRows: [],
     selectedRows: [],
     candidateRows: [],
   };
@@ -191,7 +192,9 @@ export async function loadFinalPlayerPropModelV1(dateEt: string): Promise<Snapsh
     return missingArtifact(dateEt);
   }
 
-  const boardRows = Array.isArray(payload.boardRows) ? payload.boardRows.map(normalizeRow).filter(Boolean) : [];
+  const boardRows = Array.isArray(payload.boardRows)
+    ? payload.boardRows.map(normalizeRow).filter((row): row is SnapshotFinalModelBoardRow => row != null)
+    : [];
   const selectedRows = boardRows
     .filter((row): row is SnapshotFinalModelBoardRow => row != null && row.modelAction === "SELECTED")
     .sort((a, b) => (a.selectedRank ?? 999) - (b.selectedRank ?? 999));
@@ -212,6 +215,7 @@ export async function loadFinalPlayerPropModelV1(dateEt: string): Promise<Snapsh
     claimBoundary: str(payload.claimBoundary) ?? CLAIM_BOUNDARY,
     summary: normalizeSummary(payload.summary, selectedRows),
     warnings,
+    boardRows,
     selectedRows,
     candidateRows,
   };

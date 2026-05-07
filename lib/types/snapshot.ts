@@ -242,6 +242,7 @@ export type SnapshotFinalModelData = {
   claimBoundary: string;
   summary: SnapshotFinalModelSummary;
   warnings: string[];
+  boardRows: SnapshotFinalModelBoardRow[];
   selectedRows: SnapshotFinalModelBoardRow[];
   candidateRows: SnapshotFinalModelBoardRow[];
 };

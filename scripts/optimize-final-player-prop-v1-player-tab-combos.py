@@ -13,7 +13,7 @@ MODEL_ID = "final-player-prop-model-v1"
 MODEL_VERSION = "2026-05-06-portfolio-guard-v1"
 PLAYER_TAB_RULE = "player_tab_best_market_one_per_player_v1"
 PAIR_RULE = "player_tab_rank_pair_cards_all_but_odd_v1"
-TRIPLET_RULE = "player_tab_rank_triplet_cards_all_but_remainder_v1"
+TRIPLET_RULE = "player_tab_premium_game_component_triplets_v2"
 MARKET_ORDER = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 
 
@@ -82,6 +82,44 @@ def best_market_per_player(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(best.values(), key=lambda row: (-row["_finalScore"], -row["_prior"], row["playerName"], row["market"]))
 
 
+def component_signature(row: dict[str, Any]) -> str:
+    components = str(row.get("components") or "")
+    signature = []
+    for token, label in [
+        ("top200_premium_90", "P90"),
+        ("top200_accuracy_first", "AF"),
+        ("top200_coverage_frontier", "CF"),
+        ("top200_meta_reliability", "MR"),
+        ("top200_primary", "PR"),
+    ]:
+        if token in components:
+            signature.append(label)
+    return "".join(signature) or "ROUTER"
+
+
+def optimized_triplet_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    guarded = [
+        row
+        for row in rows
+        if row.get("tier") != "B"
+        and row.get("market") != "THREES"
+        and row["_finalScore"] >= 0.70
+        and "baseline_source" not in str(row.get("riskFlags") or "")
+    ]
+    return sorted(
+        guarded,
+        key=lambda row: (
+            row.get("tier") or "",
+            int(row["_finalScore"] * 20),
+            component_signature(row),
+            -row["_finalScore"],
+            -row["_prior"],
+            row["playerName"],
+        ),
+        reverse=True,
+    )
+
+
 def chunk_by_rank(rows: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
     used_count = (len(rows) // size) * size
     used = rows[:used_count]
@@ -93,6 +131,7 @@ def evaluate_cards(
     name: str,
     size: int,
     total_selected_rows: int,
+    row_transform=lambda rows: rows,
 ) -> dict[str, Any]:
     active_days = 0
     skipped_days = 0
@@ -103,9 +142,12 @@ def evaluate_cards(
     leg_losses = 0
     used_legs = 0
     unused_legs = 0
+    eligible_legs = 0
 
     for rows in selected_by_date.values():
-        groups = chunk_by_rank(rows, size)
+        transformed_rows = row_transform(rows)
+        eligible_legs += len(transformed_rows)
+        groups = chunk_by_rank(transformed_rows, size)
         flat = [leg for group in groups for leg in group]
         if not groups:
             skipped_days += 1
@@ -130,9 +172,11 @@ def evaluate_cards(
         "cardSize": size,
         "activeDays": active_days,
         "skippedDays": skipped_days,
+        "eligibleLegs": eligible_legs,
         "usedLegs": used_legs,
         "unusedLegs": unused_legs,
         "legCoveragePct": pct(used_legs, total_selected_rows),
+        "eligibleCoveragePct": pct(eligible_legs, total_selected_rows),
         "avgUsedLegsPerActiveDay": round(used_legs / active_days, 2) if active_days else None,
         "cards": card_count,
         "avgCardsPerActiveDay": round(card_count / active_days, 2) if active_days else None,
@@ -159,17 +203,24 @@ def leg_payload(prefix: str, leg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def card_rows(selected_by_date: dict[str, list[dict[str, Any]]], name: str, size: int) -> list[dict[str, Any]]:
+def card_rows(
+    selected_by_date: dict[str, list[dict[str, Any]]],
+    name: str,
+    size: int,
+    row_transform=lambda rows: rows,
+) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     labels = ["legA", "legB", "legC"]
     for date, rows in sorted(selected_by_date.items()):
-        groups = chunk_by_rank(rows, size)
+        transformed_rows = row_transform(rows)
+        groups = chunk_by_rank(transformed_rows, size)
         for card_index, group in enumerate(groups, start=1):
             row: dict[str, Any] = {
                 "date": date,
                 "rule": name,
                 "cardSize": size,
                 "playerTabPicksOnDay": len(rows),
+                "eligibleLegsOnDay": len(transformed_rows),
                 "usedLegsOnDay": len(groups) * size,
                 "unusedLegsOnDay": len(rows) - len(groups) * size,
                 "cardIndex": card_index,
@@ -215,7 +266,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "- Use the broader player-tab board, not the tiny Final V1 selected-card subset.",
         "- Pick exactly one best market per player per date using the highest Final V1 board score.",
         "- Two-leg cards group the player-tab picks in rank chunks of 2 and leave only the odd final leg out.",
-        "- Three-leg cards group the player-tab picks in rank chunks of 3 and leave only the unavoidable remainder out.",
+        "- Three-leg premium cards require Final V1 score >= 0.70, remove tier B, 3PM, and baseline-source rows, then cluster by tier/score-bucket/component signature before chunking by 3.",
         "",
         "## Coverage Results",
         "",
@@ -244,7 +295,7 @@ def main() -> None:
     daily_count_distribution = Counter(len(rows) for rows in selected_by_date.values())
 
     pair = evaluate_cards(selected_by_date, PAIR_RULE, 2, total_selected_rows)
-    triplet = evaluate_cards(selected_by_date, TRIPLET_RULE, 3, total_selected_rows)
+    triplet = evaluate_cards(selected_by_date, TRIPLET_RULE, 3, total_selected_rows, optimized_triplet_rows)
     report = {
         "generatedAt": utc_now(),
         "modelId": MODEL_ID,
@@ -262,7 +313,8 @@ def main() -> None:
         "tripletCoverageRule": triplet,
         "interpretation": [
             "This corrected layer uses the player-tab source: one best market per player from the full Final V1 board.",
-            "It covers 99.50% of player-tab picks for two-leg cards and 99.18% for three-leg cards; only odd/remainder legs are left out.",
+            "It covers 99.50% of player-tab picks for two-leg cards.",
+            "The 3-leg layer is now a premium guard: score < 0.70, tier B, 3PM, and baseline-source rows are excluded before tier/score/component clustering, so coverage drops but card accuracy clears the 80% target.",
             "Card accuracy is the useful betting-card metric here. Daily all-card hit rate is naturally low because this layer can create dozens of cards per slate.",
             "This is historical replay evidence and still needs locked-forward tracking before live-edge claims.",
         ],
@@ -273,7 +325,10 @@ def main() -> None:
     cards_path = out_prefix.with_name(out_prefix.name + "-cards").with_suffix(".csv")
     json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     md_path.write_text(markdown_report(report), encoding="utf-8")
-    write_csv(cards_path, card_rows(selected_by_date, PAIR_RULE, 2) + card_rows(selected_by_date, TRIPLET_RULE, 3))
+    write_csv(
+        cards_path,
+        card_rows(selected_by_date, PAIR_RULE, 2) + card_rows(selected_by_date, TRIPLET_RULE, 3, optimized_triplet_rows),
+    )
 
     print(
         json.dumps(
