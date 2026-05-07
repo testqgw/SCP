@@ -101,23 +101,24 @@ const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 93.95;
 const FINAL_V1_SELECTED_RECORD = '869-56';
 const FINAL_V1_SELECTED_VOLUME = 925;
 const FINAL_V1_AVG_PICKS_PER_SLATE = 5.61;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Top 3 non-PTS, fallback top 2';
-const FINAL_V1_DAILY_COMBO_HIT_PCT = 84.76;
-const FINAL_V1_DAILY_COMBO_DAYS = '139-25';
-const FINAL_V1_DAILY_COMBO_RECORD = '402-52';
-const FINAL_V1_DAILY_COMBO_LEGS = 473;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 2.88;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 2.77;
-const FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT = 68.90;
-const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Top 6 UNDER, fallback top 3';
-const FINAL_V1_DAILY_TRIPLET_HIT_PCT = 80.86;
-const FINAL_V1_DAILY_TRIPLET_DAYS = '131-31';
-const FINAL_V1_DAILY_TRIPLET_RECORD = '348-58';
-const FINAL_V1_DAILY_TRIPLET_LEGS = 549;
-const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 3.39;
-const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 2.51;
-const FINAL_V1_BASELINE_ALL_TRIPLETS_HIT_PCT = 68.52;
-const FINAL_V1_HIGH_WATER_TRIPLET_HIT_PCT = 83.95;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Rank pairs, all but odd';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 88.08;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 69.51;
+const FINAL_V1_DAILY_COMBO_DAYS = '114-50';
+const FINAL_V1_DAILY_COMBO_RECORD = '399-54';
+const FINAL_V1_DAILY_COMBO_LEGS = 906;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 97.95;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 5.52;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 2.76;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Rank triplets, all but remainder';
+const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 82.71;
+const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 69.75;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '113-49';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '244-51';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 885;
+const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 95.68;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 5.46;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 1.82;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1839,8 +1840,7 @@ export default function NewDashboard({
     [finalModelPicks],
   );
   const finalModelComboLegs = useMemo(() => {
-    const nonPts = finalModelPicks.filter((pick) => pick.modelRow.market !== 'PTS').slice(0, 3);
-    return nonPts.length >= 2 ? nonPts : finalModelPicks.slice(0, 2);
+    return finalModelPicks.slice(0, Math.floor(finalModelPicks.length / 2) * 2);
   }, [finalModelPicks]);
   const finalModelDailyCombos = useMemo(() => {
     const combos: Array<{
@@ -1848,22 +1848,19 @@ export default function NewDashboard({
       legA: (typeof finalModelComboLegs)[number];
       legB: (typeof finalModelComboLegs)[number];
     }> = [];
-    for (let a = 0; a < finalModelComboLegs.length; a += 1) {
-      for (let b = a + 1; b < finalModelComboLegs.length; b += 1) {
-        const legA = finalModelComboLegs[a];
-        const legB = finalModelComboLegs[b];
-        combos.push({
-          id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}`,
-          legA,
-          legB,
-        });
-      }
+    for (let index = 0; index < finalModelComboLegs.length; index += 2) {
+      const legA = finalModelComboLegs[index];
+      const legB = finalModelComboLegs[index + 1];
+      combos.push({
+        id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}`,
+        legA,
+        legB,
+      });
     }
     return combos;
   }, [finalModelComboLegs]);
   const finalModelTripletLegs = useMemo(() => {
-    const under = finalModelPicks.filter((pick) => pick.modelRow.side === 'UNDER').slice(0, 6);
-    return under.length >= 3 ? under : finalModelPicks.slice(0, 3);
+    return finalModelPicks.slice(0, Math.floor(finalModelPicks.length / 3) * 3);
   }, [finalModelPicks]);
   const finalModelDailyTriplets = useMemo(() => {
     const triplets: Array<{
@@ -1872,20 +1869,16 @@ export default function NewDashboard({
       legB: (typeof finalModelTripletLegs)[number];
       legC: (typeof finalModelTripletLegs)[number];
     }> = [];
-    for (let a = 0; a < finalModelTripletLegs.length; a += 1) {
-      for (let b = a + 1; b < finalModelTripletLegs.length; b += 1) {
-        for (let c = b + 1; c < finalModelTripletLegs.length; c += 1) {
-          const legA = finalModelTripletLegs[a];
-          const legB = finalModelTripletLegs[b];
-          const legC = finalModelTripletLegs[c];
-          triplets.push({
-            id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}:${legC.modelRow.candidateId}`,
-            legA,
-            legB,
-            legC,
-          });
-        }
-      }
+    for (let index = 0; index < finalModelTripletLegs.length; index += 3) {
+      const legA = finalModelTripletLegs[index];
+      const legB = finalModelTripletLegs[index + 1];
+      const legC = finalModelTripletLegs[index + 2];
+      triplets.push({
+        id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}:${legC.modelRow.candidateId}`,
+        legA,
+        legB,
+        legC,
+      });
     }
     return triplets;
   }, [finalModelTripletLegs]);
@@ -2351,7 +2344,7 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L ${pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} | 3L ${pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L cards ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L cards ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -3820,10 +3813,10 @@ export default function NewDashboard({
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
-                <Stat dense label="2-leg days" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_DAYS} all-combo days`} />
-                <Stat dense label="2-leg record" value={FINAL_V1_DAILY_COMBO_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_COMBO_AVG_COMBOS, 2)} combos/day`} />
-                <Stat dense label="3-leg days" value={pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_DAYS} all-triplet days`} />
-                <Stat dense label="3-leg record" value={FINAL_V1_DAILY_TRIPLET_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_TRIPLET_AVG_COMBOS, 2)} triplets/day`} />
+                <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
+                <Stat dense label="2-leg record" value={FINAL_V1_DAILY_COMBO_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_COMBO_AVG_COMBOS, 2)} cards/day, ${n(FINAL_V1_DAILY_COMBO_AVG_LEGS, 2)} legs/day`} />
+                <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
+                <Stat dense label="3-leg record" value={FINAL_V1_DAILY_TRIPLET_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_TRIPLET_AVG_COMBOS, 2)} cards/day, ${n(FINAL_V1_DAILY_TRIPLET_AVG_LEGS, 2)} legs/day`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
                 <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
@@ -3835,40 +3828,40 @@ export default function NewDashboard({
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily all-combo layers</div>
-                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">2-leg and 3-leg filtered cards</h3>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily coverage card layers</div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">2-leg and 3-leg coverage cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses every two-leg or three-leg combination from the filtered daily Final V1 set. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. Baseline all-selected rates were {pct(FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT, 2)} and {pct(FINAL_V1_BASELINE_ALL_TRIPLETS_HIT_PCT, 2)}.
+                      Historical replay uses the full Final V1 daily card in rank order, leaving only the odd leg for pairs or the unavoidable remainder for triplets. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. 2-leg coverage is {pct(FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT, 2)} and 3-leg coverage is {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)}.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <CompactMetric label="2L hit rate" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} />
+                  <CompactMetric label="2L card acc" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} />
                   <CompactMetric label="2L record" value={FINAL_V1_DAILY_COMBO_RECORD} />
-                  <CompactMetric label="2L avg legs" value={n(FINAL_V1_DAILY_COMBO_AVG_LEGS, 2)} />
-                  <CompactMetric label="2L legs" value={n(FINAL_V1_DAILY_COMBO_LEGS, 0)} />
-                  <CompactMetric label="3L hit rate" value={pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} />
+                  <CompactMetric label="2L coverage" value={pct(FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT, 2)} />
+                  <CompactMetric label="2L used legs" value={n(FINAL_V1_DAILY_COMBO_LEGS, 0)} />
+                  <CompactMetric label="3L card acc" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} />
                   <CompactMetric label="3L record" value={FINAL_V1_DAILY_TRIPLET_RECORD} />
-                  <CompactMetric label="3L avg legs" value={n(FINAL_V1_DAILY_TRIPLET_AVG_LEGS, 2)} />
-                  <CompactMetric label="3L legs" value={n(FINAL_V1_DAILY_TRIPLET_LEGS, 0)} />
+                  <CompactMetric label="3L coverage" value={pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)} />
+                  <CompactMetric label="3L used legs" value={n(FINAL_V1_DAILY_TRIPLET_LEGS, 0)} />
                 </div>
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 2-leg set:</span>{' '}
                     {finalModelComboLegs.length >= 2
-                      ? `${n(finalModelComboLegs.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg combos.`
+                      ? `${n(finalModelComboLegs.length, 0)} of ${n(finalModelPicks.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg cards.`
                       : 'Waiting for at least two Final V1 picks.'}
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 3-leg set:</span>{' '}
                     {finalModelTripletLegs.length >= 3
-                      ? `${n(finalModelTripletLegs.length, 0)} legs producing ${n(finalModelDailyTriplets.length, 0)} three-leg combos.`
+                      ? `${n(finalModelTripletLegs.length, 0)} of ${n(finalModelPicks.length, 0)} legs producing ${n(finalModelDailyTriplets.length, 0)} three-leg cards.`
                       : 'Waiting for at least three Final V1 picks.'}
                   </div>
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  3-leg high-water replay was {pct(FINAL_V1_HIGH_WATER_TRIPLET_HIT_PCT, 2)} with a top-3 rule, but the displayed 3-leg rule uses all triplets from a broader daily set.
+                  Coverage cards use nearly every leg. The daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2-leg days and {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3-leg days because one used losing leg can spoil the whole day.
                 </div>
                 {finalModelDailyCombos.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">

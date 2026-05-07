@@ -1,0 +1,749 @@
+date,rule,cardSize,selectedLegsOnDay,usedLegsOnDay,unusedLegsOnDay,cardIndex,card_hit,legA_correct,legA_line,legA_market,legA_player,legA_rank,legA_side,legA_team,legB_correct,legB_line,legB_market,legB_player,legB_rank,legB_side,legB_team,legC_correct,legC_line,legC_market,legC_player,legC_rank,legC_side,legC_team
+2025-10-30,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,33.5,PTS,Shai Gilgeous-Alexander,1,UNDER,OKC,True,36.5,PRA,LaMelo Ball,2,OVER,CHA,,,,,,,
+2025-10-30,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,False,True,7.75,REB,Kel'el Ware,3,UNDER,MIA,False,9.75,PTS,Brandin Podziemski,4,OVER,GSW,,,,,,,
+2025-10-31,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,17.5,PTS,VJ Edgecombe,1,UNDER,PHI,True,17.5,PTS,Scottie Barnes,2,UNDER,TOR,,,,,,,
+2025-10-31,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,22.5,PRA,Toumani Camara,3,UNDER,POR,True,11.5,REB,Karl-Anthony Towns,4,UNDER,NYK,,,,,,,
+2025-11-01,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,15.5,PTS,CJ McCollum,1,UNDER,WAS,True,31.5,PRA,Payton Pritchard,2,UNDER,BOS,,,,,,,
+2025-11-01,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,0.5,AST,Nique Clifford,3,UNDER,SAC,True,16.5,PTS,Cooper Flagg,4,UNDER,DAL,,,,,,,
+2025-11-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,7.5,PTS,Saddiq Bey,1,UNDER,NOP,True,28.5,PRA,Nickeil Alexander-Walker,2,UNDER,ATL,,,,,,,
+2025-11-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,28.0,PTS,Victor Wembanyama,3,UNDER,SAS,True,6.5,AST,Davion Mitchell,4,OVER,MIA,,,,,,,
+2025-11-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,REB,Tre Jones,5,UNDER,CHI,True,0.5,THREES,Scottie Barnes,6,OVER,TOR,,,,,,,
+2025-11-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,27.5,PRA,Payton Pritchard,1,UNDER,BOS,True,19.5,PTS,Shaedon Sharpe,2,OVER,POR,,,,,,,
+2025-11-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.0,PTS,Cade Cunningham,3,OVER,DET,True,12.5,REB,Karl-Anthony Towns,4,OVER,NYK,,,,,,,
+2025-11-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.25,AST,Ryan Rollins,5,OVER,MIL,True,2.5,REB,Nique Clifford,6,UNDER,SAC,,,,,,,
+2025-11-04,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,15.5,PTS,VJ Edgecombe,1,UNDER,PHI,True,15.5,PRA,Grayson Allen,2,OVER,PHX,,,,,,,
+2025-11-04,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,8.5,REB,Isaiah Hartenstein,3,UNDER,OKC,True,19.5,PTS,RJ Barrett,4,OVER,TOR,,,,,,,
+2025-11-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Cooper Flagg,1,OVER,DAL,True,28.5,PRA,Mikal Bridges,2,UNDER,NYK,,,,,,,
+2025-11-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,35.5,PTS,Luka Dončić,3,UNDER,LAL,True,4.5,REB,VJ Edgecombe,4,UNDER,PHI,,,,,,,
+2025-11-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Pelle Larsson,5,OVER,MIA,True,6.5,AST,Pascal Siakam,6,OVER,IND,,,,,,,
+2025-11-06,rank_pair_cards_all_but_odd_v1,2,2,2,0,1,True,True,28.0,PTS,Devin Booker,1,UNDER,PHX,True,9.5,PRA,Brook Lopez,2,UNDER,LAC,,,,,,,
+2025-11-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,26.5,PTS,Anthony Edwards,1,OVER,MIN,True,31.5,PRA,Josh Giddey,2,OVER,CHI,,,,,,,
+2025-11-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,18.5,PTS,Scottie Barnes,3,UNDER,TOR,True,11.5,REB,Victor Wembanyama,4,UNDER,SAS,,,,,,,
+2025-11-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Nique Clifford,5,OVER,SAC,True,9.5,AST,Cade Cunningham,6,OVER,DET,,,,,,,
+2025-11-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Scottie Barnes,1,UNDER,TOR,True,37.5,PRA,Evan Mobley,2,UNDER,CLE,,,,,,,
+2025-11-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,10.5,PTS,Harrison Barnes,3,OVER,SAS,True,10.25,AST,Luka Dončić,4,OVER,LAL,,,,,,,
+2025-11-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Kel'el Ware,5,OVER,MIA,True,6.5,AST,Devin Booker,6,OVER,PHX,,,,,,,
+2025-11-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,13.5,PTS,Russell Westbrook,1,UNDER,SAC,True,30.5,PRA,Ryan Rollins,2,UNDER,MIL,,,,,,,
+2025-11-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,16.5,PTS,Derrick White,3,OVER,BOS,True,9.5,AST,Cade Cunningham,4,OVER,DET,,,,,,,
+2025-11-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,REB,Mikal Bridges,5,UNDER,NYK,True,2.5,AST,Isaiah Hartenstein,6,UNDER,OKC,,,,,,,
+2025-11-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Desmond Bane,1,OVER,ORL,True,9.5,RA,Devin Booker,2,UNDER,PHX,,,,,,,
+2025-11-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,6.5,PTS,Isaiah Collier,3,UNDER,UTA,True,10.5,REB,Nikola Vučević,4,UNDER,CHI,,,,,,,
+2025-11-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,5.5,AST,De'Aaron Fox,6,UNDER,SAS,,,,,,,
+2025-11-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,25.5,PTS,Pascal Siakam,1,OVER,IND,False,27.5,PRA,RJ Barrett,2,OVER,TOR,,,,,,,
+2025-11-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,11.5,PTS,Russell Westbrook,3,OVER,SAC,True,10.5,REB,Isaiah Hartenstein,4,UNDER,OKC,,,,,,,
+2025-11-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,AST,VJ Edgecombe,5,UNDER,PHI,True,4.25,REB,Mikal Bridges,6,OVER,NYK,,,,,,,
+2025-11-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,31.5,PTS,Luka Dončić,1,UNDER,LAL,True,9.5,RA,Jrue Holiday,2,OVER,POR,,,,,,,
+2025-11-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,6.5,AST,Stephon Castle,3,OVER,SAS,True,16.5,PTS,Myles Turner,4,OVER,MIL,,,,,,,
+2025-11-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Nikola Vučević,5,UNDER,CHI,True,2.5,THREES,James Harden,6,UNDER,LAC,,,,,,,
+2025-11-13,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,False,False,26.5,PTS,Donovan Mitchell,1,UNDER,CLE,True,32.5,PRA,Isaiah Collier,2,UNDER,UTA,,,,,,,
+2025-11-13,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,16.5,PTS,Andrew Nembhard,3,OVER,IND,True,4.5,AST,Jamal Shead,4,OVER,TOR,,,,,,,
+2025-11-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,7.5,PTS,Jake LaRavia,1,UNDER,LAL,True,9.5,RA,Jrue Holiday,2,OVER,POR,,,,,,,
+2025-11-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PTS,LaMelo Ball,3,UNDER,CHA,True,7.5,AST,Stephon Castle,4,UNDER,SAS,,,,,,,
+2025-11-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,1.5,THREES,Andrew Wiggins,5,OVER,MIA,True,6.5,AST,Daniss Jenkins,6,OVER,DET,,,,,,,
+2025-11-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Miles Bridges,1,UNDER,CHA,True,27.5,PTS,Nikola Jokić,2,UNDER,DEN,,,,,,,
+2025-11-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,51.5,PRA,Luka Dončić,3,OVER,LAL,True,2.5,AST,Cedric Coward,4,UNDER,MEM,,,,,,,
+2025-11-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,0.5,THREES,Scottie Barnes,5,UNDER,TOR,True,1.5,THREES,Myles Turner,6,UNDER,MIL,,,,,,,
+2025-11-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,12.5,RA,James Harden,1,OVER,LAC,True,15.5,PTS,P.J. Washington,2,OVER,DAL,,,,,,,
+2025-11-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,PTS,Vít Krejčí,3,UNDER,ATL,True,2.5,REB,Coby White,4,OVER,CHI,,,,,,,
+2025-11-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,9.5,REB,Alperen Sengun,5,UNDER,HOU,True,0.5,THREES,Bilal Coulibaly,6,UNDER,WAS,,,,,,,
+2025-11-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,27.5,PTS,Karl-Anthony Towns,1,OVER,NYK,True,49.5,PRA,Nikola Jokić,2,OVER,DEN,,,,,,,
+2025-11-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,7.5,PTS,Moussa Diabaté,3,OVER,CHA,True,7.5,REB,Isaiah Stewart,4,UNDER,DET,,,,,,,
+2025-11-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Josh Giddey,5,OVER,CHI,True,2.5,THREES,James Harden,6,UNDER,LAC,,,,,,,
+2025-11-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Cade Cunningham,1,OVER,DET,True,8.5,PTS,Isaiah Collier,2,OVER,UTA,,,,,,,
+2025-11-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,13.5,PRA,Harrison Barnes,3,OVER,SAS,True,2.5,AST,Marcus Smart,4,UNDER,LAL,,,,,,,
+2025-11-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,THREES,Devin Booker,5,UNDER,PHX,True,4.25,REB,Payton Pritchard,6,OVER,BOS,,,,,,,
+2025-11-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,28.5,PTS,Nikola Jokić,1,UNDER,DEN,True,23.5,PRA,Evan Mobley,2,OVER,CLE,,,,,,,
+2025-11-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,REB,Josh Giddey,3,UNDER,CHI,True,17.5,PTS,Kon Knueppel,4,OVER,CHA,,,,,,,
+2025-11-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,REB,Gui Santos,5,OVER,GSW,True,3.5,AST,VJ Edgecombe,6,OVER,PHI,,,,,,,
+2025-11-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,8.5,RA,Russell Westbrook,1,OVER,SAC,True,19.5,PTS,Ryan Rollins,2,OVER,MIL,,,,,,,
+2025-11-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,7.5,PTS,Vít Krejčí,3,UNDER,ATL,True,5.5,REB,James Harden,4,UNDER,LAC,,,,,,,
+2025-11-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Cam Spencer,5,OVER,MEM,True,8.5,REB,Bobby Portis,6,UNDER,MIL,,,,,,,
+2025-11-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.5,PTS,P.J. Washington,1,OVER,DAL,True,50.5,PRA,Nikola Jokić,2,OVER,DEN,,,,,,,
+2025-11-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PTS,Bam Adebayo,3,UNDER,MIA,True,6.5,REB,Tristan Vukcevic,4,UNDER,WAS,,,,,,,
+2025-11-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,9.5,REB,Alperen Sengun,5,UNDER,HOU,True,3.5,AST,T.J. McConnell,6,OVER,IND,,,,,,,
+2025-11-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,16.5,PTS,P.J. Washington,1,OVER,DAL,True,26.5,PRA,Cade Cunningham,2,OVER,DET,,,,,,,
+2025-11-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,18.5,PTS,Miles Bridges,3,OVER,CHA,True,11.5,REB,Karl-Anthony Towns,4,UNDER,NYK,,,,,,,
+2025-11-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Bobby Portis,5,UNDER,MIL,True,3.5,AST,Bub Carrington,6,OVER,WAS,,,,,,,
+2025-11-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,25.5,PRA,Desmond Bane,1,OVER,ORL,True,19.5,PTS,Kon Knueppel,2,OVER,CHA,,,,,,,
+2025-11-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,9.5,REB,Kel'el Ware,3,OVER,MIA,True,1.5,AST,Marcus Smart,4,UNDER,LAL,,,,,,,
+2025-11-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,18.5,PTS,Scottie Barnes,5,UNDER,TOR,True,4.5,REB,James Harden,6,UNDER,LAC,,,,,,,
+2025-11-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,10.5,PTS,Duncan Robinson,1,UNDER,DET,False,48.5,PRA,Nikola Jokić,2,OVER,DEN,,,,,,,
+2025-11-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,16.5,PTS,P.J. Washington,3,OVER,DAL,True,8.5,REB,Jalen Smith,4,UNDER,CHI,,,,,,,
+2025-11-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,9.5,REB,Alperen Sengun,5,UNDER,HOU,False,3.5,AST,Brandon Ingram,6,OVER,TOR,,,,,,,
+2025-11-25,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,18.5,PTS,Nickeil Alexander-Walker,1,UNDER,ATL,True,20.5,PTS,Kawhi Leonard,2,UNDER,LAC,,,,,,,
+2025-11-25,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,15.5,PRA,Anthony Black,3,OVER,ORL,True,1.5,AST,Marcus Smart,4,OVER,LAL,,,,,,,
+2025-11-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Miles Bridges,1,UNDER,CHA,True,19.5,PTS,Shaedon Sharpe,2,UNDER,POR,,,,,,,
+2025-11-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PRA,Ryan Rollins,3,OVER,MIL,True,11.5,REB,Karl-Anthony Towns,4,UNDER,NYK,,,,,,,
+2025-11-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Pelle Larsson,5,OVER,MIA,True,11.5,REB,Alperen Sengun,6,UNDER,HOU,,,,,,,
+2025-11-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.5,PTS,Kon Knueppel,1,UNDER,CHA,True,18.5,PTS,CJ McCollum,2,UNDER,WAS,,,,,,,
+2025-11-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,27.5,PRA,Ryan Rollins,3,OVER,MIL,True,3.5,REB,Jaylon Tyson,4,UNDER,CLE,,,,,,,
+2025-11-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,P.J. Washington,5,OVER,DAL,True,7.5,AST,T.J. McConnell,6,OVER,IND,,,,,,,
+2025-11-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.0,PTS,Ryan Rollins,1,UNDER,MIL,True,13.5,PTS,Collin Gillespie,2,UNDER,PHX,,,,,,,
+2025-11-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,42.5,PRA,Cade Cunningham,3,UNDER,DET,True,10.5,REB,Kel'el Ware,4,UNDER,MIA,,,,,,,
+2025-11-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,REB,Derrick White,5,UNDER,BOS,True,1.5,THREES,Cameron Johnson,6,OVER,DEN,,,,,,,
+2025-11-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,14.5,PTS,Reed Sheppard,1,UNDER,HOU,True,4.5,REB,VJ Edgecombe,2,UNDER,PHI,,,,,,,
+2025-11-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,35.5,PRA,Donovan Mitchell,3,UNDER,CLE,True,17.5,PTS,Saddiq Bey,4,OVER,NOP,,,,,,,
+2025-11-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.0,REB,Baylor Scheierman,5,UNDER,BOS,True,4.5,AST,DeMar DeRozan,6,UNDER,SAC,,,,,,,
+2025-12-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,14.5,PTS,Cameron Johnson,1,UNDER,DEN,True,16.5,PTS,Andrew Nembhard,2,OVER,IND,,,,,,,
+2025-12-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PRA,Nickeil Alexander-Walker,3,OVER,ATL,True,8.5,REB,Kel'el Ware,4,OVER,MIA,,,,,,,
+2025-12-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Josh Giddey,5,OVER,CHI,True,3.5,AST,Kevin Durant,6,OVER,HOU,,,,,,,
+2025-12-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,31.5,PRA,Brandon Ingram,1,UNDER,TOR,True,32.5,PTS,Tyrese Maxey,2,OVER,PHI,,,,,,,
+2025-12-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,16.5,PTS,Payton Pritchard,3,UNDER,BOS,True,6.5,REB,Saddiq Bey,4,UNDER,NOP,,,,,,,
+2025-12-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Harrison Barnes,5,OVER,SAS,True,6.5,REB,Deni Avdija,6,OVER,POR,,,,,,,
+2025-12-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Kawhi Leonard,1,UNDER,LAC,True,15.5,PTS,Devin Vassell,2,UNDER,SAS,,,,,,,
+2025-12-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,28.25,PRA,Bennedict Mathurin,3,UNDER,IND,True,12.5,REB,Karl-Anthony Towns,4,OVER,NYK,,,,,,,
+2025-12-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Evan Mobley,5,UNDER,CLE,True,1.5,AST,AJ Green,6,UNDER,MIL,,,,,,,
+2025-12-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,29.5,PTS,Anthony Edwards,1,UNDER,MIN,True,17.5,PTS,Noah Clowney,2,OVER,BKN,,,,,,,
+2025-12-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,6.0,AST,Payton Pritchard,3,OVER,BOS,True,25.5,PRA,Brandin Podziemski,4,UNDER,GSW,,,,,,,
+2025-12-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Kyle Filipowski,5,UNDER,UTA,True,3.5,AST,Brandon Ingram,6,OVER,TOR,,,,,,,
+2025-12-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,37.5,PRA,Donovan Mitchell,1,OVER,CLE,True,14.5,PTS,Collin Gillespie,2,UNDER,PHX,,,,,,,
+2025-12-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PTS,Desmond Bane,3,UNDER,ORL,True,6.75,REB,Onyeka Okongwu,4,UNDER,ATL,,,,,,,
+2025-12-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Neemias Queta,5,UNDER,BOS,True,1.5,AST,Duncan Robinson,6,UNDER,DET,,,,,,,
+2025-12-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,34.5,PRA,Donovan Mitchell,1,OVER,CLE,True,10.5,PTS,Duncan Robinson,2,UNDER,DET,,,,,,,
+2025-12-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PTS,Kawhi Leonard,3,UNDER,LAC,True,1.5,THREES,Will Riley,4,UNDER,WAS,,,,,,,
+2025-12-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,REB,Gui Santos,5,UNDER,GSW,True,1.5,AST,P.J. Washington,6,UNDER,DAL,,,,,,,
+2025-12-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PRA,Quentin Grimes,1,OVER,PHI,True,14.5,PTS,Paolo Banchero,2,OVER,ORL,,,,,,,
+2025-12-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PTS,Brandon Miller,3,UNDER,CHA,True,4.5,AST,Ajay Mitchell,4,UNDER,OKC,,,,,,,
+2025-12-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,REB,Coby White,5,UNDER,CHI,True,4.5,REB,Jerami Grant,6,OVER,POR,,,,,,,
+2025-12-08,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,23.5,PTS,De'Aaron Fox,1,UNDER,SAS,True,18.5,PTS,Grayson Allen,2,UNDER,PHX,,,,,,,
+2025-12-09,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,31.5,PRA,Scottie Barnes,1,UNDER,TOR,True,21.5,PTS,Karl-Anthony Towns,2,UNDER,NYK,,,,,,,
+2025-12-10,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,13.5,PTS,Devin Vassell,1,UNDER,SAS,True,14.5,PTS,Collin Gillespie,2,UNDER,PHX,,,,,,,
+2025-12-11,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,24.5,PTS,Shaedon Sharpe,1,UNDER,POR,True,14.5,PRA,Nique Clifford,2,UNDER,SAC,,,,,,,
+2025-12-11,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,18.5,PTS,Ryan Rollins,3,UNDER,MIL,True,3.5,AST,Kevin Durant,4,UNDER,HOU,,,,,,,
+2025-12-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,12.5,RA,Josh Giddey,1,OVER,CHI,True,7.5,PTS,De'Anthony Melton,2,OVER,GSW,,,,,,,
+2025-12-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,14.5,PTS,VJ Edgecombe,3,OVER,PHI,True,6.5,REB,P.J. Washington,4,UNDER,DAL,,,,,,,
+2025-12-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.0,THREES,Will Riley,5,UNDER,WAS,True,3.5,AST,Cam Spencer,6,OVER,MEM,,,,,,,
+2025-12-13,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,7.5,PTS,Julian Champagnie,1,UNDER,SAS,True,34.5,PRA,Paolo Banchero,2,OVER,ORL,,,,,,,
+2025-12-13,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,12.5,PTS,Josh Hart,3,UNDER,NYK,True,2.5,AST,Isaiah Hartenstein,4,UNDER,OKC,,,,,,,
+2025-12-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,6.5,PTS,Isaac Okoro,1,UNDER,CHI,True,28.5,PRA,Ryan Rollins,2,UNDER,MIL,,,,,,,
+2025-12-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PTS,Grayson Allen,3,UNDER,PHX,True,4.5,REB,Jaylon Tyson,4,OVER,CLE,,,,,,,
+2025-12-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,11.5,REB,Rudy Gobert,5,OVER,MIN,True,4.5,AST,VJ Edgecombe,6,UNDER,PHI,,,,,,,
+2025-12-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,18.5,PTS,P.J. Washington,1,UNDER,DAL,True,34.5,PRA,Bam Adebayo,2,UNDER,MIA,,,,,,,
+2025-12-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,26.5,PTS,Cade Cunningham,3,OVER,DET,True,3.5,AST,Cam Spencer,4,OVER,MEM,,,,,,,
+2025-12-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,THREES,Cameron Johnson,5,OVER,DEN,True,4.5,REB,Ace Bailey,6,UNDER,UTA,,,,,,,
+2025-12-16,rank_pair_cards_all_but_odd_v1,2,2,2,0,1,True,True,19.5,PTS,Victor Wembanyama,1,UNDER,SAS,True,20.5,PRA,Mikal Bridges,2,OVER,NYK,,,,,,,
+2025-12-17,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,6.5,RA,Jaylon Tyson,1,UNDER,CLE,True,11.5,REB,Rudy Gobert,2,OVER,MIN,,,,,,,
+2025-12-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,20.5,PTS,Victor Wembanyama,1,UNDER,SAS,True,27.5,PRA,Ryan Rollins,2,UNDER,MIL,,,,,,,
+2025-12-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,18.5,PTS,Zion Williamson,3,UNDER,NOP,True,10.5,REB,Kel'el Ware,4,OVER,MIA,,,,,,,
+2025-12-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,T.J. McConnell,5,OVER,IND,True,3.5,REB,Devin Booker,6,UNDER,PHX,,,,,,,
+2025-12-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,De'Aaron Fox,1,UNDER,SAS,True,16.5,PRA,Quentin Grimes,2,UNDER,PHI,,,,,,,
+2025-12-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,25.5,PTS,Anthony Edwards,3,OVER,MIN,True,10.5,REB,Kel'el Ware,4,OVER,MIA,,,,,,,
+2025-12-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,REB,Jalen Smith,5,OVER,CHI,True,6.5,AST,Jalen Brunson,6,OVER,NYK,,,,,,,
+2025-12-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Desmond Bane,1,OVER,ORL,True,11.5,RA,Cade Cunningham,2,OVER,DET,,,,,,,
+2025-12-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,14.5,PTS,Toumani Camara,3,OVER,POR,True,8.5,REB,Alperen Sengun,4,UNDER,HOU,,,,,,,
+2025-12-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,6.5,AST,Cam Spencer,5,OVER,MEM,False,5.5,REB,Cooper Flagg,6,OVER,DAL,,,,,,,
+2025-12-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,20.5,PTS,CJ McCollum,1,UNDER,WAS,True,27.5,PTS,Anthony Edwards,2,UNDER,MIN,,,,,,,
+2025-12-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PRA,Russell Westbrook,3,OVER,SAC,True,1.5,REB,Ayo Dosunmu,4,UNDER,CHI,,,,,,,
+2025-12-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Mitchell Robinson,5,UNDER,NYK,True,3.5,AST,Brandon Ingram,6,UNDER,TOR,,,,,,,
+2025-12-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,20.5,PTS,Cooper Flagg,1,UNDER,DAL,True,36.5,PRA,Donovan Mitchell,2,OVER,CLE,,,,,,,
+2025-12-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,26.0,PTS,Shaedon Sharpe,3,UNDER,POR,True,8.5,REB,Neemias Queta,4,UNDER,BOS,,,,,,,
+2025-12-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,Shai Gilgeous-Alexander,5,OVER,OKC,True,2.5,AST,Brandin Podziemski,6,OVER,GSW,,,,,,,
+2025-12-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,9.5,PTS,Ayo Dosunmu,1,UNDER,CHI,True,26.5,PTS,Karl-Anthony Towns,2,OVER,NYK,,,,,,,
+2025-12-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,37.5,PRA,Kawhi Leonard,3,OVER,LAC,True,9.5,REB,Kyle Filipowski,4,OVER,UTA,,,,,,,
+2025-12-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Victor Wembanyama,5,UNDER,SAS,True,3.5,AST,Bub Carrington,6,UNDER,WAS,,,,,,,
+2025-12-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,54.0,PRA,Nikola Jokić,1,OVER,DEN,True,13.5,PTS,Devin Vassell,2,UNDER,SAS,,,,,,,
+2025-12-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PTS,Cooper Flagg,3,OVER,DAL,True,6.5,REB,Evan Mobley,4,OVER,CLE,,,,,,,
+2025-12-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Amen Thompson,5,OVER,HOU,True,6.5,AST,Jalen Brunson,6,UNDER,NYK,,,,,,,
+2025-12-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Kon Knueppel,1,UNDER,CHA,True,14.5,PTS,VJ Edgecombe,2,UNDER,PHI,,,,,,,
+2025-12-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,39.5,PRA,Kawhi Leonard,3,OVER,LAC,True,5.5,AST,Cam Spencer,4,UNDER,MEM,,,,,,,
+2025-12-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Neemias Queta,5,UNDER,BOS,True,1.5,THREES,Will Riley,6,UNDER,WAS,,,,,,,
+2025-12-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,8.5,RA,Russell Westbrook,1,OVER,SAC,True,16.5,PTS,Nickeil Alexander-Walker,2,OVER,ATL,,,,,,,
+2025-12-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,6.5,REB,Bobby Portis,3,OVER,MIL,True,15.5,PTS,Dylan Harper,4,UNDER,SAS,,,,,,,
+2025-12-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Evan Mobley,5,UNDER,CLE,True,3.5,AST,Pelle Larsson,6,OVER,MIA,,,,,,,
+2025-12-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,33.5,PRA,Deni Avdija,1,OVER,POR,True,13.5,PTS,RJ Barrett,2,UNDER,TOR,,,,,,,
+2025-12-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,34.5,PTS,Luka Dončić,3,UNDER,LAL,True,4.5,REB,VJ Edgecombe,4,UNDER,PHI,,,,,,,
+2025-12-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Cam Spencer,5,OVER,MEM,True,4.5,REB,Brook Lopez,6,OVER,LAC,,,,,,,
+2025-12-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,6.25,REB,Bobby Portis,1,UNDER,MIL,False,27.5,PTS,Devin Booker,2,OVER,PHX,,,,,,,
+2025-12-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,37.5,PRA,Deni Avdija,3,OVER,POR,True,14.5,PTS,Evan Mobley,4,OVER,CLE,,,,,,,
+2025-12-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Bam Adebayo,5,OVER,MIA,True,1.5,THREES,Gui Santos,6,UNDER,GSW,,,,,,,
+2025-12-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,34.5,PTS,Luka Dončić,1,UNDER,LAL,True,9.5,RA,Quentin Grimes,2,UNDER,PHI,,,,,,,
+2025-12-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,17.5,PTS,Payton Pritchard,3,OVER,BOS,True,3.5,AST,DeMar DeRozan,4,UNDER,SAC,,,,,,,
+2025-12-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Cam Spencer,5,UNDER,MEM,True,5.5,REB,James Harden,6,UNDER,LAC,,,,,,,
+2025-12-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,10.5,PTS,Kyle Kuzma,1,UNDER,MIL,True,35.5,PRA,Jalen Brunson,2,OVER,NYK,,,,,,,
+2025-12-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.5,PTS,Jamal Murray,3,UNDER,DEN,True,12.5,REB,Moussa Diabaté,4,UNDER,CHA,,,,,,,
+2025-12-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Ayo Dosunmu,5,OVER,CHI,True,7.5,REB,Onyeka Okongwu,6,OVER,ATL,,,,,,,
+2026-01-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,34.5,PRA,Kawhi Leonard,1,OVER,LAC,True,19.5,PTS,Cooper Flagg,2,UNDER,DAL,,,,,,,
+2026-01-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,REB,Neemias Queta,3,UNDER,BOS,True,14.25,PTS,Isaiah Collier,4,OVER,UTA,,,,,,,
+2026-01-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,6.5,REB,Amen Thompson,5,OVER,HOU,True,10.5,AST,Cade Cunningham,6,OVER,DET,,,,,,,
+2026-01-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,35.5,PTS,Luka Dončić,1,UNDER,LAL,True,15.5,PRA,Anthony Black,2,OVER,ORL,,,,,,,
+2026-01-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,24.5,PTS,De'Aaron Fox,3,UNDER,SAS,True,5.5,REB,Gui Santos,4,OVER,GSW,,,,,,,
+2026-01-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,Bobby Portis,5,OVER,MIL,True,4.5,AST,Cam Spencer,6,OVER,MEM,,,,,,,
+2026-01-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,28.5,PTS,Kawhi Leonard,1,UNDER,LAC,False,16.5,PRA,Quentin Grimes,2,UNDER,PHI,,,,,,,
+2026-01-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,7.5,REB,Kyle Filipowski,3,UNDER,UTA,True,15.5,PTS,Ayo Dosunmu,4,OVER,CHI,,,,,,,
+2026-01-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,4.5,AST,Kevin Durant,5,UNDER,HOU,True,6.5,REB,Julian Champagnie,6,OVER,SAS,,,,,,,
+2026-01-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,51.5,PRA,Luka Dončić,1,OVER,LAL,False,5.5,REB,Bobby Portis,2,UNDER,MIL,,,,,,,
+2026-01-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,14.5,PTS,Collin Gillespie,3,UNDER,PHX,True,12.5,REB,Rudy Gobert,4,OVER,MIN,,,,,,,
+2026-01-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,17.5,PTS,Andrew Nembhard,5,OVER,IND,True,8.5,AST,Cam Spencer,6,OVER,MEM,,,,,,,
+2026-01-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,35.5,PRA,Deni Avdija,1,OVER,POR,True,17.5,PTS,Brandon Miller,2,OVER,CHA,,,,,,,
+2026-01-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,12.5,PTS,Collin Gillespie,3,UNDER,PHX,True,8.5,REB,Neemias Queta,4,OVER,BOS,,,,,,,
+2026-01-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Peyton Watson,5,OVER,DEN,True,4.5,AST,Kris Dunn,6,OVER,LAC,,,,,,,
+2026-01-06,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,11.0,PRA,Jake LaRavia,1,UNDER,LAL,True,19.5,PTS,Victor Wembanyama,2,OVER,SAS,,,,,,,
+2026-01-06,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,22.5,PTS,Desmond Bane,3,UNDER,ORL,True,2.5,REB,Brandon Williams,4,UNDER,DAL,,,,,,,
+2026-01-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,36.5,PTS,Luka Dončić,1,OVER,LAL,True,21.5,PRA,Nikola Vučević,2,OVER,CHI,,,,,,,
+2026-01-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,8.5,PTS,Kyle Kuzma,3,UNDER,MIL,True,7.5,REB,Isaiah Stewart,4,UNDER,DET,,,,,,,
+2026-01-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Bub Carrington,5,OVER,WAS,True,3.5,THREES,Grayson Allen,6,OVER,PHX,,,,,,,
+2026-01-08,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,21.5,PTS,Cooper Flagg,1,OVER,DAL,True,8.5,PTS,Sam Merrill,2,OVER,CLE,,,,,,,
+2026-01-08,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,27.5,PRA,Kyle Filipowski,3,UNDER,UTA,True,11.5,REB,Moussa Diabaté,4,UNDER,CHA,,,,,,,
+2026-01-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,25.5,PTS,Jalen Johnson,1,OVER,ATL,True,31.5,PRA,Kawhi Leonard,2,OVER,LAC,,,,,,,
+2026-01-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,14.5,PTS,Ryan Rollins,3,UNDER,MIL,True,5.5,AST,Ajay Mitchell,4,OVER,OKC,,,,,,,
+2026-01-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Deni Avdija,5,UNDER,POR,True,2.5,AST,Peyton Watson,6,OVER,DEN,,,,,,,
+2026-01-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Cooper Flagg,1,UNDER,DAL,True,37.0,PRA,Bam Adebayo,2,UNDER,MIA,,,,,,,
+2026-01-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,16.5,PTS,Brice Sensabaugh,3,OVER,UTA,True,8.5,REB,Moussa Diabaté,4,OVER,CHA,,,,,,,
+2026-01-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,4.5,AST,Jaylen Brown,5,OVER,BOS,False,7.5,REB,Julius Randle,6,OVER,MIN,,,,,,,
+2026-01-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,14.5,PTS,CJ McCollum,1,UNDER,ATL,True,32.5,PRA,Deni Avdija,2,OVER,POR,,,,,,,
+2026-01-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PTS,Desmond Bane,3,OVER,ORL,True,5.5,REB,Julian Champagnie,4,OVER,SAS,,,,,,,
+2026-01-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Davion Mitchell,5,OVER,MIA,True,6.5,REB,Bobby Portis,6,UNDER,MIL,,,,,,,
+2026-01-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.5,PTS,Cooper Flagg,1,OVER,DAL,True,8.5,PTS,Brice Sensabaugh,2,UNDER,UTA,,,,,,,
+2026-01-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,10.5,PRA,Jake LaRavia,3,UNDER,LAL,True,3.5,REB,Baylor Scheierman,4,UNDER,BOS,,,,,,,
+2026-01-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,0.5,THREES,Brook Lopez,5,OVER,LAC,True,2.0,AST,Collin Murray-Boyles,6,OVER,TOR,,,,,,,
+2026-01-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.0,PTS,Alperen Sengun,1,OVER,HOU,True,7.5,RA,Jrue Holiday,2,OVER,POR,,,,,,,
+2026-01-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,12.5,PTS,Saddiq Bey,3,OVER,NOP,True,8.5,REB,Julius Randle,4,UNDER,MIN,,,,,,,
+2026-01-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Ajay Mitchell,5,OVER,OKC,True,3.5,THREES,Grayson Allen,6,OVER,PHX,,,,,,,
+2026-01-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,25.5,PTS,Brandon Ingram,1,OVER,TOR,True,28.5,PRA,Quentin Grimes,2,UNDER,PHI,,,,,,,
+2026-01-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,14.5,PTS,Saddiq Bey,3,OVER,NOP,True,9.5,REB,Kyle Filipowski,4,UNDER,UTA,,,,,,,
+2026-01-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,Brook Lopez,5,UNDER,LAC,True,4.5,AST,DeMar DeRozan,6,OVER,SAC,,,,,,,
+2026-01-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.5,PTS,Grayson Allen,1,OVER,PHX,True,20.5,PRA,Amen Thompson,2,OVER,HOU,,,,,,,
+2026-01-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,True,24.5,PTS,Shaedon Sharpe,3,UNDER,POR,False,9.5,REB,Kyle Filipowski,4,OVER,UTA,,,,,,,
+2026-01-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Victor Wembanyama,5,UNDER,SAS,True,7.5,AST,Cam Spencer,6,OVER,MEM,,,,,,,
+2026-01-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Alex Sarr,1,OVER,WAS,True,14.5,PRA,Donte DiVincenzo,2,OVER,MIN,,,,,,,
+2026-01-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PTS,Brandon Ingram,3,UNDER,TOR,True,1.5,AST,Terance Mann,4,UNDER,BKN,,,,,,,
+2026-01-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,5.5,AST,Amen Thompson,5,OVER,HOU,True,2.5,THREES,Donovan Mitchell,6,OVER,CLE,,,,,,,
+2026-01-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,11.5,RA,Cade Cunningham,1,OVER,DET,True,13.5,PTS,Ace Bailey,2,OVER,UTA,,,,,,,
+2026-01-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,21.5,PTS,Jalen Johnson,3,OVER,ATL,True,3.5,AST,Anthony Edwards,4,UNDER,MIN,,,,,,,
+2026-01-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,REB,Jrue Holiday,5,UNDER,POR,True,1.5,AST,Jaylin Williams,6,OVER,OKC,,,,,,,
+2026-01-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,25.5,PTS,Kevin Durant,1,UNDER,HOU,True,4.5,AST,Cam Spencer,2,UNDER,MEM,,,,,,,
+2026-01-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,PTS,Malik Monk,3,OVER,SAC,True,6.75,RA,Derik Queen,4,OVER,NOP,,,,,,,
+2026-01-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Jamal Shead,5,UNDER,TOR,True,4.5,REB,Kon Knueppel,6,UNDER,CHA,,,,,,,
+2026-01-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.5,PRA,Evan Mobley,1,OVER,CLE,True,21.5,PTS,Jalen Johnson,2,OVER,ATL,,,,,,,
+2026-01-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PTS,Cooper Flagg,3,UNDER,DAL,True,3.5,REB,Will Richard,4,UNDER,GSW,,,,,,,
+2026-01-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Jordan Goodwin,5,OVER,PHX,True,7.5,REB,Neemias Queta,6,OVER,BOS,,,,,,,
+2026-01-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,33.5,PRA,Kevin Durant,1,UNDER,HOU,True,32.5,PTS,Luka Dončić,2,OVER,LAL,,,,,,,
+2026-01-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,9.5,REB,Scottie Barnes,3,UNDER,TOR,True,14.5,PTS,Russell Westbrook,4,OVER,SAC,,,,,,,
+2026-01-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,11.5,REB,Bam Adebayo,5,UNDER,MIA,True,0.5,THREES,Kris Dunn,6,UNDER,LAC,,,,,,,
+2026-01-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.5,PTS,Jalen Johnson,1,OVER,ATL,True,7.5,RA,Derik Queen,2,OVER,NOP,,,,,,,
+2026-01-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,3.75,AST,Cam Spencer,3,UNDER,MEM,True,19.5,PTS,Jalen Duren,4,OVER,DET,,,,,,,
+2026-01-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,9.5,REB,Scottie Barnes,5,UNDER,TOR,True,5.5,AST,Ryan Rollins,6,OVER,MIL,,,,,,,
+2026-01-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,15.5,PRA,Anthony Black,1,UNDER,ORL,True,15.5,PTS,Brice Sensabaugh,2,UNDER,UTA,,,,,,,
+2026-01-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,24.5,PTS,Kawhi Leonard,3,UNDER,LAC,True,7.5,REB,Amen Thompson,4,UNDER,HOU,,,,,,,
+2026-01-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,REB,Gui Santos,5,UNDER,GSW,True,2.5,AST,Ayo Dosunmu,6,OVER,CHI,,,,,,,
+2026-01-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Payton Pritchard,1,OVER,BOS,True,19.5,PTS,Scottie Barnes,2,UNDER,TOR,,,,,,,
+2026-01-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.5,PRA,Russell Westbrook,3,UNDER,SAC,True,8.5,AST,Cam Spencer,4,OVER,MEM,,,,,,,
+2026-01-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,8.5,AST,Cade Cunningham,5,OVER,DET,False,6.5,REB,Derik Queen,6,UNDER,NOP,,,,,,,
+2026-01-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Alex Sarr,1,OVER,WAS,True,21.0,PRA,Jake LaRavia,2,UNDER,LAL,,,,,,,
+2026-01-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,12.5,PTS,Jalen Suggs,3,UNDER,ORL,True,6.0,REB,Neemias Queta,4,UNDER,BOS,,,,,,,
+2026-01-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.25,REB,Josh Hart,5,OVER,NYK,True,1.5,THREES,Pelle Larsson,6,OVER,MIA,,,,,,,
+2026-01-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.5,PTS,Scottie Barnes,1,UNDER,TOR,True,24.5,PRA,Russell Westbrook,2,UNDER,SAC,,,,,,,
+2026-01-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,19.5,PTS,Zion Williamson,3,OVER,NOP,True,6.5,AST,Collin Gillespie,4,UNDER,PHX,,,,,,,
+2026-01-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,REB,Kawhi Leonard,5,OVER,LAC,True,6.5,REB,Naz Reid,6,OVER,MIN,,,,,,,
+2026-01-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,31.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,11.5,PRA,Jake LaRavia,2,OVER,LAL,,,,,,,
+2026-01-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,24.5,PTS,Kevin Durant,3,OVER,HOU,True,5.5,REB,Gui Santos,4,OVER,GSW,,,,,,,
+2026-01-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,REB,Andrew Nembhard,5,OVER,IND,True,2.5,AST,Jaylon Tyson,6,OVER,CLE,,,,,,,
+2026-01-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,20.5,PTS,Ryan Rollins,1,OVER,MIL,True,40.5,PRA,Deni Avdija,2,UNDER,POR,,,,,,,
+2026-01-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PTS,Grayson Allen,3,UNDER,PHX,True,7.5,AST,Shai Gilgeous-Alexander,4,UNDER,OKC,,,,,,,
+2026-01-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,AST,Jalen Brunson,5,UNDER,NYK,True,3.5,REB,Isaiah Collier,6,OVER,UTA,,,,,,,
+2026-01-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,9.5,PTS,Julian Champagnie,1,UNDER,SAS,True,14.5,PTS,RJ Barrett,2,UNDER,TOR,,,,,,,
+2026-01-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,34.5,PRA,Donovan Mitchell,3,OVER,CLE,True,4.5,REB,Kyle Filipowski,4,UNDER,UTA,,,,,,,
+2026-01-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,AST,Andrew Nembhard,5,OVER,IND,True,3.5,THREES,Kon Knueppel,6,UNDER,CHA,,,,,,,
+2026-01-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Grayson Allen,1,OVER,PHX,True,7.5,AST,Ryan Rollins,2,OVER,MIL,,,,,,,
+2026-01-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,13.5,PRA,Luguentz Dort,3,UNDER,OKC,True,19.5,PTS,Cooper Flagg,4,OVER,DAL,,,,,,,
+2026-01-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,11.5,REB,Rudy Gobert,5,OVER,MIN,True,4.5,AST,Nolan Traore,6,UNDER,BKN,,,,,,,
+2026-01-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Payton Pritchard,1,OVER,BOS,True,7.5,AST,Nikola Jokić,2,UNDER,DEN,,,,,,,
+2026-01-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,25.5,PRA,Grayson Allen,3,UNDER,PHX,True,9.5,REB,Kyle Filipowski,4,OVER,UTA,,,,,,,
+2026-01-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,14.5,PTS,RJ Barrett,5,OVER,TOR,True,9.5,AST,Luka Dončić,6,OVER,LAL,,,,,,,
+2026-01-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Jalen Johnson,1,OVER,ATL,True,19.5,PTS,Ayo Dosunmu,2,OVER,CHI,,,,,,,
+2026-01-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,22.5,PRA,Jeremiah Fears,3,UNDER,NOP,True,5.5,AST,Cam Spencer,4,UNDER,MEM,,,,,,,
+2026-01-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,5.5,REB,P.J. Washington,5,UNDER,DAL,False,4.5,REB,Kon Knueppel,6,UNDER,CHA,,,,,,,
+2026-02-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,29.5,PTS,Jaylen Brown,1,OVER,BOS,True,22.5,PTS,Jamal Murray,2,UNDER,DEN,,,,,,,
+2026-02-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,9.5,PRA,Jake LaRavia,3,UNDER,LAL,True,2.5,AST,Collin Murray-Boyles,4,UNDER,TOR,,,,,,,
+2026-02-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,AST,Ryan Rollins,5,OVER,MIL,True,3.5,REB,Bub Carrington,6,UNDER,WAS,,,,,,,
+2026-02-02,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,17.5,PTS,Saddiq Bey,1,UNDER,NOP,True,23.5,PTS,Alperen Sengun,2,OVER,HOU,,,,,,,
+2026-02-02,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,36.5,PRA,Kawhi Leonard,3,OVER,LAC,True,5.5,AST,Julius Randle,4,OVER,MIN,,,,,,,
+2026-02-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,24.5,PTS,Jalen Johnson,2,OVER,ATL,,,,,,,
+2026-02-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,33.5,PRA,Paolo Banchero,3,UNDER,ORL,True,10.5,REB,Kyle Filipowski,4,OVER,UTA,,,,,,,
+2026-02-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Myles Turner,5,UNDER,MIL,True,1.5,THREES,Collin Gillespie,6,OVER,PHX,,,,,,,
+2026-02-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Derrick White,1,OVER,BOS,True,21.5,PRA,Russell Westbrook,2,UNDER,SAC,,,,,,,
+2026-02-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,28.5,PTS,Kawhi Leonard,3,OVER,LAC,True,5.5,REB,Aaron Wiggins,4,UNDER,OKC,,,,,,,
+2026-02-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Myles Turner,5,OVER,MIL,True,2.5,AST,Collin Murray-Boyles,6,OVER,TOR,,,,,,,
+2026-02-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Grayson Allen,1,OVER,PHX,True,32.5,PRA,Isaiah Collier,2,OVER,UTA,,,,,,,
+2026-02-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,18.5,PTS,Matas Buzelis,3,OVER,CHI,True,8.5,REB,Alperen Sengun,4,OVER,HOU,,,,,,,
+2026-02-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Stephon Castle,5,OVER,SAS,True,3.5,AST,Nic Claxton,6,UNDER,BKN,,,,,,,
+2026-02-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,28.5,PTS,Kawhi Leonard,1,OVER,LAC,True,7.5,RA,Bobby Portis,2,UNDER,MIL,,,,,,,
+2026-02-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,16.5,PTS,Saddiq Bey,3,OVER,NOP,True,6.5,REB,Isaiah Stewart,4,UNDER,DET,,,,,,,
+2026-02-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Nikola Vučević,5,OVER,BOS,True,5.5,AST,Jalen Brunson,6,UNDER,NYK,,,,,,,
+2026-02-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,21.5,PTS,Devin Booker,1,UNDER,PHX,False,24.5,PTS,Jamal Murray,2,UNDER,DEN,,,,,,,
+2026-02-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,2.5,REB,Isaiah Collier,3,UNDER,UTA,True,22.5,PRA,Bub Carrington,4,UNDER,WAS,,,,,,,
+2026-02-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,3.5,AST,Cason Wallace,6,OVER,OKC,,,,,,,
+2026-02-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,37.25,PRA,Bam Adebayo,1,UNDER,MIA,True,29.5,PTS,Kawhi Leonard,2,OVER,LAC,,,,,,,
+2026-02-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,7.0,REB,Neemias Queta,3,UNDER,BOS,True,14.5,PTS,Kyshawn George,4,UNDER,WAS,,,,,,,
+2026-02-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Ayo Dosunmu,5,UNDER,MIN,True,1.5,AST,Jay Huff,6,OVER,IND,,,,,,,
+2026-02-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Jamal Murray,1,UNDER,DEN,True,34.5,PRA,Ryan Rollins,2,UNDER,MIL,,,,,,,
+2026-02-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,31.5,PTS,Tyrese Maxey,3,UNDER,PHI,True,3.5,REB,Isaac Okoro,4,OVER,CHI,,,,,,,
+2026-02-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,AST,Cason Wallace,5,OVER,OKC,True,6.5,REB,Kyle Filipowski,6,OVER,UTA,,,,,,,
+2026-02-10,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,21.5,PTS,Karl-Anthony Towns,1,OVER,NYK,True,21.5,PRA,Jake LaRavia,2,UNDER,LAL,,,,,,,
+2026-02-10,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,28.5,PTS,Kawhi Leonard,3,UNDER,LAC,True,1.5,AST,Khris Middleton,4,OVER,DAL,,,,,,,
+2026-02-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,36.5,PRA,Deni Avdija,1,UNDER,POR,False,16.5,PTS,CJ McCollum,2,UNDER,ATL,,,,,,,
+2026-02-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PTS,Kyshawn George,3,OVER,WAS,True,5.5,REB,Jay Huff,4,UNDER,IND,,,,,,,
+2026-02-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Jalen Brunson,5,UNDER,NYK,True,4.5,AST,Nique Clifford,6,OVER,SAC,,,,,,,
+2026-02-12,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,18.5,PTS,Chet Holmgren,1,UNDER,OKC,True,16.5,PRA,Cody Williams,2,UNDER,UTA,,,,,,,
+2026-02-12,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,16.5,PTS,Brandon Williams,3,OVER,DAL,True,7.25,REB,Bobby Portis,4,OVER,MIL,,,,,,,
+2026-02-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,14.5,PTS,Evan Mobley,1,UNDER,CLE,True,16.5,PTS,VJ Edgecombe,2,OVER,PHI,,,,,,,
+2026-02-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PRA,OG Anunoby,3,UNDER,NYK,True,7.5,REB,Nikola Vučević,4,UNDER,BOS,,,,,,,
+2026-02-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Jarace Walker,5,OVER,IND,True,6.5,AST,Stephon Castle,6,UNDER,SAS,,,,,,,
+2026-02-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Deni Avdija,1,UNDER,POR,True,31.5,PRA,Jarace Walker,2,UNDER,IND,,,,,,,
+2026-02-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.5,PTS,Kawhi Leonard,3,OVER,LAC,True,9.5,REB,Kyle Filipowski,4,UNDER,UTA,,,,,,,
+2026-02-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Nolan Traore,5,UNDER,BKN,True,2.5,AST,Pelle Larsson,6,UNDER,MIA,,,,,,,
+2026-02-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,30.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,37.5,PRA,Paolo Banchero,2,OVER,ORL,,,,,,,
+2026-02-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,PTS,Isaac Okoro,3,OVER,CHI,True,6.5,AST,Stephon Castle,4,UNDER,SAS,,,,,,,
+2026-02-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.75,REB,Kel'el Ware,5,OVER,MIA,True,10.5,REB,Jalen Duren,6,OVER,DET,,,,,,,
+2026-02-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,30.5,PTS,Tyrese Maxey,1,OVER,PHI,True,22.5,PRA,Evan Mobley,2,UNDER,CLE,,,,,,,
+2026-02-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,29.5,PTS,Jaylen Brown,3,OVER,BOS,True,8.5,REB,Julius Randle,4,UNDER,MIN,,,,,,,
+2026-02-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Kawhi Leonard,5,OVER,LAC,True,10.25,AST,Nikola Jokić,6,OVER,DEN,,,,,,,
+2026-02-23,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,False,True,31.5,PRA,Amen Thompson,1,UNDER,HOU,False,7.5,PTS,Harrison Barnes,2,OVER,SAS,,,,,,,
+2026-02-23,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,13.25,PTS,Malik Monk,3,UNDER,SAC,True,10.5,REB,Jalen Duren,4,OVER,DET,,,,,,,
+2026-02-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,20.5,PTS,Derrick White,1,UNDER,BOS,True,50.5,PRA,Luka Dončić,2,UNDER,LAL,,,,,,,
+2026-02-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PTS,Brandin Podziemski,3,OVER,GSW,True,9.5,REB,Isaiah Hartenstein,4,UNDER,OKC,,,,,,,
+2026-02-24,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.0,REB,Coby White,5,OVER,CHA,True,3.5,THREES,Donovan Mitchell,6,UNDER,CLE,,,,,,,
+2026-02-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Brandin Podziemski,1,OVER,GSW,True,24.5,PRA,Tari Eason,2,UNDER,HOU,,,,,,,
+2026-02-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,28.5,PTS,Jaylen Brown,3,UNDER,BOS,True,6.5,REB,Jaylon Tyson,4,OVER,CLE,,,,,,,
+2026-02-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Jaylin Williams,5,UNDER,OKC,True,11.5,REB,Jalen Duren,6,OVER,DET,,,,,,,
+2026-02-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Ace Bailey,1,OVER,UTA,True,20.5,PTS,Paolo Banchero,2,UNDER,ORL,,,,,,,
+2026-02-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PRA,Toumani Camara,3,UNDER,POR,True,4.5,AST,Nolan Traore,4,UNDER,BKN,,,,,,,
+2026-02-26,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,8.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,4.5,REB,Kris Dunn,6,OVER,LAC,,,,,,,
+2026-02-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,10.25,PTS,Cason Wallace,1,UNDER,OKC,True,36.5,PRA,Jalen Brunson,2,OVER,NYK,,,,,,,
+2026-02-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,REB,Daniel Gafford,3,UNDER,DAL,True,9.5,PTS,Myles Turner,4,OVER,MIL,,,,,,,
+2026-02-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.25,REB,Evan Mobley,5,OVER,CLE,True,1.5,AST,Bruce Brown,6,UNDER,DEN,,,,,,,
+2026-02-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,31.5,PTS,Luka Dončić,1,OVER,LAL,True,27.5,PRA,Cody Williams,2,UNDER,UTA,,,,,,,
+2026-02-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,22.5,PTS,Brandon Miller,3,OVER,CHA,True,6.5,REB,Kel'el Ware,4,OVER,MIA,,,,,,,
+2026-02-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,AST,Brandon Ingram,5,OVER,TOR,True,8.5,REB,Kyle Filipowski,6,UNDER,UTA,,,,,,,
+2026-03-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,16.5,PTS,Josh Giddey,1,OVER,CHI,True,20.5,PRA,Payton Pritchard,2,UNDER,BOS,,,,,,,
+2026-03-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,9.5,PTS,Cason Wallace,3,UNDER,OKC,True,7.5,REB,Josh Hart,4,OVER,NYK,,,,,,,
+2026-03-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Bruce Brown,5,UNDER,DEN,True,7.5,REB,Evan Mobley,6,OVER,CLE,,,,,,,
+2026-03-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Payton Pritchard,1,OVER,BOS,True,15.5,PTS,Brandin Podziemski,2,OVER,GSW,,,,,,,
+2026-03-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,26.5,PRA,Kyle Filipowski,3,OVER,UTA,True,3.5,REB,Ryan Rollins,4,UNDER,MIL,,,,,,,
+2026-03-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,AST,Bub Carrington,5,OVER,WAS,True,4.0,REB,Jamal Murray,6,UNDER,DEN,,,,,,,
+2026-03-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,11.0,PTS,Jeremiah Fears,1,UNDER,NOP,True,14.5,PTS,Isaiah Joe,2,OVER,OKC,,,,,,,
+2026-03-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,44.5,PRA,Victor Wembanyama,3,OVER,SAS,True,1.5,AST,Cedric Coward,4,UNDER,MEM,,,,,,,
+2026-03-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,P.J. Washington,5,UNDER,DAL,True,10.5,REB,Jalen Duren,6,OVER,DET,,,,,,,
+2026-03-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,33.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,17.5,RA,Jalen Johnson,2,UNDER,ATL,,,,,,,
+2026-03-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,8.5,PTS,Cason Wallace,3,UNDER,OKC,True,6.25,AST,Ryan Rollins,4,OVER,MIL,,,,,,,
+2026-03-04,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,6.5,REB,Nikola Vučević,5,UNDER,BOS,False,5.5,REB,Jarace Walker,6,OVER,IND,,,,,,,
+2026-03-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Devin Booker,1,OVER,PHX,True,48.5,PRA,Luka Dončić,2,UNDER,LAL,,,,,,,
+2026-03-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PTS,Brandin Podziemski,3,OVER,GSW,True,8.5,REB,Kyle Filipowski,4,OVER,UTA,,,,,,,
+2026-03-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Zion Williamson,5,OVER,NOP,True,5.5,REB,P.J. Washington,6,UNDER,DAL,,,,,,,
+2026-03-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,Cooper Flagg,1,UNDER,DAL,True,33.5,PTS,Luka Dončić,2,OVER,LAL,,,,,,,
+2026-03-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PRA,Oso Ighodaro,3,UNDER,PHX,True,4.5,REB,Christian Braun,4,UNDER,DEN,,,,,,,
+2026-03-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Moussa Diabaté,5,OVER,CHA,True,2.5,AST,Victor Wembanyama,6,UNDER,SAS,,,,,,,
+2026-03-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.5,PTS,Jalen Johnson,1,OVER,ATL,True,32.5,PRA,Ryan Rollins,2,UNDER,MIL,,,,,,,
+2026-03-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,5.5,REB,Isaiah Stewart,3,UNDER,DET,True,7.0,PTS,Tristan da Silva,4,OVER,ORL,,,,,,,
+2026-03-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Cedric Coward,5,UNDER,MEM,True,4.5,AST,Jaylin Williams,6,UNDER,OKC,,,,,,,
+2026-03-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.0,PTS,Cooper Flagg,1,UNDER,DAL,True,49.5,PRA,Luka Dončić,2,UNDER,LAL,,,,,,,
+2026-03-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PTS,Ryan Rollins,3,UNDER,MIL,True,10.5,REB,Jalen Duren,4,UNDER,DET,,,,,,,
+2026-03-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,1.5,AST,Alex Sarr,5,UNDER,WAS,True,5.5,REB,Jarace Walker,6,UNDER,IND,,,,,,,
+2026-03-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Jamal Murray,1,UNDER,DEN,True,30.5,PRA,Brandin Podziemski,2,UNDER,GSW,,,,,,,
+2026-03-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,12.5,PTS,Nolan Traore,3,OVER,BKN,True,4.5,REB,Isaiah Joe,4,UNDER,OKC,,,,,,,
+2026-03-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,AST,Cam Spencer,5,OVER,MEM,True,9.5,REB,Evan Mobley,6,UNDER,CLE,,,,,,,
+2026-03-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,14.5,PTS,Reed Sheppard,1,UNDER,HOU,True,19.5,PTS,VJ Edgecombe,2,OVER,PHI,,,,,,,
+2026-03-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,18.5,RA,Jalen Johnson,3,UNDER,ATL,True,2.5,REB,Khris Middleton,4,UNDER,DAL,,,,,,,
+2026-03-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,11.5,REB,Bam Adebayo,5,UNDER,MIA,True,1.5,AST,Precious Achiuwa,6,UNDER,SAC,,,,,,,
+2026-03-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,11.5,PTS,Isaiah Collier,1,UNDER,UTA,True,31.5,PRA,Evan Mobley,2,OVER,CLE,,,,,,,
+2026-03-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,14.5,PTS,Reed Sheppard,3,UNDER,HOU,True,4.5,AST,Nique Clifford,4,OVER,SAC,,,,,,,
+2026-03-11,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,REB,Anthony Edwards,5,UNDER,MIN,True,4.5,REB,Mikal Bridges,6,OVER,NYK,,,,,,,
+2026-03-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Josh Giddey,1,OVER,CHI,True,27.5,PTS,Jaylen Brown,2,OVER,BOS,,,,,,,
+2026-03-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,20.5,PRA,Ryan Rollins,3,OVER,MIL,True,7.5,AST,Javon Small,4,OVER,MEM,,,,,,,
+2026-03-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,THREES,Collin Gillespie,5,UNDER,PHX,True,2.5,REB,Bub Carrington,6,OVER,WAS,,,,,,,
+2026-03-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Brice Sensabaugh,1,OVER,UTA,True,11.5,PTS,Andrew Nembhard,2,UNDER,IND,,,,,,,
+2026-03-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PRA,Khris Middleton,3,UNDER,DAL,True,10.5,REB,Jalen Duren,4,OVER,DET,,,,,,,
+2026-03-13,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,AST,Amen Thompson,5,OVER,HOU,True,11.5,REB,Mitchell Robinson,6,OVER,NYK,,,,,,,
+2026-03-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Bam Adebayo,1,UNDER,MIA,True,31.5,PTS,Luka Dončić,2,UNDER,LAL,,,,,,,
+2026-03-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,13.5,PRA,Baylor Scheierman,3,OVER,BOS,True,6.5,REB,Precious Achiuwa,4,OVER,SAC,,,,,,,
+2026-03-14,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.25,AST,VJ Edgecombe,5,OVER,PHI,True,6.5,AST,De'Aaron Fox,6,UNDER,SAS,,,,,,,
+2026-03-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,27.5,PRA,Nique Clifford,1,UNDER,SAC,True,19.5,PTS,VJ Edgecombe,2,UNDER,PHI,,,,,,,
+2026-03-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,True,6.5,PTS,Isaiah Joe,3,OVER,OKC,False,11.5,REB,Jalen Duren,4,OVER,DET,,,,,,,
+2026-03-15,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.25,AST,Brandin Podziemski,5,OVER,GSW,True,9.5,REB,Evan Mobley,6,OVER,CLE,,,,,,,
+2026-03-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,22.5,PTS,Deni Avdija,1,UNDER,POR,True,28.5,PRA,Desmond Bane,2,UNDER,ORL,,,,,,,
+2026-03-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,27.5,PTS,Kevin Durant,3,OVER,HOU,True,4.5,REB,Baylor Scheierman,4,OVER,BOS,,,,,,,
+2026-03-16,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Victor Wembanyama,5,UNDER,SAS,True,8.5,REB,Jalen Smith,6,UNDER,CHI,,,,,,,
+2026-03-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,27.0,PTS,Nikola Jokić,1,UNDER,DEN,True,15.5,PTS,Ayo Dosunmu,2,OVER,MIN,,,,,,,
+2026-03-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.0,PRA,Kel'el Ware,3,OVER,MIA,True,4.5,AST,Ryan Rollins,4,UNDER,MIL,,,,,,,
+2026-03-17,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.0,REB,Precious Achiuwa,5,UNDER,SAC,True,11.5,REB,Jalen Duren,6,OVER,DET,,,,,,,
+2026-03-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,12.5,PTS,Brandin Podziemski,1,UNDER,GSW,False,48.5,PRA,Nikola Jokić,2,UNDER,DEN,,,,,,,
+2026-03-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PTS,Deni Avdija,3,OVER,POR,True,12.75,REB,Rudy Gobert,4,UNDER,MIN,,,,,,,
+2026-03-18,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Josh Giddey,5,UNDER,CHI,True,3.5,AST,Nolan Traore,6,OVER,BKN,,,,,,,
+2026-03-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PTS,Evan Mobley,1,OVER,CLE,True,20.5,PTS,VJ Edgecombe,2,OVER,PHI,,,,,,,
+2026-03-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,32.5,PRA,Ryan Rollins,3,UNDER,MIL,True,5.5,AST,Kris Dunn,4,UNDER,LAC,,,,,,,
+2026-03-19,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,6.5,REB,Ausar Thompson,5,OVER,DET,False,9.5,REB,Moussa Diabaté,6,OVER,CHA,,,,,,,
+2026-03-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,11.5,PTS,Cameron Johnson,1,UNDER,DEN,True,23.5,PRA,Jaden McDaniels,2,OVER,MIN,,,,,,,
+2026-03-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,4.5,REB,Baylor Scheierman,3,UNDER,BOS,True,17.5,PTS,Nickeil Alexander-Walker,4,OVER,ATL,,,,,,,
+2026-03-20,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Amen Thompson,5,UNDER,HOU,True,6.5,AST,Daniss Jenkins,6,OVER,DET,,,,,,,
+2026-03-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,False,32.5,PTS,Luka Dončić,1,UNDER,LAL,True,31.5,PRA,Quentin Grimes,2,OVER,PHI,,,,,,,
+2026-03-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,26.5,PTS,Kevin Durant,3,OVER,HOU,True,7.5,REB,Oso Ighodaro,4,UNDER,PHX,,,,,,,
+2026-03-21,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Moussa Diabaté,5,OVER,CHA,True,4.5,AST,Nickeil Alexander-Walker,6,UNDER,ATL,,,,,,,
+2026-03-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,23.5,PRA,Nique Clifford,1,UNDER,SAC,True,10.5,PTS,Cameron Johnson,2,OVER,DEN,,,,,,,
+2026-03-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,6.5,AST,Jalen Brunson,3,UNDER,NYK,True,7.5,PTS,Sandro Mamukelashvili,4,UNDER,TOR,,,,,,,
+2026-03-22,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,REB,Baylor Scheierman,5,UNDER,BOS,True,10.5,REB,Rudy Gobert,6,OVER,MIN,,,,,,,
+2026-03-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,VJ Edgecombe,1,OVER,PHI,True,21.5,PTS,Bam Adebayo,2,UNDER,MIA,,,,,,,
+2026-03-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,40.5,PRA,Paolo Banchero,3,OVER,ORL,True,8.5,REB,Scottie Barnes,4,UNDER,TOR,,,,,,,
+2026-03-23,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Nickeil Alexander-Walker,5,OVER,ATL,True,7.5,REB,Amen Thompson,6,UNDER,HOU,,,,,,,
+2026-03-24,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,16.5,PTS,Maxime Raynaud,1,UNDER,SAC,True,12.5,PRA,Jeremiah Fears,2,OVER,NOP,,,,,,,
+2026-03-24,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,11.5,PTS,Cameron Johnson,3,OVER,DEN,True,2.0,AST,Sam Merrill,4,UNDER,CLE,,,,,,,
+2026-03-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Ryan Rollins,1,OVER,MIL,True,24.5,PRA,Will Riley,2,OVER,WAS,,,,,,,
+2026-03-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,21.5,PTS,Bam Adebayo,3,UNDER,MIA,True,1.5,AST,Cason Wallace,4,UNDER,OKC,,,,,,,
+2026-03-25,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,False,6.5,REB,Kawhi Leonard,5,OVER,LAC,True,7.5,AST,Daniss Jenkins,6,OVER,DET,,,,,,,
+2026-03-26,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,15.5,PTS,Maxime Raynaud,1,UNDER,SAC,True,10.5,REB,Karl-Anthony Towns,2,UNDER,NYK,,,,,,,
+2026-03-26,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,14.5,PRA,Jeremiah Fears,3,OVER,NOP,True,10.5,PTS,Tristan da Silva,4,OVER,ORL,,,,,,,
+2026-03-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,18.5,PTS,Payton Pritchard,1,OVER,BOS,True,20.5,PTS,Bam Adebayo,2,UNDER,MIA,,,,,,,
+2026-03-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,True,33.5,PRA,Josh Giddey,3,UNDER,CHI,False,7.5,REB,Amen Thompson,4,UNDER,HOU,,,,,,,
+2026-03-27,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Brandin Podziemski,5,OVER,GSW,True,5.75,AST,Cooper Flagg,6,UNDER,DAL,,,,,,,
+2026-03-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,20.5,PRA,Cody Williams,1,UNDER,UTA,True,24.5,PTS,Tyrese Maxey,2,OVER,PHI,,,,,,,
+2026-03-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,22.25,PTS,Ryan Rollins,3,UNDER,MIL,True,10.5,REB,Jalen Duren,4,OVER,DET,,,,,,,
+2026-03-28,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,9.5,REB,Josh Giddey,5,OVER,CHI,True,4.5,AST,DeMar DeRozan,6,UNDER,SAC,,,,,,,
+2026-03-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,19.5,PTS,Payton Pritchard,1,OVER,BOS,True,24.5,PTS,Jamal Murray,2,UNDER,DEN,,,,,,,
+2026-03-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PRA,Nique Clifford,3,OVER,SAC,True,4.5,REB,Derik Queen,4,UNDER,NOP,,,,,,,
+2026-03-29,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,AST,Jamal Shead,5,OVER,TOR,True,8.5,AST,Andrew Nembhard,6,OVER,IND,,,,,,,
+2026-03-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,26.5,PTS,Anthony Edwards,1,UNDER,MIN,True,42.5,PRA,Victor Wembanyama,2,OVER,SAS,,,,,,,
+2026-03-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.5,PTS,Devin Booker,3,OVER,PHX,True,5.5,AST,Bub Carrington,4,OVER,WAS,,,,,,,
+2026-03-30,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,REB,James Harden,5,OVER,CLE,True,7.5,REB,Jaylen Brown,6,OVER,BOS,,,,,,,
+2026-03-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,21.5,PTS,Ryan Rollins,1,OVER,MIL,True,39.5,PRA,Deni Avdija,2,OVER,POR,,,,,,,
+2026-03-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,25.5,PTS,Donovan Mitchell,3,UNDER,CLE,True,3.5,AST,Collin Gillespie,4,UNDER,PHX,,,,,,,
+2026-03-31,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,False,True,9.5,REB,Moussa Diabaté,5,OVER,CHA,False,10.5,REB,Karl-Anthony Towns,6,OVER,NYK,,,,,,,
+2026-04-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,25.5,PRA,OG Anunoby,2,OVER,NYK,,,,,,,
+2026-04-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,15.5,PTS,Payton Pritchard,3,UNDER,BOS,True,3.5,REB,Collin Sexton,4,UNDER,CHI,,,,,,,
+2026-04-01,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Pat Spencer,5,OVER,GSW,True,1.5,AST,Sandro Mamukelashvili,6,OVER,TOR,,,,,,,
+2026-04-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,31.5,PTS,Luka Dončić,1,UNDER,LAL,True,18.5,PTS,De'Aaron Fox,2,OVER,SAS,,,,,,,
+2026-04-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,41.5,PRA,Deni Avdija,3,UNDER,POR,True,4.5,REB,Ayo Dosunmu,4,OVER,MIN,,,,,,,
+2026-04-02,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,3.5,AST,Collin Gillespie,5,UNDER,PHX,True,8.5,REB,Isaiah Hartenstein,6,UNDER,OKC,,,,,,,
+2026-04-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Cooper Flagg,1,OVER,DAL,True,15.5,PRA,Quentin Grimes,2,UNDER,PHI,,,,,,,
+2026-04-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,25.5,PTS,Jaylen Brown,3,OVER,BOS,True,11.5,REB,Mitchell Robinson,4,UNDER,NYK,,,,,,,
+2026-04-03,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,4.5,AST,Nique Clifford,5,OVER,SAC,True,8.5,REB,Ryan Kalkbrenner,6,UNDER,CHA,,,,,,,
+2026-04-04,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,24.5,PTS,Jamal Murray,1,UNDER,DEN,True,27.0,PRA,Will Riley,2,OVER,WAS,,,,,,,
+2026-04-04,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,18.5,PTS,Andrew Wiggins,3,OVER,MIA,True,11.5,REB,Jalen Duren,4,UNDER,DET,,,,,,,
+2026-04-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,37.5,PRA,Jaylen Brown,1,UNDER,BOS,True,12.5,PTS,Jake LaRavia,2,OVER,LAL,,,,,,,
+2026-04-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,22.5,PTS,Ryan Rollins,3,UNDER,MIL,True,8.25,REB,Isaiah Hartenstein,4,UNDER,OKC,,,,,,,
+2026-04-05,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,2.5,AST,Gui Santos,5,UNDER,GSW,True,3.5,REB,Keon Ellis,6,OVER,CLE,,,,,,,
+2026-04-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,False,True,21.5,PTS,Evan Mobley,1,OVER,CLE,False,25.5,PRA,Nickeil Alexander-Walker,2,UNDER,ATL,,,,,,,
+2026-04-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,23.5,PTS,Paolo Banchero,3,OVER,ORL,True,11.0,AST,Nikola Jokić,4,OVER,DEN,,,,,,,
+2026-04-06,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,10.5,REB,Jalen Duren,5,UNDER,DET,True,0.5,AST,Dominick Barlow,6,UNDER,PHI,,,,,,,
+2026-04-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,10.5,PTS,Pelle Larsson,1,UNDER,MIA,True,14.5,PTS,AJ Green,2,OVER,MIL,,,,,,,
+2026-04-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,26.5,PRA,Jarace Walker,3,UNDER,IND,True,6.5,REB,Precious Achiuwa,4,UNDER,SAC,,,,,,,
+2026-04-07,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,8.5,REB,Derik Queen,5,OVER,NOP,True,5.5,AST,Luke Kennard,6,OVER,LAL,,,,,,,
+2026-04-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,15.5,PTS,Cade Cunningham,2,UNDER,DET,,,,,,,
+2026-04-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,False,17.5,PRA,Toumani Camara,3,UNDER,POR,True,5.5,AST,Shai Gilgeous-Alexander,4,OVER,OKC,,,,,,,
+2026-04-08,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,9.5,REB,Jalen Duren,5,UNDER,DET,True,5.5,AST,Kyle Anderson,6,UNDER,MIN,,,,,,,
+2026-04-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,11.5,PTS,Jake LaRavia,1,OVER,LAL,True,17.5,PRA,Pelle Larsson,2,UNDER,MIA,,,,,,,
+2026-04-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,22.5,PTS,Collin Sexton,3,OVER,CHI,True,5.5,REB,Jay Huff,4,OVER,IND,,,,,,,
+2026-04-09,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,5.5,AST,Jamal Shead,5,UNDER,TOR,True,10.5,REB,Karl-Anthony Towns,6,OVER,NYK,,,,,,,
+2026-04-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,25.5,PTS,Cooper Flagg,1,OVER,DAL,True,22.0,PTS,Ace Bailey,2,OVER,UTA,,,,,,,
+2026-04-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,True,True,27.0,PRA,Payton Pritchard,3,OVER,BOS,True,9.5,REB,Jalen Duren,4,UNDER,DET,,,,,,,
+2026-04-10,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,7.5,REB,Scottie Barnes,5,UNDER,TOR,True,5.5,AST,Collin Gillespie,6,UNDER,PHX,,,,,,,
+2026-04-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,1,True,True,17.5,PTS,AJ Green,1,OVER,MIL,True,10.75,PTS,Brandin Podziemski,2,UNDER,GSW,,,,,,,
+2026-04-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,2,False,True,37.5,PRA,Bam Adebayo,3,OVER,MIA,False,7.5,REB,Scottie Barnes,4,UNDER,TOR,,,,,,,
+2026-04-12,rank_pair_cards_all_but_odd_v1,2,6,6,0,3,True,True,6.5,REB,Baylor Scheierman,5,OVER,BOS,True,7.5,AST,Nikola Jokić,6,UNDER,DEN,,,,,,,
+2026-04-14,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,9.5,PTS,Pelle Larsson,1,UNDER,MIA,True,9.5,PTS,Shaedon Sharpe,2,OVER,POR,,,,,,,
+2026-04-14,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,10.5,REB,Moussa Diabaté,3,OVER,CHA,True,26.5,PRA,Jalen Green,4,OVER,PHX,,,,,,,
+2026-04-15,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,29.5,PTS,Tyrese Maxey,1,OVER,PHI,True,29.5,PTS,Kawhi Leonard,2,UNDER,LAC,,,,,,,
+2026-04-17,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,23.5,PTS,Paolo Banchero,1,OVER,ORL,True,6.5,REB,Oso Ighodaro,2,UNDER,PHX,,,,,,,
+2026-04-17,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,True,True,2.5,PTS,Sion James,3,OVER,CHA,True,35.5,PRA,Stephen Curry,4,UNDER,GSW,,,,,,,
+2026-04-18,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,True,True,15.5,PTS,Reed Sheppard,1,OVER,HOU,True,17.5,PRA,Ayo Dosunmu,2,UNDER,MIN,,,,,,,
+2026-04-18,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,True,True,21.5,PTS,Jalen Johnson,3,OVER,ATL,True,1.5,AST,Collin Murray-Boyles,4,OVER,TOR,,,,,,,
+2026-04-19,rank_pair_cards_all_but_odd_v1,2,5,4,1,1,False,True,8.5,PTS,Dylan Harper,1,UNDER,SAS,False,20.5,PRA,Payton Pritchard,2,UNDER,BOS,,,,,,,
+2026-04-19,rank_pair_cards_all_but_odd_v1,2,5,4,1,2,False,True,4.5,PTS,Tristan da Silva,3,OVER,ORL,False,5.5,AST,Devin Booker,4,OVER,PHX,,,,,,,
+2026-04-20,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,12.5,PTS,Cameron Johnson,1,OVER,DEN,True,33.5,PRA,Scottie Barnes,2,OVER,TOR,,,,,,,
+2026-04-20,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,False,False,21.5,PTS,Jalen Johnson,3,OVER,ATL,True,4.5,REB,James Harden,4,OVER,CLE,,,,,,,
+2026-04-21,rank_pair_cards_all_but_odd_v1,2,4,4,0,1,True,True,23.5,PTS,Deni Avdija,1,UNDER,POR,True,19.5,PRA,Marcus Smart,2,OVER,LAL,,,,,,,
+2026-04-21,rank_pair_cards_all_but_odd_v1,2,4,4,0,2,False,False,8.5,PTS,Dylan Harper,3,UNDER,SAS,True,6.5,REB,Jaylen Brown,4,OVER,BOS,,,,,,,
+2026-04-22,rank_pair_cards_all_but_odd_v1,2,3,2,1,1,True,True,43.5,PRA,Cade Cunningham,1,OVER,DET,True,23.5,PTS,Devin Booker,2,UNDER,PHX,,,,,,,
+2025-10-30,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,33.5,PTS,Shai Gilgeous-Alexander,1,UNDER,OKC,True,36.5,PRA,LaMelo Ball,2,OVER,CHA,True,7.75,REB,Kel'el Ware,3,UNDER,MIA
+2025-10-31,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,17.5,PTS,VJ Edgecombe,1,UNDER,PHI,True,17.5,PTS,Scottie Barnes,2,UNDER,TOR,True,22.5,PRA,Toumani Camara,3,UNDER,POR
+2025-11-01,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,15.5,PTS,CJ McCollum,1,UNDER,WAS,True,31.5,PRA,Payton Pritchard,2,UNDER,BOS,True,0.5,AST,Nique Clifford,3,UNDER,SAC
+2025-11-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,7.5,PTS,Saddiq Bey,1,UNDER,NOP,True,28.5,PRA,Nickeil Alexander-Walker,2,UNDER,ATL,True,28.0,PTS,Victor Wembanyama,3,UNDER,SAS
+2025-11-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,AST,Davion Mitchell,4,OVER,MIA,True,2.5,REB,Tre Jones,5,UNDER,CHI,True,0.5,THREES,Scottie Barnes,6,OVER,TOR
+2025-11-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,27.5,PRA,Payton Pritchard,1,UNDER,BOS,True,19.5,PTS,Shaedon Sharpe,2,OVER,POR,True,27.0,PTS,Cade Cunningham,3,OVER,DET
+2025-11-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,12.5,REB,Karl-Anthony Towns,4,OVER,NYK,True,5.25,AST,Ryan Rollins,5,OVER,MIL,True,2.5,REB,Nique Clifford,6,UNDER,SAC
+2025-11-04,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,15.5,PTS,VJ Edgecombe,1,UNDER,PHI,True,15.5,PRA,Grayson Allen,2,OVER,PHX,True,8.5,REB,Isaiah Hartenstein,3,UNDER,OKC
+2025-11-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Cooper Flagg,1,OVER,DAL,True,28.5,PRA,Mikal Bridges,2,UNDER,NYK,True,35.5,PTS,Luka Dončić,3,UNDER,LAL
+2025-11-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,VJ Edgecombe,4,UNDER,PHI,True,2.5,AST,Pelle Larsson,5,OVER,MIA,True,6.5,AST,Pascal Siakam,6,OVER,IND
+2025-11-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,26.5,PTS,Anthony Edwards,1,OVER,MIN,True,31.5,PRA,Josh Giddey,2,OVER,CHI,True,18.5,PTS,Scottie Barnes,3,UNDER,TOR
+2025-11-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,11.5,REB,Victor Wembanyama,4,UNDER,SAS,True,1.5,AST,Nique Clifford,5,OVER,SAC,True,9.5,AST,Cade Cunningham,6,OVER,DET
+2025-11-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.5,PTS,Scottie Barnes,1,UNDER,TOR,True,37.5,PRA,Evan Mobley,2,UNDER,CLE,True,10.5,PTS,Harrison Barnes,3,OVER,SAS
+2025-11-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.25,AST,Luka Dončić,4,OVER,LAL,True,10.5,REB,Kel'el Ware,5,OVER,MIA,True,6.5,AST,Devin Booker,6,OVER,PHX
+2025-11-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,13.5,PTS,Russell Westbrook,1,UNDER,SAC,True,30.5,PRA,Ryan Rollins,2,UNDER,MIL,True,16.5,PTS,Derrick White,3,OVER,BOS
+2025-11-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,AST,Cade Cunningham,4,OVER,DET,True,3.5,REB,Mikal Bridges,5,UNDER,NYK,True,2.5,AST,Isaiah Hartenstein,6,UNDER,OKC
+2025-11-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Desmond Bane,1,OVER,ORL,True,9.5,RA,Devin Booker,2,UNDER,PHX,True,6.5,PTS,Isaiah Collier,3,UNDER,UTA
+2025-11-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Nikola Vučević,4,UNDER,CHI,True,7.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,5.5,AST,De'Aaron Fox,6,UNDER,SAS
+2025-11-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,25.5,PTS,Pascal Siakam,1,OVER,IND,False,27.5,PRA,RJ Barrett,2,OVER,TOR,True,11.5,PTS,Russell Westbrook,3,OVER,SAC
+2025-11-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Isaiah Hartenstein,4,UNDER,OKC,True,3.5,AST,VJ Edgecombe,5,UNDER,PHI,True,4.25,REB,Mikal Bridges,6,OVER,NYK
+2025-11-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,31.5,PTS,Luka Dončić,1,UNDER,LAL,True,9.5,RA,Jrue Holiday,2,OVER,POR,True,6.5,AST,Stephon Castle,3,OVER,SAS
+2025-11-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,16.5,PTS,Myles Turner,4,OVER,MIL,True,10.5,REB,Nikola Vučević,5,UNDER,CHI,True,2.5,THREES,James Harden,6,UNDER,LAC
+2025-11-13,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,False,False,26.5,PTS,Donovan Mitchell,1,UNDER,CLE,True,32.5,PRA,Isaiah Collier,2,UNDER,UTA,True,16.5,PTS,Andrew Nembhard,3,OVER,IND
+2025-11-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,7.5,PTS,Jake LaRavia,1,UNDER,LAL,True,9.5,RA,Jrue Holiday,2,OVER,POR,True,20.5,PTS,LaMelo Ball,3,UNDER,CHA
+2025-11-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,7.5,AST,Stephon Castle,4,UNDER,SAS,False,1.5,THREES,Andrew Wiggins,5,OVER,MIA,True,6.5,AST,Daniss Jenkins,6,OVER,DET
+2025-11-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Miles Bridges,1,UNDER,CHA,True,27.5,PTS,Nikola Jokić,2,UNDER,DEN,True,51.5,PRA,Luka Dončić,3,OVER,LAL
+2025-11-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,2.5,AST,Cedric Coward,4,UNDER,MEM,True,0.5,THREES,Scottie Barnes,5,UNDER,TOR,True,1.5,THREES,Myles Turner,6,UNDER,MIL
+2025-11-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,12.5,RA,James Harden,1,OVER,LAC,True,15.5,PTS,P.J. Washington,2,OVER,DAL,True,8.5,PTS,Vít Krejčí,3,UNDER,ATL
+2025-11-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,2.5,REB,Coby White,4,OVER,CHI,False,9.5,REB,Alperen Sengun,5,UNDER,HOU,True,0.5,THREES,Bilal Coulibaly,6,UNDER,WAS
+2025-11-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,27.5,PTS,Karl-Anthony Towns,1,OVER,NYK,True,49.5,PRA,Nikola Jokić,2,OVER,DEN,True,7.5,PTS,Moussa Diabaté,3,OVER,CHA
+2025-11-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Isaiah Stewart,4,UNDER,DET,True,7.5,REB,Josh Giddey,5,OVER,CHI,True,2.5,THREES,James Harden,6,UNDER,LAC
+2025-11-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Cade Cunningham,1,OVER,DET,True,8.5,PTS,Isaiah Collier,2,OVER,UTA,True,13.5,PRA,Harrison Barnes,3,OVER,SAS
+2025-11-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,2.5,AST,Marcus Smart,4,UNDER,LAL,True,1.5,THREES,Devin Booker,5,UNDER,PHX,True,4.25,REB,Payton Pritchard,6,OVER,BOS
+2025-11-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,28.5,PTS,Nikola Jokić,1,UNDER,DEN,True,23.5,PRA,Evan Mobley,2,OVER,CLE,True,8.5,REB,Josh Giddey,3,UNDER,CHI
+2025-11-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,17.5,PTS,Kon Knueppel,4,OVER,CHA,True,4.5,REB,Gui Santos,5,OVER,GSW,True,3.5,AST,VJ Edgecombe,6,OVER,PHI
+2025-11-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,8.5,RA,Russell Westbrook,1,OVER,SAC,True,19.5,PTS,Ryan Rollins,2,OVER,MIL,True,7.5,PTS,Vít Krejčí,3,UNDER,ATL
+2025-11-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,James Harden,4,UNDER,LAC,True,4.5,AST,Cam Spencer,5,OVER,MEM,True,8.5,REB,Bobby Portis,6,UNDER,MIL
+2025-11-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,16.5,PTS,P.J. Washington,1,OVER,DAL,True,50.5,PRA,Nikola Jokić,2,OVER,DEN,True,21.5,PTS,Bam Adebayo,3,UNDER,MIA
+2025-11-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Tristan Vukcevic,4,UNDER,WAS,True,9.5,REB,Alperen Sengun,5,UNDER,HOU,True,3.5,AST,T.J. McConnell,6,OVER,IND
+2025-11-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,16.5,PTS,P.J. Washington,1,OVER,DAL,True,26.5,PRA,Cade Cunningham,2,OVER,DET,True,18.5,PTS,Miles Bridges,3,OVER,CHA
+2025-11-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,11.5,REB,Karl-Anthony Towns,4,UNDER,NYK,True,8.5,REB,Bobby Portis,5,UNDER,MIL,True,3.5,AST,Bub Carrington,6,OVER,WAS
+2025-11-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,25.5,PRA,Desmond Bane,1,OVER,ORL,True,19.5,PTS,Kon Knueppel,2,OVER,CHA,True,9.5,REB,Kel'el Ware,3,OVER,MIA
+2025-11-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,1.5,AST,Marcus Smart,4,UNDER,LAL,True,18.5,PTS,Scottie Barnes,5,UNDER,TOR,True,4.5,REB,James Harden,6,UNDER,LAC
+2025-11-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,10.5,PTS,Duncan Robinson,1,UNDER,DET,False,48.5,PRA,Nikola Jokić,2,OVER,DEN,True,16.5,PTS,P.J. Washington,3,OVER,DAL
+2025-11-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,8.5,REB,Jalen Smith,4,UNDER,CHI,True,9.5,REB,Alperen Sengun,5,UNDER,HOU,False,3.5,AST,Brandon Ingram,6,OVER,TOR
+2025-11-25,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,18.5,PTS,Nickeil Alexander-Walker,1,UNDER,ATL,True,20.5,PTS,Kawhi Leonard,2,UNDER,LAC,True,15.5,PRA,Anthony Black,3,OVER,ORL
+2025-11-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.5,PTS,Miles Bridges,1,UNDER,CHA,True,19.5,PTS,Shaedon Sharpe,2,UNDER,POR,True,20.5,PRA,Ryan Rollins,3,OVER,MIL
+2025-11-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,11.5,REB,Karl-Anthony Towns,4,UNDER,NYK,True,2.5,AST,Pelle Larsson,5,OVER,MIA,True,11.5,REB,Alperen Sengun,6,UNDER,HOU
+2025-11-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,16.5,PTS,Kon Knueppel,1,UNDER,CHA,True,18.5,PTS,CJ McCollum,2,UNDER,WAS,False,27.5,PRA,Ryan Rollins,3,OVER,MIL
+2025-11-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Jaylon Tyson,4,UNDER,CLE,True,5.5,REB,P.J. Washington,5,OVER,DAL,True,7.5,AST,T.J. McConnell,6,OVER,IND
+2025-11-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,16.0,PTS,Ryan Rollins,1,UNDER,MIL,True,13.5,PTS,Collin Gillespie,2,UNDER,PHX,True,42.5,PRA,Cade Cunningham,3,UNDER,DET
+2025-11-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Kel'el Ware,4,UNDER,MIA,True,3.5,REB,Derrick White,5,UNDER,BOS,True,1.5,THREES,Cameron Johnson,6,OVER,DEN
+2025-11-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,14.5,PTS,Reed Sheppard,1,UNDER,HOU,True,4.5,REB,VJ Edgecombe,2,UNDER,PHI,True,35.5,PRA,Donovan Mitchell,3,UNDER,CLE
+2025-11-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,17.5,PTS,Saddiq Bey,4,OVER,NOP,True,4.0,REB,Baylor Scheierman,5,UNDER,BOS,True,4.5,AST,DeMar DeRozan,6,UNDER,SAC
+2025-12-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,14.5,PTS,Cameron Johnson,1,UNDER,DEN,True,16.5,PTS,Andrew Nembhard,2,OVER,IND,True,23.5,PRA,Nickeil Alexander-Walker,3,OVER,ATL
+2025-12-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Kel'el Ware,4,OVER,MIA,True,8.5,REB,Josh Giddey,5,OVER,CHI,True,3.5,AST,Kevin Durant,6,OVER,HOU
+2025-12-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,31.5,PRA,Brandon Ingram,1,UNDER,TOR,True,32.5,PTS,Tyrese Maxey,2,OVER,PHI,True,16.5,PTS,Payton Pritchard,3,UNDER,BOS
+2025-12-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Saddiq Bey,4,UNDER,NOP,True,1.5,AST,Harrison Barnes,5,OVER,SAS,True,6.5,REB,Deni Avdija,6,OVER,POR
+2025-12-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Kawhi Leonard,1,UNDER,LAC,True,15.5,PTS,Devin Vassell,2,UNDER,SAS,True,28.25,PRA,Bennedict Mathurin,3,UNDER,IND
+2025-12-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,12.5,REB,Karl-Anthony Towns,4,OVER,NYK,True,10.5,REB,Evan Mobley,5,UNDER,CLE,True,1.5,AST,AJ Green,6,UNDER,MIL
+2025-12-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,29.5,PTS,Anthony Edwards,1,UNDER,MIN,True,17.5,PTS,Noah Clowney,2,OVER,BKN,True,6.0,AST,Payton Pritchard,3,OVER,BOS
+2025-12-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,25.5,PRA,Brandin Podziemski,4,UNDER,GSW,True,8.5,REB,Kyle Filipowski,5,UNDER,UTA,True,3.5,AST,Brandon Ingram,6,OVER,TOR
+2025-12-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,37.5,PRA,Donovan Mitchell,1,OVER,CLE,True,14.5,PTS,Collin Gillespie,2,UNDER,PHX,True,20.5,PTS,Desmond Bane,3,UNDER,ORL
+2025-12-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.75,REB,Onyeka Okongwu,4,UNDER,ATL,True,8.5,REB,Neemias Queta,5,UNDER,BOS,True,1.5,AST,Duncan Robinson,6,UNDER,DET
+2025-12-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,34.5,PRA,Donovan Mitchell,1,OVER,CLE,True,10.5,PTS,Duncan Robinson,2,UNDER,DET,True,23.5,PTS,Kawhi Leonard,3,UNDER,LAC
+2025-12-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,1.5,THREES,Will Riley,4,UNDER,WAS,True,3.5,REB,Gui Santos,5,UNDER,GSW,True,1.5,AST,P.J. Washington,6,UNDER,DAL
+2025-12-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PRA,Quentin Grimes,1,OVER,PHI,True,14.5,PTS,Paolo Banchero,2,OVER,ORL,True,21.5,PTS,Brandon Miller,3,UNDER,CHA
+2025-12-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,AST,Ajay Mitchell,4,UNDER,OKC,True,2.5,REB,Coby White,5,UNDER,CHI,True,4.5,REB,Jerami Grant,6,OVER,POR
+2025-12-08,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,23.5,PTS,De'Aaron Fox,1,UNDER,SAS,True,18.5,PTS,Grayson Allen,2,UNDER,PHX,True,20.5,PRA,Jay Huff,3,UNDER,IND
+2025-12-09,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,31.5,PRA,Scottie Barnes,1,UNDER,TOR,True,21.5,PTS,Karl-Anthony Towns,2,UNDER,NYK,True,21.75,PTS,Desmond Bane,3,OVER,ORL
+2025-12-10,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,13.5,PTS,Devin Vassell,1,UNDER,SAS,True,14.5,PTS,Collin Gillespie,2,UNDER,PHX,True,22.5,PRA,Deandre Ayton,3,UNDER,LAL
+2025-12-11,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,24.5,PTS,Shaedon Sharpe,1,UNDER,POR,True,14.5,PRA,Nique Clifford,2,UNDER,SAC,True,18.5,PTS,Ryan Rollins,3,UNDER,MIL
+2025-12-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,12.5,RA,Josh Giddey,1,OVER,CHI,True,7.5,PTS,De'Anthony Melton,2,OVER,GSW,True,14.5,PTS,VJ Edgecombe,3,OVER,PHI
+2025-12-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,P.J. Washington,4,UNDER,DAL,True,2.0,THREES,Will Riley,5,UNDER,WAS,True,3.5,AST,Cam Spencer,6,OVER,MEM
+2025-12-13,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,7.5,PTS,Julian Champagnie,1,UNDER,SAS,True,34.5,PRA,Paolo Banchero,2,OVER,ORL,True,12.5,PTS,Josh Hart,3,UNDER,NYK
+2025-12-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,6.5,PTS,Isaac Okoro,1,UNDER,CHI,True,28.5,PRA,Ryan Rollins,2,UNDER,MIL,True,15.5,PTS,Grayson Allen,3,UNDER,PHX
+2025-12-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Jaylon Tyson,4,OVER,CLE,True,11.5,REB,Rudy Gobert,5,OVER,MIN,True,4.5,AST,VJ Edgecombe,6,UNDER,PHI
+2025-12-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,18.5,PTS,P.J. Washington,1,UNDER,DAL,True,34.5,PRA,Bam Adebayo,2,UNDER,MIA,True,26.5,PTS,Cade Cunningham,3,OVER,DET
+2025-12-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,AST,Cam Spencer,4,OVER,MEM,True,1.5,THREES,Cameron Johnson,5,OVER,DEN,True,4.5,REB,Ace Bailey,6,UNDER,UTA
+2025-12-17,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,6.5,RA,Jaylon Tyson,1,UNDER,CLE,True,11.5,REB,Rudy Gobert,2,OVER,MIN,True,5.5,PTS,Zach Collins,3,OVER,CHI
+2025-12-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,20.5,PTS,Victor Wembanyama,1,UNDER,SAS,True,27.5,PRA,Ryan Rollins,2,UNDER,MIL,True,18.5,PTS,Zion Williamson,3,UNDER,NOP
+2025-12-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Kel'el Ware,4,OVER,MIA,True,4.5,AST,T.J. McConnell,5,OVER,IND,True,3.5,REB,Devin Booker,6,UNDER,PHX
+2025-12-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,De'Aaron Fox,1,UNDER,SAS,True,16.5,PRA,Quentin Grimes,2,UNDER,PHI,True,25.5,PTS,Anthony Edwards,3,OVER,MIN
+2025-12-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Kel'el Ware,4,OVER,MIA,True,3.5,REB,Jalen Smith,5,OVER,CHI,True,6.5,AST,Jalen Brunson,6,OVER,NYK
+2025-12-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Desmond Bane,1,OVER,ORL,True,11.5,RA,Cade Cunningham,2,OVER,DET,True,14.5,PTS,Toumani Camara,3,OVER,POR
+2025-12-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,8.5,REB,Alperen Sengun,4,UNDER,HOU,True,6.5,AST,Cam Spencer,5,OVER,MEM,False,5.5,REB,Cooper Flagg,6,OVER,DAL
+2025-12-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,20.5,PTS,CJ McCollum,1,UNDER,WAS,True,27.5,PTS,Anthony Edwards,2,UNDER,MIN,True,20.5,PRA,Russell Westbrook,3,OVER,SAC
+2025-12-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,1.5,REB,Ayo Dosunmu,4,UNDER,CHI,True,7.5,REB,Mitchell Robinson,5,UNDER,NYK,True,3.5,AST,Brandon Ingram,6,UNDER,TOR
+2025-12-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,20.5,PTS,Cooper Flagg,1,UNDER,DAL,True,36.5,PRA,Donovan Mitchell,2,OVER,CLE,True,26.0,PTS,Shaedon Sharpe,3,UNDER,POR
+2025-12-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Neemias Queta,4,UNDER,BOS,True,5.5,REB,Shai Gilgeous-Alexander,5,OVER,OKC,True,2.5,AST,Brandin Podziemski,6,OVER,GSW
+2025-12-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,9.5,PTS,Ayo Dosunmu,1,UNDER,CHI,True,26.5,PTS,Karl-Anthony Towns,2,OVER,NYK,True,37.5,PRA,Kawhi Leonard,3,OVER,LAC
+2025-12-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Kyle Filipowski,4,OVER,UTA,True,8.5,REB,Victor Wembanyama,5,UNDER,SAS,True,3.5,AST,Bub Carrington,6,UNDER,WAS
+2025-12-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,54.0,PRA,Nikola Jokić,1,OVER,DEN,True,13.5,PTS,Devin Vassell,2,UNDER,SAS,True,20.5,PTS,Cooper Flagg,3,OVER,DAL
+2025-12-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Evan Mobley,4,OVER,CLE,True,6.5,REB,Amen Thompson,5,OVER,HOU,True,6.5,AST,Jalen Brunson,6,UNDER,NYK
+2025-12-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Kon Knueppel,1,UNDER,CHA,True,14.5,PTS,VJ Edgecombe,2,UNDER,PHI,True,39.5,PRA,Kawhi Leonard,3,OVER,LAC
+2025-12-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,AST,Cam Spencer,4,UNDER,MEM,True,8.5,REB,Neemias Queta,5,UNDER,BOS,True,1.5,THREES,Will Riley,6,UNDER,WAS
+2025-12-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,8.5,RA,Russell Westbrook,1,OVER,SAC,True,16.5,PTS,Nickeil Alexander-Walker,2,OVER,ATL,True,6.5,REB,Bobby Portis,3,OVER,MIL
+2025-12-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,15.5,PTS,Dylan Harper,4,UNDER,SAS,True,7.5,REB,Evan Mobley,5,UNDER,CLE,True,3.5,AST,Pelle Larsson,6,OVER,MIA
+2025-12-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,33.5,PRA,Deni Avdija,1,OVER,POR,True,13.5,PTS,RJ Barrett,2,UNDER,TOR,True,34.5,PTS,Luka Dončić,3,UNDER,LAL
+2025-12-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,VJ Edgecombe,4,UNDER,PHI,True,5.5,AST,Cam Spencer,5,OVER,MEM,True,4.5,REB,Brook Lopez,6,OVER,LAC
+2025-12-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,6.25,REB,Bobby Portis,1,UNDER,MIL,False,27.5,PTS,Devin Booker,2,OVER,PHX,True,37.5,PRA,Deni Avdija,3,OVER,POR
+2025-12-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,14.5,PTS,Evan Mobley,4,OVER,CLE,True,8.5,REB,Bam Adebayo,5,OVER,MIA,True,1.5,THREES,Gui Santos,6,UNDER,GSW
+2025-12-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,34.5,PTS,Luka Dončić,1,UNDER,LAL,True,9.5,RA,Quentin Grimes,2,UNDER,PHI,True,17.5,PTS,Payton Pritchard,3,OVER,BOS
+2025-12-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,AST,DeMar DeRozan,4,UNDER,SAC,True,5.5,AST,Cam Spencer,5,UNDER,MEM,True,5.5,REB,James Harden,6,UNDER,LAC
+2025-12-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,10.5,PTS,Kyle Kuzma,1,UNDER,MIL,True,35.5,PRA,Jalen Brunson,2,OVER,NYK,True,27.5,PTS,Jamal Murray,3,UNDER,DEN
+2025-12-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,12.5,REB,Moussa Diabaté,4,UNDER,CHA,True,4.5,AST,Ayo Dosunmu,5,OVER,CHI,True,7.5,REB,Onyeka Okongwu,6,OVER,ATL
+2026-01-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,34.5,PRA,Kawhi Leonard,1,OVER,LAC,True,19.5,PTS,Cooper Flagg,2,UNDER,DAL,True,8.5,REB,Neemias Queta,3,UNDER,BOS
+2026-01-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,14.25,PTS,Isaiah Collier,4,OVER,UTA,False,6.5,REB,Amen Thompson,5,OVER,HOU,True,10.5,AST,Cade Cunningham,6,OVER,DET
+2026-01-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,35.5,PTS,Luka Dončić,1,UNDER,LAL,True,15.5,PRA,Anthony Black,2,OVER,ORL,True,24.5,PTS,De'Aaron Fox,3,UNDER,SAS
+2026-01-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Gui Santos,4,OVER,GSW,True,5.5,REB,Bobby Portis,5,OVER,MIL,True,4.5,AST,Cam Spencer,6,OVER,MEM
+2026-01-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,28.5,PTS,Kawhi Leonard,1,UNDER,LAC,False,16.5,PRA,Quentin Grimes,2,UNDER,PHI,True,7.5,REB,Kyle Filipowski,3,UNDER,UTA
+2026-01-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,15.5,PTS,Ayo Dosunmu,4,OVER,CHI,False,4.5,AST,Kevin Durant,5,UNDER,HOU,True,6.5,REB,Julian Champagnie,6,OVER,SAS
+2026-01-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,51.5,PRA,Luka Dončić,1,OVER,LAL,False,5.5,REB,Bobby Portis,2,UNDER,MIL,True,14.5,PTS,Collin Gillespie,3,UNDER,PHX
+2026-01-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,12.5,REB,Rudy Gobert,4,OVER,MIN,True,17.5,PTS,Andrew Nembhard,5,OVER,IND,True,8.5,AST,Cam Spencer,6,OVER,MEM
+2026-01-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,35.5,PRA,Deni Avdija,1,OVER,POR,True,17.5,PTS,Brandon Miller,2,OVER,CHA,True,12.5,PTS,Collin Gillespie,3,UNDER,PHX
+2026-01-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Neemias Queta,4,OVER,BOS,True,2.5,AST,Peyton Watson,5,OVER,DEN,True,4.5,AST,Kris Dunn,6,OVER,LAC
+2026-01-06,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,11.0,PRA,Jake LaRavia,1,UNDER,LAL,True,19.5,PTS,Victor Wembanyama,2,OVER,SAS,True,22.5,PTS,Desmond Bane,3,UNDER,ORL
+2026-01-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,36.5,PTS,Luka Dončić,1,OVER,LAL,True,21.5,PRA,Nikola Vučević,2,OVER,CHI,False,8.5,PTS,Kyle Kuzma,3,UNDER,MIL
+2026-01-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Isaiah Stewart,4,UNDER,DET,True,5.5,AST,Bub Carrington,5,OVER,WAS,True,3.5,THREES,Grayson Allen,6,OVER,PHX
+2026-01-08,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,21.5,PTS,Cooper Flagg,1,OVER,DAL,True,8.5,PTS,Sam Merrill,2,OVER,CLE,True,27.5,PRA,Kyle Filipowski,3,UNDER,UTA
+2026-01-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,25.5,PTS,Jalen Johnson,1,OVER,ATL,True,31.5,PRA,Kawhi Leonard,2,OVER,LAC,True,14.5,PTS,Ryan Rollins,3,UNDER,MIL
+2026-01-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,AST,Ajay Mitchell,4,OVER,OKC,True,6.5,REB,Deni Avdija,5,UNDER,POR,True,2.5,AST,Peyton Watson,6,OVER,DEN
+2026-01-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Cooper Flagg,1,UNDER,DAL,True,37.0,PRA,Bam Adebayo,2,UNDER,MIA,True,16.5,PTS,Brice Sensabaugh,3,OVER,UTA
+2026-01-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,8.5,REB,Moussa Diabaté,4,OVER,CHA,True,4.5,AST,Jaylen Brown,5,OVER,BOS,False,7.5,REB,Julius Randle,6,OVER,MIN
+2026-01-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,14.5,PTS,CJ McCollum,1,UNDER,ATL,True,32.5,PRA,Deni Avdija,2,OVER,POR,True,21.5,PTS,Desmond Bane,3,OVER,ORL
+2026-01-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Julian Champagnie,4,OVER,SAS,True,5.5,AST,Davion Mitchell,5,OVER,MIA,True,6.5,REB,Bobby Portis,6,UNDER,MIL
+2026-01-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,22.5,PTS,Cooper Flagg,1,OVER,DAL,True,8.5,PTS,Brice Sensabaugh,2,UNDER,UTA,True,10.5,PRA,Jake LaRavia,3,UNDER,LAL
+2026-01-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Baylor Scheierman,4,UNDER,BOS,True,0.5,THREES,Brook Lopez,5,OVER,LAC,True,2.0,AST,Collin Murray-Boyles,6,OVER,TOR
+2026-01-13,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,22.0,PTS,Alperen Sengun,1,OVER,HOU,True,7.5,RA,Jrue Holiday,2,OVER,POR,True,12.5,PTS,Saddiq Bey,3,OVER,NOP
+2026-01-13,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Julius Randle,4,UNDER,MIN,True,2.5,AST,Ajay Mitchell,5,OVER,OKC,True,3.5,THREES,Grayson Allen,6,OVER,PHX
+2026-01-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,25.5,PTS,Brandon Ingram,1,OVER,TOR,True,28.5,PRA,Quentin Grimes,2,UNDER,PHI,False,14.5,PTS,Saddiq Bey,3,OVER,NOP
+2026-01-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Kyle Filipowski,4,UNDER,UTA,True,5.5,REB,Brook Lopez,5,UNDER,LAC,True,4.5,AST,DeMar DeRozan,6,OVER,SAC
+2026-01-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,16.5,PTS,Grayson Allen,1,OVER,PHX,True,20.5,PRA,Amen Thompson,2,OVER,HOU,True,24.5,PTS,Shaedon Sharpe,3,UNDER,POR
+2026-01-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,False,9.5,REB,Kyle Filipowski,4,OVER,UTA,True,10.5,REB,Victor Wembanyama,5,UNDER,SAS,True,7.5,AST,Cam Spencer,6,OVER,MEM
+2026-01-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.5,PTS,Alex Sarr,1,OVER,WAS,True,14.5,PRA,Donte DiVincenzo,2,OVER,MIN,True,23.5,PTS,Brandon Ingram,3,UNDER,TOR
+2026-01-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,1.5,AST,Terance Mann,4,UNDER,BKN,False,5.5,AST,Amen Thompson,5,OVER,HOU,True,2.5,THREES,Donovan Mitchell,6,OVER,CLE
+2026-01-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,11.5,RA,Cade Cunningham,1,OVER,DET,True,13.5,PTS,Ace Bailey,2,OVER,UTA,False,21.5,PTS,Jalen Johnson,3,OVER,ATL
+2026-01-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,AST,Anthony Edwards,4,UNDER,MIN,True,3.5,REB,Jrue Holiday,5,UNDER,POR,True,1.5,AST,Jaylin Williams,6,OVER,OKC
+2026-01-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,25.5,PTS,Kevin Durant,1,UNDER,HOU,True,4.5,AST,Cam Spencer,2,UNDER,MEM,True,8.5,PTS,Malik Monk,3,OVER,SAC
+2026-01-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.75,RA,Derik Queen,4,OVER,NOP,True,5.5,AST,Jamal Shead,5,UNDER,TOR,True,4.5,REB,Kon Knueppel,6,UNDER,CHA
+2026-01-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,22.5,PRA,Evan Mobley,1,OVER,CLE,True,21.5,PTS,Jalen Johnson,2,OVER,ATL,True,20.5,PTS,Cooper Flagg,3,UNDER,DAL
+2026-01-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Will Richard,4,UNDER,GSW,True,1.5,AST,Jordan Goodwin,5,OVER,PHX,True,7.5,REB,Neemias Queta,6,OVER,BOS
+2026-01-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,33.5,PRA,Kevin Durant,1,UNDER,HOU,True,32.5,PTS,Luka Dončić,2,OVER,LAL,True,9.5,REB,Scottie Barnes,3,UNDER,TOR
+2026-01-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,14.5,PTS,Russell Westbrook,4,OVER,SAC,True,11.5,REB,Bam Adebayo,5,UNDER,MIA,True,0.5,THREES,Kris Dunn,6,UNDER,LAC
+2026-01-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,22.5,PTS,Jalen Johnson,1,OVER,ATL,True,7.5,RA,Derik Queen,2,OVER,NOP,False,3.75,AST,Cam Spencer,3,UNDER,MEM
+2026-01-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,19.5,PTS,Jalen Duren,4,OVER,DET,True,9.5,REB,Scottie Barnes,5,UNDER,TOR,True,5.5,AST,Ryan Rollins,6,OVER,MIL
+2026-01-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,15.5,PRA,Anthony Black,1,UNDER,ORL,True,15.5,PTS,Brice Sensabaugh,2,UNDER,UTA,True,24.5,PTS,Kawhi Leonard,3,UNDER,LAC
+2026-01-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Amen Thompson,4,UNDER,HOU,True,4.5,REB,Gui Santos,5,UNDER,GSW,True,2.5,AST,Ayo Dosunmu,6,OVER,CHI
+2026-01-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Payton Pritchard,1,OVER,BOS,True,19.5,PTS,Scottie Barnes,2,UNDER,TOR,True,27.5,PRA,Russell Westbrook,3,UNDER,SAC
+2026-01-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,8.5,AST,Cam Spencer,4,OVER,MEM,False,8.5,AST,Cade Cunningham,5,OVER,DET,False,6.5,REB,Derik Queen,6,UNDER,NOP
+2026-01-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Alex Sarr,1,OVER,WAS,True,21.0,PRA,Jake LaRavia,2,UNDER,LAL,True,12.5,PTS,Jalen Suggs,3,UNDER,ORL
+2026-01-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.0,REB,Neemias Queta,4,UNDER,BOS,True,8.25,REB,Josh Hart,5,OVER,NYK,True,1.5,THREES,Pelle Larsson,6,OVER,MIA
+2026-01-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,16.5,PTS,Scottie Barnes,1,UNDER,TOR,True,24.5,PRA,Russell Westbrook,2,UNDER,SAC,True,19.5,PTS,Zion Williamson,3,OVER,NOP
+2026-01-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,AST,Collin Gillespie,4,UNDER,PHX,True,4.5,REB,Kawhi Leonard,5,OVER,LAC,True,6.5,REB,Naz Reid,6,OVER,MIN
+2026-01-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,31.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,11.5,PRA,Jake LaRavia,2,OVER,LAL,True,24.5,PTS,Kevin Durant,3,OVER,HOU
+2026-01-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Gui Santos,4,OVER,GSW,True,2.5,REB,Andrew Nembhard,5,OVER,IND,True,2.5,AST,Jaylon Tyson,6,OVER,CLE
+2026-01-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,20.5,PTS,Ryan Rollins,1,OVER,MIL,True,40.5,PRA,Deni Avdija,2,UNDER,POR,True,20.5,PTS,Grayson Allen,3,UNDER,PHX
+2026-01-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,AST,Shai Gilgeous-Alexander,4,UNDER,OKC,True,6.5,AST,Jalen Brunson,5,UNDER,NYK,True,3.5,REB,Isaiah Collier,6,OVER,UTA
+2026-01-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,9.5,PTS,Julian Champagnie,1,UNDER,SAS,True,14.5,PTS,RJ Barrett,2,UNDER,TOR,True,34.5,PRA,Donovan Mitchell,3,OVER,CLE
+2026-01-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Kyle Filipowski,4,UNDER,UTA,True,7.5,AST,Andrew Nembhard,5,OVER,IND,True,3.5,THREES,Kon Knueppel,6,UNDER,CHA
+2026-01-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.5,PTS,Grayson Allen,1,OVER,PHX,True,7.5,AST,Ryan Rollins,2,OVER,MIL,True,13.5,PRA,Luguentz Dort,3,UNDER,OKC
+2026-01-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,19.5,PTS,Cooper Flagg,4,OVER,DAL,False,11.5,REB,Rudy Gobert,5,OVER,MIN,True,4.5,AST,Nolan Traore,6,UNDER,BKN
+2026-01-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Payton Pritchard,1,OVER,BOS,True,7.5,AST,Nikola Jokić,2,UNDER,DEN,True,25.5,PRA,Grayson Allen,3,UNDER,PHX
+2026-01-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Kyle Filipowski,4,OVER,UTA,True,14.5,PTS,RJ Barrett,5,OVER,TOR,True,9.5,AST,Luka Dončić,6,OVER,LAL
+2026-01-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Jalen Johnson,1,OVER,ATL,True,19.5,PTS,Ayo Dosunmu,2,OVER,CHI,True,22.5,PRA,Jeremiah Fears,3,UNDER,NOP
+2026-01-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,5.5,AST,Cam Spencer,4,UNDER,MEM,True,5.5,REB,P.J. Washington,5,UNDER,DAL,False,4.5,REB,Kon Knueppel,6,UNDER,CHA
+2026-02-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,29.5,PTS,Jaylen Brown,1,OVER,BOS,True,22.5,PTS,Jamal Murray,2,UNDER,DEN,True,9.5,PRA,Jake LaRavia,3,UNDER,LAL
+2026-02-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,2.5,AST,Collin Murray-Boyles,4,UNDER,TOR,True,6.5,AST,Ryan Rollins,5,OVER,MIL,True,3.5,REB,Bub Carrington,6,UNDER,WAS
+2026-02-02,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,17.5,PTS,Saddiq Bey,1,UNDER,NOP,True,23.5,PTS,Alperen Sengun,2,OVER,HOU,True,36.5,PRA,Kawhi Leonard,3,OVER,LAC
+2026-02-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,24.5,PTS,Jalen Johnson,2,OVER,ATL,True,33.5,PRA,Paolo Banchero,3,UNDER,ORL
+2026-02-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Kyle Filipowski,4,OVER,UTA,True,8.5,REB,Myles Turner,5,UNDER,MIL,True,1.5,THREES,Collin Gillespie,6,OVER,PHX
+2026-02-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,18.5,PTS,Derrick White,1,OVER,BOS,True,21.5,PRA,Russell Westbrook,2,UNDER,SAC,False,28.5,PTS,Kawhi Leonard,3,OVER,LAC
+2026-02-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Aaron Wiggins,4,UNDER,OKC,True,7.5,REB,Myles Turner,5,OVER,MIL,True,2.5,AST,Collin Murray-Boyles,6,OVER,TOR
+2026-02-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,19.5,PTS,Grayson Allen,1,OVER,PHX,True,32.5,PRA,Isaiah Collier,2,OVER,UTA,False,18.5,PTS,Matas Buzelis,3,OVER,CHI
+2026-02-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Alperen Sengun,4,OVER,HOU,True,5.5,AST,Stephon Castle,5,OVER,SAS,True,3.5,AST,Nic Claxton,6,UNDER,BKN
+2026-02-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,28.5,PTS,Kawhi Leonard,1,OVER,LAC,True,7.5,RA,Bobby Portis,2,UNDER,MIL,True,16.5,PTS,Saddiq Bey,3,OVER,NOP
+2026-02-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Isaiah Stewart,4,UNDER,DET,True,6.5,REB,Nikola Vučević,5,OVER,BOS,True,5.5,AST,Jalen Brunson,6,UNDER,NYK
+2026-02-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,21.5,PTS,Devin Booker,1,UNDER,PHX,False,24.5,PTS,Jamal Murray,2,UNDER,DEN,True,2.5,REB,Isaiah Collier,3,UNDER,UTA
+2026-02-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,22.5,PRA,Bub Carrington,4,UNDER,WAS,True,6.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,3.5,AST,Cason Wallace,6,OVER,OKC
+2026-02-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,37.25,PRA,Bam Adebayo,1,UNDER,MIA,True,29.5,PTS,Kawhi Leonard,2,OVER,LAC,True,7.0,REB,Neemias Queta,3,UNDER,BOS
+2026-02-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,14.5,PTS,Kyshawn George,4,UNDER,WAS,True,2.5,AST,Ayo Dosunmu,5,UNDER,MIN,True,1.5,AST,Jay Huff,6,OVER,IND
+2026-02-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Jamal Murray,1,UNDER,DEN,True,34.5,PRA,Ryan Rollins,2,UNDER,MIL,True,31.5,PTS,Tyrese Maxey,3,UNDER,PHI
+2026-02-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Isaac Okoro,4,OVER,CHI,True,3.5,AST,Cason Wallace,5,OVER,OKC,True,6.5,REB,Kyle Filipowski,6,OVER,UTA
+2026-02-10,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,21.5,PTS,Karl-Anthony Towns,1,OVER,NYK,True,21.5,PRA,Jake LaRavia,2,UNDER,LAL,True,28.5,PTS,Kawhi Leonard,3,UNDER,LAC
+2026-02-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,36.5,PRA,Deni Avdija,1,UNDER,POR,False,16.5,PTS,CJ McCollum,2,UNDER,ATL,True,15.5,PTS,Kyshawn George,3,OVER,WAS
+2026-02-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Jay Huff,4,UNDER,IND,True,5.5,AST,Jalen Brunson,5,UNDER,NYK,True,4.5,AST,Nique Clifford,6,OVER,SAC
+2026-02-12,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,18.5,PTS,Chet Holmgren,1,UNDER,OKC,True,16.5,PRA,Cody Williams,2,UNDER,UTA,True,16.5,PTS,Brandon Williams,3,OVER,DAL
+2026-02-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,14.5,PTS,Evan Mobley,1,UNDER,CLE,True,16.5,PTS,VJ Edgecombe,2,OVER,PHI,True,21.5,PRA,OG Anunoby,3,UNDER,NYK
+2026-02-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Nikola Vučević,4,UNDER,BOS,True,6.5,REB,Jarace Walker,5,OVER,IND,True,6.5,AST,Stephon Castle,6,UNDER,SAS
+2026-02-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Deni Avdija,1,UNDER,POR,True,31.5,PRA,Jarace Walker,2,UNDER,IND,True,27.5,PTS,Kawhi Leonard,3,OVER,LAC
+2026-02-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Kyle Filipowski,4,UNDER,UTA,True,4.5,AST,Nolan Traore,5,UNDER,BKN,True,2.5,AST,Pelle Larsson,6,UNDER,MIA
+2026-02-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,30.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,37.5,PRA,Paolo Banchero,2,OVER,ORL,True,8.5,PTS,Isaac Okoro,3,OVER,CHI
+2026-02-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,AST,Stephon Castle,4,UNDER,SAS,True,6.75,REB,Kel'el Ware,5,OVER,MIA,True,10.5,REB,Jalen Duren,6,OVER,DET
+2026-02-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,30.5,PTS,Tyrese Maxey,1,OVER,PHI,True,22.5,PRA,Evan Mobley,2,UNDER,CLE,True,29.5,PTS,Jaylen Brown,3,OVER,BOS
+2026-02-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Julius Randle,4,UNDER,MIN,True,7.5,REB,Kawhi Leonard,5,OVER,LAC,True,10.25,AST,Nikola Jokić,6,OVER,DEN
+2026-02-23,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,False,True,31.5,PRA,Amen Thompson,1,UNDER,HOU,False,7.5,PTS,Harrison Barnes,2,OVER,SAS,True,13.25,PTS,Malik Monk,3,UNDER,SAC
+2026-02-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,20.5,PTS,Derrick White,1,UNDER,BOS,True,50.5,PRA,Luka Dončić,2,UNDER,LAL,True,15.5,PTS,Brandin Podziemski,3,OVER,GSW
+2026-02-24,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Isaiah Hartenstein,4,UNDER,OKC,True,2.0,REB,Coby White,5,OVER,CHA,True,3.5,THREES,Donovan Mitchell,6,UNDER,CLE
+2026-02-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Brandin Podziemski,1,OVER,GSW,True,24.5,PRA,Tari Eason,2,UNDER,HOU,True,28.5,PTS,Jaylen Brown,3,UNDER,BOS
+2026-02-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Jaylon Tyson,4,OVER,CLE,True,4.5,AST,Jaylin Williams,5,UNDER,OKC,True,11.5,REB,Jalen Duren,6,OVER,DET
+2026-02-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Ace Bailey,1,OVER,UTA,True,20.5,PTS,Paolo Banchero,2,UNDER,ORL,True,23.5,PRA,Toumani Camara,3,UNDER,POR
+2026-02-26,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,4.5,AST,Nolan Traore,4,UNDER,BKN,False,8.5,REB,Onyeka Okongwu,5,UNDER,ATL,True,4.5,REB,Kris Dunn,6,OVER,LAC
+2026-02-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,10.25,PTS,Cason Wallace,1,UNDER,OKC,True,36.5,PRA,Jalen Brunson,2,OVER,NYK,True,8.5,REB,Daniel Gafford,3,UNDER,DAL
+2026-02-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,PTS,Myles Turner,4,OVER,MIL,True,7.25,REB,Evan Mobley,5,OVER,CLE,True,1.5,AST,Bruce Brown,6,UNDER,DEN
+2026-02-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,31.5,PTS,Luka Dončić,1,OVER,LAL,True,27.5,PRA,Cody Williams,2,UNDER,UTA,True,22.5,PTS,Brandon Miller,3,OVER,CHA
+2026-02-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Kel'el Ware,4,OVER,MIA,True,3.5,AST,Brandon Ingram,5,OVER,TOR,True,8.5,REB,Kyle Filipowski,6,UNDER,UTA
+2026-03-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,16.5,PTS,Josh Giddey,1,OVER,CHI,True,20.5,PRA,Payton Pritchard,2,UNDER,BOS,True,9.5,PTS,Cason Wallace,3,UNDER,OKC
+2026-03-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Josh Hart,4,OVER,NYK,True,1.5,AST,Bruce Brown,5,UNDER,DEN,True,7.5,REB,Evan Mobley,6,OVER,CLE
+2026-03-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Payton Pritchard,1,OVER,BOS,True,15.5,PTS,Brandin Podziemski,2,OVER,GSW,True,26.5,PRA,Kyle Filipowski,3,OVER,UTA
+2026-03-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Ryan Rollins,4,UNDER,MIL,True,3.5,AST,Bub Carrington,5,OVER,WAS,True,4.0,REB,Jamal Murray,6,UNDER,DEN
+2026-03-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,11.0,PTS,Jeremiah Fears,1,UNDER,NOP,True,14.5,PTS,Isaiah Joe,2,OVER,OKC,False,44.5,PRA,Victor Wembanyama,3,OVER,SAS
+2026-03-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,1.5,AST,Cedric Coward,4,UNDER,MEM,True,5.5,REB,P.J. Washington,5,UNDER,DAL,True,10.5,REB,Jalen Duren,6,OVER,DET
+2026-03-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,33.5,PTS,Tyrese Maxey,1,UNDER,PHI,True,17.5,RA,Jalen Johnson,2,UNDER,ATL,True,8.5,PTS,Cason Wallace,3,UNDER,OKC
+2026-03-04,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,6.25,AST,Ryan Rollins,4,OVER,MIL,True,6.5,REB,Nikola Vučević,5,UNDER,BOS,False,5.5,REB,Jarace Walker,6,OVER,IND
+2026-03-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Devin Booker,1,OVER,PHX,True,48.5,PRA,Luka Dončić,2,UNDER,LAL,True,15.5,PTS,Brandin Podziemski,3,OVER,GSW
+2026-03-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Kyle Filipowski,4,OVER,UTA,True,4.5,AST,Zion Williamson,5,OVER,NOP,True,5.5,REB,P.J. Washington,6,UNDER,DAL
+2026-03-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,Cooper Flagg,1,UNDER,DAL,True,33.5,PTS,Luka Dončić,2,OVER,LAL,True,21.5,PRA,Oso Ighodaro,3,UNDER,PHX
+2026-03-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Christian Braun,4,UNDER,DEN,True,10.5,REB,Moussa Diabaté,5,OVER,CHA,True,2.5,AST,Victor Wembanyama,6,UNDER,SAS
+2026-03-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,22.5,PTS,Jalen Johnson,1,OVER,ATL,True,32.5,PRA,Ryan Rollins,2,UNDER,MIL,True,5.5,REB,Isaiah Stewart,3,UNDER,DET
+2026-03-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.0,PTS,Tristan da Silva,4,OVER,ORL,True,1.5,AST,Cedric Coward,5,UNDER,MEM,True,4.5,AST,Jaylin Williams,6,UNDER,OKC
+2026-03-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.0,PTS,Cooper Flagg,1,UNDER,DAL,True,49.5,PRA,Luka Dončić,2,UNDER,LAL,True,21.5,PTS,Ryan Rollins,3,UNDER,MIL
+2026-03-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Jalen Duren,4,UNDER,DET,True,1.5,AST,Alex Sarr,5,UNDER,WAS,True,5.5,REB,Jarace Walker,6,UNDER,IND
+2026-03-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Jamal Murray,1,UNDER,DEN,True,30.5,PRA,Brandin Podziemski,2,UNDER,GSW,True,12.5,PTS,Nolan Traore,3,OVER,BKN
+2026-03-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Isaiah Joe,4,UNDER,OKC,True,6.5,AST,Cam Spencer,5,OVER,MEM,True,9.5,REB,Evan Mobley,6,UNDER,CLE
+2026-03-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,14.5,PTS,Reed Sheppard,1,UNDER,HOU,True,19.5,PTS,VJ Edgecombe,2,OVER,PHI,True,18.5,RA,Jalen Johnson,3,UNDER,ATL
+2026-03-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,2.5,REB,Khris Middleton,4,UNDER,DAL,True,11.5,REB,Bam Adebayo,5,UNDER,MIA,True,1.5,AST,Precious Achiuwa,6,UNDER,SAC
+2026-03-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,11.5,PTS,Isaiah Collier,1,UNDER,UTA,True,31.5,PRA,Evan Mobley,2,OVER,CLE,True,14.5,PTS,Reed Sheppard,3,UNDER,HOU
+2026-03-11,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,AST,Nique Clifford,4,OVER,SAC,True,5.5,REB,Anthony Edwards,5,UNDER,MIN,True,4.5,REB,Mikal Bridges,6,OVER,NYK
+2026-03-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Josh Giddey,1,OVER,CHI,True,27.5,PTS,Jaylen Brown,2,OVER,BOS,True,20.5,PRA,Ryan Rollins,3,OVER,MIL
+2026-03-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,AST,Javon Small,4,OVER,MEM,True,2.5,THREES,Collin Gillespie,5,UNDER,PHX,True,2.5,REB,Bub Carrington,6,OVER,WAS
+2026-03-13,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Brice Sensabaugh,1,OVER,UTA,True,11.5,PTS,Andrew Nembhard,2,UNDER,IND,True,15.5,PRA,Khris Middleton,3,UNDER,DAL
+2026-03-13,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Jalen Duren,4,OVER,DET,True,6.5,AST,Amen Thompson,5,OVER,HOU,True,11.5,REB,Mitchell Robinson,6,OVER,NYK
+2026-03-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Bam Adebayo,1,UNDER,MIA,True,31.5,PTS,Luka Dončić,2,UNDER,LAL,True,13.5,PRA,Baylor Scheierman,3,OVER,BOS
+2026-03-14,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Precious Achiuwa,4,OVER,SAC,True,4.25,AST,VJ Edgecombe,5,OVER,PHI,True,6.5,AST,De'Aaron Fox,6,UNDER,SAS
+2026-03-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,27.5,PRA,Nique Clifford,1,UNDER,SAC,True,19.5,PTS,VJ Edgecombe,2,UNDER,PHI,True,6.5,PTS,Isaiah Joe,3,OVER,OKC
+2026-03-15,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,False,11.5,REB,Jalen Duren,4,OVER,DET,True,5.25,AST,Brandin Podziemski,5,OVER,GSW,True,9.5,REB,Evan Mobley,6,OVER,CLE
+2026-03-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,22.5,PTS,Deni Avdija,1,UNDER,POR,True,28.5,PRA,Desmond Bane,2,UNDER,ORL,False,27.5,PTS,Kevin Durant,3,OVER,HOU
+2026-03-16,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Baylor Scheierman,4,OVER,BOS,True,2.5,AST,Victor Wembanyama,5,UNDER,SAS,True,8.5,REB,Jalen Smith,6,UNDER,CHI
+2026-03-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,27.0,PTS,Nikola Jokić,1,UNDER,DEN,True,15.5,PTS,Ayo Dosunmu,2,OVER,MIN,True,15.0,PRA,Kel'el Ware,3,OVER,MIA
+2026-03-17,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,AST,Ryan Rollins,4,UNDER,MIL,True,8.0,REB,Precious Achiuwa,5,UNDER,SAC,True,11.5,REB,Jalen Duren,6,OVER,DET
+2026-03-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,12.5,PTS,Brandin Podziemski,1,UNDER,GSW,False,48.5,PRA,Nikola Jokić,2,UNDER,DEN,True,23.5,PTS,Deni Avdija,3,OVER,POR
+2026-03-18,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,12.75,REB,Rudy Gobert,4,UNDER,MIN,True,8.5,REB,Josh Giddey,5,UNDER,CHI,True,3.5,AST,Nolan Traore,6,OVER,BKN
+2026-03-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PTS,Evan Mobley,1,OVER,CLE,True,20.5,PTS,VJ Edgecombe,2,OVER,PHI,True,32.5,PRA,Ryan Rollins,3,UNDER,MIL
+2026-03-19,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,5.5,AST,Kris Dunn,4,UNDER,LAC,True,6.5,REB,Ausar Thompson,5,OVER,DET,False,9.5,REB,Moussa Diabaté,6,OVER,CHA
+2026-03-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,11.5,PTS,Cameron Johnson,1,UNDER,DEN,True,23.5,PRA,Jaden McDaniels,2,OVER,MIN,True,4.5,REB,Baylor Scheierman,3,UNDER,BOS
+2026-03-20,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,17.5,PTS,Nickeil Alexander-Walker,4,OVER,ATL,True,7.5,REB,Amen Thompson,5,UNDER,HOU,True,6.5,AST,Daniss Jenkins,6,OVER,DET
+2026-03-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,False,32.5,PTS,Luka Dončić,1,UNDER,LAL,True,31.5,PRA,Quentin Grimes,2,OVER,PHI,True,26.5,PTS,Kevin Durant,3,OVER,HOU
+2026-03-21,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,REB,Oso Ighodaro,4,UNDER,PHX,True,10.5,REB,Moussa Diabaté,5,OVER,CHA,True,4.5,AST,Nickeil Alexander-Walker,6,UNDER,ATL
+2026-03-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,23.5,PRA,Nique Clifford,1,UNDER,SAC,True,10.5,PTS,Cameron Johnson,2,OVER,DEN,True,6.5,AST,Jalen Brunson,3,UNDER,NYK
+2026-03-22,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,7.5,PTS,Sandro Mamukelashvili,4,UNDER,TOR,True,4.5,REB,Baylor Scheierman,5,UNDER,BOS,True,10.5,REB,Rudy Gobert,6,OVER,MIN
+2026-03-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,VJ Edgecombe,1,OVER,PHI,True,21.5,PTS,Bam Adebayo,2,UNDER,MIA,True,40.5,PRA,Paolo Banchero,3,OVER,ORL
+2026-03-23,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.5,REB,Scottie Barnes,4,UNDER,TOR,True,4.5,AST,Nickeil Alexander-Walker,5,OVER,ATL,True,7.5,REB,Amen Thompson,6,UNDER,HOU
+2026-03-24,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,16.5,PTS,Maxime Raynaud,1,UNDER,SAC,True,12.5,PRA,Jeremiah Fears,2,OVER,NOP,True,11.5,PTS,Cameron Johnson,3,OVER,DEN
+2026-03-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Ryan Rollins,1,OVER,MIL,True,24.5,PRA,Will Riley,2,OVER,WAS,True,21.5,PTS,Bam Adebayo,3,UNDER,MIA
+2026-03-25,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,1.5,AST,Cason Wallace,4,UNDER,OKC,False,6.5,REB,Kawhi Leonard,5,OVER,LAC,True,7.5,AST,Daniss Jenkins,6,OVER,DET
+2026-03-26,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,15.5,PTS,Maxime Raynaud,1,UNDER,SAC,True,10.5,REB,Karl-Anthony Towns,2,UNDER,NYK,True,14.5,PRA,Jeremiah Fears,3,OVER,NOP
+2026-03-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,18.5,PTS,Payton Pritchard,1,OVER,BOS,True,20.5,PTS,Bam Adebayo,2,UNDER,MIA,True,33.5,PRA,Josh Giddey,3,UNDER,CHI
+2026-03-27,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,False,7.5,REB,Amen Thompson,4,UNDER,HOU,True,5.5,AST,Brandin Podziemski,5,OVER,GSW,True,5.75,AST,Cooper Flagg,6,UNDER,DAL
+2026-03-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,20.5,PRA,Cody Williams,1,UNDER,UTA,True,24.5,PTS,Tyrese Maxey,2,OVER,PHI,True,22.25,PTS,Ryan Rollins,3,UNDER,MIL
+2026-03-28,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,10.5,REB,Jalen Duren,4,OVER,DET,True,9.5,REB,Josh Giddey,5,OVER,CHI,True,4.5,AST,DeMar DeRozan,6,UNDER,SAC
+2026-03-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,19.5,PTS,Payton Pritchard,1,OVER,BOS,True,24.5,PTS,Jamal Murray,2,UNDER,DEN,True,23.5,PRA,Nique Clifford,3,OVER,SAC
+2026-03-29,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Derik Queen,4,UNDER,NOP,True,7.5,AST,Jamal Shead,5,OVER,TOR,True,8.5,AST,Andrew Nembhard,6,OVER,IND
+2026-03-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,26.5,PTS,Anthony Edwards,1,UNDER,MIN,True,42.5,PRA,Victor Wembanyama,2,OVER,SAS,True,27.5,PTS,Devin Booker,3,OVER,PHX
+2026-03-30,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,AST,Bub Carrington,4,OVER,WAS,True,4.5,REB,James Harden,5,OVER,CLE,True,7.5,REB,Jaylen Brown,6,OVER,BOS
+2026-03-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,21.5,PTS,Ryan Rollins,1,OVER,MIL,True,39.5,PRA,Deni Avdija,2,OVER,POR,True,25.5,PTS,Donovan Mitchell,3,UNDER,CLE
+2026-03-31,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,True,3.5,AST,Collin Gillespie,4,UNDER,PHX,True,9.5,REB,Moussa Diabaté,5,OVER,CHA,False,10.5,REB,Karl-Anthony Towns,6,OVER,NYK
+2026-04-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,25.5,PRA,OG Anunoby,2,OVER,NYK,True,15.5,PTS,Payton Pritchard,3,UNDER,BOS
+2026-04-01,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,3.5,REB,Collin Sexton,4,UNDER,CHI,True,5.5,AST,Pat Spencer,5,OVER,GSW,True,1.5,AST,Sandro Mamukelashvili,6,OVER,TOR
+2026-04-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,31.5,PTS,Luka Dončić,1,UNDER,LAL,True,18.5,PTS,De'Aaron Fox,2,OVER,SAS,True,41.5,PRA,Deni Avdija,3,UNDER,POR
+2026-04-02,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,4.5,REB,Ayo Dosunmu,4,OVER,MIN,True,3.5,AST,Collin Gillespie,5,UNDER,PHX,True,8.5,REB,Isaiah Hartenstein,6,UNDER,OKC
+2026-04-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,24.5,PTS,Cooper Flagg,1,OVER,DAL,True,15.5,PRA,Quentin Grimes,2,UNDER,PHI,True,25.5,PTS,Jaylen Brown,3,OVER,BOS
+2026-04-03,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,11.5,REB,Mitchell Robinson,4,UNDER,NYK,True,4.5,AST,Nique Clifford,5,OVER,SAC,True,8.5,REB,Ryan Kalkbrenner,6,UNDER,CHA
+2026-04-04,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,24.5,PTS,Jamal Murray,1,UNDER,DEN,True,27.0,PRA,Will Riley,2,OVER,WAS,True,18.5,PTS,Andrew Wiggins,3,OVER,MIA
+2026-04-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,37.5,PRA,Jaylen Brown,1,UNDER,BOS,True,12.5,PTS,Jake LaRavia,2,OVER,LAL,False,22.5,PTS,Ryan Rollins,3,UNDER,MIL
+2026-04-05,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,8.25,REB,Isaiah Hartenstein,4,UNDER,OKC,True,2.5,AST,Gui Santos,5,UNDER,GSW,True,3.5,REB,Keon Ellis,6,OVER,CLE
+2026-04-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,21.5,PTS,Evan Mobley,1,OVER,CLE,False,25.5,PRA,Nickeil Alexander-Walker,2,UNDER,ATL,True,23.5,PTS,Paolo Banchero,3,OVER,ORL
+2026-04-06,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,11.0,AST,Nikola Jokić,4,OVER,DEN,True,10.5,REB,Jalen Duren,5,UNDER,DET,True,0.5,AST,Dominick Barlow,6,UNDER,PHI
+2026-04-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,10.5,PTS,Pelle Larsson,1,UNDER,MIA,True,14.5,PTS,AJ Green,2,OVER,MIL,True,26.5,PRA,Jarace Walker,3,UNDER,IND
+2026-04-07,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,6.5,REB,Precious Achiuwa,4,UNDER,SAC,True,8.5,REB,Derik Queen,5,OVER,NOP,True,5.5,AST,Luke Kennard,6,OVER,LAL
+2026-04-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,False,True,24.5,PTS,Nikola Jokić,1,UNDER,DEN,True,15.5,PTS,Cade Cunningham,2,UNDER,DET,False,17.5,PRA,Toumani Camara,3,UNDER,POR
+2026-04-08,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,AST,Shai Gilgeous-Alexander,4,OVER,OKC,True,9.5,REB,Jalen Duren,5,UNDER,DET,True,5.5,AST,Kyle Anderson,6,UNDER,MIN
+2026-04-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,11.5,PTS,Jake LaRavia,1,OVER,LAL,True,17.5,PRA,Pelle Larsson,2,UNDER,MIA,True,22.5,PTS,Collin Sexton,3,OVER,CHI
+2026-04-09,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,5.5,REB,Jay Huff,4,OVER,IND,True,5.5,AST,Jamal Shead,5,UNDER,TOR,True,10.5,REB,Karl-Anthony Towns,6,OVER,NYK
+2026-04-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,25.5,PTS,Cooper Flagg,1,OVER,DAL,True,22.0,PTS,Ace Bailey,2,OVER,UTA,True,27.0,PRA,Payton Pritchard,3,OVER,BOS
+2026-04-10,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,True,True,9.5,REB,Jalen Duren,4,UNDER,DET,True,7.5,REB,Scottie Barnes,5,UNDER,TOR,True,5.5,AST,Collin Gillespie,6,UNDER,PHX
+2026-04-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,1,True,True,17.5,PTS,AJ Green,1,OVER,MIL,True,10.75,PTS,Brandin Podziemski,2,UNDER,GSW,True,37.5,PRA,Bam Adebayo,3,OVER,MIA
+2026-04-12,rank_triplet_cards_all_but_remainder_v1,3,6,6,0,2,False,False,7.5,REB,Scottie Barnes,4,UNDER,TOR,True,6.5,REB,Baylor Scheierman,5,OVER,BOS,True,7.5,AST,Nikola Jokić,6,UNDER,DEN
+2026-04-14,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,9.5,PTS,Pelle Larsson,1,UNDER,MIA,True,9.5,PTS,Shaedon Sharpe,2,OVER,POR,True,10.5,REB,Moussa Diabaté,3,OVER,CHA
+2026-04-15,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,29.5,PTS,Tyrese Maxey,1,OVER,PHI,True,29.5,PTS,Kawhi Leonard,2,UNDER,LAC,True,18.5,PRA,Gui Santos,3,OVER,GSW
+2026-04-17,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,True,True,23.5,PTS,Paolo Banchero,1,OVER,ORL,True,6.5,REB,Oso Ighodaro,2,UNDER,PHX,True,2.5,PTS,Sion James,3,OVER,CHA
+2026-04-18,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,True,True,15.5,PTS,Reed Sheppard,1,OVER,HOU,True,17.5,PRA,Ayo Dosunmu,2,UNDER,MIN,True,21.5,PTS,Jalen Johnson,3,OVER,ATL
+2026-04-19,rank_triplet_cards_all_but_remainder_v1,3,5,3,2,1,False,True,8.5,PTS,Dylan Harper,1,UNDER,SAS,False,20.5,PRA,Payton Pritchard,2,UNDER,BOS,True,4.5,PTS,Tristan da Silva,3,OVER,ORL
+2026-04-20,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,False,True,12.5,PTS,Cameron Johnson,1,OVER,DEN,True,33.5,PRA,Scottie Barnes,2,OVER,TOR,False,21.5,PTS,Jalen Johnson,3,OVER,ATL
+2026-04-21,rank_triplet_cards_all_but_remainder_v1,3,4,3,1,1,False,True,23.5,PTS,Deni Avdija,1,UNDER,POR,True,19.5,PRA,Marcus Smart,2,OVER,LAL,False,8.5,PTS,Dylan Harper,3,UNDER,SAS
+2026-04-22,rank_triplet_cards_all_but_remainder_v1,3,3,3,0,1,True,True,43.5,PRA,Cade Cunningham,1,OVER,DET,True,23.5,PTS,Devin Booker,2,UNDER,PHX,True,4.5,REB,Shai Gilgeous-Alexander,3,OVER,OKC
