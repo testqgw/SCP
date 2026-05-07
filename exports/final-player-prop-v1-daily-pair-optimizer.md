@@ -1,6 +1,6 @@
 # Final V1 Daily Two-Leg Combo Optimizer
 
-Generated: 2026-05-04T23:42:17.042294Z
+Generated: 2026-05-07T00:37:25.278719Z
 Recommended rule: **daily_top3_non_pts_else_top2_combo_v1**
 
 ## Rule
@@ -12,41 +12,41 @@ Recommended rule: **daily_top3_non_pts_else_top2_combo_v1**
 
 ## Baseline Constraint
 
-- All original selected legs: 112/165 perfect days, 67.88%.
+- All original selected legs: 113/164 perfect days, 68.90%.
 - If a daily selected set contains one losing leg, at least one two-leg combo loses.
 
 ## Recommended Result
 
 | Metric | Value |
 |---|---:|
-| activeDays | 165 |
-| skippedDays | 0 |
-| selectedLegs | 488 |
-| avgSelectedLegsPerActiveDay | 2.96 |
-| twoLegCombos | 481 |
-| avgCombosPerActiveDay | 2.92 |
-| dailyAllCombosHitDays | 135 |
-| dailyAllCombosHitPct | 81.82% |
-| comboWins | 419 |
-| comboLosses | 62 |
-| comboAccuracyPct | 87.11% |
-| legAccuracyPct | 93.24% |
+| activeDays | 164 |
+| skippedDays | 1 |
+| selectedLegs | 473 |
+| avgSelectedLegsPerActiveDay | 2.88 |
+| twoLegCombos | 454 |
+| avgCombosPerActiveDay | 2.77 |
+| dailyAllCombosHitDays | 139 |
+| dailyAllCombosHitPct | 84.76% |
+| comboWins | 402 |
+| comboLosses | 52 |
+| comboAccuracyPct | 88.55% |
+| legAccuracyPct | 94.29% |
 
 ## Candidate Rules
 
 | Rule | Days | Skipped | Legs | Avg Legs | Combos | Daily All-Combo Hit | Combo Accuracy |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| daily_top3_singles_else_top2_combo_v1 | 162 | 3 | 478 | 2.95 | 470 | 82.10% | 87.66% |
-| daily_top3_non_pts_else_top2_combo_v1 | 165 | 0 | 488 | 2.96 | 481 | 81.82% | 87.11% |
-| daily_top3_under_else_top2_combo_v1 | 165 | 0 | 447 | 2.71 | 399 | 81.82% | 85.71% |
-| daily_top3_non_pr_else_top2_combo_v1 | 165 | 0 | 491 | 2.98 | 487 | 81.21% | 87.27% |
-| daily_top3_over_else_top2_combo_v1 | 165 | 0 | 423 | 2.56 | 351 | 81.21% | 85.47% |
-| daily_top3_tier_a_else_top2_combo_v1 | 165 | 0 | 489 | 2.96 | 483 | 80.00% | 86.54% |
-| daily_top3_score_0_90_else_top2_combo_v1 | 165 | 0 | 481 | 2.92 | 467 | 80.00% | 86.08% |
-| top3_all_selected_combo_v1 | 165 | 0 | 492 | 2.98 | 489 | 78.79% | 85.89% |
-| top4_all_selected_combo_v1 | 165 | 0 | 654 | 3.96 | 975 | 73.33% | 86.26% |
-| baseline_all_selected_all_two_leg_combos | 165 | 0 | 962 | 5.83 | 2361 | 67.88% | 87.08% |
-| top6_all_selected_combo_v1 | 165 | 0 | 962 | 5.83 | 2361 | 67.88% | 87.08% |
+| daily_top3_under_else_top2_combo_v1 | 164 | 1 | 425 | 2.59 | 358 | 87.80% | 90.22% |
+| daily_top3_non_pts_else_top2_combo_v1 | 164 | 1 | 473 | 2.88 | 454 | 84.76% | 88.55% |
+| daily_top3_over_else_top2_combo_v1 | 164 | 1 | 424 | 2.59 | 356 | 84.15% | 86.24% |
+| daily_top3_singles_else_top2_combo_v1 | 162 | 3 | 480 | 2.96 | 474 | 82.72% | 88.19% |
+| daily_top3_tier_a_else_top2_combo_v1 | 164 | 1 | 483 | 2.95 | 474 | 81.71% | 86.92% |
+| daily_top3_non_pr_else_top2_combo_v1 | 164 | 1 | 490 | 2.99 | 488 | 81.10% | 87.09% |
+| top3_all_selected_combo_v1 | 164 | 1 | 490 | 2.99 | 488 | 81.10% | 87.09% |
+| daily_top3_score_0_90_else_top2_combo_v1 | 164 | 1 | 471 | 2.87 | 450 | 81.10% | 86.44% |
+| top4_all_selected_combo_v1 | 164 | 1 | 646 | 3.94 | 956 | 78.05% | 88.28% |
+| baseline_all_selected_all_two_leg_combos | 164 | 1 | 924 | 5.63 | 2201 | 68.90% | 87.96% |
+| top6_all_selected_combo_v1 | 164 | 1 | 924 | 5.63 | 2201 | 68.90% | 87.96% |
 
 ## Interpretation
 

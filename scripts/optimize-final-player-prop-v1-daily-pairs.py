@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-04-meta-correlation-v1"
+MODEL_VERSION = "2026-05-06-portfolio-guard-v1"
 RECOMMENDED_RULE = "daily_top3_non_pts_else_top2_combo_v1"
 
 

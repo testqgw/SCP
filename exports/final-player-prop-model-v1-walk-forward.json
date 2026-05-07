@@ -1,0 +1,1622 @@
+{
+  "generatedAt": "2026-05-07T00:36:56.631124+00:00",
+  "modelId": "final-player-prop-model-v1",
+  "modelVersion": "2026-05-06-portfolio-guard-v1",
+  "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
+  "dateRange": {
+    "from": "2025-10-30",
+    "to": "2026-04-23",
+    "activeDates": 165
+  },
+  "config": {
+    "maxPicks": 6,
+    "minScore": 0.84,
+    "maxPerPlayer": 1,
+    "maxPerTeam": 2,
+    "maxPerGame": 2,
+    "maxPerMarket": 2,
+    "maxSameTeamCountingOvers": 1,
+    "maxComboMarkets": 1
+  },
+  "coveragePct": 100.0,
+  "rowsScored": 113791,
+  "eligibleRows": 113791,
+  "folds": [
+    {
+      "fold": 1,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-10-29",
+      "testFrom": "2025-10-30",
+      "testTo": "2025-11-05",
+      "trainSamples": 4897,
+      "testSamples": 4654,
+      "ungatedAccuracyPct": 91.83
+    },
+    {
+      "fold": 2,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-11-05",
+      "testFrom": "2025-11-06",
+      "testTo": "2025-11-12",
+      "trainSamples": 9551,
+      "testSamples": 4983,
+      "ungatedAccuracyPct": 89.42
+    },
+    {
+      "fold": 3,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-11-12",
+      "testFrom": "2025-11-13",
+      "testTo": "2025-11-19",
+      "trainSamples": 14534,
+      "testSamples": 4200,
+      "ungatedAccuracyPct": 88.14
+    },
+    {
+      "fold": 4,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-11-19",
+      "testFrom": "2025-11-20",
+      "testTo": "2025-11-26",
+      "trainSamples": 18734,
+      "testSamples": 4272,
+      "ungatedAccuracyPct": 88.06
+    },
+    {
+      "fold": 5,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-11-26",
+      "testFrom": "2025-11-28",
+      "testTo": "2025-12-04",
+      "trainSamples": 23006,
+      "testSamples": 5034,
+      "ungatedAccuracyPct": 86.89
+    },
+    {
+      "fold": 6,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-12-04",
+      "testFrom": "2025-12-05",
+      "testTo": "2025-12-11",
+      "trainSamples": 28040,
+      "testSamples": 3289,
+      "ungatedAccuracyPct": 86.9
+    },
+    {
+      "fold": 7,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-12-11",
+      "testFrom": "2025-12-12",
+      "testTo": "2025-12-18",
+      "trainSamples": 31329,
+      "testSamples": 3309,
+      "ungatedAccuracyPct": 87.97
+    },
+    {
+      "fold": 8,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-12-18",
+      "testFrom": "2025-12-19",
+      "testTo": "2025-12-26",
+      "trainSamples": 34638,
+      "testSamples": 5251,
+      "ungatedAccuracyPct": 87.26
+    },
+    {
+      "fold": 9,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2025-12-26",
+      "testFrom": "2025-12-27",
+      "testTo": "2026-01-02",
+      "trainSamples": 39889,
+      "testSamples": 5195,
+      "ungatedAccuracyPct": 88.01
+    },
+    {
+      "fold": 10,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-01-02",
+      "testFrom": "2026-01-03",
+      "testTo": "2026-01-09",
+      "trainSamples": 45084,
+      "testSamples": 5113,
+      "ungatedAccuracyPct": 87.42
+    },
+    {
+      "fold": 11,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-01-09",
+      "testFrom": "2026-01-10",
+      "testTo": "2026-01-16",
+      "trainSamples": 50197,
+      "testSamples": 4915,
+      "ungatedAccuracyPct": 88.1
+    },
+    {
+      "fold": 12,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-01-16",
+      "testFrom": "2026-01-17",
+      "testTo": "2026-01-23",
+      "trainSamples": 55112,
+      "testSamples": 5363,
+      "ungatedAccuracyPct": 88.63
+    },
+    {
+      "fold": 13,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-01-23",
+      "testFrom": "2026-01-24",
+      "testTo": "2026-01-30",
+      "trainSamples": 60475,
+      "testSamples": 5116,
+      "ungatedAccuracyPct": 87.12
+    },
+    {
+      "fold": 14,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-01-30",
+      "testFrom": "2026-01-31",
+      "testTo": "2026-02-06",
+      "trainSamples": 65591,
+      "testSamples": 4910,
+      "ungatedAccuracyPct": 87.92
+    },
+    {
+      "fold": 15,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-02-06",
+      "testFrom": "2026-02-07",
+      "testTo": "2026-02-19",
+      "trainSamples": 70501,
+      "testSamples": 5544,
+      "ungatedAccuracyPct": 88.91
+    },
+    {
+      "fold": 16,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-02-19",
+      "testFrom": "2026-02-20",
+      "testTo": "2026-02-26",
+      "trainSamples": 76045,
+      "testSamples": 5749,
+      "ungatedAccuracyPct": 89.01
+    },
+    {
+      "fold": 17,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-02-26",
+      "testFrom": "2026-02-27",
+      "testTo": "2026-03-05",
+      "trainSamples": 81794,
+      "testSamples": 5010,
+      "ungatedAccuracyPct": 89.44
+    },
+    {
+      "fold": 18,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-03-05",
+      "testFrom": "2026-03-06",
+      "testTo": "2026-03-12",
+      "trainSamples": 86804,
+      "testSamples": 5567,
+      "ungatedAccuracyPct": 90.07
+    },
+    {
+      "fold": 19,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-03-12",
+      "testFrom": "2026-03-13",
+      "testTo": "2026-03-19",
+      "trainSamples": 92371,
+      "testSamples": 5708,
+      "ungatedAccuracyPct": 88.88
+    },
+    {
+      "fold": 20,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-03-19",
+      "testFrom": "2026-03-20",
+      "testTo": "2026-03-26",
+      "trainSamples": 98079,
+      "testSamples": 5303,
+      "ungatedAccuracyPct": 90.57
+    },
+    {
+      "fold": 21,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-03-26",
+      "testFrom": "2026-03-27",
+      "testTo": "2026-04-02",
+      "trainSamples": 103382,
+      "testSamples": 5728,
+      "ungatedAccuracyPct": 90.05
+    },
+    {
+      "fold": 22,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-04-02",
+      "testFrom": "2026-04-03",
+      "testTo": "2026-04-09",
+      "trainSamples": 109110,
+      "testSamples": 4892,
+      "ungatedAccuracyPct": 90.72
+    },
+    {
+      "fold": 23,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-04-09",
+      "testFrom": "2026-04-10",
+      "testTo": "2026-04-19",
+      "trainSamples": 114002,
+      "testSamples": 3822,
+      "ungatedAccuracyPct": 92.18
+    },
+    {
+      "fold": 24,
+      "trainFrom": "2025-10-23",
+      "trainTo": "2026-04-19",
+      "testFrom": "2026-04-20",
+      "testTo": "2026-04-23",
+      "trainSamples": 117824,
+      "testSamples": 864,
+      "ungatedAccuracyPct": 87.38
+    }
+  ],
+  "componentAccuracies": {
+    "top200_premium_90": 93.15,
+    "top200_premium_pts_over": 91.0,
+    "top200_accuracy_first": 86.32,
+    "top200_meta_reliability": 83.11,
+    "top200_coverage_frontier": 82.73,
+    "top200_recent_form_fade": 82.68,
+    "top200_primary": 82.31,
+    "precision_parlay_v1": 90.25,
+    "live_quality_router_v9": 89.06
+  },
+  "fullBoard": {
+    "overall": {
+      "samples": 113791,
+      "wins": 101113,
+      "losses": 12678,
+      "accuracyPct": 88.86
+    },
+    "last30": {
+      "samples": 18910,
+      "wins": 17157,
+      "losses": 1753,
+      "accuracyPct": 90.73
+    },
+    "last14": {
+      "samples": 6861,
+      "wins": 6290,
+      "losses": 571,
+      "accuracyPct": 91.68
+    }
+  },
+  "candidatePool": {
+    "overall": {
+      "samples": 93486,
+      "wins": 83768,
+      "losses": 9718,
+      "accuracyPct": 89.6
+    },
+    "last30": {
+      "samples": 15485,
+      "wins": 14160,
+      "losses": 1325,
+      "accuracyPct": 91.44
+    },
+    "last14": {
+      "samples": 5817,
+      "wins": 5358,
+      "losses": 459,
+      "accuracyPct": 92.11
+    }
+  },
+  "selected": {
+    "overall": {
+      "samples": 925,
+      "wins": 869,
+      "losses": 56,
+      "accuracyPct": 93.95
+    },
+    "last30": {
+      "samples": 153,
+      "wins": 142,
+      "losses": 11,
+      "accuracyPct": 92.81
+    },
+    "last14": {
+      "samples": 63,
+      "wins": 57,
+      "losses": 6,
+      "accuracyPct": 90.48
+    }
+  },
+  "avgSelectedPerSlate": 5.61,
+  "selectedLiftVsFullBoardPct": 5.09,
+  "fullBoardByMarket": {
+    "AST": {
+      "samples": 15624,
+      "wins": 13483,
+      "losses": 2141,
+      "accuracyPct": 86.3
+    },
+    "PA": {
+      "samples": 13422,
+      "wins": 12163,
+      "losses": 1259,
+      "accuracyPct": 90.62
+    },
+    "PR": {
+      "samples": 13565,
+      "wins": 12259,
+      "losses": 1306,
+      "accuracyPct": 90.37
+    },
+    "PRA": {
+      "samples": 13583,
+      "wins": 12362,
+      "losses": 1221,
+      "accuracyPct": 91.01
+    },
+    "PTS": {
+      "samples": 16197,
+      "wins": 14608,
+      "losses": 1589,
+      "accuracyPct": 90.19
+    },
+    "RA": {
+      "samples": 13327,
+      "wins": 11853,
+      "losses": 1474,
+      "accuracyPct": 88.94
+    },
+    "REB": {
+      "samples": 15911,
+      "wins": 14016,
+      "losses": 1895,
+      "accuracyPct": 88.09
+    },
+    "THREES": {
+      "samples": 12162,
+      "wins": 10369,
+      "losses": 1793,
+      "accuracyPct": 85.26
+    }
+  },
+  "selectedByMarket": {
+    "AST": {
+      "samples": 168,
+      "wins": 162,
+      "losses": 6,
+      "accuracyPct": 96.43
+    },
+    "PRA": {
+      "samples": 147,
+      "wins": 138,
+      "losses": 9,
+      "accuracyPct": 93.88
+    },
+    "PTS": {
+      "samples": 325,
+      "wins": 304,
+      "losses": 21,
+      "accuracyPct": 93.54
+    },
+    "RA": {
+      "samples": 17,
+      "wins": 16,
+      "losses": 1,
+      "accuracyPct": 94.12
+    },
+    "REB": {
+      "samples": 244,
+      "wins": 226,
+      "losses": 18,
+      "accuracyPct": 92.62
+    },
+    "THREES": {
+      "samples": 24,
+      "wins": 23,
+      "losses": 1,
+      "accuracyPct": 95.83
+    }
+  },
+  "selectedByTier": {
+    "A": {
+      "samples": 800,
+      "wins": 749,
+      "losses": 51,
+      "accuracyPct": 93.62
+    },
+    "B": {
+      "samples": 18,
+      "wins": 16,
+      "losses": 2,
+      "accuracyPct": 88.89
+    },
+    "C": {
+      "samples": 10,
+      "wins": 10,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    "S": {
+      "samples": 97,
+      "wins": 94,
+      "losses": 3,
+      "accuracyPct": 96.91
+    }
+  },
+  "boardRowsByAction": {
+    "SELECTED": 925,
+    "CANDIDATE": 92561,
+    "COVERAGE": 20305
+  },
+  "boardRowsByTier": {
+    "A": 39394,
+    "S": 863,
+    "B": 37695,
+    "C": 35686,
+    "D": 153
+  },
+  "selectedDaily": [
+    {
+      "date": "2025-10-30",
+      "samples": 5,
+      "wins": 4,
+      "losses": 1,
+      "accuracyPct": 80.0
+    },
+    {
+      "date": "2025-10-31",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-01",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-02",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-03",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-04",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-05",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-06",
+      "samples": 2,
+      "wins": 2,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-07",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-08",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-09",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-10",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-11",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-12",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-13",
+      "samples": 5,
+      "wins": 4,
+      "losses": 1,
+      "accuracyPct": 80.0
+    },
+    {
+      "date": "2025-11-14",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-15",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-16",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-17",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-18",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-19",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-20",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-21",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-22",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-23",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-24",
+      "samples": 6,
+      "wins": 4,
+      "losses": 2,
+      "accuracyPct": 66.67
+    },
+    {
+      "date": "2025-11-25",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-26",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-28",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-11-29",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-11-30",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-01",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-02",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-03",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-04",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-05",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-06",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-07",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-08",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-09",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-10",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-11",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-12",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-13",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-14",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-15",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-12-16",
+      "samples": 2,
+      "wins": 2,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-17",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-18",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-19",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-20",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-12-21",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-22",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-23",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-25",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-26",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-27",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-28",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-29",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2025-12-30",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2025-12-31",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-01",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-02",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-03",
+      "samples": 6,
+      "wins": 4,
+      "losses": 2,
+      "accuracyPct": 66.67
+    },
+    {
+      "date": "2026-01-04",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-05",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-06",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-07",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-08",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-09",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-10",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-11",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-12",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-13",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-14",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-15",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-16",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-17",
+      "samples": 6,
+      "wins": 4,
+      "losses": 2,
+      "accuracyPct": 66.67
+    },
+    {
+      "date": "2026-01-18",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-19",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-20",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-21",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-22",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-23",
+      "samples": 6,
+      "wins": 4,
+      "losses": 2,
+      "accuracyPct": 66.67
+    },
+    {
+      "date": "2026-01-24",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-25",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-26",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-27",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-28",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-29",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-01-30",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-01-31",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-01",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-02",
+      "samples": 5,
+      "wins": 4,
+      "losses": 1,
+      "accuracyPct": 80.0
+    },
+    {
+      "date": "2026-02-03",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-04",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-05",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-06",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-07",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-08",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-09",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-10",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-11",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-12",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-19",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-20",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-21",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-22",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-23",
+      "samples": 5,
+      "wins": 4,
+      "losses": 1,
+      "accuracyPct": 80.0
+    },
+    {
+      "date": "2026-02-24",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-25",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-26",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-02-27",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-02-28",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-01",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-02",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-03",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-04",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-05",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-06",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-07",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-08",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-09",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-10",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-11",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-12",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-13",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-14",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-15",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-16",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-17",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-18",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-19",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-20",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-21",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-22",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-23",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-24",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-25",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-26",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-27",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-03-28",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-29",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-30",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-03-31",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-04-01",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-02",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-03",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-04",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-05",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-04-06",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-04-07",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-08",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-04-09",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-10",
+      "samples": 6,
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-12",
+      "samples": 6,
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
+    },
+    {
+      "date": "2026-04-14",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-15",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-17",
+      "samples": 4,
+      "wins": 4,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-18",
+      "samples": 5,
+      "wins": 5,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-19",
+      "samples": 5,
+      "wins": 3,
+      "losses": 2,
+      "accuracyPct": 60.0
+    },
+    {
+      "date": "2026-04-20",
+      "samples": 4,
+      "wins": 3,
+      "losses": 1,
+      "accuracyPct": 75.0
+    },
+    {
+      "date": "2026-04-21",
+      "samples": 4,
+      "wins": 3,
+      "losses": 1,
+      "accuracyPct": 75.0
+    },
+    {
+      "date": "2026-04-22",
+      "samples": 3,
+      "wins": 3,
+      "losses": 0,
+      "accuracyPct": 100.0
+    },
+    {
+      "date": "2026-04-23",
+      "samples": 1,
+      "wins": 1,
+      "losses": 0,
+      "accuracyPct": 100.0
+    }
+  ]
+}

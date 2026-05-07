@@ -1,0 +1,3 @@
+selected_rank,candidate_id,slate_date,player,team,opponent,matchup_key,game_time_et,market,side,line,projected_value,line_gap,wf_confidence,meta_prob_correct,estimated_accuracy_prior_pct,tier,model_action,base_score,correlation_penalty,final_score,risk_flags,premium_pockets
+1,d8e2a63f145bec379971,2026-05-06,Luke Kornet,SAS,MIN,MIN@SAS,"May 6, 9:30 PM",REB,OVER,3.5,5.1,1.6,0.847072,0.799128,94.25,S,SELECTED,0.855468,0,0.855468,low_projected_minutes,"top200 REB OVER agreement, abs gap (1.5, 2.0], source-side prior (0.80, 0.85]"
+2,5a0212cfce702f565b24,2026-05-06,Josh Hart,NYK,PHI,PHI@NYK,"May 6, 7:00 PM",PRA,OVER,25.5,22.41,-3.09,0.758418,0.666272,89.06,C,SELECTED,0.847915,0,0.847915,projection_side_split,
