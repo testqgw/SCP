@@ -109,6 +109,15 @@ const FINAL_V1_DAILY_COMBO_LEGS = 473;
 const FINAL_V1_DAILY_COMBO_AVG_LEGS = 2.88;
 const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 2.77;
 const FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT = 68.90;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Top 6 UNDER, fallback top 3';
+const FINAL_V1_DAILY_TRIPLET_HIT_PCT = 80.86;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '131-31';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '348-58';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 549;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 3.39;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 2.51;
+const FINAL_V1_BASELINE_ALL_TRIPLETS_HIT_PCT = 68.52;
+const FINAL_V1_HIGH_WATER_TRIPLET_HIT_PCT = 83.95;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1852,6 +1861,34 @@ export default function NewDashboard({
     }
     return combos;
   }, [finalModelComboLegs]);
+  const finalModelTripletLegs = useMemo(() => {
+    const under = finalModelPicks.filter((pick) => pick.modelRow.side === 'UNDER').slice(0, 6);
+    return under.length >= 3 ? under : finalModelPicks.slice(0, 3);
+  }, [finalModelPicks]);
+  const finalModelDailyTriplets = useMemo(() => {
+    const triplets: Array<{
+      id: string;
+      legA: (typeof finalModelTripletLegs)[number];
+      legB: (typeof finalModelTripletLegs)[number];
+      legC: (typeof finalModelTripletLegs)[number];
+    }> = [];
+    for (let a = 0; a < finalModelTripletLegs.length; a += 1) {
+      for (let b = a + 1; b < finalModelTripletLegs.length; b += 1) {
+        for (let c = b + 1; c < finalModelTripletLegs.length; c += 1) {
+          const legA = finalModelTripletLegs[a];
+          const legB = finalModelTripletLegs[b];
+          const legC = finalModelTripletLegs[c];
+          triplets.push({
+            id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}:${legC.modelRow.candidateId}`,
+            legA,
+            legB,
+            legC,
+          });
+        }
+      }
+    }
+    return triplets;
+  }, [finalModelTripletLegs]);
   const rubbingBaseViews = useMemo(
     () => selectRubbingHands115Views(allViews),
     [allViews],
@@ -2314,7 +2351,7 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | Daily combos ${pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L ${pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} | 3L ${pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -3783,8 +3820,10 @@ export default function NewDashboard({
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
-                <Stat dense label="Daily combos" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_DAYS} all-combo days`} />
-                <Stat dense label="Combo record" value={FINAL_V1_DAILY_COMBO_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_COMBO_AVG_COMBOS, 2)} combos/day`} />
+                <Stat dense label="2-leg days" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_DAYS} all-combo days`} />
+                <Stat dense label="2-leg record" value={FINAL_V1_DAILY_COMBO_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_COMBO_AVG_COMBOS, 2)} combos/day`} />
+                <Stat dense label="3-leg days" value={pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_DAYS} all-triplet days`} />
+                <Stat dense label="3-leg record" value={FINAL_V1_DAILY_TRIPLET_RECORD} kind="MODEL" note={`${n(FINAL_V1_DAILY_TRIPLET_AVG_COMBOS, 2)} triplets/day`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
                 <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
@@ -3796,25 +3835,40 @@ export default function NewDashboard({
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily all-combo layer</div>
-                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">{FINAL_V1_DAILY_COMBO_RULE_LABEL}</h3>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily all-combo layers</div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">2-leg and 3-leg filtered cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses every two-leg combination from the filtered daily Final V1 set. Baseline all-selected daily all-combo rate was {pct(FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT, 2)}.
+                      Historical replay uses every two-leg or three-leg combination from the filtered daily Final V1 set. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. Baseline all-selected rates were {pct(FINAL_V1_BASELINE_ALL_COMBOS_HIT_PCT, 2)} and {pct(FINAL_V1_BASELINE_ALL_TRIPLETS_HIT_PCT, 2)}.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <CompactMetric label="Daily hit rate" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} />
-                  <CompactMetric label="Combo record" value={FINAL_V1_DAILY_COMBO_RECORD} />
-                  <CompactMetric label="Avg legs/day" value={n(FINAL_V1_DAILY_COMBO_AVG_LEGS, 2)} />
-                  <CompactMetric label="Historical legs" value={n(FINAL_V1_DAILY_COMBO_LEGS, 0)} />
+                  <CompactMetric label="2L hit rate" value={pct(FINAL_V1_DAILY_COMBO_HIT_PCT, 2)} />
+                  <CompactMetric label="2L record" value={FINAL_V1_DAILY_COMBO_RECORD} />
+                  <CompactMetric label="2L avg legs" value={n(FINAL_V1_DAILY_COMBO_AVG_LEGS, 2)} />
+                  <CompactMetric label="2L legs" value={n(FINAL_V1_DAILY_COMBO_LEGS, 0)} />
+                  <CompactMetric label="3L hit rate" value={pct(FINAL_V1_DAILY_TRIPLET_HIT_PCT, 2)} />
+                  <CompactMetric label="3L record" value={FINAL_V1_DAILY_TRIPLET_RECORD} />
+                  <CompactMetric label="3L avg legs" value={n(FINAL_V1_DAILY_TRIPLET_AVG_LEGS, 2)} />
+                  <CompactMetric label="3L legs" value={n(FINAL_V1_DAILY_TRIPLET_LEGS, 0)} />
                 </div>
-                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
-                  <span className="font-semibold text-[var(--text)]">Today&apos;s combo set:</span>{' '}
-                  {finalModelComboLegs.length >= 2
-                    ? `${n(finalModelComboLegs.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg combos.`
-                    : 'Waiting for at least two Final V1 picks.'}
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                    <span className="font-semibold text-[var(--text)]">Today&apos;s 2-leg set:</span>{' '}
+                    {finalModelComboLegs.length >= 2
+                      ? `${n(finalModelComboLegs.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg combos.`
+                      : 'Waiting for at least two Final V1 picks.'}
+                  </div>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                    <span className="font-semibold text-[var(--text)]">Today&apos;s 3-leg set:</span>{' '}
+                    {finalModelTripletLegs.length >= 3
+                      ? `${n(finalModelTripletLegs.length, 0)} legs producing ${n(finalModelDailyTriplets.length, 0)} three-leg combos.`
+                      : 'Waiting for at least three Final V1 picks.'}
+                  </div>
+                </div>
+                <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
+                  3-leg high-water replay was {pct(FINAL_V1_HIGH_WATER_TRIPLET_HIT_PCT, 2)} with a top-3 rule, but the displayed 3-leg rule uses all triplets from a broader daily set.
                 </div>
                 {finalModelDailyCombos.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">
@@ -3823,6 +3877,28 @@ export default function NewDashboard({
                         <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Combo {index + 1}</div>
                         <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
                           {[legA, legB].map(({ modelRow, view }) => (
+                            <div key={`${id}:${modelRow.candidateId}`} className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-semibold">{modelRow.playerName}</div>
+                                <div className="text-xs text-[var(--text-2)]">
+                                  {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                                </div>
+                              </div>
+                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {finalModelDailyTriplets.length ? (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                    {finalModelDailyTriplets.map(({ id, legA, legB, legC }, index) => (
+                      <div key={id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">3-leg combo {index + 1}</div>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
+                          {[legA, legB, legC].map(({ modelRow, view }) => (
                             <div key={`${id}:${modelRow.candidateId}`} className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="truncate font-semibold">{modelRow.playerName}</div>
