@@ -101,24 +101,24 @@ const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 93.95;
 const FINAL_V1_SELECTED_RECORD = '869-56';
 const FINAL_V1_SELECTED_VOLUME = 925;
 const FINAL_V1_AVG_PICKS_PER_SLATE = 5.61;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Rank pairs, all but odd';
-const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 88.08;
-const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 69.51;
-const FINAL_V1_DAILY_COMBO_DAYS = '114-50';
-const FINAL_V1_DAILY_COMBO_RECORD = '399-54';
-const FINAL_V1_DAILY_COMBO_LEGS = 906;
-const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 97.95;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 5.52;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 2.76;
-const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Rank triplets, all but remainder';
-const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 82.71;
-const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 69.75;
-const FINAL_V1_DAILY_TRIPLET_DAYS = '113-49';
-const FINAL_V1_DAILY_TRIPLET_RECORD = '244-51';
-const FINAL_V1_DAILY_TRIPLET_LEGS = 885;
-const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 95.68;
-const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 5.46;
-const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 1.82;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Player-tab rank pairs, one prop/player';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 84.32;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 1.82;
+const FINAL_V1_DAILY_COMBO_DAYS = '3-162';
+const FINAL_V1_DAILY_COMBO_RECORD = '7023-1306';
+const FINAL_V1_DAILY_COMBO_LEGS = 16658;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 99.50;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 100.96;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 50.48;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab rank triplets, one prop/player';
+const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 77.63;
+const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 1.82;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '3-162';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '4297-1238';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 16605;
+const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 99.18;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 100.64;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 33.55;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1839,49 +1839,6 @@ export default function NewDashboard({
     () => finalModelPicks.map((pick) => pick.view).filter((view): view is View => view != null),
     [finalModelPicks],
   );
-  const finalModelComboLegs = useMemo(() => {
-    return finalModelPicks.slice(0, Math.floor(finalModelPicks.length / 2) * 2);
-  }, [finalModelPicks]);
-  const finalModelDailyCombos = useMemo(() => {
-    const combos: Array<{
-      id: string;
-      legA: (typeof finalModelComboLegs)[number];
-      legB: (typeof finalModelComboLegs)[number];
-    }> = [];
-    for (let index = 0; index < finalModelComboLegs.length; index += 2) {
-      const legA = finalModelComboLegs[index];
-      const legB = finalModelComboLegs[index + 1];
-      combos.push({
-        id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}`,
-        legA,
-        legB,
-      });
-    }
-    return combos;
-  }, [finalModelComboLegs]);
-  const finalModelTripletLegs = useMemo(() => {
-    return finalModelPicks.slice(0, Math.floor(finalModelPicks.length / 3) * 3);
-  }, [finalModelPicks]);
-  const finalModelDailyTriplets = useMemo(() => {
-    const triplets: Array<{
-      id: string;
-      legA: (typeof finalModelTripletLegs)[number];
-      legB: (typeof finalModelTripletLegs)[number];
-      legC: (typeof finalModelTripletLegs)[number];
-    }> = [];
-    for (let index = 0; index < finalModelTripletLegs.length; index += 3) {
-      const legA = finalModelTripletLegs[index];
-      const legB = finalModelTripletLegs[index + 1];
-      const legC = finalModelTripletLegs[index + 2];
-      triplets.push({
-        id: `${legA.modelRow.candidateId}:${legB.modelRow.candidateId}:${legC.modelRow.candidateId}`,
-        legA,
-        legB,
-        legC,
-      });
-    }
-    return triplets;
-  }, [finalModelTripletLegs]);
   const rubbingBaseViews = useMemo(
     () => selectRubbingHands115Views(allViews),
     [allViews],
@@ -2151,6 +2108,68 @@ export default function NewDashboard({
     });
     return out;
   }, [boardRows, finalModelPicks]);
+  const playerTabComboPicks = useMemo(
+    () =>
+      slatePlayers
+        .map((row) => {
+          const views = rankViews(MARKETS.map((market) => viewFor(row, market, null)));
+          const leadView = leadViewFromViews(views);
+          return leadView ? { row, view: leadView } : null;
+        })
+        .filter((item): item is { row: SnapshotDashboardRow; view: View } => item != null)
+        .sort(
+          (a, b) =>
+            b.view.score - a.view.score ||
+            (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
+            a.row.playerName.localeCompare(b.row.playerName),
+        ),
+    [slatePlayers],
+  );
+  const playerTabPairLegs = useMemo(
+    () => playerTabComboPicks.slice(0, Math.floor(playerTabComboPicks.length / 2) * 2),
+    [playerTabComboPicks],
+  );
+  const playerTabPairCards = useMemo(() => {
+    const cards: Array<{
+      id: string;
+      legA: (typeof playerTabPairLegs)[number];
+      legB: (typeof playerTabPairLegs)[number];
+    }> = [];
+    for (let index = 0; index < playerTabPairLegs.length; index += 2) {
+      const legA = playerTabPairLegs[index];
+      const legB = playerTabPairLegs[index + 1];
+      cards.push({
+        id: `${legA.row.playerId}:${legA.view.market}:${legB.row.playerId}:${legB.view.market}`,
+        legA,
+        legB,
+      });
+    }
+    return cards;
+  }, [playerTabPairLegs]);
+  const playerTabTripletLegs = useMemo(
+    () => playerTabComboPicks.slice(0, Math.floor(playerTabComboPicks.length / 3) * 3),
+    [playerTabComboPicks],
+  );
+  const playerTabTripletCards = useMemo(() => {
+    const cards: Array<{
+      id: string;
+      legA: (typeof playerTabTripletLegs)[number];
+      legB: (typeof playerTabTripletLegs)[number];
+      legC: (typeof playerTabTripletLegs)[number];
+    }> = [];
+    for (let index = 0; index < playerTabTripletLegs.length; index += 3) {
+      const legA = playerTabTripletLegs[index];
+      const legB = playerTabTripletLegs[index + 1];
+      const legC = playerTabTripletLegs[index + 2];
+      cards.push({
+        id: `${legA.row.playerId}:${legA.view.market}:${legB.row.playerId}:${legB.view.market}:${legC.row.playerId}:${legC.view.market}`,
+        legA,
+        legB,
+        legC,
+      });
+    }
+    return cards;
+  }, [playerTabTripletLegs]);
   const researchRows = useMemo(() => slatePlayers.slice(0, 12), [slatePlayers]);
   const searchResults = useMemo(() => {
     if (!deferredSearchQuery) return [];
@@ -3828,10 +3847,10 @@ export default function NewDashboard({
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Daily coverage card layers</div>
-                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">2-leg and 3-leg coverage cards</h3>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the full Final V1 daily card in rank order, leaving only the odd leg for pairs or the unavoidable remainder for triplets. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}. 2-leg coverage is {pct(FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT, 2)} and 3-leg coverage is {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)}.
+                      Historical replay uses the broader player-tab board, picks one best market per player, then leaves only the odd leg for pairs or the unavoidable remainder for triplets. 2-leg rule: {FINAL_V1_DAILY_COMBO_RULE_LABEL}. 3-leg rule: {FINAL_V1_DAILY_TRIPLET_RULE_LABEL}.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
@@ -3849,35 +3868,35 @@ export default function NewDashboard({
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 2-leg set:</span>{' '}
-                    {finalModelComboLegs.length >= 2
-                      ? `${n(finalModelComboLegs.length, 0)} of ${n(finalModelPicks.length, 0)} legs producing ${n(finalModelDailyCombos.length, 0)} two-leg cards.`
-                      : 'Waiting for at least two Final V1 picks.'}
+                    {playerTabPairLegs.length >= 2
+                      ? `${n(playerTabPairLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabPairCards.length, 0)} two-leg cards.`
+                      : 'Waiting for at least two player-tab picks.'}
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                     <span className="font-semibold text-[var(--text)]">Today&apos;s 3-leg set:</span>{' '}
-                    {finalModelTripletLegs.length >= 3
-                      ? `${n(finalModelTripletLegs.length, 0)} of ${n(finalModelPicks.length, 0)} legs producing ${n(finalModelDailyTriplets.length, 0)} three-leg cards.`
-                      : 'Waiting for at least three Final V1 picks.'}
+                    {playerTabTripletLegs.length >= 3
+                      ? `${n(playerTabTripletLegs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(playerTabTripletCards.length, 0)} three-leg cards.`
+                      : 'Waiting for at least three player-tab picks.'}
                   </div>
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
                   Coverage cards use nearly every leg. The daily all-card hit rates are {pct(FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT, 2)} for 2-leg days and {pct(FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT, 2)} for 3-leg days because one used losing leg can spoil the whole day.
                 </div>
-                {finalModelDailyCombos.length ? (
+                {playerTabPairCards.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                    {finalModelDailyCombos.map(({ id, legA, legB }, index) => (
+                    {playerTabPairCards.map(({ id, legA, legB }, index) => (
                       <div key={id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">Combo {index + 1}</div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">2-leg card {index + 1}</div>
                         <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
-                          {[legA, legB].map(({ modelRow, view }) => (
-                            <div key={`${id}:${modelRow.candidateId}`} className="flex items-start justify-between gap-3">
+                          {[legA, legB].map(({ row, view }) => (
+                            <div key={`${id}:${row.playerId}:${view.market}`} className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="truncate font-semibold">{modelRow.playerName}</div>
+                                <div className="truncate font-semibold">{row.playerName}</div>
                                 <div className="text-xs text-[var(--text-2)]">
-                                  {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                                  {recommendationHeadline(view)}
                                 </div>
                               </div>
-                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                              <Badge label={MARKET_LABELS[view.market]} kind="DERIVED" />
                             </div>
                           ))}
                         </div>
@@ -3885,21 +3904,21 @@ export default function NewDashboard({
                     ))}
                   </div>
                 ) : null}
-                {finalModelDailyTriplets.length ? (
+                {playerTabTripletCards.length ? (
                   <div className="mt-4 grid gap-3 lg:grid-cols-3">
-                    {finalModelDailyTriplets.map(({ id, legA, legB, legC }, index) => (
+                    {playerTabTripletCards.map(({ id, legA, legB, legC }, index) => (
                       <div key={id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
-                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">3-leg combo {index + 1}</div>
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">3-leg card {index + 1}</div>
                         <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
-                          {[legA, legB, legC].map(({ modelRow, view }) => (
-                            <div key={`${id}:${modelRow.candidateId}`} className="flex items-start justify-between gap-3">
+                          {[legA, legB, legC].map(({ row, view }) => (
+                            <div key={`${id}:${row.playerId}:${view.market}`} className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <div className="truncate font-semibold">{modelRow.playerName}</div>
+                                <div className="truncate font-semibold">{row.playerName}</div>
                                 <div className="text-xs text-[var(--text-2)]">
-                                  {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                                  {recommendationHeadline(view)}
                                 </div>
                               </div>
-                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                              <Badge label={MARKET_LABELS[view.market]} kind="DERIVED" />
                             </div>
                           ))}
                         </div>
