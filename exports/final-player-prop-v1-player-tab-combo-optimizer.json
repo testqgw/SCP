@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-07T04:48:33.361092Z",
+  "generatedAt": "2026-05-07T23:13:45.192213Z",
   "modelId": "final-player-prop-model-v1",
-  "modelVersion": "2026-05-06-portfolio-guard-v1",
+  "modelVersion": "2026-05-07-projection-confidence-v2",
   "playerTabRule": "player_tab_best_market_one_per_player_v1",
   "inputs": {
     "boardCsv": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-walk-forward-board.csv",
@@ -199,12 +199,35 @@
     "legLosses": 160,
     "legAccuracyPct": 96.04
   },
+  "sextCoverageRule": {
+    "name": "player_tab_cs_non_ast_score69_sextets_v1",
+    "cardSize": 6,
+    "activeDays": 156,
+    "skippedDays": 9,
+    "eligibleLegs": 4209,
+    "usedLegs": 3780,
+    "unusedLegs": 12962,
+    "legCoveragePct": 22.58,
+    "eligibleCoveragePct": 25.14,
+    "avgUsedLegsPerActiveDay": 24.23,
+    "cards": 630,
+    "avgCardsPerActiveDay": 4.04,
+    "dailyAllCardsHitDays": 74,
+    "dailyAllCardsHitPct": 47.44,
+    "cardWins": 505,
+    "cardLosses": 125,
+    "cardAccuracyPct": 80.16,
+    "legWins": 3640,
+    "legLosses": 140,
+    "legAccuracyPct": 96.3
+  },
   "interpretation": [
     "This corrected layer uses the player-tab source: one best market per player from the full Final V1 board.",
     "It covers 99.50% of player-tab picks for two-leg cards.",
     "The 3-leg layer is now a premium guard: score < 0.70, tier B, 3PM, and baseline-source rows are excluded before tier/score/component clustering, so coverage drops but card accuracy clears the 80% target.",
     "The 4-leg layer is stricter: only C/S-tier non-AST player-tab legs are used, giving a smaller but stronger quartet pool.",
     "The 5-leg layer keeps that same C/S-tier non-AST pool and clears the 80% historical card-accuracy target, but with low coverage.",
+    "The 6-leg layer adds a Final V1 score >= 0.69 guard to keep historical card accuracy at 80%+, with lower coverage than the 4-leg and 5-leg layers.",
     "Card accuracy is the useful betting-card metric here. Daily all-card hit rate is naturally low because this layer can create dozens of cards per slate.",
     "This is historical replay evidence and still needs locked-forward tracking before live-edge claims."
   ]
