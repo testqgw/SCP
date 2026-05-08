@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Activity,
+  AlertTriangle,
   ArrowLeft,
   BarChart3,
   CalendarDays,
   Database,
+  ExternalLink,
   GitBranch,
   LineChart,
   ShieldCheck,
+  Target,
+  Trophy,
 } from "lucide-react";
 import {
   WNBA_INPUT_COLUMNS,
@@ -17,6 +21,7 @@ import {
   WNBA_MODEL_SUMMARY,
   WNBA_PORTFOLIO_RULES,
 } from "@/lib/wnba/modelSummary";
+import currentCardData from "@/wnba/output/current-card.json";
 
 export const metadata: Metadata = {
   title: "ULTOPS | WNBA Player Prop Model",
@@ -29,6 +34,146 @@ export const metadata: Metadata = {
 
 const panelClass =
   "rounded-2xl border border-[var(--border)] bg-[color:rgba(255,253,252,0.86)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]";
+
+type CurrentCardRow = {
+  selected_rank: number | null;
+  tier: string;
+  final_score: number;
+  player: string;
+  team: string;
+  opponent: string;
+  market: string;
+  side: "OVER" | "UNDER";
+  line: number;
+  over_odds: number | null;
+  under_odds: number | null;
+  projected_value: number;
+  line_gap: number;
+  model_probability: number;
+  price_edge: number | null;
+  source_pick?: string | null;
+  source_projection?: number | null;
+  source_book?: string;
+  source_market?: string;
+  source_url?: string;
+  risk_flags: string[];
+  reasons: string[];
+};
+
+type CurrentCard = {
+  generatedAt: string;
+  slateDate: string;
+  modelVersion: string;
+  mode: string;
+  sourceNote?: string;
+  sourceUrls?: string[];
+  summary: {
+    totalBoardRows: number;
+    selectedCount: number;
+    candidateCount: number;
+    averageModelProbability: number | null;
+    averageFinalScore: number | null;
+    priceCoveragePct: number;
+  };
+  warnings: string[];
+  selectedRows: CurrentCardRow[];
+  candidateRows: CurrentCardRow[];
+};
+
+const WNBA_CURRENT_CARD = currentCardData as CurrentCard;
+
+function formatPct(value: number | null | undefined): string {
+  return typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "n/a";
+}
+
+function formatScore(value: number | null | undefined): string {
+  return typeof value === "number" ? value.toFixed(3) : "n/a";
+}
+
+function formatOdds(value: number | null | undefined): string {
+  if (typeof value !== "number") {
+    return "";
+  }
+  return value > 0 ? `+${value.toFixed(0)}` : value.toFixed(0);
+}
+
+function formatFlag(flag: string): string {
+  return flag.replaceAll("_", " ");
+}
+
+function PickCard({ row }: { row: CurrentCardRow }) {
+  const sideOdds = row.side === "OVER" ? row.over_odds : row.under_odds;
+  const riskFlags = row.risk_flags.filter((flag) => flag !== "single_side_price").slice(0, 3);
+
+  return (
+    <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+            <Trophy aria-hidden="true" size={14} />
+            Rank {row.selected_rank ?? "-"} / Tier {row.tier}
+          </div>
+          <h3 className="mt-2 truncate text-lg font-semibold text-[var(--text)]">{row.player}</h3>
+          <div className="mt-1 text-sm text-[var(--text-2)]">
+            {row.team} vs {row.opponent}
+          </div>
+        </div>
+        <div className="rounded-xl border border-[color:rgba(47,125,90,0.22)] bg-[color:rgba(47,125,90,0.10)] px-3 py-2 text-right">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--positive)]">
+            {row.side}
+          </div>
+          <div className="mt-0.5 text-base font-semibold text-[var(--text)]">
+            {row.market} {row.line}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Projection</div>
+          <div className="mt-1 font-semibold text-[var(--text)]">{row.projected_value.toFixed(2)}</div>
+        </div>
+        <div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Model Prob.</div>
+          <div className="mt-1 font-semibold text-[var(--text)]">{formatPct(row.model_probability)}</div>
+        </div>
+        <div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Score</div>
+          <div className="mt-1 font-semibold text-[var(--text)]">{formatScore(row.final_score)}</div>
+        </div>
+        <div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Book Price</div>
+          <div className="mt-1 font-semibold text-[var(--text)]">{formatOdds(sideOdds) || "single side"}</div>
+        </div>
+      </div>
+
+      <div className="mt-4 text-sm leading-6 text-[var(--text-2)]">
+        Source projection {row.source_projection?.toFixed(1) ?? "n/a"} on {row.source_market || row.market};
+        model gap {row.line_gap > 0 ? "+" : ""}
+        {row.line_gap.toFixed(2)}.
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {riskFlags.map((flag) => (
+          <span key={flag} className="rounded-full bg-[color:rgba(221,149,55,0.12)] px-2.5 py-1 text-xs font-medium text-[var(--warning)]">
+            {formatFlag(flag)}
+          </span>
+        ))}
+        {row.source_url ? (
+          <a
+            href={row.source_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium text-[var(--text-2)] transition hover:text-[var(--text)]"
+          >
+            Source
+            <ExternalLink aria-hidden="true" size={12} />
+          </a>
+        ) : null}
+      </div>
+    </article>
+  );
+}
 
 function MetricCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
@@ -138,6 +283,66 @@ export default function WnbaPage(): React.ReactElement {
           {WNBA_MODEL_METRICS.map((metric) => (
             <MetricCard key={metric.label} {...metric} />
           ))}
+        </section>
+
+        <section className={`${panelClass} p-5 lg:p-6`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <Target aria-hidden="true" className="text-[var(--positive)]" size={22} />
+                <h2 className="text-xl font-semibold text-[var(--text)]">Current Model Card</h2>
+              </div>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
+                Slate {WNBA_CURRENT_CARD.slateDate}; generated {new Date(WNBA_CURRENT_CARD.generatedAt).toLocaleString("en-US", { timeZone: "America/New_York" })} ET from public sourced prop rows.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
+              <MetricCard
+                label="Selected"
+                value={String(WNBA_CURRENT_CARD.summary.selectedCount)}
+                note={`${WNBA_CURRENT_CARD.summary.totalBoardRows} sourced rows`}
+              />
+              <MetricCard
+                label="Avg prob."
+                value={formatPct(WNBA_CURRENT_CARD.summary.averageModelProbability)}
+                note="Selected props"
+              />
+              <MetricCard
+                label="Avg score"
+                value={formatScore(WNBA_CURRENT_CARD.summary.averageFinalScore)}
+                note="Model rank"
+              />
+              <MetricCard
+                label="Price cov."
+                value={`${WNBA_CURRENT_CARD.summary.priceCoveragePct.toFixed(1)}%`}
+                note="Pick-side prices"
+              />
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            {WNBA_CURRENT_CARD.selectedRows.length ? (
+              WNBA_CURRENT_CARD.selectedRows.map((row) => <PickCard key={`${row.player}-${row.market}-${row.line}`} row={row} />)
+            ) : (
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm text-[var(--text-2)]">
+                No current rows cleared the model gates.
+              </div>
+            )}
+          </div>
+
+          {WNBA_CURRENT_CARD.warnings.length ? (
+            <div className="mt-4 grid gap-2">
+              {WNBA_CURRENT_CARD.warnings.map((warning) => (
+                <div
+                  key={warning}
+                  className="flex gap-2 rounded-xl border border-[color:rgba(221,149,55,0.24)] bg-[color:rgba(221,149,55,0.10)] px-3 py-2 text-sm text-[var(--text-2)]"
+                >
+                  <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--warning)]" size={16} />
+                  <span>{warning}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">

@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .data_sportsgrid import fetch_props, props_to_board_rows, write_board_csv
 from .data_espn import fetch_player_game_logs, write_logs_csv
 from .model import backtest_historical_lines, load_board, load_logs, score_board, write_card
 
@@ -26,6 +27,16 @@ def parse_args() -> argparse.Namespace:
     score.add_argument("--max-picks", type=int, default=6)
     score.add_argument("--min-score", type=float, default=0.68)
     score.add_argument("--include-preseason", action="store_true")
+
+    sportsgrid = subparsers.add_parser("sportsgrid", help="Import SportsGrid WNBA prop cards and score them")
+    sportsgrid.add_argument("--urls", nargs="+", required=True)
+    sportsgrid.add_argument("--logs", default="data/raw/wnba_player_game_logs.csv")
+    sportsgrid.add_argument("--date", default=None)
+    sportsgrid.add_argument("--board-out", default="data/current/sportsgrid_board.csv")
+    sportsgrid.add_argument("--out-prefix", default="output/current-card")
+    sportsgrid.add_argument("--max-picks", type=int, default=6)
+    sportsgrid.add_argument("--min-score", type=float, default=0.62)
+    sportsgrid.add_argument("--include-preseason", action="store_true")
 
     backtest = subparsers.add_parser("backtest", help="Walk-forward backtest with historical prop lines")
     backtest.add_argument("--logs", default="data/raw/wnba_player_game_logs.csv")
@@ -55,6 +66,28 @@ def cmd_score(args: argparse.Namespace) -> int:
     card = score_board(logs, board, slate_date=args.date, limits=limits)
     paths = write_card(card, args.out_prefix)
     print(f"Scored {card['summary']['totalBoardRows']} rows; selected {card['summary']['selectedCount']}.")
+    print(f"JSON: {paths['json']}")
+    print(f"CSV: {paths['csv']}")
+    print(f"MD: {paths['md']}")
+    return 0
+
+
+def cmd_sportsgrid(args: argparse.Namespace) -> int:
+    resolver_logs = load_logs(args.logs, include_preseason=True)
+    props = fetch_props(args.urls, default_date=args.date)
+    rows = props_to_board_rows(props, resolver_logs)
+    write_board_csv(rows, args.board_out)
+    logs = load_logs(args.logs, include_preseason=args.include_preseason)
+    board = load_board(args.board_out, default_date=args.date)
+    limits = {"max_picks": args.max_picks, "min_score": args.min_score}
+    card = score_board(logs, board, slate_date=args.date, limits=limits)
+    card["mode"] = "CURRENT_SOURCED_PREVIEW"
+    card["sourceUrls"] = args.urls
+    card["sourceNote"] = "SportsGrid public player-prop cards; odds are pick-side FanDuel prices when available."
+    paths = write_card(card, args.out_prefix)
+    print(f"Imported {len(rows)} sourced rows from {len(args.urls)} SportsGrid pages.")
+    print(f"Scored {card['summary']['totalBoardRows']} rows; selected {card['summary']['selectedCount']}.")
+    print(f"Board: {args.board_out}")
     print(f"JSON: {paths['json']}")
     print(f"CSV: {paths['csv']}")
     print(f"MD: {paths['md']}")
@@ -91,6 +124,8 @@ def main() -> int:
         return cmd_fetch(args)
     if args.command == "score":
         return cmd_score(args)
+    if args.command == "sportsgrid":
+        return cmd_sportsgrid(args)
     if args.command == "backtest":
         return cmd_backtest(args)
     if args.command == "audit-data":

@@ -20,6 +20,53 @@ MARKET_COMPONENTS = {
     "PR": ("points", "rebounds"),
     "RA": ("rebounds", "assists"),
 }
+
+MARKET_ALIASES = {
+    "P": "PTS",
+    "PT": "PTS",
+    "PTS": "PTS",
+    "POINT": "PTS",
+    "POINTS": "PTS",
+    "R": "REB",
+    "REB": "REB",
+    "REBOUND": "REB",
+    "REBOUNDS": "REB",
+    "A": "AST",
+    "AST": "AST",
+    "ASSIST": "AST",
+    "ASSISTS": "AST",
+    "3PM": "THREES",
+    "3P": "THREES",
+    "THREE": "THREES",
+    "THREES": "THREES",
+    "3 POINT FG MADE": "THREES",
+    "3 PTS FG MADE": "THREES",
+    "3-POINT FG MADE": "THREES",
+    "3 POINTERS": "THREES",
+    "MADE THREES": "THREES",
+    "PRA": "PRA",
+    "PTS AST REB": "PRA",
+    "PTS REB AST": "PRA",
+    "PTS + REB + AST": "PRA",
+    "PTS + AST + REB": "PRA",
+    "POINTS REBOUNDS ASSISTS": "PRA",
+    "POINTS + REBOUNDS + ASSISTS": "PRA",
+    "PA": "PA",
+    "PTS AST": "PA",
+    "PTS + AST": "PA",
+    "POINTS ASSISTS": "PA",
+    "POINTS + ASSISTS": "PA",
+    "PR": "PR",
+    "PTS REB": "PR",
+    "PTS + REB": "PR",
+    "POINTS REBOUNDS": "PR",
+    "POINTS + REBOUNDS": "PR",
+    "RA": "RA",
+    "REB AST": "RA",
+    "REB + AST": "RA",
+    "REBOUNDS ASSISTS": "RA",
+    "REBOUNDS + ASSISTS": "RA",
+}
 REGULAR_SEASON_WINDOWS = {
     2024: ("2024-05-14", "2024-09-19"),
     2025: ("2025-05-16", "2025-09-11"),
@@ -104,6 +151,19 @@ def canonical_name(value: Any) -> str:
     text = text.lower().replace(".", " ")
     text = re.sub(r"[^a-z0-9]+", " ", text)
     return " ".join(text.split())
+
+
+def normalize_market(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = text.upper().replace("&", "+")
+    text = re.sub(r"\bPOINTS?\b", "PTS", text)
+    text = re.sub(r"\bREBOUNDS?\b", "REB", text)
+    text = re.sub(r"\bASSISTS?\b", "AST", text)
+    text = re.sub(r"\b3\s*POINT\s*FG\s*MADE\b", "3 POINT FG MADE", text)
+    text = re.sub(r"\s*\+\s*", " + ", text)
+    text = re.sub(r"[^A-Z0-9+]+", " ", text)
+    text = " ".join(text.split())
+    return MARKET_ALIASES.get(text, text)
 
 
 def as_bool(value: Any) -> bool | None:

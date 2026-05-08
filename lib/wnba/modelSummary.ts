@@ -12,8 +12,8 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-05-08-espn-logs-correlation-v1",
-  status: "Ready for current WNBA board input",
+  modelVersion: "2026-05-08-sourced-lines-correlation-v2",
+  status: "Current WNBA card published",
   currentDateEt: "2026-05-08",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
@@ -21,9 +21,9 @@ export const WNBA_MODEL_SUMMARY = {
   historicalLinesTemplatePath: "wnba/data/templates/historical_lines_template.csv",
   rawLogPath: "wnba/data/raw/wnba_player_game_logs.csv",
   claimBoundary:
-    "WNBA V1 ranks supplied player props with historical boxscore evidence, price edge, and portfolio gates. It is not a guarantee, and live use still requires current odds plus player availability confirmation.",
+    "WNBA V1 ranks sourced player props with historical boxscore evidence, price edge, source alignment, and portfolio gates. It is not a guarantee, and live use still requires current odds plus player availability confirmation.",
   dataSource:
-    "ESPN public WNBA scoreboard and boxscore endpoints, filtered to regular-season logs by default.",
+    "ESPN public WNBA scoreboard and boxscore endpoints for logs, plus current public SportsGrid player-prop cards when a live card is generated.",
   rawRows: "11,926",
   regularRows: "9,969",
   games: "530",
@@ -106,4 +106,7 @@ export const WNBA_INPUT_COLUMNS = [
   "projected_minutes",
   "starter_expected",
   "injury_note",
+  "source_pick",
+  "source_projection",
+  "source_url",
 ] as const;
