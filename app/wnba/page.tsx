@@ -22,6 +22,7 @@ import {
   WNBA_PORTFOLIO_RULES,
 } from "@/lib/wnba/modelSummary";
 import currentCardData from "@/wnba/output/current-card.json";
+import currentSettlementData from "@/wnba/output/current-settlement.json";
 
 export const metadata: Metadata = {
   title: "ULTOPS | WNBA Player Prop Model",
@@ -81,6 +82,22 @@ type CurrentCard = {
 };
 
 const WNBA_CURRENT_CARD = currentCardData as CurrentCard;
+
+type CurrentSettlement = {
+  generatedAt: string;
+  slateDate: string;
+  summary: {
+    trackedPicks: number;
+    settledPicks: number;
+    pendingPicks: number;
+    wins: number;
+    losses: number;
+    pushes: number;
+    accuracyPct: number | null;
+  };
+};
+
+const WNBA_CURRENT_SETTLEMENT = currentSettlementData as CurrentSettlement;
 
 function formatPct(value: number | null | undefined): string {
   return typeof value === "number" ? `${(value * 100).toFixed(1)}%` : "n/a";
@@ -343,6 +360,18 @@ export default function WnbaPage(): React.ReactElement {
               ))}
             </div>
           ) : null}
+
+          <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+            Verified accuracy:{" "}
+            <span className="font-semibold text-[var(--text)]">
+              {WNBA_CURRENT_SETTLEMENT.summary.accuracyPct === null
+                ? "pending"
+                : `${WNBA_CURRENT_SETTLEMENT.summary.accuracyPct.toFixed(1)}%`}
+            </span>
+            . Settled {WNBA_CURRENT_SETTLEMENT.summary.settledPicks} of{" "}
+            {WNBA_CURRENT_SETTLEMENT.summary.trackedPicks} current-card picks;{" "}
+            {WNBA_CURRENT_SETTLEMENT.summary.pendingPicks} pending final ESPN boxscores.
+          </div>
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[1.3fr_0.7fr]">

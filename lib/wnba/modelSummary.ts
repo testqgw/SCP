@@ -12,8 +12,8 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-05-08-sourced-lines-correlation-v2",
-  status: "Current WNBA card published",
+  modelVersion: "2026-05-08-best-odds-source-gated-v3",
+  status: "Current best-odds WNBA card published",
   currentDateEt: "2026-05-08",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
@@ -21,9 +21,9 @@ export const WNBA_MODEL_SUMMARY = {
   historicalLinesTemplatePath: "wnba/data/templates/historical_lines_template.csv",
   rawLogPath: "wnba/data/raw/wnba_player_game_logs.csv",
   claimBoundary:
-    "WNBA V1 ranks sourced player props with historical boxscore evidence, price edge, source alignment, and portfolio gates. It is not a guarantee, and live use still requires current odds plus player availability confirmation.",
+    "WNBA V1 ranks sourced player props with historical boxscore evidence, best available over/under prices, source projection alignment, and portfolio gates. It is not a guarantee, and live use still requires player availability confirmation.",
   dataSource:
-    "ESPN public WNBA scoreboard and boxscore endpoints for logs, plus current public SportsGrid player-prop cards when a live card is generated.",
+    "ESPN public WNBA scoreboard and boxscore endpoints for logs, ScoresAndOdds public best-odds prop tables for the free current card, SportsGrid as a fallback source, and optional The Odds API support when an API key is supplied.",
   rawRows: "11,926",
   regularRows: "9,969",
   games: "530",
