@@ -1,0 +1,109 @@
+export type WnbaModelMetric = {
+  label: string;
+  value: string;
+  note: string;
+};
+
+export type WnbaModelStage = {
+  label: string;
+  detail: string;
+};
+
+export const WNBA_MODEL_SUMMARY = {
+  modelId: "wnba-player-prop-model-v1",
+  modelName: "WNBA Correlation-Aware Player Prop Model V1",
+  modelVersion: "2026-05-08-espn-logs-correlation-v1",
+  status: "Ready for current WNBA board input",
+  currentDateEt: "2026-05-08",
+  repoPath: "wnba/",
+  toolkitPath: "wnba/wnba_prop_model/",
+  boardTemplatePath: "wnba/data/templates/market_board_template.csv",
+  historicalLinesTemplatePath: "wnba/data/templates/historical_lines_template.csv",
+  rawLogPath: "wnba/data/raw/wnba_player_game_logs.csv",
+  claimBoundary:
+    "WNBA V1 ranks supplied player props with historical boxscore evidence, price edge, and portfolio gates. It is not a guarantee, and live use still requires current odds plus player availability confirmation.",
+  dataSource:
+    "ESPN public WNBA scoreboard and boxscore endpoints, filtered to regular-season logs by default.",
+  rawRows: "11,926",
+  regularRows: "9,969",
+  games: "530",
+  players: "218",
+  dateRange: "2024-05-14 to 2025-09-11",
+  markets: ["PTS", "REB", "AST", "3PM", "PRA", "PA", "PR", "RA"],
+  regularSeasonWindows: [
+    "2024: May 14 to September 19",
+    "2025: May 16 to September 11",
+    "2026: May 8 to September 24",
+  ],
+} as const;
+
+export const WNBA_MODEL_METRICS: WnbaModelMetric[] = [
+  {
+    label: "Regular logs",
+    value: WNBA_MODEL_SUMMARY.regularRows,
+    note: "Default scoring sample",
+  },
+  {
+    label: "Player pool",
+    value: WNBA_MODEL_SUMMARY.players,
+    note: "Resolved WNBA players",
+  },
+  {
+    label: "Games",
+    value: WNBA_MODEL_SUMMARY.games,
+    note: "Regular-season games",
+  },
+  {
+    label: "Markets",
+    value: String(WNBA_MODEL_SUMMARY.markets.length),
+    note: "Core and combo props",
+  },
+];
+
+export const WNBA_MODEL_STAGES: WnbaModelStage[] = [
+  {
+    label: "Projection engine",
+    detail:
+      "Blends player per-minute form, EWMA, last-3/last-10 production, season baseline, position fallback, opponent allowance, home/away splits, and expected minutes.",
+  },
+  {
+    label: "Probability layer",
+    detail:
+      "Converts projection gap into an over/under probability with market-specific residuals and a recency-weighted empirical hit-rate blend.",
+  },
+  {
+    label: "Price edge",
+    detail:
+      "Normalizes supplied American odds to no-vig fair probability, then compares book price against model probability.",
+  },
+  {
+    label: "Portfolio gates",
+    detail:
+      "Limits exposure by player, team, game, market, combo market, and same-team counting overs before selecting the final card.",
+  },
+];
+
+export const WNBA_PORTFOLIO_RULES = [
+  "Max 6 picks",
+  "Max 1 per player",
+  "Max 2 per team",
+  "Max 2 per game",
+  "Max 2 per market",
+  "Max 2 combo markets",
+  "Max 1 same-team counting over",
+] as const;
+
+export const WNBA_INPUT_COLUMNS = [
+  "game_date",
+  "player",
+  "team",
+  "opponent",
+  "market",
+  "line",
+  "over_odds",
+  "under_odds",
+  "sportsbook_count",
+  "projected_minutes",
+  "starter_expected",
+  "injury_note",
+] as const;

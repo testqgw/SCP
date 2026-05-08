@@ -16,9 +16,9 @@ const displayFont = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "ULTOPS | NBA Player Prop Intelligence",
+  title: "ULTOPS | Player Prop Intelligence",
   description:
-    "Professional NBA player prop intelligence with precision picks, live odds, and matchup research.",
+    "Professional NBA and WNBA player prop intelligence with precision picks, live odds, and matchup research.",
   robots: {
     index: false,
     follow: false,
