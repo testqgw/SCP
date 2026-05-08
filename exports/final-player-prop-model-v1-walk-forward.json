@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-07T22:28:15.999863+00:00",
+  "generatedAt": "2026-05-08T04:53:16.026875+00:00",
   "modelId": "final-player-prop-model-v1",
-  "modelVersion": "2026-05-07-projection-confidence-v2",
+  "modelVersion": "2026-05-08-accuracy90-ladder-v1",
   "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
   "dateRange": {
     "from": "2025-10-30",
@@ -292,6 +292,50 @@
       "wins": 6290,
       "losses": 571,
       "accuracyPct": 91.68
+    }
+  },
+  "qualified90Board": {
+    "rule": "tier in S/A/C",
+    "coveragePct": 66.74,
+    "overall": {
+      "samples": 75943,
+      "wins": 68630,
+      "losses": 7313,
+      "accuracyPct": 90.37
+    },
+    "last30": {
+      "samples": 13701,
+      "wins": 12624,
+      "losses": 1077,
+      "accuracyPct": 92.14
+    },
+    "last14": {
+      "samples": 5191,
+      "wins": 4840,
+      "losses": 351,
+      "accuracyPct": 93.24
+    }
+  },
+  "score90Board": {
+    "rule": "finalScore >= 0.78",
+    "coveragePct": 44.48,
+    "overall": {
+      "samples": 50619,
+      "wins": 45923,
+      "losses": 4696,
+      "accuracyPct": 90.72
+    },
+    "last30": {
+      "samples": 8380,
+      "wins": 7744,
+      "losses": 636,
+      "accuracyPct": 92.41
+    },
+    "last14": {
+      "samples": 3148,
+      "wins": 2940,
+      "losses": 208,
+      "accuracyPct": 93.39
     }
   },
   "candidatePool": {

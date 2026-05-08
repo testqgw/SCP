@@ -10,13 +10,14 @@ from typing import Any
 
 
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-07-projection-confidence-v2"
+MODEL_VERSION = "2026-05-08-accuracy90-ladder-v1"
 PLAYER_TAB_RULE = "player_tab_best_market_one_per_player_v1"
-PAIR_RULE = "player_tab_rank_pair_cards_all_but_odd_v1"
-TRIPLET_RULE = "player_tab_premium_game_component_triplets_v2"
-QUAD_RULE = "player_tab_cs_non_ast_quartets_v1"
-QUINT_RULE = "player_tab_cs_non_ast_quintets_v1"
-SEXT_RULE = "player_tab_cs_non_ast_score69_sextets_v1"
+SINGLE_RULE = "player_tab_best_market_singles_90_v1"
+PAIR_RULE = "player_tab_cs_non_ast_score69_pairs_90_v1"
+TRIPLET_RULE = "player_tab_c_non_ast_score69_triplets_90_v1"
+QUAD_RULE = "player_tab_c_score84_market_quartets_90_v1"
+QUINT_RULE = "player_tab_c_score84_market_quintets_best_v1"
+SEXT_RULE = "player_tab_c_score84_market_sextets_best_v1"
 MARKET_ORDER = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 
 
@@ -100,48 +101,56 @@ def component_signature(row: dict[str, Any]) -> str:
     return "".join(signature) or "ROUTER"
 
 
+def cluster_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        row.get("tier") or "",
+        int(row["_finalScore"] * 20),
+        component_signature(row),
+        -row["_finalScore"],
+        -row["_prior"],
+        row["playerName"],
+    )
+
+
+def market_high_sort_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        row.get("market") or "",
+        -row["_finalScore"],
+        -row["_prior"],
+        row["playerName"],
+    )
+
+
+def optimized_pair_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    guarded = [
+        row
+        for row in rows
+        if row.get("tier") in {"C", "S"}
+        and row.get("market") != "AST"
+        and row["_finalScore"] >= 0.69
+    ]
+    return sorted(guarded, key=cluster_sort_key, reverse=True)
+
+
 def optimized_triplet_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     guarded = [
         row
         for row in rows
-        if row.get("tier") != "B"
-        and row.get("market") != "THREES"
-        and row["_finalScore"] >= 0.70
-        and "baseline_source" not in str(row.get("riskFlags") or "")
+        if row.get("tier") == "C"
+        and row.get("market") != "AST"
+        and row["_finalScore"] >= 0.69
     ]
-    return sorted(
-        guarded,
-        key=lambda row: (
-            row.get("tier") or "",
-            int(row["_finalScore"] * 20),
-            component_signature(row),
-            -row["_finalScore"],
-            -row["_prior"],
-            row["playerName"],
-        ),
-        reverse=True,
-    )
+    return sorted(guarded, key=cluster_sort_key, reverse=True)
 
 
 def optimized_quad_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     guarded = [
         row
         for row in rows
-        if row.get("tier") not in {"A", "B"}
-        and row.get("market") != "AST"
+        if row.get("tier") == "C"
+        and row["_finalScore"] >= 0.84
     ]
-    return sorted(
-        guarded,
-        key=lambda row: (
-            row.get("tier") or "",
-            int(row["_finalScore"] * 20),
-            component_signature(row),
-            -row["_finalScore"],
-            -row["_prior"],
-            row["playerName"],
-        ),
-        reverse=True,
-    )
+    return sorted(guarded, key=market_high_sort_key)
 
 
 def optimized_quint_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -149,7 +158,7 @@ def optimized_quint_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def optimized_sext_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [row for row in optimized_quad_rows(rows) if row["_finalScore"] >= 0.69]
+    return optimized_quad_rows(rows)
 
 
 def chunk_by_rank(rows: list[dict[str, Any]], size: int) -> list[list[dict[str, Any]]]:
@@ -300,16 +309,17 @@ def markdown_report(report: dict[str, Any]) -> str:
         "",
         "- Use the broader player-tab board, not the tiny Final V1 selected-card subset.",
         "- Pick exactly one best market per player per date using the highest Final V1 board score.",
-        "- Two-leg cards group the player-tab picks in rank chunks of 2 and leave only the odd final leg out.",
-        "- Three-leg premium cards require Final V1 score >= 0.70, remove tier B, 3PM, and baseline-source rows, then cluster by tier/score-bucket/component signature before chunking by 3.",
-        "- Four-leg premium cards use only C/S-tier non-AST player-tab legs, then cluster by tier/score-bucket/component signature before chunking by 4.",
-        "- Five-leg premium cards use the same C/S-tier non-AST player-tab pool, then cluster by tier/score-bucket/component signature before chunking by 5.",
-        "- Six-leg premium cards use the C/S-tier non-AST player-tab pool with Final V1 score >= 0.69 before chunking by 6.",
+        "- One-leg player-tab picks use all one-best-prop-per-player rows and clear the 90% historical accuracy target.",
+        "- Two-leg 90+ cards use C/S-tier non-AST legs with Final V1 score >= 0.69, then cluster by tier/score/component signature before chunking by 2.",
+        "- Three-leg 90+ cards use C-tier non-AST legs with Final V1 score >= 0.69, then cluster by tier/score/component signature before chunking by 3.",
+        "- Four-leg 90+ cards use C-tier legs with Final V1 score >= 0.84, sorted by market and score before chunking by 4.",
+        "- Five- and six-leg cards use the same C-tier score >= 0.84 pool. They improve accuracy versus the prior wide rules, but do not honestly clear 90% card-hit rate on a meaningful sample.",
         "",
         "## Coverage Results",
         "",
         "| Layer | Rule | Leg Coverage | Cards | Avg Cards/Day | Card Accuracy | Daily All-Card Hit |",
         "|---|---|---:|---:|---:|---:|---:|",
+        f"| 1-leg | {report['singleCoverageRule']['name']} | {pct_fmt(report['singleCoverageRule']['legCoveragePct'])} | {report['singleCoverageRule']['cards']} | {report['singleCoverageRule']['avgCardsPerActiveDay']} | {pct_fmt(report['singleCoverageRule']['cardAccuracyPct'])} | {pct_fmt(report['singleCoverageRule']['dailyAllCardsHitPct'])} |",
         f"| 2-leg | {pair['name']} | {pct_fmt(pair['legCoveragePct'])} | {pair['cards']} | {pair['avgCardsPerActiveDay']} | {pct_fmt(pair['cardAccuracyPct'])} | {pct_fmt(pair['dailyAllCardsHitPct'])} |",
         f"| 3-leg | {triplet['name']} | {pct_fmt(triplet['legCoveragePct'])} | {triplet['cards']} | {triplet['avgCardsPerActiveDay']} | {pct_fmt(triplet['cardAccuracyPct'])} | {pct_fmt(triplet['dailyAllCardsHitPct'])} |",
         f"| 4-leg | {quad['name']} | {pct_fmt(quad['legCoveragePct'])} | {quad['cards']} | {quad['avgCardsPerActiveDay']} | {pct_fmt(quad['cardAccuracyPct'])} | {pct_fmt(quad['dailyAllCardsHitPct'])} |",
@@ -335,7 +345,8 @@ def main() -> None:
     total_selected_rows = sum(len(rows) for rows in selected_by_date.values())
     daily_count_distribution = Counter(len(rows) for rows in selected_by_date.values())
 
-    pair = evaluate_cards(selected_by_date, PAIR_RULE, 2, total_selected_rows)
+    single = evaluate_cards(selected_by_date, SINGLE_RULE, 1, total_selected_rows)
+    pair = evaluate_cards(selected_by_date, PAIR_RULE, 2, total_selected_rows, optimized_pair_rows)
     triplet = evaluate_cards(selected_by_date, TRIPLET_RULE, 3, total_selected_rows, optimized_triplet_rows)
     quad = evaluate_cards(selected_by_date, QUAD_RULE, 4, total_selected_rows, optimized_quad_rows)
     quint = evaluate_cards(selected_by_date, QUINT_RULE, 5, total_selected_rows, optimized_quint_rows)
@@ -353,6 +364,7 @@ def main() -> None:
             "avgPlayerTabPicksPerDate": round(total_selected_rows / max(len(selected_by_date), 1), 2),
             "dailyPlayerTabPickCountDistribution": dict(sorted(daily_count_distribution.items())),
         },
+        "singleCoverageRule": single,
         "pairCoverageRule": pair,
         "tripletCoverageRule": triplet,
         "quadCoverageRule": quad,
@@ -360,11 +372,9 @@ def main() -> None:
         "sextCoverageRule": sext,
         "interpretation": [
             "This corrected layer uses the player-tab source: one best market per player from the full Final V1 board.",
-            "It covers 99.50% of player-tab picks for two-leg cards.",
-            "The 3-leg layer is now a premium guard: score < 0.70, tier B, 3PM, and baseline-source rows are excluded before tier/score/component clustering, so coverage drops but card accuracy clears the 80% target.",
-            "The 4-leg layer is stricter: only C/S-tier non-AST player-tab legs are used, giving a smaller but stronger quartet pool.",
-            "The 5-leg layer keeps that same C/S-tier non-AST pool and clears the 80% historical card-accuracy target, but with low coverage.",
-            "The 6-leg layer adds a Final V1 score >= 0.69 guard to keep historical card accuracy at 80%+, with lower coverage than the 4-leg and 5-leg layers.",
+            "The 1-leg player-tab layer clears 90% while preserving all one-best-prop-per-player rows.",
+            "The 2-leg, 3-leg, and 4-leg layers now clear the 90% historical card-accuracy target by trading away broad card coverage.",
+            "The 5-leg and 6-leg layers are improved best-available long-card diagnostics, not 90% card-hit claims.",
             "Card accuracy is the useful betting-card metric here. Daily all-card hit rate is naturally low because this layer can create dozens of cards per slate.",
             "This is historical replay evidence and still needs locked-forward tracking before live-edge claims.",
         ],
@@ -377,7 +387,8 @@ def main() -> None:
     md_path.write_text(markdown_report(report), encoding="utf-8")
     write_csv(
         cards_path,
-        card_rows(selected_by_date, PAIR_RULE, 2)
+        card_rows(selected_by_date, SINGLE_RULE, 1)
+        + card_rows(selected_by_date, PAIR_RULE, 2, optimized_pair_rows)
         + card_rows(selected_by_date, TRIPLET_RULE, 3, optimized_triplet_rows)
         + card_rows(selected_by_date, QUAD_RULE, 4, optimized_quad_rows)
         + card_rows(selected_by_date, QUINT_RULE, 5, optimized_quint_rows)
@@ -389,6 +400,8 @@ def main() -> None:
             {
                 "playerTabPicks": total_selected_rows,
                 "avgPlayerTabPicksPerDate": report["inputs"]["avgPlayerTabPicksPerDate"],
+                "singleRule": single["name"],
+                "singleCardAccuracyPct": single["cardAccuracyPct"],
                 "pairRule": pair["name"],
                 "pairLegCoveragePct": pair["legCoveragePct"],
                 "pairCards": pair["cards"],

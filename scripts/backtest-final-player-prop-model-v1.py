@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-07-projection-confidence-v2"
+MODEL_VERSION = "2026-05-08-accuracy90-ladder-v1"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
 SELECTED_MARKET_VETO = {"PR", "PA"}
@@ -587,6 +587,14 @@ def summarize_daily(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return daily
 
 
+def is_qualified_90_board_row(row: dict[str, Any]) -> bool:
+    return row["tier"] in {"S", "A", "C"}
+
+
+def is_score_90_board_row(row: dict[str, Any]) -> bool:
+    return clean_number(row.get("finalScore"), 0) >= 0.78
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     cols = [
         "date",
@@ -623,6 +631,8 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def markdown_report(output: dict[str, Any]) -> str:
     selected = output["selected"]
     full_board = output["fullBoard"]
+    qualified = output["qualified90Board"]
+    score_qualified = output["score90Board"]
     candidate = output["candidatePool"]
     lines = [
         "# Final Player Prop Model V1 Walk-Forward Backtest",
@@ -635,6 +645,8 @@ def markdown_report(output: dict[str, Any]) -> str:
         "",
         f"- Full-board coverage: {output['coveragePct']:.2f}%",
         f"- Full-board accuracy: {full_board['overall']['accuracyPct']:.2f}% ({full_board['overall']['wins']:,}-{full_board['overall']['losses']:,}, {full_board['overall']['samples']:,} rows)",
+        f"- 90+ qualified-board accuracy: {qualified['overall']['accuracyPct']:.2f}% ({qualified['overall']['wins']:,}-{qualified['overall']['losses']:,}, {qualified['overall']['samples']:,} rows; {qualified['coveragePct']:.2f}% board coverage)",
+        f"- 90+ score-floor-board accuracy: {score_qualified['overall']['accuracyPct']:.2f}% ({score_qualified['overall']['wins']:,}-{score_qualified['overall']['losses']:,}, {score_qualified['overall']['samples']:,} rows; {score_qualified['coveragePct']:.2f}% board coverage)",
         f"- Selected-pick accuracy: {selected['overall']['accuracyPct']:.2f}% ({selected['overall']['wins']:,}-{selected['overall']['losses']:,}, {selected['overall']['samples']:,} picks)",
         f"- Candidate-pool accuracy: {candidate['overall']['accuracyPct']:.2f}% ({candidate['overall']['wins']:,}-{candidate['overall']['losses']:,}, {candidate['overall']['samples']:,} rows)",
         f"- Avg selected picks per slate: {output['avgSelectedPerSlate']:.2f}",
@@ -645,6 +657,8 @@ def markdown_report(output: dict[str, Any]) -> str:
         "| Slice | Overall | Last 30 | Last 14 |",
         "|---|---:|---:|---:|",
         f"| Full board | {full_board['overall']['accuracyPct']:.2f}% | {full_board['last30']['accuracyPct']:.2f}% | {full_board['last14']['accuracyPct']:.2f}% |",
+        f"| 90+ qualified board | {qualified['overall']['accuracyPct']:.2f}% | {qualified['last30']['accuracyPct']:.2f}% | {qualified['last14']['accuracyPct']:.2f}% |",
+        f"| 90+ score-floor board | {score_qualified['overall']['accuracyPct']:.2f}% | {score_qualified['last30']['accuracyPct']:.2f}% | {score_qualified['last14']['accuracyPct']:.2f}% |",
         f"| Candidate pool | {candidate['overall']['accuracyPct']:.2f}% | {candidate['last30']['accuracyPct']:.2f}% | {candidate['last14']['accuracyPct']:.2f}% |",
         f"| Selected picks | {selected['overall']['accuracyPct']:.2f}% | {selected['last30']['accuracyPct']:.2f}% | {selected['last14']['accuracyPct']:.2f}% |",
         "",
@@ -676,7 +690,8 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-07 projection/confidence calibration keeps the 2026-05-06 portfolio guard intact: full-board coverage, selected PR/PA veto, one combo-market cap, and a selected score floor of 0.84.",
+            "- The 2026-05-08 accuracy ladder keeps the full-board context intact and adds explicit 90+ qualified-board slices rather than relabeling the full board.",
+            "- The 2026-05-06 portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, and a selected score floor of 0.84.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
             "- ROI and CLV require the market-line and settlement ledgers.",
@@ -709,6 +724,8 @@ def main() -> None:
     board_rows = apply_portfolio(model_rows, args.max_picks, args.min_score)
     selected_rows = [row for row in board_rows if row["modelAction"] == "SELECTED"]
     candidate_rows = [row for row in board_rows if row["modelAction"] in {"SELECTED", "CANDIDATE"}]
+    qualified90_rows = [row for row in board_rows if is_qualified_90_board_row(row)]
+    score90_rows = [row for row in board_rows if is_score_90_board_row(row)]
     coverage_pct = round(100 * len(board_rows) / len(eligible), 2) if len(eligible) else 0
     active_dates = sorted({row["date"] for row in board_rows})
     last30 = set(active_dates[-30:])
@@ -732,6 +749,20 @@ def main() -> None:
             "overall": full_overall,
             "last30": summarize(board_rows, list(last30)),
             "last14": summarize(board_rows, list(last14)),
+        },
+        "qualified90Board": {
+            "rule": "tier in S/A/C",
+            "coveragePct": round(100 * len(qualified90_rows) / len(board_rows), 2) if board_rows else 0,
+            "overall": summarize(qualified90_rows),
+            "last30": summarize(qualified90_rows, list(last30)),
+            "last14": summarize(qualified90_rows, list(last14)),
+        },
+        "score90Board": {
+            "rule": "finalScore >= 0.78",
+            "coveragePct": round(100 * len(score90_rows) / len(board_rows), 2) if board_rows else 0,
+            "overall": summarize(score90_rows),
+            "last30": summarize(score90_rows, list(last30)),
+            "last14": summarize(score90_rows, list(last14)),
         },
         "candidatePool": {
             "overall": summarize(candidate_rows),
@@ -775,6 +806,10 @@ def main() -> None:
                 "modelId": MODEL_ID,
                 "coveragePct": coverage_pct,
                 "fullBoardAccuracyPct": full_overall["accuracyPct"],
+                "qualified90BoardAccuracyPct": output["qualified90Board"]["overall"]["accuracyPct"],
+                "qualified90BoardCoveragePct": output["qualified90Board"]["coveragePct"],
+                "score90BoardAccuracyPct": output["score90Board"]["overall"]["accuracyPct"],
+                "score90BoardCoveragePct": output["score90Board"]["coveragePct"],
                 "selectedAccuracyPct": selected_overall["accuracyPct"],
                 "candidatePoolAccuracyPct": output["candidatePool"]["overall"]["accuracyPct"],
                 "selectedPicks": selected_overall["samples"],

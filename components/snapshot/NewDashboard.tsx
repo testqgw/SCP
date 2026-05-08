@@ -97,55 +97,61 @@ const TOP_PLAYER_200_PREMIUM_90_MARKET_SET = new Set<SnapshotMarket>(
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
 const FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT = 88.86;
+const FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT = 90.37;
+const FINAL_V1_QUALIFIED_90_BOARD_RECORD = '68630-7313';
+const FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT = 66.74;
 const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 93.95;
 const FINAL_V1_SELECTED_RECORD = '869-56';
 const FINAL_V1_SELECTED_VOLUME = 925;
 const FINAL_V1_AVG_PICKS_PER_SLATE = 5.61;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Player-tab rank pairs, one prop/player';
-const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 84.32;
-const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 1.82;
-const FINAL_V1_DAILY_COMBO_DAYS = '3-162';
-const FINAL_V1_DAILY_COMBO_RECORD = '7023-1306';
-const FINAL_V1_DAILY_COMBO_LEGS = 16658;
-const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 99.50;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 100.96;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 50.48;
-const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab premium triplets, score/tier guarded';
-const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 80.58;
-const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 3.64;
-const FINAL_V1_DAILY_TRIPLET_DAYS = '6-159';
-const FINAL_V1_DAILY_TRIPLET_RECORD = '3564-859';
-const FINAL_V1_DAILY_TRIPLET_LEGS = 13269;
-const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 79.26;
-const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 80.42;
-const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 26.81;
-const FINAL_V1_DAILY_QUAD_RULE_LABEL = 'Player-tab C/S non-AST quartets';
-const FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT = 85.26;
-const FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT = 40.74;
-const FINAL_V1_DAILY_QUAD_DAYS = '66-96';
-const FINAL_V1_DAILY_QUAD_RECORD = '885-153';
-const FINAL_V1_DAILY_QUAD_LEGS = 4152;
-const FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT = 24.80;
-const FINAL_V1_DAILY_QUAD_AVG_LEGS = 25.63;
-const FINAL_V1_DAILY_QUAD_AVG_COMBOS = 6.41;
-const FINAL_V1_DAILY_QUINT_RULE_LABEL = 'Player-tab C/S non-AST quintets';
-const FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT = 82.18;
-const FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT = 41.51;
-const FINAL_V1_DAILY_QUINT_DAYS = '66-93';
-const FINAL_V1_DAILY_QUINT_RECORD = '664-144';
-const FINAL_V1_DAILY_QUINT_LEGS = 4040;
-const FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT = 24.13;
-const FINAL_V1_DAILY_QUINT_AVG_LEGS = 25.41;
-const FINAL_V1_DAILY_QUINT_AVG_COMBOS = 5.08;
-const FINAL_V1_DAILY_SEXT_RULE_LABEL = 'Player-tab C/S non-AST score-floor sextets';
-const FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT = 80.16;
-const FINAL_V1_DAILY_SEXT_ALL_CARD_HIT_PCT = 47.44;
-const FINAL_V1_DAILY_SEXT_DAYS = '74-82';
-const FINAL_V1_DAILY_SEXT_RECORD = '505-125';
-const FINAL_V1_DAILY_SEXT_LEGS = 3780;
-const FINAL_V1_DAILY_SEXT_LEG_COVERAGE_PCT = 22.58;
-const FINAL_V1_DAILY_SEXT_AVG_LEGS = 24.23;
-const FINAL_V1_DAILY_SEXT_AVG_COMBOS = 4.04;
+const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 91.79;
+const FINAL_V1_DAILY_SINGLE_RECORD = '15367-1375';
+const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 100;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Player-tab C/S non-AST score-floor pairs';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 92.55;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 42.94;
+const FINAL_V1_DAILY_COMBO_DAYS = '70-163';
+const FINAL_V1_DAILY_COMBO_RECORD = '1914-154';
+const FINAL_V1_DAILY_COMBO_LEGS = 4136;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 24.70;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 25.37;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 12.69;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab C-tier non-AST score-floor triplets';
+const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 90.19;
+const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 49.69;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '80-161';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '1076-117';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 3579;
+const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 21.38;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 22.23;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 7.41;
+const FINAL_V1_DAILY_QUAD_RULE_LABEL = 'Player-tab C-tier score-floor quartets';
+const FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT = 91.59;
+const FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT = 88.57;
+const FINAL_V1_DAILY_QUAD_DAYS = '62-70';
+const FINAL_V1_DAILY_QUAD_RECORD = '98-9';
+const FINAL_V1_DAILY_QUAD_LEGS = 428;
+const FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT = 2.56;
+const FINAL_V1_DAILY_QUAD_AVG_LEGS = 6.11;
+const FINAL_V1_DAILY_QUAD_AVG_COMBOS = 1.53;
+const FINAL_V1_DAILY_QUINT_RULE_LABEL = 'Player-tab C-tier score-floor quintets';
+const FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT = 88.89;
+const FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT = 83.93;
+const FINAL_V1_DAILY_QUINT_DAYS = '47-56';
+const FINAL_V1_DAILY_QUINT_RECORD = '72-9';
+const FINAL_V1_DAILY_QUINT_LEGS = 405;
+const FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT = 2.42;
+const FINAL_V1_DAILY_QUINT_AVG_LEGS = 7.23;
+const FINAL_V1_DAILY_QUINT_AVG_COMBOS = 1.45;
+const FINAL_V1_DAILY_SEXT_RULE_LABEL = 'Player-tab C-tier score-floor sextets';
+const FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT = 81.63;
+const FINAL_V1_DAILY_SEXT_ALL_CARD_HIT_PCT = 75.00;
+const FINAL_V1_DAILY_SEXT_DAYS = '27-36';
+const FINAL_V1_DAILY_SEXT_RECORD = '40-9';
+const FINAL_V1_DAILY_SEXT_LEGS = 294;
+const FINAL_V1_DAILY_SEXT_LEG_COVERAGE_PCT = 1.76;
+const FINAL_V1_DAILY_SEXT_AVG_LEGS = 8.17;
+const FINAL_V1_DAILY_SEXT_AVG_COMBOS = 1.36;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -1655,17 +1661,24 @@ function compareFinalModelBoardRows(a: SnapshotFinalModelBoardRow, b: SnapshotFi
   );
 }
 
+function isFinalModelPremiumPairLeg(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.tier === 'C' || row.tier === 'S') &&
+    row.market !== 'AST' &&
+    (row.finalScore ?? 0) >= 0.69
+  );
+}
+
 function isFinalModelPremiumTripletLeg(row: SnapshotFinalModelBoardRow) {
   return (
-    (row.finalScore ?? 0) >= 0.7 &&
-    row.tier !== 'B' &&
-    row.market !== 'THREES' &&
-    !row.riskFlags.includes('baseline_source')
+    row.tier === 'C' &&
+    row.market !== 'AST' &&
+    (row.finalScore ?? 0) >= 0.69
   );
 }
 
 function isFinalModelPremiumQuartetLeg(row: SnapshotFinalModelBoardRow) {
-  return row.tier !== 'A' && row.tier !== 'B' && row.market !== 'AST';
+  return row.tier === 'C' && (row.finalScore ?? 0) >= 0.84;
 }
 
 function isFinalModelPremiumQuintetLeg(row: SnapshotFinalModelBoardRow) {
@@ -1694,6 +1707,22 @@ function compareFinalModelPremiumTripletLegs(
   );
 }
 
+function compareFinalModelMarketHighLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  const aScore = a.modelRow.finalScore ?? 0;
+  const bScore = b.modelRow.finalScore ?? 0;
+  const aPrior = a.modelRow.estimatedAccuracyPriorPct ?? 0;
+  const bPrior = b.modelRow.estimatedAccuracyPriorPct ?? 0;
+  return (
+    a.modelRow.market.localeCompare(b.modelRow.market) ||
+    bScore - aScore ||
+    bPrior - aPrior ||
+    a.modelRow.playerName.localeCompare(b.modelRow.playerName)
+  );
+}
+
 function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
   return (
     b.view.score - a.view.score ||
@@ -1705,6 +1734,13 @@ function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboP
 function comparePlayerTabPremiumPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
   if (a.modelRow && b.modelRow) {
     return compareFinalModelPremiumTripletLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
+  }
+  return comparePlayerTabFallbackPicks(a, b);
+}
+
+function comparePlayerTabMarketHighPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  if (a.modelRow && b.modelRow) {
+    return compareFinalModelMarketHighLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
   }
   return comparePlayerTabFallbackPicks(a, b);
 }
@@ -2287,9 +2323,16 @@ export default function NewDashboard({
     },
     [allRowById, boardRows, finalModelBoardRows, slatePlayers],
   );
-  const playerTabPairLegs = useMemo(
-    () => playerTabComboPicks.slice(0, Math.floor(playerTabComboPicks.length / 2) * 2),
+  const playerTabPairCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter((pick) => pick.modelRow == null || isFinalModelPremiumPairLeg(pick.modelRow))
+        .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
     [playerTabComboPicks],
+  );
+  const playerTabPairLegs = useMemo(
+    () => playerTabPairCandidates.slice(0, Math.floor(playerTabPairCandidates.length / 2) * 2),
+    [playerTabPairCandidates],
   );
   const playerTabPairCards = useMemo(() => chunkPlayerTabComboCards(playerTabPairLegs, 2), [playerTabPairLegs]);
   const playerTabTripletCandidates = useMemo(
@@ -2308,7 +2351,7 @@ export default function NewDashboard({
     () =>
       playerTabComboPicks
         .filter((pick) => pick.modelRow == null || isFinalModelPremiumQuartetLeg(pick.modelRow))
-        .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
+        .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
   const playerTabQuadLegs = useMemo(
@@ -2320,7 +2363,7 @@ export default function NewDashboard({
     () =>
       playerTabComboPicks
         .filter((pick) => pick.modelRow == null || isFinalModelPremiumQuintetLeg(pick.modelRow))
-        .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
+        .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
   const playerTabQuintLegs = useMemo(
@@ -2332,7 +2375,7 @@ export default function NewDashboard({
     () =>
       playerTabComboPicks
         .filter((pick) => pick.modelRow == null || isFinalModelPremiumSextetLeg(pick.modelRow))
-        .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
+        .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
   const playerTabSextLegs = useMemo(
@@ -2629,7 +2672,7 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 2L ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | 4L ${pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} | 5L ${pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} | 6L ${pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 90+ board ${pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} | 1L ${pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} | 2L ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | 4L ${pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -4098,6 +4141,8 @@ export default function NewDashboard({
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
+                <Stat dense label="90+ board" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
+                <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
                 <Stat dense label="4-leg cards" value={pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUAD_RECORD}; ${FINAL_V1_DAILY_QUAD_DAYS} all-card days`} />
@@ -4117,7 +4162,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
                     <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the broader player-tab board, picks one best market per player, then builds the 2L through 6L card ladder with the rules and coverage shown below.
+                      Historical replay uses the broader player-tab board, picks one best market per player, then applies the improved 90+ ladder for singles, 2L, 3L, and 4L while keeping 5L and 6L marked as long-card diagnostics.
                     </p>
                   </div>
                   <Pill label="Replay optimized" tone="amber" />
@@ -4164,13 +4209,13 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Two-leg cards still use nearly every leg. Larger cards trade coverage for card strength: 3L uses {pct(FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT, 2)} of historical legs, 4L uses {pct(FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT, 2)}, 5L uses {pct(FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT, 2)}, and 6L uses {pct(FINAL_V1_DAILY_SEXT_LEG_COVERAGE_PCT, 2)} while clearing {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} historical card accuracy. This is historical replay, not locked-forward proof.
+                  The 90+ target is now supported by the qualified board slice at {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)}, player-tab singles at {pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)}, 2L at {pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)}, 3L at {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)}, and 4L at {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)}. The 5L and 6L rows are best-available long-card diagnostics at {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} and {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)}, so they stay below the 90+ claim. This is historical replay, not locked-forward proof.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
                     <details
                       key={layer.id}
-                      open={layer.id === '6L'}
+                      open={layer.id === '2L'}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3"
                     >
                       <summary className="cursor-pointer list-none">
