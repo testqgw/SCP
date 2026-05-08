@@ -22,13 +22,14 @@ from .utils import (
     clean_number,
     no_vig_probability,
     normal_cdf,
+    normalize_market,
     round_or_none,
     season_phase_for_date,
     today_et,
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-08-espn-logs-correlation-v1"
+MODEL_VERSION = "2026-05-08-sourced-lines-correlation-v2"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -151,7 +152,7 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
     if "game_date" not in df.columns:
         df["game_date"] = default_date or today_et()
     df["game_date"] = pd.to_datetime(df["game_date"].fillna(default_date or today_et()), errors="coerce")
-    df["market"] = df["market"].astype(str).str.upper()
+    df["market"] = df["market"].map(normalize_market)
     df = df[df["market"].isin(MARKETS)].copy()
     df["line"] = pd.to_numeric(df["line"], errors="coerce")
     df = df[df["line"].notna()].copy()
@@ -159,9 +160,22 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         if column not in df.columns:
             df[column] = np.nan
         df[column] = pd.to_numeric(df[column], errors="coerce")
-    for column in ["player_id", "injury_note", "line_last_updated"]:
+    for column in [
+        "player_id",
+        "injury_note",
+        "line_last_updated",
+        "source_pick",
+        "source_book",
+        "source_market",
+        "source_url",
+        "game_time_et",
+    ]:
         if column not in df.columns:
             df[column] = ""
+    for column in ["source_projection", "source_odds"]:
+        if column not in df.columns:
+            df[column] = np.nan
+        df[column] = pd.to_numeric(df[column], errors="coerce")
     if "is_home" not in df.columns:
         df["is_home"] = np.nan
     if "starter_expected" not in df.columns:
@@ -188,11 +202,19 @@ def resolve_player_ids(board: pd.DataFrame, logs: pd.DataFrame) -> pd.DataFrame:
         .tail(1)[["player_key", "player_id"]]
     )
     name_map = {row.player_key: str(row.player_id) for row in by_name.itertuples()}
+    fuzzy_keys = list(name_map.keys())
     df = board.copy()
     resolved: list[str] = []
     for row in df.itertuples():
         current = str(row.player_id or "").strip()
-        resolved.append(current or by_team.get((row.player_key, row.team_abbr), "") or name_map.get(row.player_key, ""))
+        fuzzy_match = ""
+        if not current and row.player_key not in name_map:
+            parts = set(str(row.player_key).split())
+            for key in fuzzy_keys:
+                if str(row.player_key) in key or key in str(row.player_key) or len(parts & set(key.split())) >= max(2, len(parts)):
+                    fuzzy_match = name_map[key]
+                    break
+        resolved.append(current or by_team.get((row.player_key, row.team_abbr), "") or name_map.get(row.player_key, "") or fuzzy_match)
     df["player_id"] = resolved
     return df
 
@@ -351,7 +373,7 @@ def _project_market(history: pd.DataFrame, player_logs: pd.DataFrame, row: pd.Se
         return _project_direct_market(history, player_logs, row, market, minutes)
     component_projection = 0.0
     component_samples: list[int] = []
-    for component_market in [m for m in ("PTS", "REB", "AST") if MARKET_COMPONENTS[component_market][0] in MARKET_COMPONENTS[market]]:
+    for component_market in [m for m in ("PTS", "REB", "AST") if MARKET_COMPONENTS[m][0] in MARKET_COMPONENTS[market]]:
         component = _project_direct_market(history, player_logs, row, component_market, minutes)
         component_projection += float(component["projection"])
         component_samples.append(int(component["sample_size"]))
@@ -402,6 +424,8 @@ def _risk_flags(row: pd.Series, player_logs: pd.DataFrame, sample_size: int, res
     sportsbook_count = clean_number(row.get("sportsbook_count"))
     if sportsbook_count is not None and sportsbook_count < 2:
         flags.append("thin_market_count")
+    if clean_number(row.get("over_odds")) is None or clean_number(row.get("under_odds")) is None:
+        flags.append("single_side_price")
     if rest_days is not None and rest_days <= 1:
         flags.append("short_rest_or_b2b")
     spread = clean_number(row.get("spread"))
@@ -440,6 +464,14 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         risk_flags.append("no_price_edge")
     if market in COMBO_MARKETS:
         risk_flags.append("combo_market_correlation")
+    source_pick = str(row.get("source_pick") or "").strip().upper()
+    source_projection = clean_number(row.get("source_projection"))
+    source_alignment_bonus = 0.0
+    if source_pick in {"OVER", "UNDER"}:
+        if source_pick == side:
+            source_alignment_bonus = 0.02
+        else:
+            risk_flags.append("source_pick_disagreement")
     prob_strength = clamp((model_prob - 0.52) / 0.18, 0.0, 1.0)
     gap_strength = clamp(gap_sigma / 1.15, 0.0, 1.0)
     edge_strength = clamp(((edge or 0.0) - 0.005) / 0.055, 0.0, 1.0) if fair_prob is not None else 0.35
@@ -448,7 +480,9 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         risk_penalty += 0.07
     if "unresolved_player" in risk_flags:
         risk_penalty += 0.12
-    base_score = 0.42 * prob_strength + 0.24 * gap_strength + 0.20 * data_confidence + 0.14 * edge_strength
+    if "source_pick_disagreement" in risk_flags:
+        risk_penalty += 0.06
+    base_score = 0.42 * prob_strength + 0.24 * gap_strength + 0.20 * data_confidence + 0.14 * edge_strength + source_alignment_bonus
     final_score = clamp(base_score - risk_penalty, 0.0, 1.0)
     if final_score >= 0.82 and model_prob >= 0.61 and "injury_or_status_note" not in risk_flags:
         tier = "S"
@@ -468,6 +502,10 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
     ]
     if edge is not None:
         reasons.append(f"no-vig edge {edge:+.1%}")
+    if source_pick in {"OVER", "UNDER"}:
+        reasons.append(f"source pick {source_pick.lower()} {'agrees' if source_pick == side else 'disagrees'}")
+    if source_projection is not None:
+        reasons.append(f"source projection {source_projection:.2f}")
     return {
         "candidate_id": f"{row.get('game_date').date().isoformat()}:{row.get('player_id') or row.get('player_key')}:{market}:{line}",
         "slate_date": row.get("game_date").date().isoformat(),
@@ -495,6 +533,14 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "sample_size": sample_size,
         "rest_days": rest_days,
         "sportsbook_count": round_or_none(row.get("sportsbook_count"), 0),
+        "source_pick": source_pick or None,
+        "source_projection": round_or_none(row.get("source_projection"), 3),
+        "source_odds": round_or_none(row.get("source_odds"), 0),
+        "source_book": str(row.get("source_book") or ""),
+        "source_market": str(row.get("source_market") or ""),
+        "source_url": str(row.get("source_url") or ""),
+        "game_time_et": str(row.get("game_time_et") or ""),
+        "line_last_updated": str(row.get("line_last_updated") or ""),
         "tier": tier,
         "base_score": round(base_score, 5),
         "final_score": round(final_score, 5),
@@ -608,6 +654,8 @@ def score_board(
     warnings: list[str] = []
     if summary["priceCoveragePct"] < 100:
         warnings.append("Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.")
+    if any("single_side_price" in row["risk_flags"] for row in rows):
+        warnings.append("Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.")
     if selected_rows and any("no_price_edge" in row["risk_flags"] for row in selected_rows):
         warnings.append("At least one selected row lacks price edge. Add current over_odds and under_odds before betting.")
     summary["warningCount"] = len(warnings)
@@ -656,6 +704,12 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             "price_edge",
             "projected_minutes",
             "sample_size",
+            "source_pick",
+            "source_projection",
+            "source_odds",
+            "source_book",
+            "source_market",
+            "source_url",
             "risk_flags",
             "rejection_reason",
         ]

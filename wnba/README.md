@@ -5,7 +5,7 @@ Standalone WNBA player prop model built from the NBA snapshot stack's useful ide
 ## What It Uses
 
 - ESPN public WNBA scoreboard and boxscore endpoints for historical player game logs.
-- Current prop board CSV supplied by you, because complete WNBA player prop feeds are not reliably available for free without a sportsbook or odds API key.
+- Current prop board CSV supplied by you, or public SportsGrid prop cards when available. Complete WNBA player prop feeds still need a sportsbook or odds API key for full two-sided market coverage.
 - Optional historical prop-line CSV for true walk-forward backtesting.
 
 ## Quick Start
@@ -26,6 +26,14 @@ Fill in `data/templates/market_board_template.csv` with today's props, then scor
 python -m wnba_prop_model score --logs data/raw/wnba_player_game_logs.csv --board data/templates/market_board_template.csv --date 2026-05-08 --out-prefix output/wnba-prop-card-2026-05-08
 ```
 
+Or import the public SportsGrid prop cards for a current slate and score them directly:
+
+```powershell
+python -m wnba_prop_model sportsgrid --urls "SPORTSGRID_GAME_URL_1" "SPORTSGRID_GAME_URL_2" --date 2026-05-08 --board-out data/current/sportsgrid_board_2026-05-08.csv --out-prefix output/current-card --min-score 0.60
+```
+
+The SportsGrid path records source pick, source projection, source URL, and the pick-side FanDuel price shown on the page. Rows with only one side of the price are flagged as approximate price-edge rows.
+
 Outputs:
 
 - `output/wnba-prop-card-YYYY-MM-DD.json`
@@ -44,7 +52,7 @@ Markets: `PTS`, `REB`, `AST`, `THREES`, `PRA`, `PA`, `PR`, `RA`.
 
 The projection engine blends player per-minute form, EWMA, last-3/last-10 form, season baseline, position/league fallback, opponent allowance, home/away splits, and projected minutes. It then estimates over/under probability with a normal residual model blended with empirical recent hit rate.
 
-The selector ranks by model probability, projection gap, data confidence, and no-vig price edge. It penalizes injury notes, volatile minutes, short rest, thin markets, unresolved players, and combo-market correlation. Final picks are constrained by player, team, game, market, combo markets, and same-team counting overs.
+The selector ranks by model probability, projection gap, data confidence, source alignment, and no-vig or single-side price edge. It penalizes injury notes, volatile minutes, short rest, thin markets, unresolved players, source-pick disagreement, and combo-market correlation. Final picks are constrained by player, team, game, market, combo markets, and same-team counting overs.
 
 ## Backtesting
 
