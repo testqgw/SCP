@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
@@ -192,8 +193,14 @@ const VIEW_TO_TAB: Partial<Record<ViewKey, Tab>> = {
   tracker: 'tracking',
 };
 
-const TOP_NAV: Array<{ label: string; tab?: Tab; action?: 'help' }> = [
+type TopNavItem =
+  | { label: string; tab: Tab }
+  | { label: string; action: 'help' }
+  | { label: string; href: string };
+
+const TOP_NAV: TopNavItem[] = [
   { label: 'Overview', tab: 'overview' },
+  { label: 'WNBA', href: '/wnba' },
   { label: 'Final V1', tab: 'final' },
   { label: 'Players', tab: 'research' },
   { label: 'Feed', tab: 'scout' },
@@ -3567,20 +3574,36 @@ export default function NewDashboard({
                 </div>
               </div>
               <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-px px-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {TOP_NAV.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => (item.action === 'help' ? openHelp() : activateTab(item.tab!))}
-                    className={`${ACTION_CLASS} min-h-[38px] shrink-0 rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
-                      (item.tab && headerView === TAB_TO_VIEW[item.tab]) || (item.action === 'help' && headerView === 'method')
-                        ? 'bg-[var(--accent)] text-white'
-                        : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                {TOP_NAV.map((item) => {
+                  const isActive =
+                    ('tab' in item && headerView === TAB_TO_VIEW[item.tab]) ||
+                    ('action' in item && headerView === 'method') ||
+                    ('href' in item && pathname === item.href);
+                  const className = `${ACTION_CLASS} inline-flex min-h-[38px] shrink-0 items-center rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
+                    isActive
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                  }`;
+
+                  if ('href' in item) {
+                    return (
+                      <Link key={item.label} href={item.href} className={className}>
+                        {item.label}
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => ('action' in item ? openHelp() : activateTab(item.tab))}
+                      className={className}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </nav>
             </div>
           </div>

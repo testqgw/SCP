@@ -1,0 +1,3 @@
+game_date,player,player_id,team,opponent,is_home,market,line,over_odds,under_odds,sportsbook_count,projected_minutes,starter_expected,injury_note,game_total,spread,line_last_updated
+2026-05-08,Example Player,,NY,CON,1,PTS,14.5,-110,-110,3,,,,"",,2026-05-08T12:00:00-04:00
+2026-05-08,Example Player,,NY,CON,1,REB,5.5,-105,-115,3,,,,"",,2026-05-08T12:00:00-04:00
