@@ -247,6 +247,8 @@ type FinalModelCard = {
     scoredBoardRows: number;
     boardCoveragePct: number;
     candidateCount: number;
+    selectableCandidateCount: number;
+    projectionOnlyCount: number;
     selectedCount: number;
     selectedByTier: Record<string, number>;
     boardRowsByTier: Record<string, number>;
@@ -264,7 +266,8 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-07-projection-confidence-v2" as const;
+const MODEL_VERSION = "2026-05-08-selectable-live-lines-v1" as const;
+const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
@@ -433,6 +436,14 @@ function side(value: unknown): Side | null {
 
 function finite(value: number | null | undefined): number | null {
   return value == null || !Number.isFinite(value) ? null : value;
+}
+
+function isSelectableScore(row: Pick<CurrentSlateScore, "line" | "sportsbookCount">): boolean {
+  return finite(row.line) != null && (row.sportsbookCount ?? 0) >= MIN_SELECTABLE_SPORTSBOOK_COUNT;
+}
+
+function isSelectableCandidate(candidate: Pick<Candidate, "line" | "sportsbook_count">): boolean {
+  return finite(candidate.line) != null && (candidate.sportsbook_count ?? 0) >= MIN_SELECTABLE_SPORTSBOOK_COUNT;
 }
 
 function round(value: number, decimals = 6): number {
@@ -661,7 +672,10 @@ function matchesRecentForm(row: CurrentSlateScore, topIds: Set<string>): boolean
 function riskFlags(row: CurrentSlateScore, components: CandidateComponent[]): string[] {
   const flags: string[] = [];
   if ((row.projectedMinutes ?? 99) < 22) flags.push("low_projected_minutes");
-  if ((row.sportsbookCount ?? 0) <= 3) flags.push("minimum_book_depth");
+  if (finite(row.line) == null) flags.push("missing_live_line");
+  const sportsbookCount = row.sportsbookCount ?? 0;
+  if (sportsbookCount < MIN_SELECTABLE_SPORTSBOOK_COUNT) flags.push("below_selectable_book_depth");
+  else if (sportsbookCount === MIN_SELECTABLE_SPORTSBOOK_COUNT) flags.push("minimum_book_depth");
   if (row.runtimeFinalSource === "baseline" && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("baseline_source");
   }
@@ -734,7 +748,7 @@ function actionFor(tier: Tier, components: CandidateComponent[], baseScore: numb
 }
 
 function actionCandidates(rows: Candidate[]): Candidate[] {
-  return rows.filter((row) => row.model_action === "CANDIDATE");
+  return rows.filter((row) => row.model_action === "CANDIDATE" && isSelectableCandidate(row));
 }
 
 function estimateAccuracyPrior(components: CandidateComponent[]): number | null {
@@ -795,6 +809,7 @@ function buildCandidates(
     const estimated = estimateAccuracyPrior(uniqueComponents);
     const baseScore = scoreCandidate(row, uniqueComponents, estimated);
     const tier = tierFor(uniqueComponents, row);
+    const selectable = isSelectableScore(row);
     const candidateId = crypto
       .createHash("sha256")
       .update(
@@ -834,7 +849,7 @@ function buildCandidates(
       runtime_final_source: row.runtimeFinalSource ?? null,
       projection_side: row.projectionSide ?? null,
       tier,
-      model_action: actionFor(tier, uniqueComponents, baseScore),
+      model_action: selectable ? actionFor(tier, uniqueComponents, baseScore) : "COVERAGE",
       source_components: uniqueComponents,
       premium_pockets: premiumPockets.sort(),
       estimated_accuracy_prior_pct: estimated,
@@ -843,8 +858,13 @@ function buildCandidates(
       final_score: baseScore,
       selected_rank: null,
       risk_flags: riskFlags(row, uniqueComponents),
-      reasons: uniqueComponents.map((item) => item.label),
-      rejection_reason: null,
+      reasons: [
+        ...uniqueComponents.map((item) => item.label),
+        selectable
+          ? `Selectable live market: ${n(row.line, 2)} line across ${n(row.sportsbookCount, 0)} books.`
+          : `Projection-only: missing a live line or ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ book depth.`,
+      ],
+      rejection_reason: selectable ? null : "not_selectable_live_market",
     };
     const existing = byKey.get(key);
     if (!existing || compareCandidate(candidate, existing) < 0) {
@@ -936,7 +956,9 @@ function capRejectionReason(candidate: Candidate, selected: Candidate[]): string
 
 function selectPortfolio(candidates: Candidate[], maxPicks: number, minScore: number): Candidate[] {
   const selected: Candidate[] = [];
-  const remaining = new Map(candidates.map((candidate) => [candidate.candidate_id, candidate]));
+  const remaining = new Map(
+    candidates.filter((candidate) => isSelectableCandidate(candidate)).map((candidate) => [candidate.candidate_id, candidate]),
+  );
 
   while (selected.length < maxPicks && remaining.size > 0) {
     let best: Candidate | null = null;
@@ -988,11 +1010,12 @@ function annotateUnselected(candidates: Candidate[], selected: Candidate[], minS
       const capReason = capRejectionReason(candidate, selected);
       const scoreReason = finalScore < minScore ? "below_min_score" : null;
       const rankReason = candidate.model_action === "CANDIDATE" && !capReason && !scoreReason ? "portfolio_rank_cutoff" : null;
+      const selectableReason = isSelectableCandidate(candidate) ? null : "not_selectable_live_market";
       return {
         ...candidate,
         correlation_penalty: penalty,
         final_score: finalScore,
-        rejection_reason: capReason ?? scoreReason ?? rankReason,
+        rejection_reason: candidate.rejection_reason ?? selectableReason ?? capReason ?? scoreReason ?? rankReason,
       };
     })
     .sort(compareCandidate);
@@ -1048,10 +1071,13 @@ function buildWarnings(
   mode: Mode,
   selected: Candidate[],
   candidates: Candidate[],
+  scoredRows: Candidate[],
   scores: CurrentSlateScoresArtifact,
   todayEt: string,
+  maxPicks: number,
 ): string[] {
   const warnings: string[] = [];
+  const projectionOnlyCount = scoredRows.filter((row) => !isSelectableCandidate(row)).length;
   if (scores.dateEt < todayEt) {
     warnings.push(`Input score artifact is stale: slate ${scores.dateEt}, current ET date ${todayEt}. Preview only.`);
   }
@@ -1066,8 +1092,18 @@ function buildWarnings(
   if (selected.length === 0 && candidates.length > 0) {
     warnings.push("Candidates existed, but none survived the current portfolio score and correlation caps.");
   }
-  if (selected.length < Math.min(6, candidates.length)) {
-    warnings.push("The model intentionally underfilled rather than force weak or correlated picks.");
+  if (selected.length === 0 && candidates.length === 0 && scoredRows.length > 0) {
+    warnings.push(
+      `No selectable live-market candidates cleared the ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ book and live-line gate.`,
+    );
+  }
+  if (selected.length < Math.min(maxPicks, candidates.length)) {
+    warnings.push("The model intentionally underfilled rather than force weak, unavailable, or correlated picks.");
+  }
+  if (projectionOnlyCount > 0) {
+    warnings.push(
+      `${projectionOnlyCount} board row(s) stayed projection-only because they lacked a live line or ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books.`,
+    );
   }
   const riskCount = selected.filter((pick) => pick.risk_flags.length > 0).length;
   if (riskCount > 0) warnings.push(`${riskCount} selected pick(s) carry role, source, gap, or book-depth risk flags.`);
@@ -1157,6 +1193,8 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push(`- Full board rows: ${card.summary.scoredBoardRows}/${card.summary.totalBoardRows}`);
   lines.push(`- Board coverage: ${pct(card.summary.boardCoveragePct)}`);
   lines.push(`- Candidates: ${card.summary.candidateCount}`);
+  lines.push(`- Selectable candidate gate: live line plus ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books`);
+  lines.push(`- Projection-only board rows: ${card.summary.projectionOnlyCount}`);
   lines.push(`- Selected: ${card.summary.selectedCount}`);
   lines.push(`- Average estimated accuracy prior: ${pct(card.summary.averageEstimatedAccuracyPriorPct)}`);
   lines.push(`- Average final score: ${n(card.summary.averageFinalScore)}`);
@@ -1214,6 +1252,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("");
   lines.push("- One pick per player.");
   lines.push("- Cap same team, same game, same market, and combo-market exposure.");
+  lines.push(`- Selected picks must have a live line and ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books.`);
   lines.push("- Reject same-team double counting overs beyond the configured cap.");
   lines.push("- Never force-fill to six picks if the clean portfolio underfills.");
   lines.push("");
@@ -1238,10 +1277,11 @@ async function main(): Promise<void> {
   const boardRows = [...selected, ...unselected].sort(compareCandidate);
   const mode: Mode = args.lockRequested ? "LOCK_REQUESTED_NO_LEDGER" : "PREVIEW";
   const todayEt = currentDateEt();
-  const warnings = buildWarnings(mode, selected, candidates, scores, todayEt);
+  const warnings = buildWarnings(mode, selected, candidates, scoredRows, scores, todayEt, args.maxPicks);
+  const projectionOnlyCount = scoredRows.filter((row) => !isSelectableCandidate(row)).length;
   const generatedAt = new Date().toISOString();
   const claimBoundary =
-    "This is a projection-calibrated, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage but applies a stricter selected-pick guard; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.";
+    `This is a projection-calibrated, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.`;
 
   const card: FinalModelCard = {
     generatedAt,
@@ -1274,6 +1314,8 @@ async function main(): Promise<void> {
       scoredBoardRows: scoredRows.length,
       boardCoveragePct: scores.rows.length > 0 ? round((scoredRows.length / scores.rows.length) * 100, 2) : 0,
       candidateCount: candidates.length,
+      selectableCandidateCount: candidates.length,
+      projectionOnlyCount,
       selectedCount: selected.length,
       selectedByTier: countByTier(selected),
       boardRowsByTier: countByTier(boardRows),
@@ -1310,6 +1352,8 @@ async function main(): Promise<void> {
         scoredBoardRows: card.summary.scoredBoardRows,
         boardCoveragePct: card.summary.boardCoveragePct,
         candidates: card.summary.candidateCount,
+        selectableCandidateCount: card.summary.selectableCandidateCount,
+        projectionOnlyCount: card.summary.projectionOnlyCount,
         selected: card.summary.selectedCount,
         selectedByTier: card.summary.selectedByTier,
         boardRowsByTier: card.summary.boardRowsByTier,

@@ -84,6 +84,7 @@ const TRACKER_PAGE_SIZE = 18;
 const RUBBING_PAGE_SIZE = 24;
 const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Premium';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
+const FINAL_V1_MIN_SELECTABLE_BOOKS = 3;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
@@ -1531,6 +1532,10 @@ function isActionableView(v: View) {
   return v.live != null || v.precision?.qualified || v.conf != null || v.edge != null || v.reasons.length > 0;
 }
 
+function isSelectableLiveView(v: Pick<View, 'live' | 'books'>) {
+  return v.live != null && (v.books ?? 0) >= FINAL_V1_MIN_SELECTABLE_BOOKS;
+}
+
 function compareViews(a: View, b: View) {
   return (
     b.score - a.score ||
@@ -1636,6 +1641,14 @@ function finalModelSourceLabel(row: SnapshotFinalModelBoardRow) {
 
 function finalModelRiskLabel(row: SnapshotFinalModelBoardRow) {
   return row.riskFlags.length ? row.riskFlags.slice(0, 2).map(signalTokenLabel).filter(Boolean).join(', ') : 'Clean rule path';
+}
+
+function isSelectableFinalModelRow(row: SnapshotFinalModelBoardRow) {
+  return row.line != null && (row.sportsbookCount ?? 0) >= FINAL_V1_MIN_SELECTABLE_BOOKS;
+}
+
+function isSelectablePlayerTabPick(pick: PlayerTabComboPick) {
+  return pick.modelRow ? isSelectableFinalModelRow(pick.modelRow) : isSelectableLiveView(pick.view);
 }
 
 function finalModelComponentSignature(row: SnapshotFinalModelBoardRow) {
@@ -2013,6 +2026,7 @@ export default function NewDashboard({
   const finalModelPicks = useMemo(
     () =>
       (finalModel?.selectedRows ?? [])
+        .filter(isSelectableFinalModelRow)
         .map((modelRow) => {
           const row =
             (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
@@ -2304,6 +2318,7 @@ export default function NewDashboard({
     () => {
       const bestByPlayer = new Map<string, PlayerTabComboPick & { modelRow: SnapshotFinalModelBoardRow }>();
       finalModelBoardRows.forEach((modelRow) => {
+        if (!isSelectableFinalModelRow(modelRow)) return;
         const row =
           (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
           boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
@@ -2323,7 +2338,7 @@ export default function NewDashboard({
       }
       const fallbackRows: Array<PlayerTabComboPick | null> = slatePlayers.map((row) => {
         const views = rankViews(MARKETS.map((market) => viewFor(row, market, null)));
-        const leadView = leadViewFromViews(views);
+        const leadView = views.find(isSelectableLiveView) ?? null;
         return leadView ? ({ modelRow: null, row, view: leadView } satisfies PlayerTabComboPick) : null;
       });
       return fallbackRows
@@ -2339,7 +2354,7 @@ export default function NewDashboard({
   const playerTabPairCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => pick.modelRow == null || isFinalModelPremiumPairLeg(pick.modelRow))
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumPairLeg(pick.modelRow)))
         .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
     [playerTabComboPicks],
   );
@@ -2351,7 +2366,7 @@ export default function NewDashboard({
   const playerTabTripletCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => pick.modelRow == null || isFinalModelPremiumTripletLeg(pick.modelRow))
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumTripletLeg(pick.modelRow)))
         .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
     [playerTabComboPicks],
   );
@@ -2363,7 +2378,7 @@ export default function NewDashboard({
   const playerTabQuadCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => pick.modelRow == null || isFinalModelPremiumQuartetLeg(pick.modelRow))
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumQuartetLeg(pick.modelRow)))
         .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
@@ -2375,7 +2390,7 @@ export default function NewDashboard({
   const playerTabQuintCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => pick.modelRow == null || isFinalModelPremiumQuintetLeg(pick.modelRow))
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumQuintetLeg(pick.modelRow)))
         .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
@@ -2387,7 +2402,7 @@ export default function NewDashboard({
   const playerTabSextCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => pick.modelRow == null || isFinalModelPremiumSextetLeg(pick.modelRow))
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumSextetLeg(pick.modelRow)))
         .sort((a, b) => comparePlayerTabMarketHighPicks(a, b)),
     [playerTabComboPicks],
   );
@@ -4232,13 +4247,13 @@ export default function NewDashboard({
                     <div key={layer.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
                       <span className="font-semibold text-[var(--text)]">Today&apos;s {layer.label} set:</span>{' '}
                       {layer.legs.length >= layer.size
-                        ? `${n(layer.legs.length, 0)} of ${n(playerTabComboPicks.length, 0)} player-tab legs producing ${n(layer.cards.length, 0)} ${layer.label} cards.`
-                        : `Waiting for at least ${layer.size} eligible player-tab picks.`}
+                        ? `${n(layer.legs.length, 0)} of ${n(playerTabComboPicks.length, 0)} selectable player-tab legs producing ${n(layer.cards.length, 0)} ${layer.label} cards.`
+                        : `Waiting for at least ${layer.size} selectable player-tab picks.`}
                     </div>
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  The 90+ target is now supported by the qualified board slice at {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)}, player-tab singles at {pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)}, 2L at {pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)}, 3L at {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)}, 4L at {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)}, 5L at {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)}, and 6L at {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)}. The 4L through 6L lanes are strict low-coverage historical replay slices, not full-board or locked-forward proof.
+                  The 90+ target is now supported by the qualified board slice at {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)}, player-tab singles at {pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)}, 2L at {pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)}, 3L at {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)}, 4L at {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)}, 5L at {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)}, and 6L at {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)}. Today&apos;s card builder only uses live/selectable rows with {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books; the historical lanes are replay slices, not locked-forward proof.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
@@ -4287,7 +4302,7 @@ export default function NewDashboard({
                         </div>
                       ) : (
                         <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
-                          Waiting for {layer.size} eligible player-tab picks.
+                          Waiting for {layer.size} selectable player-tab picks with live lines and {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.
                         </div>
                       )}
                     </details>
@@ -4298,11 +4313,11 @@ export default function NewDashboard({
               <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selected picks</div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selectable picks</div>
                     <div className="mt-1 text-sm text-[var(--text-2)]">
                       {finalModelPicks.length
-                        ? `${n(finalModelPicks.length, 0)} Final V1 picks, sorted by selected rank.`
-                        : 'Waiting for a current Final V1 selected-pick artifact.'}
+                        ? `${n(finalModelPicks.length, 0)} Final V1 picks with live lines and ${FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.`
+                        : 'Waiting for current Final V1 picks with selectable live lines.'}
                     </div>
                   </div>
                   <button
@@ -4362,7 +4377,7 @@ export default function NewDashboard({
                     <EmptyState
                       eyebrow="Final V1"
                       title="No current Final V1 selected picks are loaded."
-                      detail={finalModel?.warnings[0] ?? 'Run the current slate score export, then run the Final V1 exporter so the site has a model artifact for this slate.'}
+                      detail={finalModel?.warnings[0] ?? `Run the current slate score export, then run the Final V1 exporter. Picks need live lines and ${FINAL_V1_MIN_SELECTABLE_BOOKS}+ books before they show here.`}
                       actionLabel="Refresh slate"
                       onAction={refreshSlate}
                     />

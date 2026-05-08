@@ -1,0 +1,2 @@
+selected_rank,candidate_id,slate_date,player,team,opponent,matchup_key,game_time_et,market,side,line,projected_value,line_gap,wf_confidence,meta_prob_correct,estimated_accuracy_prior_pct,tier,model_action,base_score,correlation_penalty,final_score,risk_flags,premium_pockets
+1,0f90e5aa1fd77f977b61,2026-05-08,Victor Wembanyama,SAS,MIN,SAS@MIN,"May 8, 9:30 PM",PRA,UNDER,41.5,38.74,-2.76,0.769031,0.665371,89.06,C,SELECTED,0.841999,0,0.841999,,
