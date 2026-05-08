@@ -5,7 +5,8 @@ Standalone WNBA player prop model built from the NBA snapshot stack's useful ide
 ## What It Uses
 
 - ESPN public WNBA scoreboard and boxscore endpoints for historical player game logs.
-- Current prop board CSV supplied by you, or public SportsGrid prop cards when available. Complete WNBA player prop feeds still need a sportsbook or odds API key for full two-sided market coverage.
+- Current prop board CSV supplied by you, public ScoresAndOdds best-odds tables, or public SportsGrid prop cards when available.
+- Optional The Odds API import for full WNBA player-prop market coverage when `THE_ODDS_API_KEY` is supplied.
 - Optional historical prop-line CSV for true walk-forward backtesting.
 
 ## Quick Start
@@ -34,6 +35,19 @@ python -m wnba_prop_model sportsgrid --urls "SPORTSGRID_GAME_URL_1" "SPORTSGRID_
 
 The SportsGrid path records source pick, source projection, source URL, and the pick-side FanDuel price shown on the page. Rows with only one side of the price are flagged as approximate price-edge rows.
 
+For the best free current board, import the ScoresAndOdds WNBA prop tables. This captures points, rebounds, assists, and 3-pointers with the best listed over and under prices by side:
+
+```powershell
+python -m wnba_prop_model scoresandodds --date 2026-05-08 --include-preseason --board-out data/current/scoresandodds_board_2026-05-08.csv --out-prefix output/current-card
+```
+
+If you have a The Odds API key, use the full event player-prop endpoint for points, rebounds, assists, threes, and combo markets:
+
+```powershell
+$env:THE_ODDS_API_KEY="your_key"
+python -m wnba_prop_model oddsapi --regions us --out-prefix output/current-card
+```
+
 Outputs:
 
 - `output/wnba-prop-card-YYYY-MM-DD.json`
@@ -52,7 +66,7 @@ Markets: `PTS`, `REB`, `AST`, `THREES`, `PRA`, `PA`, `PR`, `RA`.
 
 The projection engine blends player per-minute form, EWMA, last-3/last-10 form, season baseline, position/league fallback, opponent allowance, home/away splits, and projected minutes. It then estimates over/under probability with a normal residual model blended with empirical recent hit rate.
 
-The selector ranks by model probability, projection gap, data confidence, source alignment, and no-vig or single-side price edge. It penalizes injury notes, volatile minutes, short rest, thin markets, unresolved players, source-pick disagreement, and combo-market correlation. Final picks are constrained by player, team, game, market, combo markets, and same-team counting overs.
+The selector ranks by model probability, projection gap, data confidence, source projection alignment, and no-vig or best-price edge. Current source projections are blended into the model projection and rows are blocked when the source projection disagrees, is too close to the line, or is missing from a source that normally provides it. It also penalizes injury notes, volatile minutes, short rest, thin markets, unresolved players, source-pick disagreement, and combo-market correlation. Final picks are constrained by player, team, game, market, combo markets, and same-team counting overs.
 
 ## Backtesting
 
@@ -61,6 +75,15 @@ True betting backtests need historical prop lines. Put them in a CSV with the sa
 ```powershell
 python -m wnba_prop_model backtest --logs data/raw/wnba_player_game_logs.csv --lines data/my_historical_wnba_lines.csv --out output/wnba-backtest.json
 ```
+
+To settle a generated current card after games go final and the ESPN logs are refreshed:
+
+```powershell
+python -m wnba_prop_model fetch --seasons 2024 2025 2026 --include-unfinal --out data/raw/wnba_player_game_logs.csv
+python -m wnba_prop_model settle --card output/current-card.json --out-prefix output/current-settlement
+```
+
+The website shows verified accuracy only from settled rows. If games are not final or logs have not been refreshed, accuracy remains `pending`.
 
 ## Claim Boundary
 

@@ -29,7 +29,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-08-sourced-lines-correlation-v2"
+MODEL_VERSION = "2026-05-08-best-odds-source-gated-v3"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -168,6 +168,7 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         "source_book",
         "source_market",
         "source_url",
+        "source_event_id",
         "game_time_et",
     ]:
         if column not in df.columns:
@@ -444,6 +445,11 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
     projected = _project_market(history, player_logs, row, market, minutes)
     projection = float(projected["projection"])
     sample_size = int(projected["sample_size"])
+    source_projection = clean_number(row.get("source_projection"))
+    if source_projection is not None and source_projection <= 0:
+        source_projection = None
+    if source_projection is not None:
+        projection = 0.72 * projection + 0.28 * source_projection
     sigma = _sigma(history, player_logs, market, projected.get("position"), minutes_confidence)
     normal_over = 1.0 - normal_cdf((line - projection) / sigma)
     empirical = _empirical_over_probability(player_logs, market, line)
@@ -465,13 +471,22 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
     if market in COMBO_MARKETS:
         risk_flags.append("combo_market_correlation")
     source_pick = str(row.get("source_pick") or "").strip().upper()
-    source_projection = clean_number(row.get("source_projection"))
     source_alignment_bonus = 0.0
     if source_pick in {"OVER", "UNDER"}:
         if source_pick == side:
             source_alignment_bonus = 0.02
         else:
             risk_flags.append("source_pick_disagreement")
+    if source_projection is not None:
+        source_projection_side = "OVER" if source_projection >= line else "UNDER"
+        if source_projection_side == side:
+            source_alignment_bonus += 0.025
+        else:
+            risk_flags.append("source_projection_disagreement")
+        if abs(source_projection - line) <= max(0.25, line * 0.025):
+            risk_flags.append("source_projection_near_line")
+    elif str(row.get("source_book") or "").lower().startswith("scoresandodds"):
+        risk_flags.append("missing_source_projection")
     prob_strength = clamp((model_prob - 0.52) / 0.18, 0.0, 1.0)
     gap_strength = clamp(gap_sigma / 1.15, 0.0, 1.0)
     edge_strength = clamp(((edge or 0.0) - 0.005) / 0.055, 0.0, 1.0) if fair_prob is not None else 0.35
@@ -482,6 +497,12 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         risk_penalty += 0.12
     if "source_pick_disagreement" in risk_flags:
         risk_penalty += 0.06
+    if "source_projection_disagreement" in risk_flags:
+        risk_penalty += 0.16
+    if "source_projection_near_line" in risk_flags:
+        risk_penalty += 0.04
+    if "missing_source_projection" in risk_flags:
+        risk_penalty += 0.05
     base_score = 0.42 * prob_strength + 0.24 * gap_strength + 0.20 * data_confidence + 0.14 * edge_strength + source_alignment_bonus
     final_score = clamp(base_score - risk_penalty, 0.0, 1.0)
     if final_score >= 0.82 and model_prob >= 0.61 and "injury_or_status_note" not in risk_flags:
@@ -534,11 +555,12 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "rest_days": rest_days,
         "sportsbook_count": round_or_none(row.get("sportsbook_count"), 0),
         "source_pick": source_pick or None,
-        "source_projection": round_or_none(row.get("source_projection"), 3),
+        "source_projection": round_or_none(source_projection, 3),
         "source_odds": round_or_none(row.get("source_odds"), 0),
         "source_book": str(row.get("source_book") or ""),
         "source_market": str(row.get("source_market") or ""),
         "source_url": str(row.get("source_url") or ""),
+        "source_event_id": str(row.get("source_event_id") or ""),
         "game_time_et": str(row.get("game_time_et") or ""),
         "line_last_updated": str(row.get("line_last_updated") or ""),
         "tier": tier,
@@ -567,6 +589,9 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
         and _passes_price_gate(row)
         and "injury_or_status_note" not in row["risk_flags"]
         and "unresolved_player" not in row["risk_flags"]
+        and "source_projection_disagreement" not in row["risk_flags"]
+        and "source_projection_near_line" not in row["risk_flags"]
+        and "missing_source_projection" not in row["risk_flags"]
     ]
     candidates.sort(key=lambda item: (item["final_score"], item["model_probability"], item["abs_line_gap"]), reverse=True)
     player_counts: Counter[str] = Counter()
