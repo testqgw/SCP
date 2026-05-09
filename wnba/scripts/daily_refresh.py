@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import shutil
@@ -61,6 +62,40 @@ def relative_paths(paths: dict[str, str]) -> dict[str, str]:
     return clean_paths
 
 
+def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str, str]:
+    player_key = str(row.get("player_id") or row.get("player") or "").strip().lower()
+    return (
+        str(row.get("game_date") or "").strip(),
+        player_key,
+        str(row.get("team_abbr") or "").strip().upper(),
+        str(row.get("opponent_abbr") or "").strip().upper(),
+        str(row.get("market") or "").strip().upper(),
+        str(row.get("line") or "").strip(),
+        str(row.get("source_market") or "").strip().lower(),
+    )
+
+
+def merge_same_day_board_rows(board_path: Path, target_date: str, fresh_rows: list[dict]) -> list[dict]:
+    merged: dict[tuple[str, str, str, str, str, str, str], dict] = {}
+    if board_path.exists():
+        with board_path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                if str(row.get("game_date") or "") == target_date:
+                    merged[_board_row_key(row)] = row
+    for row in fresh_rows:
+        if str(row.get("game_date") or "") == target_date:
+            merged[_board_row_key(row)] = row
+    return sorted(
+        merged.values(),
+        key=lambda row: (
+            str(row.get("game_time_et") or ""),
+            str(row.get("team_abbr") or ""),
+            str(row.get("player") or ""),
+            str(row.get("market") or ""),
+        ),
+    )
+
+
 def archive_existing_card(target_date: str) -> str | None:
     current_card_path = CURRENT_OUTPUT_PREFIX.with_suffix(".json")
     current = read_json(current_card_path)
@@ -108,6 +143,7 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
     if args.book == "fanduel":
         limits["required_source_book"] = "FanDuel"
         limits["require_playable_side_odds"] = True
+        limits["allow_source_consensus_leans"] = True
     return score_board(logs, board, slate_date=target_date, limits=limits)
 
 
@@ -121,6 +157,7 @@ def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tupl
     if not rows:
         raise RuntimeError(f"No SportsGrid FanDuel WNBA player props found for {target_date}.")
     board_path = ROOT / f"data/current/sportsgrid_fanduel_board_{target_date}.csv"
+    rows = merge_same_day_board_rows(board_path, target_date, rows)
     data_sportsgrid.write_board_csv(rows, board_path)
     card = score_current_board(LOGS_PATH, board_path, target_date, args)
     card["mode"] = "CURRENT_FANDUEL_PREVIEW"

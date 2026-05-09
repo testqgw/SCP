@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T16:43:50Z",
+  "generatedAt": "2026-05-09T17:15:00Z",
   "targetDate": "2026-05-09",
   "source": "sportsgrid-fanduel",
   "boardPath": "data\\current\\sportsgrid_fanduel_board_2026-05-09.csv",
@@ -7,9 +7,9 @@
   "selectedCount": 2,
   "totalBoardRows": 12,
   "priorSettlement": {
-    "trackedPicks": 6,
+    "trackedPicks": 3,
     "settledPicks": 0,
-    "pendingPicks": 6,
+    "pendingPicks": 3,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
