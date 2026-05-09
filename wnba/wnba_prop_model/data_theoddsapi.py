@@ -158,6 +158,7 @@ def parse_event_odds(event_odds: dict[str, Any], logs: pd.DataFrame | None = Non
         player_id, team, opponent, model_player = _latest_context(logs, row["player"], event_matchups)
         if not team:
             continue
+        books = sorted(row["books"])
         props.append(
             OddsApiProp(
                 game_date=slate_date,
@@ -168,8 +169,8 @@ def parse_event_odds(event_odds: dict[str, Any], logs: pd.DataFrame | None = Non
                 line=float(row["line"]),
                 over_odds=row["over_odds"],
                 under_odds=row["under_odds"],
-                sportsbook_count=len(row["books"]),
-                source_book="The Odds API best odds",
+                sportsbook_count=len(books),
+                source_book=books[0] if len(books) == 1 else "The Odds API best odds",
                 source_event_id=str(event_odds.get("id") or ""),
                 source_url="https://the-odds-api.com/sports/wnba-odds.html",
             )

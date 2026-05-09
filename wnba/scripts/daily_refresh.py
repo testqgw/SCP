@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from wnba_prop_model import data_scoresandodds, data_theoddsapi
+from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
 from wnba_prop_model.model import load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
@@ -35,7 +35,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-fetch", action="store_true")
     parser.add_argument("--seasons", nargs="+", type=int, default=[2024, 2025, 2026])
     parser.add_argument("--fetch-sleep", type=float, default=0.05)
-    parser.add_argument("--source", choices=["auto", "scoresandodds", "oddsapi"], default="auto")
+    parser.add_argument("--source", choices=["auto", "sportsgrid", "scoresandodds", "oddsapi"], default="auto")
+    parser.add_argument("--book", choices=["fanduel", "best"], default="fanduel")
+    parser.add_argument("--bookmakers", default=None)
+    parser.add_argument("--sportsgrid-urls", nargs="*", default=None)
     parser.add_argument("--max-picks", type=int, default=6)
     parser.add_argument("--min-score", type=float, default=0.68)
     return parser.parse_args()
@@ -98,18 +101,47 @@ def settle_existing_card(archived_slate: str | None) -> dict | None:
     return result
 
 
+def score_current_board(logs_path: Path, board_path: Path, target_date: str, args: argparse.Namespace) -> dict:
+    logs = load_logs(logs_path, include_preseason=True)
+    board = load_board(board_path, default_date=target_date)
+    limits: dict[str, object] = {"max_picks": args.max_picks, "min_score": args.min_score}
+    if args.book == "fanduel":
+        limits["required_source_book"] = "FanDuel"
+        limits["require_playable_side_odds"] = True
+    return score_board(logs, board, slate_date=target_date, limits=limits)
+
+
+def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
+    resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
+    urls = args.sportsgrid_urls or data_sportsgrid.discover_game_urls(target_date)
+    if not urls:
+        raise RuntimeError(f"No SportsGrid WNBA game URLs discovered for {target_date}.")
+    props = data_sportsgrid.fetch_props(urls, default_date=target_date)
+    rows = data_sportsgrid.props_to_board_rows(props, resolver_logs)
+    if not rows:
+        raise RuntimeError(f"No SportsGrid FanDuel WNBA player props found for {target_date}.")
+    board_path = ROOT / f"data/current/sportsgrid_fanduel_board_{target_date}.csv"
+    data_sportsgrid.write_board_csv(rows, board_path)
+    card = score_current_board(LOGS_PATH, board_path, target_date, args)
+    card["mode"] = "CURRENT_FANDUEL_PREVIEW"
+    card["sourceUrls"] = urls
+    card["sourceNote"] = "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."
+    return card, "sportsgrid-fanduel", board_path
+
+
 def generate_from_scoresandodds(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
     resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
     props = data_scoresandodds.fetch_props(["PTS", "REB", "AST", "THREES"], default_date=target_date)
     rows = data_scoresandodds.props_to_board_rows(props, resolver_logs)
     board_path = ROOT / f"data/current/scoresandodds_board_{target_date}.csv"
     data_scoresandodds.write_board_csv(rows, board_path)
-    logs = load_logs(LOGS_PATH, include_preseason=True)
-    board = load_board(board_path, default_date=target_date)
-    card = score_board(logs, board, slate_date=target_date, limits={"max_picks": args.max_picks, "min_score": args.min_score})
+    card = score_current_board(LOGS_PATH, board_path, target_date, args)
     card["mode"] = "CURRENT_BEST_ODDS_PREVIEW"
     card["sourceUrls"] = sorted({row.get("source_url") for row in rows if row.get("source_url")})
-    card["sourceNote"] = "ScoresAndOdds public WNBA prop tables; over and under odds are best available listed prices by side."
+    if args.book == "fanduel":
+        card["sourceNote"] = "ScoresAndOdds public WNBA prop tables for coverage only; FanDuel-strict selected rows are blocked unless a FanDuel source is present."
+    else:
+        card["sourceNote"] = "ScoresAndOdds public WNBA prop tables; over and under odds are best available listed prices by side."
     return card, "scoresandodds", board_path
 
 
@@ -117,18 +149,22 @@ def generate_from_oddsapi(target_date: str, args: argparse.Namespace) -> tuple[d
     api_key = os.getenv("THE_ODDS_API_KEY")
     if not api_key:
         raise RuntimeError("THE_ODDS_API_KEY is not set.")
+    bookmakers = args.bookmakers or ("fanduel" if args.book == "fanduel" else None)
     resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
-    props = data_theoddsapi.fetch_props(api_key, logs=resolver_logs)
+    props = data_theoddsapi.fetch_props(api_key, logs=resolver_logs, bookmakers=bookmakers)
     rows = data_theoddsapi.props_to_board_rows(props)
+    if not rows:
+        raise RuntimeError("The Odds API returned zero WNBA prop rows.")
     board_path = ROOT / f"data/current/theoddsapi_board_{target_date}.csv"
     data_theoddsapi.write_board_csv(rows, board_path)
-    logs = load_logs(LOGS_PATH, include_preseason=True)
-    board = load_board(board_path, default_date=target_date)
-    card = score_board(logs, board, slate_date=target_date, limits={"max_picks": args.max_picks, "min_score": args.min_score})
-    card["mode"] = "CURRENT_FULL_MARKET_PREVIEW"
+    card = score_current_board(LOGS_PATH, board_path, target_date, args)
+    card["mode"] = "CURRENT_FANDUEL_MARKET_PREVIEW" if args.book == "fanduel" else "CURRENT_FULL_MARKET_PREVIEW"
     card["sourceUrls"] = ["https://the-odds-api.com/sports/wnba-odds.html"]
-    card["sourceNote"] = "The Odds API WNBA event player props; rows use best listed over/under price across returned bookmakers."
-    return card, "oddsapi", board_path
+    if args.book == "fanduel":
+        card["sourceNote"] = "The Odds API WNBA event player props filtered to FanDuel; selected rows require FanDuel source and playable side odds."
+    else:
+        card["sourceNote"] = "The Odds API WNBA event player props; rows use best listed over/under price across returned bookmakers."
+    return card, "oddsapi-fanduel" if args.book == "fanduel" else "oddsapi", board_path
 
 
 def generate_current_card(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
@@ -139,6 +175,13 @@ def generate_current_card(target_date: str, args: argparse.Namespace) -> tuple[d
             if args.source == "oddsapi":
                 raise
             print(f"Odds API refresh failed, falling back to ScoresAndOdds: {error}")
+    if args.source == "sportsgrid" or (args.source == "auto" and args.book == "fanduel"):
+        try:
+            return generate_from_sportsgrid(target_date, args)
+        except Exception as error:
+            if args.source == "sportsgrid":
+                raise
+            print(f"SportsGrid FanDuel refresh failed, falling back to ScoresAndOdds coverage: {error}")
     return generate_from_scoresandodds(target_date, args)
 
 

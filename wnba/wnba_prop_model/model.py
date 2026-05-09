@@ -29,7 +29,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-08-best-odds-source-gated-v3"
+MODEL_VERSION = "2026-05-09-fanduel-strict-v4"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -44,6 +44,8 @@ PORTFOLIO_LIMITS = {
     "max_per_market": 2,
     "max_same_team_counting_overs": 1,
     "max_combo_markets": 2,
+    "required_source_book": "",
+    "require_playable_side_odds": False,
 }
 
 MARKET_CONFIG = {
@@ -580,6 +582,22 @@ def _passes_price_gate(row: dict[str, Any]) -> bool:
     return (row["price_edge"] or 0.0) >= 0.005
 
 
+def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    required_book = str(limits.get("required_source_book") or "").strip().lower()
+    if required_book and required_book not in str(row.get("source_book") or "").lower():
+        row["rejection_reason"] = f"not_{required_book}_sourced"
+        return False
+    if limits.get("require_playable_side_odds"):
+        side_odds = row.get("over_odds") if row["side"] == "OVER" else row.get("under_odds")
+        if side_odds is None and row.get("source_odds") is None:
+            row["rejection_reason"] = "missing_playable_side_odds"
+            return False
+    if required_book and "source_pick_disagreement" in row["risk_flags"]:
+        row["rejection_reason"] = "source_pick_disagreement"
+        return False
+    return True
+
+
 def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
     candidates = [
         row
@@ -587,6 +605,7 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
         if row["final_score"] >= limits["min_score"]
         and row["tier"] in {"S", "A", "B"}
         and _passes_price_gate(row)
+        and _passes_book_gate(row, limits)
         and "injury_or_status_note" not in row["risk_flags"]
         and "unresolved_player" not in row["risk_flags"]
         and "source_projection_disagreement" not in row["risk_flags"]
@@ -683,6 +702,9 @@ def score_board(
         warnings.append("Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.")
     if selected_rows and any("no_price_edge" in row["risk_flags"] for row in selected_rows):
         warnings.append("At least one selected row lacks price edge. Add current over_odds and under_odds before betting.")
+    required_book = str(active_limits.get("required_source_book") or "").strip()
+    if required_book and not selected_rows:
+        warnings.append(f"No selected rows cleared the {required_book} availability gate.")
     summary["warningCount"] = len(warnings)
     return {
         "generatedAt": utc_now(),

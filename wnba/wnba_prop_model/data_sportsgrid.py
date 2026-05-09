@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -14,12 +15,16 @@ import pandas as pd
 from .utils import canonical_name, normalize_market, today_et
 
 SPORTSGRID_USER_AGENT = "Mozilla/5.0 (compatible; wnba-prop-model/1.0)"
+SPORTSGRID_BASE_URL = "https://www.sportsgrid.com"
+SPORTSGRID_WEB_API = "https://web.sportsgrid.com/api/web/v1/getSingleSportGamesData"
 
 TEAM_ALIASES = {
     "GSV": "GS",
     "GSW": "GS",
+    "LVA": "LV",
     "NYL": "NY",
     "NYK": "NY",
+    "PDX": "POR",
     "WAS": "WSH",
     "WSH": "WSH",
     "LVA": "LV",
@@ -75,6 +80,22 @@ def fetch_page(url: str) -> str:
         return response.read().decode("utf-8", errors="ignore")
 
 
+def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
+    body = json.dumps(payload).encode("utf-8")
+    request = Request(
+        url,
+        data=body,
+        headers={
+            "User-Agent": SPORTSGRID_USER_AGENT,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    with urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8", errors="ignore"))
+
+
 def _html_to_text(html: str) -> str:
     text = re.sub(r"<svg\b.*?</svg>", " ", html, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"<script\b.*?</script>", " ", text, flags=re.IGNORECASE | re.DOTALL)
@@ -118,7 +139,99 @@ def _spread_and_total(html: str) -> tuple[float | None, float | None, float | No
     return away_spread, home_spread, game_total
 
 
+def _parse_american(value: Any) -> int | None:
+    text = str(value or "").strip().lower()
+    if not text:
+        return None
+    if text in {"even", "ev", "evens"}:
+        return 100
+    match = re.search(r"[+-]?\d+", text)
+    return int(match.group(0)) if match else None
+
+
+def _parse_point(value: Any) -> float | None:
+    text = str(value or "").strip()
+    match = re.search(r"\d+(?:\.\d+)?", text)
+    return float(match.group(0)) if match else None
+
+
+def _game_date_from_item(item: dict[str, Any], default_date: str | None) -> str:
+    if default_date:
+        return default_date
+    date_text = str(item.get("date") or "")
+    match = re.search(r"(\d{2})/(\d{2})", date_text)
+    if not match:
+        return today_et()
+    year = int(today_et()[:4])
+    return f"{year}-{int(match.group(1)):02d}-{int(match.group(2)):02d}"
+
+
+def _next_data(html: str) -> dict[str, Any] | None:
+    match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', html, flags=re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(unescape(match.group(1)))
+    except json.JSONDecodeError:
+        return None
+
+
+def _props_from_next_data(html: str, url: str, default_date: str | None) -> list[SportsGridProp]:
+    payload = _next_data(html)
+    if not payload:
+        return []
+    ssr_data = (((payload.get("props") or {}).get("pageProps") or {}).get("ssr_data") or {})
+    header = ssr_data.get("header_data") or {}
+    game_lines = (ssr_data.get("game_lines") or {}).get("data") or {}
+    items = (ssr_data.get("props_picks_data") or {}).get("data") or []
+    away_abbr = normalize_team(header.get("away_alias") or game_lines.get("away_name"))
+    home_abbr = normalize_team(header.get("home_alias") or game_lines.get("home_name"))
+    away_spread = _parse_point(game_lines.get("away_spread_point"))
+    home_spread = _parse_point(game_lines.get("home_spread_point"))
+    game_total = _parse_point(game_lines.get("away_total_point") or game_lines.get("home_total_point"))
+    props: list[SportsGridProp] = []
+    for item in items:
+        bookmaker = str(item.get("bookmaker_filter") or item.get("bookmaker") or "").strip()
+        if bookmaker.lower() != "fanduel":
+            continue
+        line = _parse_point(item.get("market_points") or item.get("title"))
+        source_projection = _parse_point(item.get("projection"))
+        source_pick = str(item.get("over_under_filter") or item.get("picks") or "").upper()
+        source_odds = _parse_american(item.get("bet"))
+        if line is None or source_projection is None or source_pick not in {"OVER", "UNDER"} or source_odds is None:
+            continue
+        over_odds = source_odds if source_pick == "OVER" else None
+        under_odds = source_odds if source_pick == "UNDER" else None
+        props.append(
+            SportsGridProp(
+                game_date=_game_date_from_item(item, default_date),
+                away_abbr=away_abbr or normalize_team(str(item.get("game") or "").split("@")[0]),
+                home_abbr=home_abbr or normalize_team(str(item.get("game") or "").split("@")[-1]),
+                game_time_et=str(item.get("time_filter") or item.get("time") or ""),
+                player=str(item.get("player") or "").strip(),
+                market=normalize_market(item.get("market")),
+                source_market=str(item.get("market") or "").strip(),
+                line=line,
+                source_pick=source_pick,
+                source_projection=source_projection,
+                source_odds=source_odds,
+                over_odds=over_odds,
+                under_odds=under_odds,
+                sportsbook_count=1,
+                source_book="FanDuel",
+                source_url=url,
+                game_total=game_total,
+                away_spread=away_spread,
+                home_spread=home_spread,
+            )
+        )
+    return [prop for prop in props if prop.player and prop.market]
+
+
 def parse_props_from_html(html: str, url: str, default_date: str | None = None) -> list[SportsGridProp]:
+    next_props = _props_from_next_data(html, url, default_date)
+    if next_props:
+        return next_props
     segment = _latest_player_props_segment(html)
     if not segment:
         return []
@@ -166,6 +279,40 @@ def fetch_props(urls: list[str], default_date: str | None = None) -> list[Sports
     for url in urls:
         props.extend(parse_props_from_html(fetch_page(url), url=url, default_date=default_date))
     return props
+
+
+def _walk_slugs(value: Any) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        slug = str(value.get("slug") or value.get("game_slug") or "")
+        if slug.startswith("wnba/game/") or slug.startswith("/wnba/game/"):
+            found.append(value)
+        for child in value.values():
+            found.extend(_walk_slugs(child))
+    elif isinstance(value, list):
+        for child in value:
+            found.extend(_walk_slugs(child))
+    return found
+
+
+def discover_game_urls(slate_date: str | None = None) -> list[str]:
+    target_date = slate_date or today_et()
+    date_slug = datetime.strptime(target_date, "%Y-%m-%d").strftime("%B-%d-%Y").lower()
+    payload = _post_json(SPORTSGRID_WEB_API, {"sport": "WNBA"})
+    urls: list[str] = []
+    seen: set[str] = set()
+    for item in _walk_slugs(payload):
+        slug = str(item.get("slug") or item.get("game_slug") or "").lstrip("/")
+        scheduled = str(item.get("scheduled_raw") or item.get("scheduled") or "")
+        if not slug.startswith("wnba/game/"):
+            continue
+        if not (scheduled.startswith(target_date) or date_slug in slug.lower()):
+            continue
+        url = f"{SPORTSGRID_BASE_URL}/{slug}"
+        if url not in seen:
+            seen.add(url)
+            urls.append(url)
+    return urls
 
 
 def _player_candidates(logs: pd.DataFrame, player: str) -> pd.DataFrame:

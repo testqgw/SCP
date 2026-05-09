@@ -165,7 +165,7 @@ function PickCard({ row }: { row: CurrentCardRow }) {
       </div>
 
       <div className="mt-4 text-sm leading-6 text-[var(--text-2)]">
-        Source projection {row.source_projection?.toFixed(1) ?? "n/a"} on {row.source_market || row.market};
+        {row.source_book || "Source"} projection {row.source_projection?.toFixed(1) ?? "n/a"} on {row.source_market || row.market};
         model gap {row.line_gap > 0 ? "+" : ""}
         {row.line_gap.toFixed(2)}.
       </div>
@@ -311,6 +311,7 @@ export default function WnbaPage(): React.ReactElement {
               </div>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
                 Slate {WNBA_CURRENT_CARD.slateDate}; generated {new Date(WNBA_CURRENT_CARD.generatedAt).toLocaleString("en-US", { timeZone: "America/New_York" })} ET from public sourced prop rows.
+                {WNBA_CURRENT_CARD.sourceNote ? ` ${WNBA_CURRENT_CARD.sourceNote}` : ""}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[540px]">
