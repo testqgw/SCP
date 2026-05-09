@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-08-accuracy90-ladder-v1"
+MODEL_VERSION = "2026-05-09-tier-first-selectable-live-lines-v2"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
 SELECTED_MARKET_VETO = {"PR", "PA"}
@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-train-dates", type=int, default=7)
     parser.add_argument("--test-dates", type=int, default=7)
     parser.add_argument("--max-picks", type=int, default=6)
-    parser.add_argument("--min-score", type=float, default=0.84)
+    parser.add_argument("--min-score", type=float, default=0.75)
     return parser.parse_args()
 
 
@@ -498,8 +498,8 @@ def candidate_sort_key(row: dict[str, Any]) -> tuple:
 def final_sort_key(row: dict[str, Any]) -> tuple:
     tier_rank = {"S": 0, "A": 1, "B": 2, "C": 3, "D": 4}.get(row["tier"], 5)
     return (
-        -row["finalScore"],
         tier_rank,
+        -row["finalScore"],
         -(row["estimatedAccuracyPriorPct"] or 0),
         row["playerName"],
         row["market"],
@@ -690,8 +690,8 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-08 accuracy ladder keeps the full-board context intact and adds explicit 90+ qualified-board slices rather than relabeling the full board.",
-            "- The 2026-05-06 portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, and a selected score floor of 0.84.",
+            "- The 2026-05-09 tier-first calibration keeps the full-board context intact and ranks quality tier before small score differences in the final selected portfolio.",
+            "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, and a selected score floor of 0.75.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
             "- ROI and CLV require the market-line and settlement ledgers.",

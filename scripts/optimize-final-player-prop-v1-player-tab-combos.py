@@ -15,11 +15,11 @@ PLAYER_TAB_RULE = "player_tab_best_market_one_per_player_v1"
 SINGLE_RULE = "player_tab_best_market_singles_90_v1"
 PAIR_RULE = "player_tab_cs_non_ast_score69_pairs_90_v1"
 TRIPLET_RULE = "player_tab_c_non_ast_score69_triplets_90_v1"
-QUAD_RULE = "player_tab_cs_over_pts_combo_score80_quartets_90_v2"
-QUINT_RULE = "player_tab_cs_over_pts_combo_score80_quintets_90_v2"
-SEXT_RULE = "player_tab_cs_over_pts_combo_score80_sextets_90_v2"
+QUAD_RULE = "player_tab_cs_over_long_reb_score82_quartets_90_v3"
+QUINT_RULE = "player_tab_cs_over_long_reb_score82_quintets_90_v3"
+SEXT_RULE = "player_tab_cs_over_long_reb_score82_sextets_90_v3"
 MARKET_ORDER = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
-LONG_CARD_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
+LONG_CARD_MARKETS = {"PTS", "REB", "PRA", "PA", "PR", "RA"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -151,9 +151,9 @@ def optimized_quad_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if row.get("tier") in {"C", "S"}
         and row.get("side") == "OVER"
         and row.get("market") in LONG_CARD_MARKETS
-        and row["_finalScore"] >= 0.80
+        and row["_finalScore"] >= 0.82
     ]
-    return sorted(guarded, key=market_high_sort_key)
+    return sorted(guarded, key=cluster_sort_key, reverse=True)
 
 
 def optimized_quint_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -315,7 +315,7 @@ def markdown_report(report: dict[str, Any]) -> str:
         "- One-leg player-tab picks use all one-best-prop-per-player rows and clear the 90% historical accuracy target.",
         "- Two-leg 90+ cards use C/S-tier non-AST legs with Final V1 score >= 0.69, then cluster by tier/score/component signature before chunking by 2.",
         "- Three-leg 90+ cards use C-tier non-AST legs with Final V1 score >= 0.69, then cluster by tier/score/component signature before chunking by 3.",
-        "- Four-, five-, and six-leg 90+ cards use the stricter long-card lane: C/S-tier OVER legs in PTS/PRA/PA/PR/RA with Final V1 score >= 0.80, sorted by market and score before chunking.",
+        "- Four-, five-, and six-leg 90+ cards use the stricter long-card lane: C/S-tier OVER legs in PTS/REB/PRA/PA/PR/RA with Final V1 score >= 0.82, clustered by tier/score/component before chunking.",
         "",
         "## Coverage Results",
         "",

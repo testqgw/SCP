@@ -1,0 +1,5 @@
+selected_rank,candidate_id,slate_date,player,team,opponent,matchup_key,game_time_et,market,side,line,sportsbook_count,projected_value,line_gap,abs_line_gap,wf_confidence,meta_prob_correct,projected_minutes,estimated_accuracy_prior_pct,tier,model_action,base_score,correlation_penalty,final_score,risk_flags,premium_pockets
+1,3323895cda2f1884822c,2026-05-09,Marcus Smart,LAL,OKC,OKC@LAL,"May 9, 8:30 PM",AST,UNDER,3.5,10,5.35,1.85,1.85,0.719388,0.62764,34.13,90.16,B,SELECTED,0.834461,0,0.834461,projection_side_split,
+2,06e4ae45206529330713,2026-05-09,Jarrett Allen,CLE,DET,DET@CLE,"May 9, 3:00 PM",RA,UNDER,8.5,10,10.42,1.92,1.92,0.734251,0.711024,28.91,89.06,C,SELECTED,0.816913,0,0.816913,projection_side_split,
+3,fb60cb2b85d741995918,2026-05-09,Isaiah Joe,OKC,LAL,OKC@LAL,"May 9, 8:30 PM",PTS,OVER,3.5,4,5.72,2.22,2.22,0.854921,0.814117,11.66,89.61,B,SELECTED,0.82219,0.025,0.79719,low_projected_minutes,
+4,5f260e3ce37ed01df77a,2026-05-09,Duncan Robinson,DET,CLE,DET@CLE,"May 9, 3:00 PM",THREES,OVER,2.5,9,3.02,0.52,0.52,0.75116,0.745853,32.88,89.06,C,SELECTED,0.789116,0.025,0.764116,,

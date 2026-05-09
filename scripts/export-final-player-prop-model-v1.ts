@@ -266,7 +266,7 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-08-selectable-live-lines-v1" as const;
+const MODEL_VERSION = "2026-05-09-tier-first-selectable-live-lines-v2" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
@@ -319,7 +319,7 @@ function parseArgs(): Args {
   let v9Input = path.join("exports", "live-quality-full-season-router-v9-default-eval.json");
   let outDir = path.join("exports", MODEL_ID);
   let maxPicks = 6;
-  let minScore = 0.84;
+  let minScore = 0.75;
   let lockRequested = false;
 
   for (let index = 0; index < raw.length; index += 1) {
@@ -992,8 +992,8 @@ function selectPortfolio(candidates: Candidate[], maxPicks: number, minScore: nu
 function compareFinalCandidate(left: Candidate, right: Candidate): number {
   const tierRank = (tier: Tier) => (tier === "S" ? 0 : tier === "A" ? 1 : 2);
   return (
-    right.final_score - left.final_score ||
     tierRank(left.tier) - tierRank(right.tier) ||
+    right.final_score - left.final_score ||
     (right.estimated_accuracy_prior_pct ?? -1) - (left.estimated_accuracy_prior_pct ?? -1) ||
     left.player.localeCompare(right.player) ||
     left.market.localeCompare(right.market)
@@ -1130,10 +1130,13 @@ function toCsv(picks: Candidate[]): string {
     "market",
     "side",
     "line",
+    "sportsbook_count",
     "projected_value",
     "line_gap",
+    "abs_line_gap",
     "wf_confidence",
     "meta_prob_correct",
+    "projected_minutes",
     "estimated_accuracy_prior_pct",
     "tier",
     "model_action",
@@ -1171,7 +1174,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-07 projection/confidence calibration and the 2026-05-06 portfolio guard. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and stricter portfolio guards that veto selected PR/PA legs, cap combo markets to one, and raise the selected score floor.",
+    "This is a correlation-aware meta-selector with the 2026-05-09 tier-first selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and portfolio guards that veto selected PR/PA legs, cap combo markets to one, require live lines from 3+ books, and rank quality tier before small score differences.",
   );
   lines.push("");
   lines.push("## Claim Boundary");
