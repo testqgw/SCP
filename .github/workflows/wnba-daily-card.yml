@@ -1,0 +1,106 @@
+name: Daily WNBA Prop Card
+
+on:
+  schedule:
+    # WNBA prop markets can post late, so run once near late morning ET and once in the afternoon.
+    - cron: "20 15 * * *"
+    - cron: "20 19 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Optional slate date in YYYY-MM-DD format"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wnba-daily-card-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    env:
+      WNBA_CARD_DATE: ${{ github.event_name == 'workflow_dispatch' && inputs.date || '' }}
+      THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: wnba/requirements.txt
+
+      - name: Install WNBA model dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r wnba/requirements.txt
+
+      - name: Refresh WNBA card
+        run: python wnba/scripts/daily_refresh.py
+
+      - name: Verify WNBA artifacts
+        run: |
+          python -m compileall wnba/wnba_prop_model
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          card = json.loads(Path("wnba/output/current-card.json").read_text(encoding="utf-8"))
+          settlement = json.loads(Path("wnba/output/current-settlement.json").read_text(encoding="utf-8"))
+          assert "slateDate" in card
+          assert "selectedRows" in card
+          assert "summary" in card
+          assert "summary" in settlement
+          print(f"WNBA card {card['slateDate']}: {card['summary']['selectedCount']} picks from {card['summary']['totalBoardRows']} rows")
+          PY
+
+      - name: Commit refreshed WNBA artifacts
+        id: commit
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            wnba/archive \
+            wnba/data/current \
+            wnba/data/raw/wnba_player_game_logs.csv \
+            wnba/output/current-card.csv \
+            wnba/output/current-card.json \
+            wnba/output/current-card.md \
+            wnba/output/current-refresh-summary.json \
+            wnba/output/current-settlement.csv \
+            wnba/output/current-settlement.json \
+            wnba/output/current-settlement.md
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No WNBA artifact changes to commit."
+          else
+            git commit -m "Refresh WNBA prop card"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Node for optional Vercel deploy
+        if: steps.commit.outputs.changed == 'true' && env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Deploy refreshed card to Vercel
+        if: steps.commit.outputs.changed == 'true' && env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != ''
+        run: |
+          npm install --global vercel@latest
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel deploy --prod --yes --token="$VERCEL_TOKEN"

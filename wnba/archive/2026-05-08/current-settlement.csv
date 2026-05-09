@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,opponent,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-05-08,1,Dominique Malonga,SEA,GS,REB,UNDER,9.5,8.0,WIN,0.69369,0.88813,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/rebounds
+2026-05-08,2,Natisha Hiedeman,SEA,GS,AST,UNDER,4.5,3.0,WIN,0.72023,0.88632,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/assists
+2026-05-08,3,Kia Nurse,TOR,WSH,REB,UNDER,3.5,1.0,WIN,0.75806,0.88187,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/rebounds
+2026-05-08,4,Jonquel Jones,NY,CON,PTS,UNDER,15.5,10.0,WIN,0.72366,0.87743,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/points
+2026-05-08,5,Georgia Amoore,WSH,TOR,AST,UNDER,4.5,3.0,WIN,0.71172,0.78836,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/assists
+2026-05-08,6,Brittney Griner,CON,NY,PTS,UNDER,12.5,13.0,LOSS,0.64468,0.7059,ScoresAndOdds Best Odds,https://www.scoresandodds.com/wnba/props/points
