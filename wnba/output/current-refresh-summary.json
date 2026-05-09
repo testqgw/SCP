@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-05-09T17:25:54Z",
+  "generatedAt": "2026-05-09T20:06:39Z",
   "targetDate": "2026-05-09",
   "source": "sportsgrid-fanduel",
-  "boardPath": "data\\current\\sportsgrid_fanduel_board_2026-05-09.csv",
+  "boardPath": "data/current/sportsgrid_fanduel_board_2026-05-09.csv",
   "archivedSlate": null,
   "selectedCount": 1,
   "totalBoardRows": 12,
   "priorSettlement": {
-    "trackedPicks": 2,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 1,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
@@ -25,13 +25,13 @@
     "accuracyPct": null
   },
   "cardPaths": {
-    "json": "output\\current-card.json",
-    "csv": "output\\current-card.csv",
-    "md": "output\\current-card.md"
+    "json": "output/current-card.json",
+    "csv": "output/current-card.csv",
+    "md": "output/current-card.md"
   },
   "settlementPaths": {
-    "json": "output\\current-settlement.json",
-    "csv": "output\\current-settlement.csv",
-    "md": "output\\current-settlement.md"
+    "json": "output/current-settlement.json",
+    "csv": "output/current-settlement.csv",
+    "md": "output/current-settlement.md"
   }
 }
