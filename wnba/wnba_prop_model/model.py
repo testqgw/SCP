@@ -29,7 +29,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-09-fanduel-strict-v4"
+MODEL_VERSION = "2026-05-09-fanduel-consensus-v5"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -46,6 +46,9 @@ PORTFOLIO_LIMITS = {
     "max_combo_markets": 2,
     "required_source_book": "",
     "require_playable_side_odds": False,
+    "allow_source_consensus_leans": False,
+    "min_consensus_probability": 0.60,
+    "min_consensus_score": 0.25,
 }
 
 MARKET_CONFIG = {
@@ -598,11 +601,9 @@ def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     return True
 
 
-def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
-    candidates = [
-        row
-        for row in rows
-        if row["final_score"] >= limits["min_score"]
+def _is_standard_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    return (
+        row["final_score"] >= limits["min_score"]
         and row["tier"] in {"S", "A", "B"}
         and _passes_price_gate(row)
         and _passes_book_gate(row, limits)
@@ -611,7 +612,36 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
         and "source_projection_disagreement" not in row["risk_flags"]
         and "source_projection_near_line" not in row["risk_flags"]
         and "missing_source_projection" not in row["risk_flags"]
-    ]
+    )
+
+
+def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    if not limits.get("allow_source_consensus_leans"):
+        return False
+    source_pick = str(row.get("source_pick") or "").upper()
+    source_projection = clean_number(row.get("source_projection"))
+    if source_pick not in {"OVER", "UNDER"} or source_projection is None:
+        return False
+    if source_pick != row["side"]:
+        row["rejection_reason"] = "source_pick_disagreement"
+        return False
+    if "source_projection_disagreement" in row["risk_flags"] or "source_projection_near_line" in row["risk_flags"]:
+        return False
+    if "injury_or_status_note" in row["risk_flags"] or "unresolved_player" in row["risk_flags"]:
+        return False
+    if row["model_probability"] < float(limits.get("min_consensus_probability", 0.60)):
+        row["rejection_reason"] = "below_consensus_probability"
+        return False
+    if row["final_score"] < float(limits.get("min_consensus_score", 0.25)):
+        row["rejection_reason"] = "below_consensus_score"
+        return False
+    if not _passes_book_gate(row, limits):
+        return False
+    return True
+
+
+def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
+    candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
     candidates.sort(key=lambda item: (item["final_score"], item["model_probability"], item["abs_line_gap"]), reverse=True)
     player_counts: Counter[str] = Counter()
     team_counts: Counter[str] = Counter()
