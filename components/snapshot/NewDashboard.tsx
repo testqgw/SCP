@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   SnapshotBoardFeedItem,
@@ -1913,8 +1913,6 @@ export default function NewDashboard({
   initialMatchupParam?: string | null;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const initialView = parseViewParam(initialViewParam);
   const initialTab = VIEW_TO_TAB[initialView] ?? 'overview';
   const initialPlayerId = resolveInitialPlayerId(initialData.rows, initialPlayerParam);
@@ -1939,6 +1937,7 @@ export default function NewDashboard({
   const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [urlReady, setUrlReady] = useState(false);
+  const [browserSearch, setBrowserSearch] = useState<string | null>(null);
   const [highlightTarget, setHighlightTarget] = useState<HighlightTarget>(null);
   const [trackerSort, setTrackerSort] = useState<TrackerSort>('gap');
   const [trackerSearchQuery, setTrackerSearchQuery] = useState('');
@@ -1975,6 +1974,15 @@ export default function NewDashboard({
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const readSearch = () => {
+      setBrowserSearch(window.location.search.startsWith('?') ? window.location.search.slice(1) : window.location.search);
+    };
+    readSearch();
+    window.addEventListener('popstate', readSearch);
+    return () => window.removeEventListener('popstate', readSearch);
   }, []);
 
   useEffect(() => {
@@ -3313,11 +3321,13 @@ export default function NewDashboard({
   };
 
   useEffect(() => {
-    const currentSearch = searchParams.toString();
-    const nextView = parseViewParam(searchParams.get('view'));
+    if (browserSearch == null) return;
+    const urlParams = new URLSearchParams(browserSearch);
+    const currentSearch = browserSearch;
+    const nextView = parseViewParam(urlParams.get('view'));
     const nextTab = VIEW_TO_TAB[nextView];
-    const nextPlayer = searchParams.get('player');
-    const nextMatchup = searchParams.get('matchup');
+    const nextPlayer = urlParams.get('player');
+    const nextMatchup = urlParams.get('matchup');
     const matchedPlayer = nextPlayer ? playerByParam.get(nextPlayer) ?? null : null;
     const matchedMatchup = nextMatchup ? matchupByParam.get(nextMatchup) ?? null : null;
     const keepPlayer = viewKeepsPlayerParam(nextView);
@@ -3366,7 +3376,7 @@ export default function NewDashboard({
       return;
     }
     scrollToSection(nextView === 'overview' ? overviewRef : workspaceRef, behavior);
-  }, [matchupByParam, playerByParam, searchParams]);
+  }, [browserSearch, matchupByParam, playerByParam]);
 
   useEffect(() => {
     if (!urlReady) return;
@@ -3387,7 +3397,7 @@ export default function NewDashboard({
     }
 
     const nextSearch = params.toString();
-    const currentSearch = searchParams.toString();
+    const currentSearch = browserSearch ?? '';
     if (nextSearch === currentSearch) return;
     pendingUrlSearchRef.current = nextSearch;
     const navigationMode = urlNavigationModeRef.current;
@@ -3395,12 +3405,14 @@ export default function NewDashboard({
     startTransition(() => {
       const href = nextSearch ? `${pathname}?${nextSearch}` : pathname;
       if (navigationMode === 'push') {
-        router.push(href, { scroll: false });
+        window.history.pushState(null, '', href);
+        setBrowserSearch(nextSearch);
         return;
       }
-      router.replace(href, { scroll: false });
+      window.history.replaceState(null, '', href);
+      setBrowserSearch(nextSearch);
     });
-  }, [headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, router, searchParams, urlReady]);
+  }, [browserSearch, headerView, matchupByParam, pathname, pickedPlayer, pinnedMatchupKey, rowById, urlReady]);
 
   useEffect(() => {
     if (pickedPlayer && !rowById.has(pickedPlayer)) {
