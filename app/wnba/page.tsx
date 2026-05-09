@@ -54,9 +54,12 @@ type CurrentCardRow = {
   price_edge: number | null;
   source_pick?: string | null;
   source_projection?: number | null;
+  source_odds?: number | null;
   source_book?: string;
   source_market?: string;
   source_url?: string;
+  model_action?: "SELECTED" | "CANDIDATE" | "COVERAGE";
+  rejection_reason?: string | null;
   risk_flags: string[];
   reasons: string[];
 };
@@ -77,6 +80,7 @@ type CurrentCard = {
     priceCoveragePct: number;
   };
   warnings: string[];
+  boardRows: CurrentCardRow[];
   selectedRows: CurrentCardRow[];
   candidateRows: CurrentCardRow[];
 };
@@ -189,6 +193,55 @@ function PickCard({ row }: { row: CurrentCardRow }) {
         ) : null}
       </div>
     </article>
+  );
+}
+
+function SlateBoardRow({ row }: { row: CurrentCardRow }) {
+  const bookOdds = row.source_odds ?? (row.source_pick === "OVER" ? row.over_odds : row.under_odds);
+  const status =
+    row.model_action === "SELECTED"
+      ? "Top card"
+      : row.rejection_reason
+        ? formatFlag(row.rejection_reason)
+        : row.model_action === "CANDIDATE"
+          ? "Portfolio hold"
+          : "Coverage";
+  const statusClass =
+    row.model_action === "SELECTED"
+      ? "text-[var(--positive)]"
+      : row.model_action === "CANDIDATE"
+        ? "text-[var(--warning)]"
+        : "text-[var(--muted)]";
+
+  return (
+    <div className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-sm md:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.7fr] md:items-center">
+      <div className="min-w-0">
+        <div className="truncate font-semibold text-[var(--text)]">{row.player}</div>
+        <div className="mt-1 text-xs text-[var(--text-2)]">
+          {row.team} vs {row.opponent}
+        </div>
+      </div>
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Model lean</div>
+        <div className="mt-1 font-semibold text-[var(--text)]">
+          {row.side} {row.market} {row.line}
+        </div>
+      </div>
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">FanDuel listed</div>
+        <div className="mt-1 font-semibold text-[var(--text)]">
+          {row.source_pick || row.side} {row.source_market || row.market} {row.line}
+          {bookOdds ? ` ${formatOdds(bookOdds)}` : ""}
+        </div>
+      </div>
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Model</div>
+        <div className="mt-1 font-semibold text-[var(--text)]">
+          {formatPct(row.model_probability)} / {formatScore(row.final_score)}
+        </div>
+      </div>
+      <div className={`font-semibold ${statusClass}`}>{status}</div>
+    </div>
   );
 }
 
@@ -346,6 +399,25 @@ export default function WnbaPage(): React.ReactElement {
                 No current rows cleared the model gates.
               </div>
             )}
+          </div>
+
+          <div className="mt-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-[var(--text)]">Full FanDuel Slate Board</h3>
+                <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">
+                  Every FanDuel-listed WNBA prop the model scored for this slate, sorted by final model score.
+                </p>
+              </div>
+              <div className="text-sm font-semibold text-[var(--text-2)]">{WNBA_CURRENT_CARD.boardRows.length} props</div>
+            </div>
+            <div className="mt-3 grid gap-2">
+              {[...WNBA_CURRENT_CARD.boardRows]
+                .sort((left, right) => right.final_score - left.final_score)
+                .map((row) => (
+                  <SlateBoardRow key={`${row.player}-${row.market}-${row.line}-${row.source_pick ?? row.side}`} row={row} />
+                ))}
+            </div>
           </div>
 
           {WNBA_CURRENT_CARD.warnings.length ? (
