@@ -1,15 +1,11 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-09T16:13:41Z
+Generated: 2026-05-09T16:43:50Z
 Slate: 2026-05-09
-Settled: 0 / 6
+Settled: 0 / 2
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Natasha Mack UNDER REB 9.5 (actual pending)
-- PENDING: Nia Coffey UNDER REB 6.5 (actual pending)
-- PENDING: Haley Jones UNDER PTS 13.5 (actual pending)
-- PENDING: Kiana Williams UNDER THREES 2.5 (actual pending)
-- PENDING: Luisa Geiselsoder UNDER AST 2.5 (actual pending)
-- PENDING: Myisha Hines-Allen UNDER AST 3.5 (actual pending)
+- PENDING: Caitlin Clark UNDER PA 28.5 (actual pending)
+- PENDING: Rickea Jackson UNDER PTS 16.5 (actual pending)

@@ -16,6 +16,35 @@ HTML = """
 <h2>LATEST PLAYER PROPS</h2>
 """
 
+NEXT_DATA_HTML = """
+<script id="__NEXT_DATA__" type="application/json">{
+  "props": {
+    "pageProps": {
+      "ssr_data": {
+        "header_data": {"away_alias": "PHX", "home_alias": "LVA"},
+        "game_lines": {"data": {"away_spread_point": "+9.5", "home_spread_point": "-9.5", "away_total_point": "O 167.5"}},
+        "props_picks_data": {
+          "data": [
+            {
+              "player": "A'ja Wilson",
+              "market_points": "23.5",
+              "market": "Points",
+              "picks": "Over",
+              "bookmaker": "FanDuel",
+              "projection": "26.6",
+              "date": "05/09",
+              "time": "3:30 PM",
+              "bet": "-120",
+              "over_under_filter": "Over"
+            }
+          ]
+        }
+      }
+    }
+  }
+}</script>
+"""
+
 
 def test_normalize_market_aliases() -> None:
     assert normalize_market("Points") == "PTS"
@@ -37,4 +66,19 @@ def test_parse_sportsgrid_card() -> None:
 
 def test_team_aliases() -> None:
     assert normalize_team("GSV") == "GS"
+    assert normalize_team("LVA") == "LV"
     assert normalize_team("NYL") == "NY"
+    assert normalize_team("PDX") == "POR"
+
+
+def test_parse_next_data_fanduel_props() -> None:
+    props = parse_props_from_html(NEXT_DATA_HTML, "https://example.test/wnba/game/test", default_date="2026-05-09")
+    assert len(props) == 1
+    prop = props[0]
+    assert prop.source_book == "FanDuel"
+    assert prop.away_abbr == "PHX"
+    assert prop.home_abbr == "LV"
+    assert prop.market == "PTS"
+    assert prop.source_pick == "OVER"
+    assert prop.over_odds == -120
+    assert prop.under_odds is None
