@@ -1,12 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-09T17:15:00Z
+Generated: 2026-05-09T17:25:53Z
 Slate: 2026-05-09
 
 ## Selected
 
-1. Caitlin Clark UNDER PA 28.5 (IND vs DAL): p=74.7%, proj=21.91, edge +20.2%, score=0.842
-2. Rickea Jackson UNDER PTS 16.5 (CHI vs POR): p=66.7%, proj=12.65, edge +12.6%, score=0.754
+1. Rickea Jackson UNDER PTS 16.5 (CHI vs POR): p=66.7%, proj=12.65, edge +12.6%, score=0.754
 
 ## Warnings
 

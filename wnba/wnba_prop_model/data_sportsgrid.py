@@ -378,6 +378,7 @@ def props_to_board_rows(props: list[SportsGridProp], logs: pd.DataFrame | None =
                 "source_url": prop.source_url,
                 "game_time_et": prop.game_time_et,
                 "line_last_updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                "source_status": "live_current",
             }
         )
     return rows
@@ -407,6 +408,7 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "source_url",
         "game_time_et",
         "line_last_updated",
+        "source_status",
     ]
     with out.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)

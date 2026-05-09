@@ -175,6 +175,7 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         "source_url",
         "source_event_id",
         "game_time_et",
+        "source_status",
     ]:
         if column not in df.columns:
             df[column] = ""
@@ -439,6 +440,8 @@ def _risk_flags(row: pd.Series, player_logs: pd.DataFrame, sample_size: int, res
         flags.append("blowout_spread")
     if player_logs.empty:
         flags.append("unresolved_player")
+    if str(row.get("source_status") or "").strip().lower() == "preserved_same_day":
+        flags.append("not_current_source_snapshot")
     return flags
 
 
@@ -568,6 +571,7 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "source_event_id": str(row.get("source_event_id") or ""),
         "game_time_et": str(row.get("game_time_et") or ""),
         "line_last_updated": str(row.get("line_last_updated") or ""),
+        "source_status": str(row.get("source_status") or ""),
         "tier": tier,
         "base_score": round(base_score, 5),
         "final_score": round(final_score, 5),
@@ -612,6 +616,7 @@ def _is_standard_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
         and "source_projection_disagreement" not in row["risk_flags"]
         and "source_projection_near_line" not in row["risk_flags"]
         and "missing_source_projection" not in row["risk_flags"]
+        and "not_current_source_snapshot" not in row["risk_flags"]
     )
 
 
@@ -628,6 +633,9 @@ def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) 
     if "source_projection_disagreement" in row["risk_flags"] or "source_projection_near_line" in row["risk_flags"]:
         return False
     if "injury_or_status_note" in row["risk_flags"] or "unresolved_player" in row["risk_flags"]:
+        return False
+    if "not_current_source_snapshot" in row["risk_flags"]:
+        row["rejection_reason"] = "not_current_source_snapshot"
         return False
     if row["model_probability"] < float(limits.get("min_consensus_probability", 0.60)):
         row["rejection_reason"] = "below_consensus_probability"
@@ -786,6 +794,7 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             "source_odds",
             "source_book",
             "source_market",
+            "source_status",
             "source_url",
             "risk_flags",
             "rejection_reason",

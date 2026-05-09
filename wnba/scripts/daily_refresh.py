@@ -81,9 +81,11 @@ def merge_same_day_board_rows(board_path: Path, target_date: str, fresh_rows: li
         with board_path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 if str(row.get("game_date") or "") == target_date:
+                    row["source_status"] = "preserved_same_day"
                     merged[_board_row_key(row)] = row
     for row in fresh_rows:
         if str(row.get("game_date") or "") == target_date:
+            row["source_status"] = "live_current"
             merged[_board_row_key(row)] = row
     return sorted(
         merged.values(),
