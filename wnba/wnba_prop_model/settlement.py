@@ -11,14 +11,19 @@ from .model import CLAIM_BOUNDARY, MODEL_ID, MODEL_VERSION, utc_now
 from .utils import canonical_name, clean_number
 
 
+def _clean_player_id(value: Any) -> str:
+    text = str(value or "").strip()
+    return text[:-2] if text.endswith(".0") else text
+
+
 def _actual_for_row(logs: pd.DataFrame, row: dict[str, Any]) -> float | None:
     slate_date = pd.to_datetime(row.get("slate_date"), errors="coerce")
     if pd.isna(slate_date):
         return None
     candidates = logs[logs["game_date"].dt.date == slate_date.date()]
-    player_id = str(row.get("player_id") or "").strip()
+    player_id = _clean_player_id(row.get("player_id"))
     if player_id:
-        candidates = candidates[candidates["player_id"].astype(str) == player_id]
+        candidates = candidates[candidates["player_id"].map(_clean_player_id) == player_id]
     else:
         candidates = candidates[candidates["player_key"] == canonical_name(row.get("player"))]
     if candidates.empty:

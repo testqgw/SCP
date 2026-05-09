@@ -1,15 +1,15 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-08T23:27:23Z
-Slate: 2026-05-08
+Generated: 2026-05-09T16:13:41Z
+Slate: 2026-05-09
 Settled: 0 / 6
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Dominique Malonga UNDER REB 9.5 (actual pending)
-- PENDING: Natisha Hiedeman UNDER AST 4.5 (actual pending)
-- PENDING: Kia Nurse UNDER REB 3.5 (actual pending)
-- PENDING: Jonquel Jones UNDER PTS 15.5 (actual pending)
-- PENDING: Georgia Amoore UNDER AST 4.5 (actual pending)
-- PENDING: Brittney Griner UNDER PTS 12.5 (actual pending)
+- PENDING: Natasha Mack UNDER REB 9.5 (actual pending)
+- PENDING: Nia Coffey UNDER REB 6.5 (actual pending)
+- PENDING: Haley Jones UNDER PTS 13.5 (actual pending)
+- PENDING: Kiana Williams UNDER THREES 2.5 (actual pending)
+- PENDING: Luisa Geiselsoder UNDER AST 2.5 (actual pending)
+- PENDING: Myisha Hines-Allen UNDER AST 3.5 (actual pending)

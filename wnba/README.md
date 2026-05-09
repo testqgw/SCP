@@ -54,6 +54,18 @@ Outputs:
 - `output/wnba-prop-card-YYYY-MM-DD.csv`
 - `output/wnba-prop-card-YYYY-MM-DD.md`
 
+## Daily Automation
+
+The site card is refreshed by `.github/workflows/wnba-daily-card.yml`. The workflow runs every day at `15:20 UTC` and `19:20 UTC`, refreshes ESPN player logs, pulls the current WNBA prop board, settles the prior card when final boxscores are available, writes new `wnba/output/current-*` artifacts, commits them, and then lets Vercel serve the updated `/wnba` section.
+
+You can run the same refresh locally from the repo root:
+
+```powershell
+python wnba/scripts/daily_refresh.py
+```
+
+Use `--date YYYY-MM-DD` to rebuild a specific slate. If `THE_ODDS_API_KEY` is set, the refresh prefers The Odds API; otherwise it falls back to the public ScoresAndOdds WNBA prop tables.
+
 ## Board Columns
 
 Required: `game_date`, `player`, `team`, `opponent`, `market`, `line`.
