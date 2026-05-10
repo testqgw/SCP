@@ -1,6 +1,6 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-10T16:15:58Z
+Generated: 2026-05-10T17:53:14Z
 Slate: 2026-05-09
 Settled: 1 / 1
 Accuracy: 0.0

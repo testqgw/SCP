@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-10T16:15:58Z",
+  "generatedAt": "2026-05-10T17:53:14Z",
   "modelId": "wnba-player-prop-model-v1",
-  "modelVersion": "2026-05-09-fanduel-consensus-v5",
-  "cardGeneratedAt": "2026-05-09T20:06:39Z",
+  "modelVersion": "2026-05-10-team-sanity-v6",
+  "cardGeneratedAt": "2026-05-09T17:25:53Z",
   "slateDate": "2026-05-09",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -20,7 +20,9 @@
       "selected_rank": 1,
       "player": "Rickea Jackson",
       "team": "CHI",
+      "team_name": null,
       "opponent": "POR",
+      "opponent_name": null,
       "market": "PTS",
       "side": "UNDER",
       "line": 16.5,

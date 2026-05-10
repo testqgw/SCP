@@ -23,13 +23,15 @@ from .utils import (
     no_vig_probability,
     normal_cdf,
     normalize_market,
+    normalize_team,
     round_or_none,
     season_phase_for_date,
+    team_display_name,
     today_et,
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-09-fanduel-consensus-v5"
+MODEL_VERSION = "2026-05-10-team-sanity-v7"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -49,6 +51,7 @@ PORTFOLIO_LIMITS = {
     "allow_source_consensus_leans": False,
     "min_consensus_probability": 0.60,
     "min_consensus_score": 0.25,
+    "volatile_short_rest_min_score": 0.82,
 }
 
 MARKET_CONFIG = {
@@ -137,8 +140,8 @@ def load_logs(path: str | Path, include_preseason: bool = False) -> pd.DataFrame
     else:
         df["player_id"] = ""
     df["player_key"] = df["player"].map(canonical_name)
-    df["team_abbr"] = df["team_abbr"].astype(str).str.upper()
-    df["opponent_abbr"] = df["opponent_abbr"].astype(str).str.upper()
+    df["team_abbr"] = df["team_abbr"].map(normalize_team)
+    df["opponent_abbr"] = df["opponent_abbr"].map(normalize_team)
     if "is_home" in df.columns:
         df["is_home"] = df["is_home"].map(as_bool).fillna(False).astype(bool)
     if "starter" in df.columns:
@@ -176,6 +179,9 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         "source_event_id",
         "game_time_et",
         "source_status",
+        "team_resolution_status",
+        "source_away_abbr",
+        "source_home_abbr",
     ]:
         if column not in df.columns:
             df[column] = ""
@@ -189,8 +195,10 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         df["starter_expected"] = np.nan
     df["player_id"] = df["player_id"].fillna("").astype(str)
     df["player_key"] = df["player"].map(canonical_name)
-    df["team_abbr"] = df["team_abbr"].astype(str).str.upper()
-    df["opponent_abbr"] = df["opponent_abbr"].astype(str).str.upper()
+    df["team_abbr"] = df["team_abbr"].map(normalize_team)
+    df["opponent_abbr"] = df["opponent_abbr"].map(normalize_team)
+    df["source_away_abbr"] = df["source_away_abbr"].map(normalize_team)
+    df["source_home_abbr"] = df["source_home_abbr"].map(normalize_team)
     return df.reset_index(drop=True)
 
 
@@ -442,6 +450,16 @@ def _risk_flags(row: pd.Series, player_logs: pd.DataFrame, sample_size: int, res
         flags.append("unresolved_player")
     if str(row.get("source_status") or "").strip().lower() == "preserved_same_day":
         flags.append("not_current_source_snapshot")
+    team = normalize_team(row.get("team_abbr"))
+    opponent = normalize_team(row.get("opponent_abbr"))
+    if not team or not opponent:
+        flags.append("unknown_team_context")
+    resolution_status = str(row.get("team_resolution_status") or "").strip().lower()
+    if resolution_status in {"not_in_source_game", "not_in_slate_matchup", "unresolved_player"}:
+        flags.append("team_resolution_mismatch")
+    source_teams = {normalize_team(row.get("source_away_abbr")), normalize_team(row.get("source_home_abbr"))} - {""}
+    if source_teams and team and team not in source_teams:
+        flags.append("team_source_game_mismatch")
     return flags
 
 
@@ -541,7 +559,9 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "player_id": str(row.get("player_id") or ""),
         "player": row.get("player"),
         "team": row.get("team_abbr"),
+        "team_name": team_display_name(row.get("team_abbr")),
         "opponent": row.get("opponent_abbr"),
+        "opponent_name": team_display_name(row.get("opponent_abbr")),
         "matchup_key": "-".join(sorted([str(row.get("team_abbr")), str(row.get("opponent_abbr"))])),
         "market": market,
         "side": side,
@@ -569,9 +589,12 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "source_market": str(row.get("source_market") or ""),
         "source_url": str(row.get("source_url") or ""),
         "source_event_id": str(row.get("source_event_id") or ""),
+        "source_away": str(row.get("source_away_abbr") or ""),
+        "source_home": str(row.get("source_home_abbr") or ""),
         "game_time_et": str(row.get("game_time_et") or ""),
         "line_last_updated": str(row.get("line_last_updated") or ""),
         "source_status": str(row.get("source_status") or ""),
+        "team_resolution_status": str(row.get("team_resolution_status") or ""),
         "tier": tier,
         "base_score": round(base_score, 5),
         "final_score": round(final_score, 5),
@@ -605,18 +628,32 @@ def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     return True
 
 
+def _passes_context_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    risk_flags = set(row.get("risk_flags") or [])
+    if {"volatile_minutes", "short_rest_or_b2b"}.issubset(risk_flags):
+        min_score = float(limits.get("volatile_short_rest_min_score", 0.82))
+        if row["final_score"] < min_score:
+            row["rejection_reason"] = "volatile_short_rest"
+            return False
+    return True
+
+
 def _is_standard_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     return (
         row["final_score"] >= limits["min_score"]
         and row["tier"] in {"S", "A", "B"}
         and _passes_price_gate(row)
         and _passes_book_gate(row, limits)
+        and _passes_context_gate(row, limits)
         and "injury_or_status_note" not in row["risk_flags"]
         and "unresolved_player" not in row["risk_flags"]
         and "source_projection_disagreement" not in row["risk_flags"]
         and "source_projection_near_line" not in row["risk_flags"]
         and "missing_source_projection" not in row["risk_flags"]
         and "not_current_source_snapshot" not in row["risk_flags"]
+        and "unknown_team_context" not in row["risk_flags"]
+        and "team_resolution_mismatch" not in row["risk_flags"]
+        and "team_source_game_mismatch" not in row["risk_flags"]
     )
 
 
@@ -636,6 +673,11 @@ def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) 
         return False
     if "not_current_source_snapshot" in row["risk_flags"]:
         row["rejection_reason"] = "not_current_source_snapshot"
+        return False
+    if "unknown_team_context" in row["risk_flags"] or "team_resolution_mismatch" in row["risk_flags"] or "team_source_game_mismatch" in row["risk_flags"]:
+        row["rejection_reason"] = "team_resolution_mismatch"
+        return False
+    if not _passes_context_gate(row, limits):
         return False
     if row["model_probability"] < float(limits.get("min_consensus_probability", 0.60)):
         row["rejection_reason"] = "below_consensus_probability"
@@ -778,7 +820,9 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             "final_score",
             "player",
             "team",
+            "team_name",
             "opponent",
+            "opponent_name",
             "market",
             "side",
             "line",
@@ -795,6 +839,7 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             "source_book",
             "source_market",
             "source_status",
+            "team_resolution_status",
             "source_url",
             "risk_flags",
             "rejection_reason",
@@ -819,9 +864,11 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
         lines.append("No selected rows cleared the portfolio gates.")
     for row in card["selectedRows"]:
         edge = "" if row["price_edge"] is None else f", edge {row['price_edge']:+.1%}"
+        team_label = row.get("team_name") or row.get("team")
+        opponent_label = row.get("opponent_name") or row.get("opponent")
         lines.append(
             f"{row['selected_rank']}. {row['player']} {row['side']} {row['market']} {row['line']} "
-            f"({row['team']} vs {row['opponent']}): p={row['model_probability']:.1%}, "
+            f"({team_label} vs {opponent_label}): p={row['model_probability']:.1%}, "
             f"proj={row['projected_value']:.2f}{edge}, score={row['final_score']:.3f}"
         )
     lines.extend(["", "## Warnings", ""])

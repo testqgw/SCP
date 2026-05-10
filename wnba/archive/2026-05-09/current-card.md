@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-09T20:06:39Z
+Generated: 2026-05-09T17:25:53Z
 Slate: 2026-05-09
 
 ## Selected
 
-1. Rickea Jackson UNDER PTS 16.5 (CHI vs POR): p=66.7%, proj=12.65, edge +12.1%, score=0.754
+1. Rickea Jackson UNDER PTS 16.5 (CHI vs POR): p=66.7%, proj=12.65, edge +12.6%, score=0.754
 
 ## Warnings
 

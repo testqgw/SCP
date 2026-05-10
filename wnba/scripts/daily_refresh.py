@@ -62,16 +62,15 @@ def relative_paths(paths: dict[str, str]) -> dict[str, str]:
     return clean_paths
 
 
-def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str, str]:
+def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str]:
     player_key = str(row.get("player_id") or row.get("player") or "").strip().lower()
     return (
         str(row.get("game_date") or "").strip(),
         player_key,
-        str(row.get("team_abbr") or "").strip().upper(),
-        str(row.get("opponent_abbr") or "").strip().upper(),
         str(row.get("market") or "").strip().upper(),
         str(row.get("line") or "").strip(),
         str(row.get("source_market") or "").strip().lower(),
+        str(row.get("source_url") or "").strip().lower(),
     )
 
 

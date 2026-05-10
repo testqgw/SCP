@@ -12,25 +12,11 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-from .utils import canonical_name, normalize_market, today_et
+from .utils import canonical_name, normalize_market, normalize_team, today_et
 
 SPORTSGRID_USER_AGENT = "Mozilla/5.0 (compatible; wnba-prop-model/1.0)"
 SPORTSGRID_BASE_URL = "https://www.sportsgrid.com"
 SPORTSGRID_WEB_API = "https://web.sportsgrid.com/api/web/v1/getSingleSportGamesData"
-
-TEAM_ALIASES = {
-    "GSV": "GS",
-    "GSW": "GS",
-    "LVA": "LV",
-    "NYL": "NY",
-    "NYK": "NY",
-    "PDX": "POR",
-    "WAS": "WSH",
-    "WSH": "WSH",
-    "LVA": "LV",
-    "LAS": "LV",
-    "PHO": "PHX",
-}
 
 PROP_PATTERN = re.compile(
     r"\b(?P<away>[A-Z]{2,4})\s+"
@@ -67,11 +53,6 @@ class SportsGridProp:
     game_total: float | None
     away_spread: float | None
     home_spread: float | None
-
-
-def normalize_team(value: Any) -> str:
-    team = str(value or "").strip().upper()
-    return TEAM_ALIASES.get(team, team)
 
 
 def fetch_page(url: str) -> str:
@@ -336,25 +317,28 @@ def _player_candidates(logs: pd.DataFrame, player: str) -> pd.DataFrame:
     return fuzzy
 
 
-def _latest_context(logs: pd.DataFrame, prop: SportsGridProp) -> tuple[str, str, str, str]:
+def _latest_context(logs: pd.DataFrame, prop: SportsGridProp) -> tuple[str, str, str, str, str]:
     teams = {prop.away_abbr, prop.home_abbr}
     candidates = _player_candidates(logs, prop.player)
     if candidates.empty:
-        return "", prop.away_abbr, prop.home_abbr, prop.player
+        return "", "", "", prop.player, "unresolved_player"
     in_game = candidates[candidates["team_abbr"].astype(str).str.upper().isin(teams)]
-    picked = (in_game if not in_game.empty else candidates).sort_values("game_date").iloc[-1]
+    if in_game.empty:
+        picked = candidates.sort_values("game_date").iloc[-1]
+        return str(picked.get("player_id") or ""), "", "", str(picked.get("player") or prop.player), "not_in_source_game"
+    picked = in_game.sort_values("game_date").iloc[-1]
     team = normalize_team(picked.get("team_abbr"))
     opponent = prop.home_abbr if team == prop.away_abbr else prop.away_abbr if team == prop.home_abbr else normalize_team(picked.get("opponent_abbr"))
     player_id = str(picked.get("player_id") or "")
     model_player = str(picked.get("player") or prop.player)
-    return player_id, team, opponent, model_player
+    return player_id, team, opponent, model_player, "source_game_match"
 
 
 def props_to_board_rows(props: list[SportsGridProp], logs: pd.DataFrame | None = None) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     logs = logs if logs is not None else pd.DataFrame()
     for prop in props:
-        player_id, team, opponent, model_player = _latest_context(logs, prop)
+        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, prop)
         spread = prop.away_spread if team == prop.away_abbr else prop.home_spread if team == prop.home_abbr else None
         rows.append(
             {
@@ -376,9 +360,12 @@ def props_to_board_rows(props: list[SportsGridProp], logs: pd.DataFrame | None =
                 "source_book": prop.source_book,
                 "source_market": prop.source_market,
                 "source_url": prop.source_url,
+                "source_away_abbr": prop.away_abbr,
+                "source_home_abbr": prop.home_abbr,
                 "game_time_et": prop.game_time_et,
                 "line_last_updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
                 "source_status": "live_current",
+                "team_resolution_status": resolution_status,
             }
         )
     return rows
@@ -406,9 +393,12 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "source_book",
         "source_market",
         "source_url",
+        "source_away_abbr",
+        "source_home_abbr",
         "game_time_et",
         "line_last_updated",
         "source_status",
+        "team_resolution_status",
     ]
     with out.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)

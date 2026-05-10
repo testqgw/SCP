@@ -21,6 +21,51 @@ MARKET_COMPONENTS = {
     "RA": ("rebounds", "assists"),
 }
 
+TEAM_NAMES = {
+    "ATL": "Atlanta Dream",
+    "CHI": "Chicago Sky",
+    "CON": "Connecticut Sun",
+    "DAL": "Dallas Wings",
+    "GS": "Golden State Valkyries",
+    "IND": "Indiana Fever",
+    "LA": "Los Angeles Sparks",
+    "LV": "Las Vegas Aces",
+    "MIN": "Minnesota Lynx",
+    "NY": "New York Liberty",
+    "PHX": "Phoenix Mercury",
+    "POR": "Portland Fire",
+    "SEA": "Seattle Storm",
+    "TOR": "Toronto Tempo",
+    "WSH": "Washington Mystics",
+}
+
+TEAM_ALIASES = {
+    "ATLANTA DREAM": "ATL",
+    "CHICAGO SKY": "CHI",
+    "CONNECTICUT SUN": "CON",
+    "DALLAS WINGS": "DAL",
+    "GOLDEN STATE VALKYRIES": "GS",
+    "GSV": "GS",
+    "GSW": "GS",
+    "INDIANA FEVER": "IND",
+    "LAS VEGAS ACES": "LV",
+    "LVA": "LV",
+    "LOS ANGELES SPARKS": "LA",
+    "LAS": "LA",
+    "MINNESOTA LYNX": "MIN",
+    "NEW YORK LIBERTY": "NY",
+    "NYL": "NY",
+    "NYK": "NY",
+    "PHOENIX MERCURY": "PHX",
+    "PHO": "PHX",
+    "PORTLAND FIRE": "POR",
+    "PDX": "POR",
+    "TORONTO TEMPO": "TOR",
+    "SEATTLE STORM": "SEA",
+    "WASHINGTON MYSTICS": "WSH",
+    "WAS": "WSH",
+}
+
 MARKET_ALIASES = {
     "P": "PTS",
     "PT": "PTS",
@@ -151,6 +196,19 @@ def canonical_name(value: Any) -> str:
     text = text.lower().replace(".", " ")
     text = re.sub(r"[^a-z0-9]+", " ", text)
     return " ".join(text.split())
+
+
+def normalize_team(value: Any) -> str:
+    text = "" if value is None else str(value)
+    text = text.strip().upper()
+    if not text or text in {"NAN", "NONE", "NULL"}:
+        return ""
+    return TEAM_ALIASES.get(text, text)
+
+
+def team_display_name(value: Any) -> str:
+    team = normalize_team(value)
+    return TEAM_NAMES.get(team, team or "Team TBD")
 
 
 def normalize_market(value: Any) -> str:
