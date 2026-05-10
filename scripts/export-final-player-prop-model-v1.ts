@@ -77,6 +77,27 @@ type CurrentSlateScore = {
   lineGap?: number | null;
   absLineGap: number | null;
   projectedMinutes?: number | null;
+  minutesVolatility?: number | null;
+  starterRateLast10?: number | null;
+  lineupStatus?: string | null;
+  lineupStarter?: boolean | null;
+  availabilityStatus?: string | null;
+  availabilityPercentPlay?: number | null;
+  rotationRank?: number | null;
+  minutesTrend?: number | null;
+  projectedMinutesFloor?: number | null;
+  projectedMinutesCeiling?: number | null;
+  dataCompletenessScore?: number | null;
+  stakeLevel?: string | null;
+  teamRecentWinPct?: number | null;
+  opponentRecentWinPct?: number | null;
+  teamSeasonWinPct?: number | null;
+  opponentSeasonWinPct?: number | null;
+  teamRecentNetPRA?: number | null;
+  opponentRecentNetPRA?: number | null;
+  marketSynergyBoost?: number | null;
+  marketSynergyDrag?: number | null;
+  activeSynergyCount?: number | null;
   priorMarketSourceSideAcc?: number | null;
   priorMarketFinalSideAcc?: number | null;
   sportsbookCount: number | null;
@@ -203,6 +224,27 @@ type Candidate = {
   wf_prob_over: number | null;
   meta_prob_correct: number | null;
   projected_minutes: number | null;
+  minutes_volatility: number | null;
+  starter_rate_last10: number | null;
+  lineup_status: string | null;
+  lineup_starter: boolean | null;
+  availability_status: string | null;
+  availability_percent_play: number | null;
+  rotation_rank: number | null;
+  minutes_trend: number | null;
+  projected_minutes_floor: number | null;
+  projected_minutes_ceiling: number | null;
+  data_completeness_score: number | null;
+  stake_level: string | null;
+  team_recent_win_pct: number | null;
+  opponent_recent_win_pct: number | null;
+  team_season_win_pct: number | null;
+  opponent_season_win_pct: number | null;
+  team_recent_net_pra: number | null;
+  opponent_recent_net_pra: number | null;
+  market_synergy_boost: number | null;
+  market_synergy_drag: number | null;
+  active_synergy_count: number | null;
   sportsbook_count: number | null;
   runtime_final_source: string | null;
   projection_side: string | null;
@@ -212,10 +254,13 @@ type Candidate = {
   premium_pockets: string[];
   estimated_accuracy_prior_pct: number | null;
   base_score: number;
+  context_score: number;
+  context_adjustment: number;
   correlation_penalty: number;
   final_score: number;
   selected_rank: number | null;
   risk_flags: string[];
+  context_flags: string[];
   reasons: string[];
   rejection_reason: string | null;
 };
@@ -255,6 +300,8 @@ type FinalModelCard = {
     boardRowsByAction: Record<string, number>;
     averageEstimatedAccuracyPriorPct: number | null;
     averageFinalScore: number | null;
+    averageContextScore: number | null;
+    averageContextAdjustment: number | null;
     correlationMultiplier: number;
     warningCount: number;
   };
@@ -266,9 +313,10 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-09-tier-first-selectable-live-lines-v2" as const;
+const MODEL_VERSION = "2026-05-10-role-floor-context-v2" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
+const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
 
@@ -669,7 +717,151 @@ function matchesRecentForm(row: CurrentSlateScore, topIds: Set<string>): boolean
   );
 }
 
-function riskFlags(row: CurrentSlateScore, components: CandidateComponent[]): string[] {
+type ContextLayer = {
+  score: number;
+  adjustment: number;
+  flags: string[];
+  notes: string[];
+};
+
+function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
+  let score = 0.5;
+  const flags: string[] = [];
+  const notes: string[] = [];
+
+  const completeness = finite(row.dataCompletenessScore ?? null);
+  if (completeness != null) {
+    if (completeness >= 90) {
+      score += 0.045;
+      notes.push("high_data_completeness");
+    } else if (completeness < 70) {
+      score -= 0.06;
+      flags.push("thin_context_completeness");
+    }
+  }
+
+  if (row.lineupStatus === "CONFIRMED") {
+    score += 0.04;
+    notes.push("confirmed_lineup");
+  } else if (row.lineupStatus === "EXPECTED") {
+    score += 0.02;
+    notes.push("expected_lineup");
+  } else if (row.lineupStatus === "UNKNOWN" || row.lineupStatus == null) {
+    score -= 0.02;
+    flags.push("unknown_lineup_status");
+  }
+
+  if (row.availabilityStatus === "OUT" || row.availabilityStatus === "DOUBTFUL") {
+    score -= 0.35;
+    flags.push("availability_red_flag");
+  } else if (row.availabilityStatus === "QUESTIONABLE") {
+    score -= 0.08;
+    flags.push("questionable_availability");
+  }
+  if (row.availabilityPercentPlay != null && row.availabilityPercentPlay < 75) {
+    score -= 0.08;
+    flags.push("low_availability_percent");
+  }
+
+  const volatility = finite(row.minutesVolatility ?? null);
+  if (volatility != null) {
+    if (volatility <= 4) {
+      score += 0.035;
+      notes.push("stable_minutes");
+    } else if (volatility >= 8) {
+      score -= 0.065;
+      flags.push("volatile_minutes");
+    }
+  }
+
+  const minuteRange =
+    row.projectedMinutesFloor != null && row.projectedMinutesCeiling != null
+      ? row.projectedMinutesCeiling - row.projectedMinutesFloor
+      : null;
+  if (minuteRange != null && Number.isFinite(minuteRange) && minuteRange >= 11) {
+    score -= 0.04;
+    flags.push("wide_minutes_range");
+  }
+
+  const minutesTrend = finite(row.minutesTrend ?? null);
+  if (minutesTrend != null) {
+    if (finalSide === "OVER" && minutesTrend >= 1) {
+      score += 0.025;
+      notes.push("minutes_trend_supports_over");
+    } else if (finalSide === "UNDER" && minutesTrend <= -1) {
+      score += 0.025;
+      notes.push("minutes_trend_supports_under");
+    } else if (Math.abs(minutesTrend) >= 2) {
+      score -= 0.025;
+      flags.push("minutes_trend_against_side");
+    }
+  }
+
+  if (
+    finalSide === "UNDER" &&
+    STABLE_STARTER_UNDER_RISK_MARKETS.has(row.market) &&
+    (row.starterRateLast10 ?? 0) >= 0.7 &&
+    (row.projectedMinutes ?? 0) >= 28
+  ) {
+    score -= 0.03;
+    flags.push("stable_starter_under_risk");
+  }
+
+  const synergyNet = (row.marketSynergyBoost ?? 0) - (row.marketSynergyDrag ?? 0);
+  if (synergyNet !== 0) {
+    const boundedSynergy = clamp(Math.abs(synergyNet) / 6, 0, 1) * 0.035;
+    if ((finalSide === "OVER" && synergyNet > 0) || (finalSide === "UNDER" && synergyNet < 0)) {
+      score += boundedSynergy;
+      notes.push("teammate_synergy_supports_side");
+    } else {
+      score -= boundedSynergy;
+      flags.push("teammate_synergy_against_side");
+    }
+  }
+
+  const recentDiff =
+    row.teamRecentWinPct != null && row.opponentRecentWinPct != null
+      ? Math.abs(row.teamRecentWinPct - row.opponentRecentWinPct)
+      : null;
+  if (recentDiff != null) {
+    if (recentDiff <= 0.25) {
+      score += 0.02;
+      notes.push("competitive_recent_form");
+    } else if (recentDiff >= 0.55) {
+      score -= 0.025;
+      flags.push("recent_form_mismatch");
+    }
+  }
+
+  if (row.stakeLevel === "PLAYOFF_HIGH_LEVERAGE") {
+    if ((row.projectedMinutes ?? 0) >= 28 || row.lineupStarter === true) {
+      score += 0.025;
+      notes.push("high_stakes_starter_minutes");
+    } else if ((row.rotationRank ?? 99) >= 8) {
+      score -= 0.035;
+      flags.push("high_stakes_bench_role");
+    }
+  }
+
+  const bounded = clamp(score, 0.2, 1);
+  let hardRiskAdjustment = 0;
+  if (flags.includes("availability_red_flag")) hardRiskAdjustment -= 0.12;
+  if (flags.includes("questionable_availability") || flags.includes("low_availability_percent")) {
+    hardRiskAdjustment -= 0.045;
+  }
+  if (flags.includes("high_stakes_bench_role") || flags.includes("wide_minutes_range")) {
+    hardRiskAdjustment -= 0.025;
+  }
+  if (flags.includes("stable_starter_under_risk")) hardRiskAdjustment -= 0.03;
+  return {
+    score: round(bounded, 6),
+    adjustment: round(hardRiskAdjustment, 6),
+    flags,
+    notes,
+  };
+}
+
+function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], finalSide: Side): string[] {
   const flags: string[] = [];
   if ((row.projectedMinutes ?? 99) < 22) flags.push("low_projected_minutes");
   if (finite(row.line) == null) flags.push("missing_live_line");
@@ -679,12 +871,12 @@ function riskFlags(row: CurrentSlateScore, components: CandidateComponent[]): st
   if (row.runtimeFinalSource === "baseline" && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("baseline_source");
   }
-  const finalSide = side(row.runtimeFinalSide);
   const projectionSide = projectionSideFromRow(row);
   if (finalSide && projectionSide && finalSide !== projectionSide) flags.push("projection_side_split");
   if ((row.absLineGap ?? 0) < 0.5 && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("thin_projection_gap");
   }
+  flags.push(...contextLayer(row, finalSide).flags);
   return flags;
 }
 
@@ -703,6 +895,8 @@ function scoreCandidate(
   const consensusScore = clamp((components.length - 1) / 4, 0, 1);
   const sourceAdjustment =
     row.runtimeFinalSource === "player_override" ? 0.035 : row.runtimeFinalSource === "baseline" ? -0.018 : 0;
+  const finalSide = side(row.runtimeFinalSide) ?? "UNDER";
+  const contextAdjustment = contextLayer(row, finalSide).adjustment;
 
   return round(
     accuracyScore * 0.48 +
@@ -712,7 +906,8 @@ function scoreCandidate(
       bookScore * 0.05 +
       minuteScore * 0.03 +
       consensusScore * 0.04 +
-      sourceAdjustment,
+      sourceAdjustment +
+      contextAdjustment,
     6,
   );
 }
@@ -808,6 +1003,7 @@ function buildCandidates(
     const uniqueComponents = [...new Map(components.map((item) => [item.id, item])).values()];
     const estimated = estimateAccuracyPrior(uniqueComponents);
     const baseScore = scoreCandidate(row, uniqueComponents, estimated);
+    const context = contextLayer(row, finalSide);
     const tier = tierFor(uniqueComponents, row);
     const selectable = isSelectableScore(row);
     const candidateId = crypto
@@ -845,6 +1041,27 @@ function buildCandidates(
       wf_prob_over: finite(row.wfProbOver),
       meta_prob_correct: finite(row.metaProbCorrect ?? null),
       projected_minutes: finite(row.projectedMinutes ?? null),
+      minutes_volatility: finite(row.minutesVolatility ?? null),
+      starter_rate_last10: finite(row.starterRateLast10 ?? null),
+      lineup_status: row.lineupStatus ?? null,
+      lineup_starter: row.lineupStarter ?? null,
+      availability_status: row.availabilityStatus ?? null,
+      availability_percent_play: finite(row.availabilityPercentPlay ?? null),
+      rotation_rank: finite(row.rotationRank ?? null),
+      minutes_trend: finite(row.minutesTrend ?? null),
+      projected_minutes_floor: finite(row.projectedMinutesFloor ?? null),
+      projected_minutes_ceiling: finite(row.projectedMinutesCeiling ?? null),
+      data_completeness_score: finite(row.dataCompletenessScore ?? null),
+      stake_level: row.stakeLevel ?? null,
+      team_recent_win_pct: finite(row.teamRecentWinPct ?? null),
+      opponent_recent_win_pct: finite(row.opponentRecentWinPct ?? null),
+      team_season_win_pct: finite(row.teamSeasonWinPct ?? null),
+      opponent_season_win_pct: finite(row.opponentSeasonWinPct ?? null),
+      team_recent_net_pra: finite(row.teamRecentNetPRA ?? null),
+      opponent_recent_net_pra: finite(row.opponentRecentNetPRA ?? null),
+      market_synergy_boost: finite(row.marketSynergyBoost ?? null),
+      market_synergy_drag: finite(row.marketSynergyDrag ?? null),
+      active_synergy_count: finite(row.activeSynergyCount ?? null),
       sportsbook_count: finite(row.sportsbookCount),
       runtime_final_source: row.runtimeFinalSource ?? null,
       projection_side: row.projectionSide ?? null,
@@ -854,12 +1071,16 @@ function buildCandidates(
       premium_pockets: premiumPockets.sort(),
       estimated_accuracy_prior_pct: estimated,
       base_score: baseScore,
+      context_score: context.score,
+      context_adjustment: context.adjustment,
       correlation_penalty: 0,
       final_score: baseScore,
       selected_rank: null,
-      risk_flags: riskFlags(row, uniqueComponents),
+      risk_flags: riskFlags(row, uniqueComponents, finalSide),
+      context_flags: context.flags,
       reasons: [
         ...uniqueComponents.map((item) => item.label),
+        ...context.notes.map((note) => `Context: ${note.replaceAll("_", " ")}.`),
         selectable
           ? `Selectable live market: ${n(row.line, 2)} line across ${n(row.sportsbookCount, 0)} books.`
           : `Projection-only: missing a live line or ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ book depth.`,
@@ -1106,7 +1327,7 @@ function buildWarnings(
     );
   }
   const riskCount = selected.filter((pick) => pick.risk_flags.length > 0).length;
-  if (riskCount > 0) warnings.push(`${riskCount} selected pick(s) carry role, source, gap, or book-depth risk flags.`);
+  if (riskCount > 0) warnings.push(`${riskCount} selected pick(s) carry role, source, gap, book-depth, or game-context risk flags.`);
   warnings.push("Estimated accuracy priors are component priors, not calibrated forward probabilities.");
   return warnings;
 }
@@ -1137,13 +1358,28 @@ function toCsv(picks: Candidate[]): string {
     "wf_confidence",
     "meta_prob_correct",
     "projected_minutes",
+    "minutes_volatility",
+    "starter_rate_last10",
+    "lineup_status",
+    "availability_status",
+    "rotation_rank",
+    "minutes_trend",
+    "data_completeness_score",
+    "stake_level",
+    "team_recent_win_pct",
+    "opponent_recent_win_pct",
+    "market_synergy_boost",
+    "market_synergy_drag",
     "estimated_accuracy_prior_pct",
     "tier",
     "model_action",
     "base_score",
+    "context_score",
+    "context_adjustment",
     "correlation_penalty",
     "final_score",
     "risk_flags",
+    "context_flags",
     "premium_pockets",
   ];
   return `${[
@@ -1174,7 +1410,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-09 tier-first selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and portfolio guards that veto selected PR/PA legs, cap combo markets to one, require live lines from 3+ books, and rank quality tier before small score differences.",
+    "This is a correlation-aware meta-selector with the 2026-05-10 context-aware selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer for lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");
@@ -1201,6 +1437,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push(`- Selected: ${card.summary.selectedCount}`);
   lines.push(`- Average estimated accuracy prior: ${pct(card.summary.averageEstimatedAccuracyPriorPct)}`);
   lines.push(`- Average final score: ${n(card.summary.averageFinalScore)}`);
+  lines.push(`- Average context score: ${n(card.summary.averageContextScore)}`);
   lines.push(`- Correlation multiplier: ${n(card.summary.correlationMultiplier, 4)}`);
   lines.push(`- Selected tiers: ${JSON.stringify(card.summary.selectedByTier)}`);
   lines.push(`- Full-board tiers: ${JSON.stringify(card.summary.boardRowsByTier)}`);
@@ -1211,11 +1448,11 @@ function toMarkdown(card: FinalModelCard): string {
   if (card.selectedPicks.length === 0) {
     lines.push("No picks survived the final model for this slate.");
   } else {
-    lines.push("| # | Tier | Player | Matchup | Market | Side | Line | Prior | Score | Risk | Components |");
-    lines.push("|---:|---|---|---|---|---|---:|---:|---:|---|---|");
+    lines.push("| # | Tier | Player | Matchup | Market | Side | Line | Prior | Score | Context | Risk | Components |");
+    lines.push("|---:|---|---|---|---|---|---:|---:|---:|---:|---|---|");
     for (const pick of card.selectedPicks) {
       lines.push(
-        `| ${pick.selected_rank ?? "-"} | ${pick.tier} | ${pick.player} | ${pick.matchup_key ?? "-"} | ${pick.market} | ${pick.side} | ${n(pick.line, 2)} | ${pct(pick.estimated_accuracy_prior_pct)} | ${n(pick.final_score)} | ${pick.risk_flags.join("; ") || "-"} | ${pick.source_components.map((item) => item.id).join("; ")} |`,
+        `| ${pick.selected_rank ?? "-"} | ${pick.tier} | ${pick.player} | ${pick.matchup_key ?? "-"} | ${pick.market} | ${pick.side} | ${n(pick.line, 2)} | ${pct(pick.estimated_accuracy_prior_pct)} | ${n(pick.final_score)} | ${n(pick.context_score)} | ${pick.risk_flags.join("; ") || "-"} | ${pick.source_components.map((item) => item.id).join("; ")} |`,
       );
     }
   }
@@ -1284,7 +1521,7 @@ async function main(): Promise<void> {
   const projectionOnlyCount = scoredRows.filter((row) => !isSelectableCandidate(row)).length;
   const generatedAt = new Date().toISOString();
   const claimBoundary =
-    `This is a projection-calibrated, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.`;
+    `This is a projection-calibrated, context-aware, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and ${MIN_SELECTABLE_SPORTSBOOK_COUNT}+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.`;
 
   const card: FinalModelCard = {
     generatedAt,
@@ -1325,6 +1562,8 @@ async function main(): Promise<void> {
       boardRowsByAction: countByAction(boardRows),
       averageEstimatedAccuracyPriorPct: average(selected.map((pick) => pick.estimated_accuracy_prior_pct)),
       averageFinalScore: average(selected.map((pick) => pick.final_score)),
+      averageContextScore: average(selected.map((pick) => pick.context_score)),
+      averageContextAdjustment: average(selected.map((pick) => pick.context_adjustment)),
       correlationMultiplier: correlationMultiplier(selected),
       warningCount: warnings.length,
     },

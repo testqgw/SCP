@@ -21,8 +21,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-09-tier-first-selectable-live-lines-v2"
+MODEL_VERSION = "2026-05-10-role-floor-context-v2"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
+STABLE_STARTER_UNDER_RISK_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
 SELECTED_MARKET_VETO = {"PR", "PA"}
 PORTFOLIO_LIMITS = {
@@ -33,6 +34,32 @@ PORTFOLIO_LIMITS = {
     "maxSameTeamCountingOvers": 1,
     "maxComboMarkets": 1,
 }
+CONTEXT_NUM_COLS = [
+    "expectedMinutes",
+    "seasonMinutesAvg",
+    "minutesLiftPct",
+    "minutesVolatility",
+    "starterRateLast10",
+    "lineupTimingConfidence",
+    "completenessScore",
+    "openingTeamSpread",
+    "openingTotal",
+    "missingCoreShare",
+    "activeCorePts",
+    "activeCoreAst",
+    "missingCorePts",
+    "missingCoreAst",
+    "benchBigRoleStability",
+    "l5MinutesAvg",
+    "l5MarketDeltaAvg",
+    "l5OverRate",
+]
+CONTEXT_CAT_COLS = [
+    "spreadResolved",
+    "stepUpRoleFlag",
+    "favoredSide",
+    "priceLean",
+]
 
 
 POCKET_SPECS: list[dict[str, Any]] = [
@@ -69,6 +96,7 @@ POCKET_SPECS: list[dict[str, Any]] = [
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Walk-forward backtest for Final Player Prop Model V1.")
     parser.add_argument("--input", default="exports/live-quality-full-season-router-v9-details.json")
+    parser.add_argument("--context-input", default="exports/projection-backtest-allplayers-with-rows-live-team-context.json")
     parser.add_argument("--model", default="exports/top-player-200-sample-prop-model-results.json")
     parser.add_argument("--precision", default="exports/precision-locked-pregame-results.json")
     parser.add_argument("--v9-summary", default="exports/live-quality-full-season-router-v9-default-eval.json")
@@ -129,6 +157,57 @@ def between_open_closed(value: Any, bounds: tuple[float, float]) -> bool:
 
 def load_json(path: str | Path) -> Any:
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def load_context_rows(path: str | Path) -> list[dict[str, Any]]:
+    target = Path(path)
+    if not target.exists():
+        return []
+    payload = load_json(target)
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        rows = payload.get("playerMarketRows") or payload.get("rows") or payload.get("details")
+        return rows if isinstance(rows, list) else []
+    return []
+
+
+def enrich_context_columns(df: pd.DataFrame, context_rows: list[dict[str, Any]]) -> pd.DataFrame:
+    if not context_rows:
+        for col in CONTEXT_NUM_COLS:
+            if col not in df.columns:
+                df[col] = np.nan
+        for col in CONTEXT_CAT_COLS:
+            if col not in df.columns:
+                df[col] = "NA"
+        return df
+
+    context = pd.DataFrame(context_rows)
+    key_cols = ["gameDateEt", "playerId", "market", "line"]
+    if not set(key_cols).issubset(context.columns):
+        return enrich_context_columns(df, [])
+
+    available_cols = [
+        col
+        for col in [*key_cols, *CONTEXT_NUM_COLS, *CONTEXT_CAT_COLS]
+        if col in context.columns
+    ]
+    context = context[available_cols].copy()
+    context["line"] = pd.to_numeric(context["line"], errors="coerce").round(2)
+    df = df.copy()
+    df["line"] = pd.to_numeric(df["line"], errors="coerce").round(2)
+    context = context.drop_duplicates(key_cols, keep="first")
+    df = df.merge(context, how="left", on=key_cols, suffixes=("", "_context"))
+
+    for col in CONTEXT_NUM_COLS:
+        if col not in df.columns:
+            df[col] = np.nan
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    for col in CONTEXT_CAT_COLS:
+        if col not in df.columns:
+            df[col] = "NA"
+        df[col] = df[col].fillna("NA").astype(str)
+    return df
 
 
 def lane_accuracy(lane: dict[str, Any] | None) -> float | None:
@@ -300,6 +379,131 @@ def estimate_prior(components: list[str], component_acc: dict[str, float]) -> fl
     return round(min(96.0, max(values) + min(2.0, max(0, len(values) - 1) * 0.55)), 2)
 
 
+def boolish(value: Any) -> bool | None:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and math.isfinite(float(value)):
+        if float(value) == 1:
+            return True
+        if float(value) == 0:
+            return False
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y"}:
+        return True
+    if text in {"false", "0", "no", "n"}:
+        return False
+    return None
+
+
+def context_layer(row: pd.Series) -> dict[str, Any]:
+    score = 0.5
+    flags: list[str] = []
+    notes: list[str] = []
+    row_side = str(getattr(row, "finalSide", ""))
+    row_market = str(getattr(row, "market", ""))
+
+    completeness = clean_number(getattr(row, "completenessScore", None))
+    if completeness is not None:
+        if completeness >= 90:
+            score += 0.045
+            notes.append("high_data_completeness")
+        elif completeness < 70:
+            score -= 0.06
+            flags.append("thin_context_completeness")
+
+    lineup_timing = clean_number(getattr(row, "lineupTimingConfidence", None))
+    if lineup_timing is not None:
+        if lineup_timing >= 0.85:
+            score += 0.035
+            notes.append("strong_lineup_timing")
+        elif lineup_timing < 0.65:
+            score -= 0.05
+            flags.append("uncertain_lineup_timing")
+
+    volatility = clean_number(getattr(row, "minutesVolatility", None))
+    if volatility is not None:
+        if volatility <= 4:
+            score += 0.035
+            notes.append("stable_minutes")
+        elif volatility >= 8:
+            score -= 0.065
+            flags.append("volatile_minutes")
+
+    minutes_lift = clean_number(getattr(row, "minutesLiftPct", None))
+    if minutes_lift is not None:
+        if row_side == "OVER" and minutes_lift >= 0.08:
+            score += 0.03
+            notes.append("minutes_lift_supports_over")
+        elif row_side == "UNDER" and minutes_lift <= -0.08:
+            score += 0.03
+            notes.append("minutes_lift_supports_under")
+        elif abs(minutes_lift) >= 0.12:
+            score -= 0.035
+            flags.append("minutes_lift_against_side")
+
+    step_up = boolish(getattr(row, "stepUpRoleFlag", None))
+    missing_share = clean_number(getattr(row, "missingCoreShare", None))
+    if step_up is True or (missing_share is not None and missing_share >= 0.18):
+        if row_side == "OVER" and row_market in COUNTING_OVER_MARKETS:
+            score += 0.035
+            notes.append("step_up_role_supports_over")
+        elif row_side == "UNDER" and row_market in COUNTING_OVER_MARKETS:
+            score -= 0.04
+            flags.append("step_up_role_against_under")
+
+    spread_resolved = boolish(getattr(row, "spreadResolved", None))
+    spread = clean_number(getattr(row, "openingTeamSpread", None))
+    if spread_resolved is False:
+        score -= 0.025
+        flags.append("missing_spread_context")
+    if spread is not None:
+        abs_spread = abs(spread)
+        if abs_spread <= 5:
+            score += 0.025
+            notes.append("competitive_spread")
+        elif abs_spread >= 9:
+            score -= 0.05
+            flags.append("blowout_spread_risk")
+
+    total = clean_number(getattr(row, "openingTotal", None))
+    if total is not None and row_market in {"PTS", "THREES", "PRA", "PA", "PR"}:
+        if total >= 232 and row_side == "OVER":
+            score += 0.018
+            notes.append("high_total_supports_counting_over")
+        elif total <= 218 and row_side == "UNDER":
+            score += 0.018
+            notes.append("low_total_supports_counting_under")
+        elif (total >= 236 and row_side == "UNDER") or (total <= 214 and row_side == "OVER"):
+            score -= 0.02
+            flags.append("total_environment_against_side")
+
+    starter_rate = clean_number(getattr(row, "starterRateLast10", None))
+    expected_minutes = clean_number(
+        getattr(row, "expectedMinutes", None),
+        clean_number(getattr(row, "projectedMinutes", None)),
+    )
+    if starter_rate is not None and expected_minutes is not None:
+        if starter_rate >= 0.7 and expected_minutes >= 28:
+            if row_side == "UNDER" and row_market in STABLE_STARTER_UNDER_RISK_MARKETS:
+                score -= 0.03
+                flags.append("stable_starter_under_risk")
+            else:
+                score += 0.025
+                notes.append("stable_starter_role")
+        elif starter_rate <= 0.2 and expected_minutes < 24:
+            score -= 0.03
+            flags.append("bench_role_context")
+
+    bounded_score = clamp(score, 0.2, 1.0)
+    hard_adjustment = -0.03 if "stable_starter_under_risk" in flags else 0.0
+    return {
+        "contextScore": round(bounded_score, 6),
+        "contextAdjustment": hard_adjustment,
+        "contextFlags": flags,
+        "contextNotes": notes,
+    }
+
+
 def score_row(row: pd.Series, components: list[str], prior: float) -> float:
     accuracy_score = prior / 100
     wf_score = clean_number(row.wfConfidence, 0.5) or 0.5
@@ -310,6 +514,7 @@ def score_row(row: pd.Series, components: list[str], prior: float) -> float:
     minute_score = 0.5 if minute is None else clamp((minute - 16) / 18, 0, 1)
     consensus_score = clamp((len(components) - 1) / 4, 0, 1)
     source_adjustment = 0.035 if row.finalSource == "player_override" else -0.018 if row.finalSource == "baseline" else 0
+    context_adjustment = context_layer(row)["contextAdjustment"]
     return round(
         accuracy_score * 0.48
         + wf_score * 0.18
@@ -318,7 +523,8 @@ def score_row(row: pd.Series, components: list[str], prior: float) -> float:
         + book_score * 0.05
         + minute_score * 0.03
         + consensus_score * 0.04
-        + source_adjustment,
+        + source_adjustment
+        + context_adjustment,
         6,
     )
 
@@ -361,6 +567,7 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
         flags.append("projection_side_split")
     if clean_number(row.absLineGap, 0) < 0.5 and "top200_premium_90" not in components:
         flags.append("thin_projection_gap")
+    flags.extend(context_layer(row)["contextFlags"])
     return flags
 
 
@@ -394,6 +601,7 @@ def build_model_rows(df: pd.DataFrame, model: dict[str, Any], component_acc: dic
         components = list(dict.fromkeys(components))
         prior = estimate_prior(components, component_acc)
         base_score = score_row(row, components, prior)
+        context = context_layer(row)
         tier = tier_for(components, row)
         action = action_for(tier, components, base_score)
         team = getattr(row, "teamCode", None)
@@ -418,12 +626,26 @@ def build_model_rows(df: pd.DataFrame, model: dict[str, Any], component_acc: dic
                 "wfConfidence": round_number(row.wfConfidence, 6),
                 "metaProbCorrect": round_number(row.metaProbCorrect, 6),
                 "projectedMinutes": round_number(row.projectedMinutes, 2),
+                "minutesVolatility": round_number(getattr(row, "minutesVolatility", None), 2),
+                "starterRateLast10": round_number(getattr(row, "starterRateLast10", None), 4),
+                "expectedMinutes": round_number(getattr(row, "expectedMinutes", None), 2),
+                "minutesLiftPct": round_number(getattr(row, "minutesLiftPct", None), 4),
+                "lineupTimingConfidence": round_number(getattr(row, "lineupTimingConfidence", None), 4),
+                "completenessScore": round_number(getattr(row, "completenessScore", None), 2),
+                "openingTeamSpread": round_number(getattr(row, "openingTeamSpread", None), 2),
+                "openingTotal": round_number(getattr(row, "openingTotal", None), 2),
+                "missingCoreShare": round_number(getattr(row, "missingCoreShare", None), 4),
+                "stepUpRoleFlag": boolish(getattr(row, "stepUpRoleFlag", None)),
                 "tier": tier,
                 "modelAction": action,
                 "components": components,
                 "premiumPockets": sorted(pockets),
                 "estimatedAccuracyPriorPct": prior,
                 "baseScore": base_score,
+                "contextScore": context["contextScore"],
+                "contextAdjustment": context["contextAdjustment"],
+                "contextFlags": context["contextFlags"],
+                "contextNotes": context["contextNotes"],
                 "correlationPenalty": 0.0,
                 "finalScore": base_score,
                 "selectedRank": None,
@@ -610,13 +832,33 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
         "actualValue",
         "actualSide",
         "correct",
+        "projectedValue",
+        "lineGap",
+        "absLineGap",
+        "wfConfidence",
+        "metaProbCorrect",
+        "projectedMinutes",
+        "minutesVolatility",
+        "starterRateLast10",
+        "expectedMinutes",
+        "minutesLiftPct",
+        "lineupTimingConfidence",
+        "completenessScore",
+        "openingTeamSpread",
+        "openingTotal",
+        "missingCoreShare",
+        "stepUpRoleFlag",
         "estimatedAccuracyPriorPct",
         "baseScore",
+        "contextScore",
+        "contextAdjustment",
         "correlationPenalty",
         "finalScore",
         "rejectionReason",
         "components",
         "riskFlags",
+        "contextFlags",
+        "contextNotes",
     ]
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=cols)
@@ -625,6 +867,8 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
             out = {col: row.get(col) for col in cols}
             out["components"] = ";".join(row.get("components") or [])
             out["riskFlags"] = ";".join(row.get("riskFlags") or [])
+            out["contextFlags"] = ";".join(row.get("contextFlags") or [])
+            out["contextNotes"] = ";".join(row.get("contextNotes") or [])
             writer.writerow(out)
 
 
@@ -690,7 +934,7 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-09 tier-first calibration keeps the full-board context intact and ranks quality tier before small score differences in the final selected portfolio.",
+            "- The 2026-05-10 role-floor context calibration keeps the tier-first selector, then adds bounded game-context scoring for lineup confidence, minutes stability, spread/total environment, step-up role, stable-starter UNDER risk, and completeness.",
             "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, and a selected score floor of 0.75.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
@@ -711,6 +955,7 @@ def main() -> None:
     component_acc = build_component_accuracies(model, precision, v9)
 
     df, cat_cols, num_cols = gate.prepare_frame(root / args.input)
+    df = enrich_context_columns(df, load_context_rows(root / args.context_input))
     df = df[df["market"].isin(MARKETS)].copy()
     dates = sorted(df["gameDateEt"].unique().tolist())
     num_cols = gate.attach_prior_reliability(df, dates, num_cols)
@@ -738,8 +983,22 @@ def main() -> None:
         "modelId": MODEL_ID,
         "modelVersion": MODEL_VERSION,
         "input": str(Path(args.input).resolve()),
+        "contextInput": str(Path(args.context_input).resolve()),
         "dateRange": {"from": active_dates[0] if active_dates else None, "to": active_dates[-1] if active_dates else None, "activeDates": len(active_dates)},
         "config": {"maxPicks": args.max_picks, "minScore": args.min_score, **PORTFOLIO_LIMITS},
+        "contextLayer": {
+            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, and stable-starter role-floor risk",
+            "rowsWithContextPct": round(
+                100
+                * sum(1 for row in board_rows if row.get("contextScore") is not None)
+                / len(board_rows),
+                2,
+            )
+            if board_rows
+            else 0,
+            "avgContextScoreSelected": round_number(np.mean([row["contextScore"] for row in selected_rows])) if selected_rows else None,
+            "avgContextAdjustmentSelected": round_number(np.mean([row["contextAdjustment"] for row in selected_rows])) if selected_rows else None,
+        },
         "coveragePct": coverage_pct,
         "rowsScored": len(board_rows),
         "eligibleRows": int(len(eligible)),

@@ -1643,6 +1643,12 @@ function finalModelRiskLabel(row: SnapshotFinalModelBoardRow) {
   return row.riskFlags.length ? row.riskFlags.slice(0, 2).map(signalTokenLabel).filter(Boolean).join(', ') : 'Clean rule path';
 }
 
+function finalModelContextLabel(row: SnapshotFinalModelBoardRow) {
+  if (row.contextScore == null) return 'Context pending';
+  const adjustment = row.contextAdjustment == null ? '' : `, ${signed(row.contextAdjustment)}`;
+  return `Context ${n(row.contextScore, 2)}${adjustment}`;
+}
+
 function isSelectableFinalModelRow(row: SnapshotFinalModelBoardRow) {
   return row.line != null && (row.sportsbookCount ?? 0) >= FINAL_V1_MIN_SELECTABLE_BOOKS;
 }
@@ -4209,6 +4215,7 @@ export default function NewDashboard({
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
                 <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
                 <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
+                <Stat dense label="Avg context" value={finalModel?.summary.averageContextScore == null ? '-' : n(finalModel.summary.averageContextScore, 2)} kind={finalModel?.summary.averageContextScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Lineup/stakes layer" />
                 <Stat dense label="Warnings" value={n(finalModel?.summary.warningCount ?? finalModel?.warnings.length ?? 0, 0)} kind={finalModel?.warnings.length ? 'DERIVED' : 'LIVE'} note="Artifact warnings" />
               </div>
 
@@ -4370,15 +4377,17 @@ export default function NewDashboard({
                           </div>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
                           <CompactMetric label="Line" value={modelRow.line == null ? '-' : n(modelRow.line)} compact />
                           <CompactMetric label="Projection" value={modelRow.projectedValue == null ? '-' : n(modelRow.projectedValue)} compact />
                           <CompactMetric label="Gap" value={modelRow.lineGap == null ? '-' : signed(modelRow.lineGap)} compact />
                           <CompactMetric label="Prior" value={modelRow.estimatedAccuracyPriorPct == null ? '-' : pct(modelRow.estimatedAccuracyPriorPct, 1)} compact />
+                          <CompactMetric label="Context" value={modelRow.contextScore == null ? '-' : n(modelRow.contextScore, 2)} compact />
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
                           <Pill label={finalModelSourceLabel(modelRow)} tone="cyan" />
+                          <Pill label={finalModelContextLabel(modelRow)} tone={modelRow.contextFlags.length ? 'amber' : 'cyan'} />
                           <Pill label={finalModelRiskLabel(modelRow) || 'Clean rule path'} tone={modelRow.riskFlags.length ? 'amber' : 'default'} />
                         </div>
                       </button>

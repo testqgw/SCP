@@ -1,17 +1,17 @@
 # Final Player Prop Model V1
 
-Generated: 2026-05-09T22:27:22.836Z
+Generated: 2026-05-10T19:03:11.972Z
 Mode: PREVIEW
 Slate date ET: 2026-05-09
-Current date ET: 2026-05-09
+Current date ET: 2026-05-10
 
 ## Model Build
 
-This is a correlation-aware meta-selector with the 2026-05-09 tier-first selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and portfolio guards that veto selected PR/PA legs, cap combo markets to one, require live lines from 3+ books, and rank quality tier before small score differences.
+This is a correlation-aware meta-selector with the 2026-05-10 context-aware selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer for lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.
 
 ## Claim Boundary
 
-This is a projection-calibrated, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and 3+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.
+This is a projection-calibrated, context-aware, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and 3+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.
 
 ## Component Evidence
 
@@ -31,42 +31,43 @@ This is a projection-calibrated, portfolio-guarded final-model candidate engine,
 
 - Full board rows: 235/235
 - Board coverage: 100.00%
-- Candidates: 48
+- Candidates: 29
 - Selectable candidate gate: live line plus 3+ books
 - Projection-only board rows: 0
 - Selected: 4
-- Average estimated accuracy prior: 89.47%
-- Average final score: 0.803
-- Correlation multiplier: 0.9506
-- Selected tiers: {"B":2,"C":2}
-- Full-board tiers: {"S":1,"B":13,"C":201,"D":20}
-- Actions: {"CANDIDATE":44,"SELECTED":4,"COVERAGE":187}
+- Average estimated accuracy prior: 89.61%
+- Average final score: 0.796
+- Average context score: 0.55
+- Correlation multiplier: 0.9411
+- Selected tiers: {"B":3,"C":1}
+- Full-board tiers: {"B":7,"C":144,"D":84}
+- Actions: {"SELECTED":4,"CANDIDATE":25,"COVERAGE":206}
 
 ## Selected Picks
 
-| # | Tier | Player | Matchup | Market | Side | Line | Prior | Score | Risk | Components |
-|---:|---|---|---|---|---|---:|---:|---:|---|---|
-| 1 | B | Marcus Smart | OKC@LAL | AST | UNDER | 3.5 | 90.16% | 0.834 | projection_side_split | live_quality_router_v9; top200_coverage_frontier; top200_recent_form_fade |
-| 2 | C | Jarrett Allen | DET@CLE | RA | UNDER | 8.5 | 89.06% | 0.817 | projection_side_split | live_quality_router_v9 |
-| 3 | B | Isaiah Joe | OKC@LAL | PTS | OVER | 3.5 | 89.61% | 0.797 | low_projected_minutes | live_quality_router_v9; top200_primary |
-| 4 | C | Duncan Robinson | DET@CLE | THREES | OVER | 2.5 | 89.06% | 0.764 | - | live_quality_router_v9 |
+| # | Tier | Player | Matchup | Market | Side | Line | Prior | Score | Context | Risk | Components |
+|---:|---|---|---|---|---|---:|---:|---:|---:|---|---|
+| 1 | B | Marcus Smart | OKC@LAL | AST | UNDER | 3.5 | 90.16% | 0.834 | 0.565 | projection_side_split; recent_form_mismatch | live_quality_router_v9; top200_coverage_frontier; top200_recent_form_fade |
+| 2 | C | Jarrett Allen | DET@CLE | RA | UNDER | 8.5 | 89.06% | 0.817 | 0.585 | projection_side_split; recent_form_mismatch | live_quality_router_v9 |
+| 3 | B | Isaiah Joe | OKC@LAL | PTS | OVER | 3.5 | 89.61% | 0.772 | 0.44 | low_projected_minutes; wide_minutes_range; minutes_trend_against_side; recent_form_mismatch; high_stakes_bench_role | live_quality_router_v9; top200_primary |
+| 4 | B | Cade Cunningham | DET@CLE | PTS | OVER | 26.5 | 89.61% | 0.761 | 0.61 | projection_side_split; recent_form_mismatch | live_quality_router_v9; top200_coverage_frontier |
 
 ## Watchlist
 
 | Tier | Player | Market | Side | Line | Score | Rejection |
 |---|---|---|---|---:|---:|---|
-| S | Alex Caruso | AST | OVER | 1.5 | 0.517 | same_game_cap |
 | C | Chet Holmgren | PRA | UNDER | 27.5 | 0.728 | same_game_cap |
 | C | Deandre Ayton | RA | OVER | 9.5 | 0.719 | same_game_cap |
-| B | Deandre Ayton | REB | UNDER | 8.5 | 0.721 | same_game_cap |
-| B | Ajay Mitchell | AST | UNDER | 3.5 | 0.711 | same_game_cap |
 | C | Tobias Harris | PA | UNDER | 20.5 | 0.697 | portfolio_guard_market_veto |
-| B | Jaylin Williams | THREES | OVER | 0.5 | 0.706 | same_game_cap |
-| C | Isaiah Joe | PRA | OVER | 5.5 | 0.578 | same_player_cap |
-| B | LeBron James | AST | UNDER | 7.5 | 0.702 | same_game_cap |
-| C | Cade Cunningham | PRA | OVER | 41.5 | 0.69 | same_game_cap |
+| C | Isaiah Hartenstein | RA | OVER | 11.5 | 0.575 | same_game_cap |
+| C | Cade Cunningham | PRA | OVER | 41.5 | 0.56 | same_player_cap |
 | C | Chet Holmgren | PA | UNDER | 18.5 | 0.707 | portfolio_guard_market_veto |
-| C | Deandre Ayton | PR | OVER | 18.5 | 0.706 | portfolio_guard_market_veto |
+| C | Luke Kennard | THREES | OVER | 1.5 | 0.704 | same_game_cap |
+| C | Evan Mobley | PA | UNDER | 18.5 | 0.679 | portfolio_guard_market_veto |
+| C | James Harden | RA | OVER | 11.5 | 0.672 | same_game_cap |
+| C | Deandre Ayton | PTS | OVER | 9.5 | 0.683 | same_game_cap |
+| B | Jarrett Allen | PTS | UNDER | 11.5 | 0.683 | same_player_cap |
+| C | Cade Cunningham | PA | UNDER | 35.5 | 0.677 | portfolio_guard_market_veto |
 
 ## Full Coverage Board
 
@@ -74,18 +75,18 @@ Every scored row is included in the JSON and board CSV. The rows below are the t
 
 | Tier | Player | Market | Side | Line | Score | Risk |
 |---|---|---|---|---:|---:|---|
-| C | Tobias Harris | PR | UNDER | 24.5 | 0.665 | - |
-| C | Marcus Smart | PRA | OVER | 18.5 | 0.683 | - |
-| C | Isaiah Hartenstein | RA | OVER | 11.5 | 0.547 | - |
-| C | Chet Holmgren | PR | OVER | 25.5 | 0.552 | - |
-| C | Tobias Harris | PTS | UNDER | 18 | 0.675 | - |
-| C | Luguentz Dort | PA | UNDER | 7.5 | 0.681 | projection_side_split |
-| C | Jaylon Tyson | PTS | OVER | 7.5 | 0.675 | low_projected_minutes; projection_side_split |
-| C | Chet Holmgren | RA | OVER | 10.5 | 0.545 | - |
-| C | LeBron James | PTS | UNDER | 22.5 | 0.675 | projection_side_split |
-| C | Tobias Harris | PRA | OVER | 26.5 | 0.662 | projection_side_split |
-| C | Ajay Mitchell | RA | UNDER | 7.5 | 0.674 | projection_side_split |
-| C | Jalen Duren | PA | UNDER | 16.5 | 0.661 | - |
+| C | Tobias Harris | PR | UNDER | 24.5 | 0.665 | minutes_trend_against_side; teammate_synergy_against_side; recent_form_mismatch |
+| C | Marcus Smart | PRA | OVER | 18.5 | 0.683 | recent_form_mismatch |
+| C | Chet Holmgren | PR | OVER | 25.5 | 0.553 | recent_form_mismatch |
+| C | Isaiah Hartenstein | REB | OVER | 8.5 | 0.682 | recent_form_mismatch |
+| C | Tobias Harris | PTS | UNDER | 18 | 0.669 | minutes_trend_against_side; recent_form_mismatch |
+| C | Luguentz Dort | PA | UNDER | 7.5 | 0.681 | projection_side_split; minutes_trend_against_side; recent_form_mismatch |
+| C | Tobias Harris | PRA | OVER | 26.5 | 0.532 | projection_side_split; recent_form_mismatch |
+| C | Jalen Duren | PA | UNDER | 16.5 | 0.661 | minutes_trend_against_side; teammate_synergy_against_side; recent_form_mismatch |
+| C | Jalen Duren | PTS | UNDER | 14.5 | 0.666 | minutes_trend_against_side; recent_form_mismatch |
+| C | Jalen Duren | PRA | OVER | 27.5 | 0.53 | projection_side_split; recent_form_mismatch |
+| C | Evan Mobley | THREES | OVER | 0.5 | 0.677 | recent_form_mismatch |
+| C | Marcus Smart | PR | OVER | 14.5 | 0.677 | recent_form_mismatch |
 
 ## Correlation Rules
 
@@ -97,7 +98,8 @@ Every scored row is included in the JSON and board CSV. The rows below are the t
 
 ## Warnings
 
+- Input score artifact is stale: slate 2026-05-09, current ET date 2026-05-10. Preview only.
 - The model intentionally underfilled rather than force weak, unavailable, or correlated picks.
-- 3 selected pick(s) carry role, source, gap, or book-depth risk flags.
+- 4 selected pick(s) carry role, source, gap, book-depth, or game-context risk flags.
 - Estimated accuracy priors are component priors, not calibrated forward probabilities.
 

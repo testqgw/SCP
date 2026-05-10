@@ -1,0 +1,602 @@
+{
+  "generatedAt": "2026-05-10T19:03:26.764135Z",
+  "modelId": "final-player-prop-model-v1",
+  "modelVersion": "2026-05-10-role-floor-context-v2",
+  "result": {
+    "overallStatus": "PENDING",
+    "counts": {
+      "PASS": 11,
+      "PENDING": 3
+    }
+  },
+  "finalResults": {
+    "coveragePct": 100.0,
+    "fullBoard": {
+      "samples": 113791,
+      "wins": 101113,
+      "losses": 12678,
+      "accuracyPct": 88.86
+    },
+    "candidatePool": {
+      "samples": 93385,
+      "wins": 83676,
+      "losses": 9709,
+      "accuracyPct": 89.6
+    },
+    "selected": {
+      "samples": 962,
+      "wins": 907,
+      "losses": 55,
+      "accuracyPct": 94.28
+    },
+    "avgSelectedPerSlate": 5.83,
+    "selectedLiftVsFullBoardPct": 5.42,
+    "last30": {
+      "fullBoard": {
+        "samples": 18910,
+        "wins": 17157,
+        "losses": 1753,
+        "accuracyPct": 90.73
+      },
+      "candidatePool": {
+        "samples": 15422,
+        "wins": 14102,
+        "losses": 1320,
+        "accuracyPct": 91.44
+      },
+      "selected": {
+        "samples": 168,
+        "wins": 157,
+        "losses": 11,
+        "accuracyPct": 93.45
+      }
+    },
+    "last14": {
+      "fullBoard": {
+        "samples": 6861,
+        "wins": 6290,
+        "losses": 571,
+        "accuracyPct": 91.68
+      },
+      "candidatePool": {
+        "samples": 5791,
+        "wins": 5334,
+        "losses": 457,
+        "accuracyPct": 92.11
+      },
+      "selected": {
+        "samples": 72,
+        "wins": 66,
+        "losses": 6,
+        "accuracyPct": 91.67
+      }
+    }
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "name": "MODEL_ID_AND_VERSION",
+      "detail": "final-player-prop-model-v1 / 2026-05-10-role-floor-context-v2",
+      "evidence": {}
+    },
+    {
+      "status": "PASS",
+      "name": "SELECTOR_CONFIG_FROZEN",
+      "detail": "Config matches Final V1 frozen selector.",
+      "evidence": {
+        "config": {
+          "maxPicks": 6,
+          "minScore": 0.75,
+          "maxPerPlayer": 1,
+          "maxPerTeam": 2,
+          "maxPerGame": 2,
+          "maxPerMarket": 2,
+          "maxSameTeamCountingOvers": 1,
+          "maxComboMarkets": 1
+        }
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "WALK_FORWARD_TRAINING_WINDOWS",
+      "detail": "24 folds; train windows precede test windows.",
+      "evidence": {
+        "foldCount": 24,
+        "issues": []
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "FULL_BOARD_COVERAGE",
+      "detail": "100.0% coverage across 113791 scored rows.",
+      "evidence": {}
+    },
+    {
+      "status": "PASS",
+      "name": "REPORTED_RESULTS_RECOMPUTE",
+      "detail": "Selected recompute 907-55 on 962 rows.",
+      "evidence": {
+        "selectedCsv": {
+          "samples": 962,
+          "wins": 907,
+          "losses": 55,
+          "accuracyPct": 94.28
+        },
+        "summaryJson": {
+          "samples": 962,
+          "wins": 907,
+          "losses": 55,
+          "accuracyPct": 94.28
+        }
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "SOURCE_INPUT_AVAILABLE",
+      "detail": "Historical source input exists: C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
+      "evidence": {}
+    },
+    {
+      "status": "PENDING",
+      "name": "THIRD_PARTY_RAW_DATA_REPLAY",
+      "detail": "Current artifact is built from local generated V9/details exports; independent third-party raw data replay is not attached yet.",
+      "evidence": {
+        "sourceInput": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
+        "sourceLooksLocal": true
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "ODDS_CLV_ROI_COLUMNS",
+      "detail": "Backtest outputs accuracy only; odds, CLV, and ROI are pending market-line joins.",
+      "evidence": {
+        "foundColumns": []
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "AS_OF_REPLAY_MARKERS",
+      "detail": "Backtest source contains expanding-window and prior-date scoring markers.",
+      "evidence": {}
+    },
+    {
+      "status": "PASS",
+      "name": "POSTGAME_FIELDS_SEPARATED_FOR_GRADING",
+      "detail": "Output contains score columns and postgame grading columns separately. Static audit cannot prove external as-of integrity.",
+      "evidence": {
+        "scoreColumns": [
+          "baseScore",
+          "correlationPenalty",
+          "estimatedAccuracyPriorPct",
+          "finalScore"
+        ],
+        "gradingColumns": [
+          "actualSide",
+          "actualValue",
+          "correct"
+        ]
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "STRICT_NEGATIVE_LABEL_SHUFFLES",
+      "detail": "Selected accuracy 94.28% vs strongest strict shuffle P99 92.83%.",
+      "evidence": {
+        "random_board_sample": {
+          "trials": 1000,
+          "meanAccuracyPct": 88.87,
+          "p95AccuracyPct": 90.54,
+          "p99AccuracyPct": 91.16
+        },
+        "random_same_market_outcomes": {
+          "bucket": "market",
+          "trials": 1000,
+          "meanAccuracyPct": 88.76,
+          "p95AccuracyPct": 90.33,
+          "p99AccuracyPct": 90.96
+        },
+        "shuffle_labels_by_market": {
+          "bucket": "market",
+          "trials": 1000,
+          "meanAccuracyPct": 88.76,
+          "p95AccuracyPct": 90.33,
+          "p99AccuracyPct": 90.96
+        },
+        "shuffle_labels_by_slate": {
+          "bucket": "date",
+          "trials": 1000,
+          "meanAccuracyPct": 88.8,
+          "p95AccuracyPct": 90.54,
+          "p99AccuracyPct": 91.06
+        },
+        "shuffle_labels_by_player_market": {
+          "bucket": "playerName+market",
+          "trials": 1000,
+          "meanAccuracyPct": 90.81,
+          "p95AccuracyPct": 92.31,
+          "p99AccuracyPct": 92.83
+        },
+        "shuffle_player_ids_preserve_date_market": {
+          "bucket": "date+market random player",
+          "trials": 1000,
+          "meanAccuracyPct": 88.74,
+          "p95AccuracyPct": 90.33,
+          "p99AccuracyPct": 90.96
+        }
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "DATE_SHIFT_DIAGNOSTIC_EXPLAINED",
+      "detail": "Selected-rank date shift stayed high at 94.67% vs actual 94.28%, but stronger same-player/same-market controls collapsed to 57.13% with 96.47% coverage. Diagnostic retired as explained.",
+      "evidence": {
+        "selectedRankDateShift": {
+          "offset_1": {
+            "offsetDates": 1,
+            "samples": 944,
+            "wins": 891,
+            "losses": 53,
+            "accuracyPct": 94.39
+          },
+          "offset_-1": {
+            "offsetDates": -1,
+            "samples": 944,
+            "wins": 889,
+            "losses": 55,
+            "accuracyPct": 94.17
+          },
+          "offset_3": {
+            "offsetDates": 3,
+            "samples": 938,
+            "wins": 888,
+            "losses": 50,
+            "accuracyPct": 94.67
+          },
+          "offset_7": {
+            "offsetDates": 7,
+            "samples": 942,
+            "wins": 889,
+            "losses": 53,
+            "accuracyPct": 94.37
+          }
+        },
+        "samePlayerSameMarketExplanation": {
+          "available": true,
+          "explained": true,
+          "test": "same-player same-market line-bucket shift +1",
+          "samePlayerMarketAccuracyPct": 57.13,
+          "coveragePct": 96.47,
+          "sameLineBucketPct": 95.8,
+          "collapseMarginPct": 37.15,
+          "thresholds": {
+            "minCoveragePct": 75,
+            "minCollapseMarginPct": 25,
+            "maxSamePlayerMarketAccuracyPct": 70
+          },
+          "reason": "Selected-rank date-shift stability is explained by a stronger same-player/same-market nearby-game control."
+        },
+        "explainerArtifact": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-date-shift-explain.json"
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "INDEPENDENT_RERUN",
+      "detail": "No external auditor reproduction bundle has been recorded yet.",
+      "evidence": {}
+    },
+    {
+      "status": "PASS",
+      "name": "DATA_AND_CODE_HASHES",
+      "detail": "Data/code hashes recorded for reproducibility.",
+      "evidence": {
+        "summary": "e04145e166be7437570c29cad231ecf769082b676d15047d02e71ff390813ffa",
+        "selectedCsv": "7f6e507c2c8584bae19b5bc70b7a73c24dfe086338d555b54f0a83b4203d64af",
+        "boardCsv": "22fe43d7b57b1e95aa8406d5c8c798b767db80773594fa47cebedf94a47c2d6b",
+        "dailyCsv": "51cf5185c255a009fc6278d50cd10fc5b821f69d8d75933a64c35cef944b119c",
+        "sourceInput": "c6e8d83dbe517f6b8f6805e852721bf467d17ae6c8be6b225fa8d7ef6888b652",
+        "backtestScript": "d0ca211f51f03e96f010031edb1c03f13ff7dff2aa50876fab6286bc9aca0209",
+        "currentExporter": "a0c76500d0d97abe09702684cd7f5f1cdd976e6cbb0c443527375ae8a553782d"
+      }
+    }
+  ],
+  "hashes": {
+    "summary": "e04145e166be7437570c29cad231ecf769082b676d15047d02e71ff390813ffa",
+    "selectedCsv": "7f6e507c2c8584bae19b5bc70b7a73c24dfe086338d555b54f0a83b4203d64af",
+    "boardCsv": "22fe43d7b57b1e95aa8406d5c8c798b767db80773594fa47cebedf94a47c2d6b",
+    "dailyCsv": "51cf5185c255a009fc6278d50cd10fc5b821f69d8d75933a64c35cef944b119c",
+    "sourceInput": "c6e8d83dbe517f6b8f6805e852721bf467d17ae6c8be6b225fa8d7ef6888b652",
+    "backtestScript": "d0ca211f51f03e96f010031edb1c03f13ff7dff2aa50876fab6286bc9aca0209",
+    "currentExporter": "a0c76500d0d97abe09702684cd7f5f1cdd976e6cbb0c443527375ae8a553782d"
+  },
+  "negativeLeakageTests": {
+    "random_board_sample": {
+      "trials": 1000,
+      "meanAccuracyPct": 88.87,
+      "p95AccuracyPct": 90.54,
+      "p99AccuracyPct": 91.16
+    },
+    "random_same_market_outcomes": {
+      "bucket": "market",
+      "trials": 1000,
+      "meanAccuracyPct": 88.76,
+      "p95AccuracyPct": 90.33,
+      "p99AccuracyPct": 90.96
+    },
+    "shuffle_labels_by_market": {
+      "bucket": "market",
+      "trials": 1000,
+      "meanAccuracyPct": 88.76,
+      "p95AccuracyPct": 90.33,
+      "p99AccuracyPct": 90.96
+    },
+    "shuffle_labels_by_slate": {
+      "bucket": "date",
+      "trials": 1000,
+      "meanAccuracyPct": 88.8,
+      "p95AccuracyPct": 90.54,
+      "p99AccuracyPct": 91.06
+    },
+    "shuffle_labels_by_player_market": {
+      "bucket": "playerName+market",
+      "trials": 1000,
+      "meanAccuracyPct": 90.81,
+      "p95AccuracyPct": 92.31,
+      "p99AccuracyPct": 92.83
+    },
+    "shuffle_player_ids_preserve_date_market": {
+      "bucket": "date+market random player",
+      "trials": 1000,
+      "meanAccuracyPct": 88.74,
+      "p95AccuracyPct": 90.33,
+      "p99AccuracyPct": 90.96
+    },
+    "shift_selected_labels_plus_1_date": {
+      "offsetDates": 1,
+      "samples": 944,
+      "wins": 891,
+      "losses": 53,
+      "accuracyPct": 94.39,
+      "diagnosticOnly": true,
+      "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
+    },
+    "shift_selected_labels_minus_1_date": {
+      "offsetDates": -1,
+      "samples": 944,
+      "wins": 889,
+      "losses": 55,
+      "accuracyPct": 94.17,
+      "diagnosticOnly": true,
+      "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
+    },
+    "shift_selected_labels_plus_3_dates": {
+      "offsetDates": 3,
+      "samples": 938,
+      "wins": 888,
+      "losses": 50,
+      "accuracyPct": 94.67,
+      "diagnosticOnly": true,
+      "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
+    },
+    "shift_selected_labels_plus_7_dates": {
+      "offsetDates": 7,
+      "samples": 942,
+      "wins": 889,
+      "losses": 53,
+      "accuracyPct": 94.37,
+      "diagnosticOnly": true,
+      "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
+    }
+  },
+  "clusterEvaluation": {
+    "activeSlates": 165,
+    "winningSlates": 165,
+    "losingSlates": 0,
+    "breakEvenSlates": 0,
+    "worstDay": {
+      "date": "2025-11-13",
+      "samples": 6,
+      "wins": 4,
+      "losses": 2,
+      "accuracyPct": 66.67
+    },
+    "worst7Day": {
+      "from": "2025-11-11",
+      "to": "2025-11-17",
+      "samples": 42,
+      "wins": 37,
+      "losses": 5,
+      "accuracyPct": 88.1
+    },
+    "worst30Day": {
+      "from": "2025-11-13",
+      "to": "2025-12-13",
+      "samples": 174,
+      "wins": 158,
+      "losses": 16,
+      "accuracyPct": 90.8
+    },
+    "playerConcentration": {
+      "unique": 197,
+      "maxSharePct": 2.08,
+      "top": [
+        {
+          "key": "Kawhi Leonard",
+          "count": 20,
+          "sharePct": 2.08
+        },
+        {
+          "key": "Justin Champagnie",
+          "count": 17,
+          "sharePct": 1.77
+        },
+        {
+          "key": "Payton Pritchard",
+          "count": 16,
+          "sharePct": 1.66
+        },
+        {
+          "key": "Ryan Dunn",
+          "count": 15,
+          "sharePct": 1.56
+        },
+        {
+          "key": "Scottie Barnes",
+          "count": 15,
+          "sharePct": 1.56
+        },
+        {
+          "key": "Evan Mobley",
+          "count": 14,
+          "sharePct": 1.46
+        },
+        {
+          "key": "VJ Edgecombe",
+          "count": 13,
+          "sharePct": 1.35
+        },
+        {
+          "key": "Ryan Rollins",
+          "count": 13,
+          "sharePct": 1.35
+        }
+      ]
+    },
+    "teamConcentration": {
+      "unique": 30,
+      "maxSharePct": 5.2,
+      "top": [
+        {
+          "key": "PHX",
+          "count": 50,
+          "sharePct": 5.2
+        },
+        {
+          "key": "UTA",
+          "count": 44,
+          "sharePct": 4.57
+        },
+        {
+          "key": "TOR",
+          "count": 43,
+          "sharePct": 4.47
+        },
+        {
+          "key": "BOS",
+          "count": 43,
+          "sharePct": 4.47
+        },
+        {
+          "key": "SAS",
+          "count": 42,
+          "sharePct": 4.37
+        },
+        {
+          "key": "DET",
+          "count": 41,
+          "sharePct": 4.26
+        },
+        {
+          "key": "LAC",
+          "count": 40,
+          "sharePct": 4.16
+        },
+        {
+          "key": "WAS",
+          "count": 38,
+          "sharePct": 3.95
+        }
+      ]
+    },
+    "gameConcentration": {
+      "unique": 808,
+      "maxSharePct": 0.21,
+      "top": [
+        {
+          "key": "0022500140",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500139",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500025",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500148",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500167",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500182",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500035",
+          "count": 2,
+          "sharePct": 0.21
+        },
+        {
+          "key": "0022500225",
+          "count": 2,
+          "sharePct": 0.21
+        }
+      ]
+    },
+    "marketConcentration": {
+      "unique": 6,
+      "maxSharePct": 33.89,
+      "top": [
+        {
+          "key": "PTS",
+          "count": 326,
+          "sharePct": 33.89
+        },
+        {
+          "key": "REB",
+          "count": 261,
+          "sharePct": 27.13
+        },
+        {
+          "key": "AST",
+          "count": 210,
+          "sharePct": 21.83
+        },
+        {
+          "key": "PRA",
+          "count": 131,
+          "sharePct": 13.62
+        },
+        {
+          "key": "RA",
+          "count": 20,
+          "sharePct": 2.08
+        },
+        {
+          "key": "THREES",
+          "count": 14,
+          "sharePct": 1.46
+        }
+      ]
+    }
+  },
+  "claimBoundary": {
+    "backtestValidity": "Auditable local historical walk-forward artifact with hashes and negative diagnostics.",
+    "notYetProven": [
+      "Independent third-party raw-data replay",
+      "Historical odds, CLV, and ROI grading",
+      "External auditor rerun",
+      "Live locked-forward proof"
+    ]
+  }
+}

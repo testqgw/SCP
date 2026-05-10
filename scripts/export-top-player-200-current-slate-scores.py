@@ -44,6 +44,114 @@ MARKET_SIGNAL_KEYS = {
 }
 
 
+def record_pct(record: dict[str, Any] | None) -> float | None:
+    if not isinstance(record, dict):
+        return None
+    try:
+        wins = float(record.get("wins") or 0)
+        losses = float(record.get("losses") or 0)
+    except (TypeError, ValueError):
+        return None
+    total = wins + losses
+    if total <= 0:
+        return None
+    return round(wins / total, 4)
+
+
+def metric_value(record: dict[str, Any] | None, market: str) -> float | None:
+    if not isinstance(record, dict):
+        return None
+    try:
+        value = float(record.get(market))
+    except (TypeError, ValueError):
+        return None
+    return value if np.isfinite(value) else None
+
+
+def net_pra_for_side(matchup: dict[str, Any], prefix: str) -> float | None:
+    scored = metric_value(matchup.get(f"{prefix}Last10For"), "PRA")
+    allowed = metric_value(matchup.get(f"{prefix}Last10Allowed"), "PRA")
+    if scored is None or allowed is None:
+        return None
+    return round(scored - allowed, 4)
+
+
+def infer_stake_level(date_et: str) -> str:
+    try:
+        month = int(date_et.split("-")[1])
+        day = int(date_et.split("-")[2])
+    except (IndexError, ValueError):
+        return "UNKNOWN"
+    if (month == 4 and day >= 15) or month in {5, 6}:
+        return "PLAYOFF_HIGH_LEVERAGE"
+    if month == 4 and day >= 1:
+        return "REGULAR_SEASON_LATE"
+    return "REGULAR_SEASON"
+
+
+def matchup_context(board: dict[str, Any], row: dict[str, Any]) -> dict[str, Any]:
+    matchup_key = row.get("matchupKey")
+    matchups = {
+        item.get("matchupKey"): item
+        for item in board.get("teamMatchups", [])
+        if isinstance(item, dict) and item.get("matchupKey")
+    }
+    matchup = matchups.get(matchup_key) or {}
+    team = row.get("teamCode")
+    away = matchup.get("awayTeam")
+    home = matchup.get("homeTeam")
+    prefix = "away" if team == away else "home" if team == home else None
+    opp_prefix = "home" if prefix == "away" else "away" if prefix == "home" else None
+    if prefix is None or opp_prefix is None:
+        return {
+            "stakeLevel": infer_stake_level(str(board.get("dateEt") or "")),
+            "teamRecentWinPct": None,
+            "opponentRecentWinPct": None,
+            "teamSeasonWinPct": None,
+            "opponentSeasonWinPct": None,
+            "teamRecentNetPRA": None,
+            "opponentRecentNetPRA": None,
+        }
+    return {
+        "stakeLevel": infer_stake_level(str(board.get("dateEt") or "")),
+        "teamRecentWinPct": record_pct(matchup.get(f"{prefix}Last10Record")),
+        "opponentRecentWinPct": record_pct(matchup.get(f"{opp_prefix}Last10Record")),
+        "teamSeasonWinPct": record_pct(matchup.get(f"{prefix}SeasonRecord")),
+        "opponentSeasonWinPct": record_pct(matchup.get(f"{opp_prefix}SeasonRecord")),
+        "teamRecentNetPRA": net_pra_for_side(matchup, prefix),
+        "opponentRecentNetPRA": net_pra_for_side(matchup, opp_prefix),
+    }
+
+
+def synergy_context(context: dict[str, Any], market: str) -> dict[str, Any]:
+    synergies = context.get("teammateSynergies")
+    if not isinstance(synergies, list):
+        return {"activeSynergyCount": 0, "marketSynergyBoost": 0.0, "marketSynergyDrag": 0.0}
+    active = [
+        item
+        for item in synergies
+        if isinstance(item, dict)
+        and item.get("targetMarket") == market
+        and item.get("activeToday") is True
+    ]
+    boost = 0.0
+    drag = 0.0
+    for item in active:
+        try:
+            delta = abs(float(item.get("delta") or 0))
+        except (TypeError, ValueError):
+            delta = 0.0
+        if item.get("direction") == "BOOST":
+            boost += delta
+        elif item.get("direction") == "DRAG":
+            drag += delta
+    return {
+        "activeSynergyCount": len(active),
+        "marketSynergyBoost": round(boost, 4),
+        "marketSynergyDrag": round(drag, 4),
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Score the current slate with the 200+ sample HGB prop model.")
     parser.add_argument("--historical-input", default="exports/ultimate-live-quality-current-details.json")
@@ -90,6 +198,7 @@ def current_rows_from_board(board: dict[str, Any]) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for row in board.get("rows", []):
         context = row.get("playerContext") or {}
+        game_context = matchup_context(board, row)
         runtime_by_market = row.get("marketRuntime") or {}
         projected = row.get("projectedTonight") or {}
         model_lines = row.get("modelLines") or {}
@@ -114,6 +223,7 @@ def current_rows_from_board(board: dict[str, Any]) -> pd.DataFrame:
             source = runtime.get("source") or "baseline"
             baseline_side = runtime.get("baselineSide") or (model_lines.get(market) or {}).get("modelSide") or "NEUTRAL"
             line_gap = float(projection) - float(live_line)
+            market_synergy = synergy_context(context, market)
             rows.append(
                 {
                     "rowKey": f"current:{row.get('playerId')}:{market}",
@@ -139,7 +249,18 @@ def current_rows_from_board(board: dict[str, Any]) -> pd.DataFrame:
                     "underPrice": np.nan,
                     "projectedMinutes": context.get("projectedMinutes"),
                     "minutesVolatility": context.get("minutesVolatility"),
-                    "starterRateLast10": np.nan,
+                    "starterRateLast10": context.get("starterRateLast10"),
+                    "lineupStatus": context.get("lineupStatus"),
+                    "lineupStarter": context.get("lineupStarter"),
+                    "availabilityStatus": context.get("availabilityStatus"),
+                    "availabilityPercentPlay": context.get("availabilityPercentPlay"),
+                    "rotationRank": context.get("rotationRank"),
+                    "minutesTrend": context.get("minutesTrend"),
+                    "projectedMinutesFloor": context.get("projectedMinutesFloor"),
+                    "projectedMinutesCeiling": context.get("projectedMinutesCeiling"),
+                    "dataCompletenessScore": (row.get("dataCompleteness") or {}).get("score"),
+                    **game_context,
+                    **market_synergy,
                     "lineGap": line_gap,
                     "absLineGap": abs(line_gap),
                     "actualSide": "NA",
@@ -384,6 +505,27 @@ def main() -> None:
                 "lineGap": clean_float(row.lineGap, 2),
                 "absLineGap": clean_float(row.absLineGap, 2),
                 "projectedMinutes": clean_float(row.projectedMinutes, 2),
+                "minutesVolatility": clean_float(getattr(row, "minutesVolatility", None), 2),
+                "starterRateLast10": clean_float(getattr(row, "starterRateLast10", None), 4),
+                "lineupStatus": getattr(row, "lineupStatus", None),
+                "lineupStarter": getattr(row, "lineupStarter", None),
+                "availabilityStatus": getattr(row, "availabilityStatus", None),
+                "availabilityPercentPlay": clean_float(getattr(row, "availabilityPercentPlay", None), 2),
+                "rotationRank": clean_float(getattr(row, "rotationRank", None), 0),
+                "minutesTrend": clean_float(getattr(row, "minutesTrend", None), 2),
+                "projectedMinutesFloor": clean_float(getattr(row, "projectedMinutesFloor", None), 2),
+                "projectedMinutesCeiling": clean_float(getattr(row, "projectedMinutesCeiling", None), 2),
+                "dataCompletenessScore": clean_float(getattr(row, "dataCompletenessScore", None), 2),
+                "stakeLevel": getattr(row, "stakeLevel", None),
+                "teamRecentWinPct": clean_float(getattr(row, "teamRecentWinPct", None), 4),
+                "opponentRecentWinPct": clean_float(getattr(row, "opponentRecentWinPct", None), 4),
+                "teamSeasonWinPct": clean_float(getattr(row, "teamSeasonWinPct", None), 4),
+                "opponentSeasonWinPct": clean_float(getattr(row, "opponentSeasonWinPct", None), 4),
+                "teamRecentNetPRA": clean_float(getattr(row, "teamRecentNetPRA", None), 4),
+                "opponentRecentNetPRA": clean_float(getattr(row, "opponentRecentNetPRA", None), 4),
+                "marketSynergyBoost": clean_float(getattr(row, "marketSynergyBoost", None), 4),
+                "marketSynergyDrag": clean_float(getattr(row, "marketSynergyDrag", None), 4),
+                "activeSynergyCount": clean_float(getattr(row, "activeSynergyCount", None), 0),
                 "priorMarketSourceSideAcc": clean_float(row.prior_market_source_side_acc),
                 "priorMarketFinalSideAcc": clean_float(row.prior_market_final_side_acc),
                 "sportsbookCount": None if pd.isna(row.sportsbookCount) else int(row.sportsbookCount),
