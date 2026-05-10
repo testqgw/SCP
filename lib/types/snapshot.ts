@@ -172,6 +172,98 @@ export type SnapshotPrecisionDashboard = {
   entries: SnapshotPrecisionAuditEntry[];
 };
 
+export type SnapshotFinalModelTier = "S" | "A" | "B" | "C" | "D";
+
+export type SnapshotFinalModelAction = "SELECTED" | "CANDIDATE" | "COVERAGE";
+
+export type SnapshotFinalModelComponent = {
+  id: string;
+  label: string;
+  accuracyPct: number | null;
+  playerDays: number | null;
+};
+
+export type SnapshotFinalModelBoardRow = {
+  candidateId: string;
+  slateDate: string;
+  playerId: string | null;
+  playerName: string;
+  team: string | null;
+  opponent: string | null;
+  matchupKey: string | null;
+  gameTimeEt: string | null;
+  market: SnapshotMarket;
+  side: SnapshotModelSide;
+  line: number | null;
+  projectedValue: number | null;
+  lineGap: number | null;
+  absLineGap: number | null;
+  wfConfidence: number | null;
+  metaProbCorrect: number | null;
+  projectedMinutes: number | null;
+  minutesVolatility: number | null;
+  starterRateLast10: number | null;
+  lineupStatus: string | null;
+  availabilityStatus: string | null;
+  rotationRank: number | null;
+  minutesTrend: number | null;
+  dataCompletenessScore: number | null;
+  stakeLevel: string | null;
+  teamRecentWinPct: number | null;
+  opponentRecentWinPct: number | null;
+  marketSynergyBoost: number | null;
+  marketSynergyDrag: number | null;
+  sportsbookCount: number | null;
+  tier: SnapshotFinalModelTier;
+  modelAction: SnapshotFinalModelAction;
+  selectedRank: number | null;
+  estimatedAccuracyPriorPct: number | null;
+  baseScore: number | null;
+  contextScore: number | null;
+  contextAdjustment: number | null;
+  correlationPenalty: number | null;
+  finalScore: number | null;
+  sourceComponents: SnapshotFinalModelComponent[];
+  riskFlags: string[];
+  contextFlags: string[];
+  reasons: string[];
+  rejectionReason: string | null;
+};
+
+export type SnapshotFinalModelSummary = {
+  totalBoardRows: number;
+  scoredBoardRows: number;
+  boardCoveragePct: number;
+  candidateCount: number;
+  selectedCount: number;
+  selectedByTier: Partial<Record<SnapshotFinalModelTier, number>>;
+  boardRowsByTier: Partial<Record<SnapshotFinalModelTier, number>>;
+  boardRowsByAction: Partial<Record<SnapshotFinalModelAction, number>>;
+  averageEstimatedAccuracyPriorPct: number | null;
+  averageFinalScore: number | null;
+  averageContextScore: number | null;
+  averageContextAdjustment: number | null;
+  correlationMultiplier: number | null;
+  warningCount: number;
+};
+
+export type SnapshotFinalModelData = {
+  artifactStatus: "LOADED" | "MISSING";
+  generatedAt: string | null;
+  modelId: "final-player-prop-model-v1";
+  modelName: string;
+  modelVersion: string | null;
+  mode: string;
+  slateDate: string;
+  currentDateEt: string | null;
+  claimBoundary: string;
+  summary: SnapshotFinalModelSummary;
+  warnings: string[];
+  boardRows: SnapshotFinalModelBoardRow[];
+  selectedRows: SnapshotFinalModelBoardRow[];
+  candidateRows: SnapshotFinalModelBoardRow[];
+};
+
 export type SnapshotUniversalSystemSummary = {
   label: string;
   honest14dRawAccuracy: number;

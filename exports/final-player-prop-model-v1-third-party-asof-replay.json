@@ -1,0 +1,105 @@
+{
+  "generatedAt": "2026-05-09T22:27:54.679132Z",
+  "modelId": "final-player-prop-model-v1",
+  "modelVersion": "2026-05-04-meta-correlation-v1",
+  "overallStatus": "PENDING",
+  "inputs": {
+    "selectedCsv": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-walk-forward-selected.csv",
+    "marketProofJson": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-market-proof.json",
+    "externalBoxscoresCsv": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\data\\external\\final-player-prop-model-v1\\external-boxscores.csv",
+    "manifest": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\data\\external\\final-player-prop-model-v1\\asof-replay-manifest.json"
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "name": "SELECTED_BACKTEST_FILE",
+      "detail": "Selected-pick walk-forward file is present.",
+      "evidence": {
+        "path": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-walk-forward-selected.csv",
+        "sha256": "cb9c9893498bf99036310075b31deecf2197d0078c482d03aaf25dbd711e9308",
+        "rows": 962
+      }
+    },
+    {
+      "status": "PASS",
+      "name": "THIRD_PARTY_MARKET_LINES",
+      "detail": "External market-line report exists and found strict line/odds matches.",
+      "evidence": {
+        "totalSelectedPicks": 962,
+        "externalLineRows": 131142,
+        "externalQuotes": 262284,
+        "strictValidOddsMatches": 592,
+        "strictLineMatchCoveragePct": 61.54,
+        "gradedAtExternalLine": 592,
+        "winsAtExternalLine": 563,
+        "lossesAtExternalLine": 29,
+        "pushesAtExternalLine": 0,
+        "accuracyAtExternalLinePct": 95.1,
+        "profitUnits": 449.5414,
+        "stakeUnits": 592.0,
+        "roiPct": 75.94,
+        "avgAmericanOdds": -95.99,
+        "asOfTimestampCoveragePct": 0.0,
+        "closingLineCoveragePct": 0.0,
+        "avgLineClv": null,
+        "lineTolerance": 0.0,
+        "fallbackOdds": -110.0
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "MARKET_LINE_AS_OF_TIMESTAMPS",
+      "detail": "Matched market lines do not yet prove as-of timing with snapshot/game-time timestamps.",
+      "evidence": {
+        "asOfTimestampCoveragePct": 0
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "CLOSING_LINE_CLV_FIELDS",
+      "detail": "Closing line/odds fields are missing or sparse, so CLV remains pending.",
+      "evidence": {
+        "closingLineCoveragePct": 0
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "AS_OF_REPLAY_MANIFEST",
+      "detail": "No as-of replay manifest exists yet.",
+      "evidence": {
+        "status": "PENDING",
+        "detail": "No as-of replay manifest exists yet.",
+        "path": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\data\\external\\final-player-prop-model-v1\\asof-replay-manifest.json"
+      }
+    },
+    {
+      "status": "PENDING",
+      "name": "EXTERNAL_BOXSCORE_FILE",
+      "detail": "External box-score file is missing; independent result replay cannot run yet.",
+      "evidence": {
+        "path": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\data\\external\\final-player-prop-model-v1\\external-boxscores.csv"
+      }
+    }
+  ],
+  "statusCounts": {
+    "PASS": 2,
+    "PENDING": 4
+  },
+  "externalBoxscoreReplay": {
+    "selectedPicks": 962,
+    "externalBoxscoreRows": 0,
+    "matchedPicks": 0,
+    "matchCoveragePct": 0.0,
+    "actualValueAgreementPct": null,
+    "resultAgreementPct": null,
+    "externalWins": 0,
+    "externalLosses": 0,
+    "externalPushes": 0,
+    "externalAccuracyPct": null
+  },
+  "interpretation": [
+    "This command is intentionally strict: missing third-party box scores, missing as-of timestamps, or missing closing lines keep the audit PENDING.",
+    "A PASS requires independent result replay plus market lines with timestamp evidence that the snapshots were available before game start.",
+    "The command does not claim third-party as-of replay until external raw data and provenance are present."
+  ]
+}

@@ -1,0 +1,5940 @@
+{
+  "generatedAt": "2026-05-10T19:03:13.527233Z",
+  "source": {
+    "selectedCsv": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-walk-forward-selected.csv",
+    "boardCsv": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-walk-forward-board.csv",
+    "auditJson": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\final-player-prop-model-v1-backtest-audit.json"
+  },
+  "actualSelected": {
+    "samples": 962,
+    "wins": 907,
+    "losses": 55,
+    "accuracyPct": 94.28
+  },
+  "auditDateShiftWarning": null,
+  "shifts": [
+    {
+      "name": "selected-rank date shift +1",
+      "summary": {
+        "samples": 944,
+        "graded": 944,
+        "wins": 891,
+        "losses": 53,
+        "pushes": 0,
+        "accuracyPct": 94.39
+      },
+      "availability": {
+        "matched": 944,
+        "coveragePct": 98.13,
+        "sameSidePct": 0.0,
+        "sameLineBucketPct": 0.0,
+        "sameExactLinePct": 0.0
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 324,
+          "graded": 324,
+          "wins": 305,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 94.14
+        },
+        {
+          "bucket": "REB",
+          "samples": 255,
+          "graded": 255,
+          "wins": 240,
+          "losses": 15,
+          "pushes": 0,
+          "accuracyPct": 94.12
+        },
+        {
+          "bucket": "AST",
+          "samples": 204,
+          "graded": 204,
+          "wins": 194,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 95.1
+        },
+        {
+          "bucket": "PRA",
+          "samples": 127,
+          "graded": 127,
+          "wins": 119,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 93.7
+        },
+        {
+          "bucket": "RA",
+          "samples": 20,
+          "graded": 20,
+          "wins": 19,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 95.0
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 14,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 510,
+          "graded": 510,
+          "wins": 477,
+          "losses": 33,
+          "pushes": 0,
+          "accuracyPct": 93.53
+        },
+        {
+          "bucket": "OVER",
+          "samples": 434,
+          "graded": 434,
+          "wins": 414,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 95.39
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 489,
+          "graded": 489,
+          "wins": 458,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 93.66
+        },
+        {
+          "bucket": "A",
+          "samples": 454,
+          "graded": 454,
+          "wins": 432,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 95.15
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 455,
+          "graded": 455,
+          "wins": 433,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 95.16
+        },
+        {
+          "bucket": "94+",
+          "samples": 360,
+          "graded": 360,
+          "wins": 339,
+          "losses": 21,
+          "pushes": 0,
+          "accuracyPct": 94.17
+        },
+        {
+          "bucket": "92-94",
+          "samples": 129,
+          "graded": 129,
+          "wins": 119,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 92.25
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 90,
+          "graded": 90,
+          "wins": 84,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 93.33
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 90,
+          "graded": 90,
+          "wins": 82,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 91.11
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 83,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 95.4
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 75,
+          "graded": 75,
+          "wins": 72,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 96.0
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 69,
+          "graded": 69,
+          "wins": 65,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 94.2
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 67,
+          "graded": 67,
+          "wins": 61,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 91.04
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 55,
+          "graded": 55,
+          "wins": 52,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 94.55
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 45,
+          "graded": 45,
+          "wins": 44,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.78
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 42,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.45
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 43,
+          "graded": 43,
+          "wins": 41,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.35
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 39,
+          "graded": 39,
+          "wins": 39,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 37,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.37
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 174,
+          "graded": 174,
+          "wins": 161,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 92.53
+        },
+        {
+          "bucket": "none",
+          "samples": 103,
+          "graded": 103,
+          "wins": 96,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 93.2
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 67,
+          "graded": 67,
+          "wins": 62,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 92.54
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 56,
+          "graded": 56,
+          "wins": 51,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 91.07
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 47,
+          "graded": 47,
+          "wins": 44,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 93.62
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 42,
+          "graded": 42,
+          "wins": 41,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.62
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 40,
+          "graded": 40,
+          "wins": 38,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.0
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 27,
+          "graded": 27,
+          "wins": 26,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 96.3
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 20,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 95.24
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 17,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 89.47
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 19,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 18,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 19,
+          "sharePct": 2.13
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 16,
+          "sharePct": 1.8
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Svi Mykhailiuk",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 12,
+          "sharePct": 1.35
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 305,
+          "sharePct": 34.23
+        },
+        {
+          "bucket": "REB",
+          "wins": 240,
+          "sharePct": 26.94
+        },
+        {
+          "bucket": "AST",
+          "wins": 194,
+          "sharePct": 21.77
+        },
+        {
+          "bucket": "PRA",
+          "wins": 119,
+          "sharePct": 13.36
+        },
+        {
+          "bucket": "RA",
+          "wins": 19,
+          "sharePct": 2.13
+        },
+        {
+          "bucket": "THREES",
+          "wins": 14,
+          "sharePct": 1.57
+        }
+      ]
+    },
+    {
+      "name": "selected-rank date shift -1",
+      "summary": {
+        "samples": 944,
+        "graded": 944,
+        "wins": 889,
+        "losses": 55,
+        "pushes": 0,
+        "accuracyPct": 94.17
+      },
+      "availability": {
+        "matched": 944,
+        "coveragePct": 98.13,
+        "sameSidePct": 0.0,
+        "sameLineBucketPct": 0.0,
+        "sameExactLinePct": 0.0
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 324,
+          "graded": 324,
+          "wins": 303,
+          "losses": 21,
+          "pushes": 0,
+          "accuracyPct": 93.52
+        },
+        {
+          "bucket": "REB",
+          "samples": 254,
+          "graded": 254,
+          "wins": 240,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 94.49
+        },
+        {
+          "bucket": "AST",
+          "samples": 204,
+          "graded": 204,
+          "wins": 194,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 95.1
+        },
+        {
+          "bucket": "PRA",
+          "samples": 129,
+          "graded": 129,
+          "wins": 119,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 92.25
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 19,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 14,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 514,
+          "graded": 514,
+          "wins": 478,
+          "losses": 36,
+          "pushes": 0,
+          "accuracyPct": 93.0
+        },
+        {
+          "bucket": "OVER",
+          "samples": 430,
+          "graded": 430,
+          "wins": 411,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 95.58
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 485,
+          "graded": 485,
+          "wins": 458,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 94.43
+        },
+        {
+          "bucket": "A",
+          "samples": 458,
+          "graded": 458,
+          "wins": 430,
+          "losses": 28,
+          "pushes": 0,
+          "accuracyPct": 93.89
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 459,
+          "graded": 459,
+          "wins": 431,
+          "losses": 28,
+          "pushes": 0,
+          "accuracyPct": 93.9
+        },
+        {
+          "bucket": "94+",
+          "samples": 358,
+          "graded": 358,
+          "wins": 336,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 93.85
+        },
+        {
+          "bucket": "92-94",
+          "samples": 127,
+          "graded": 127,
+          "wins": 122,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 96.06
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 90,
+          "graded": 90,
+          "wins": 83,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 92.22
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 84,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 94.38
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 88,
+          "graded": 88,
+          "wins": 83,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 94.32
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 74,
+          "graded": 74,
+          "wins": 69,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 93.24
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 69,
+          "graded": 69,
+          "wins": 63,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 91.3
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 66,
+          "graded": 66,
+          "wins": 61,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 92.42
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 56,
+          "graded": 56,
+          "wins": 54,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 96.43
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 41,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 93.18
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 44,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 42,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.45
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 39,
+          "graded": 39,
+          "wins": 38,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.44
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 37,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.37
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 175,
+          "graded": 175,
+          "wins": 167,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 95.43
+        },
+        {
+          "bucket": "none",
+          "samples": 102,
+          "graded": 102,
+          "wins": 92,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 90.2
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 69,
+          "graded": 69,
+          "wins": 65,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 94.2
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 54,
+          "graded": 54,
+          "wins": 49,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 90.74
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 47,
+          "graded": 47,
+          "wins": 44,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 93.62
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 39,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.12
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 38,
+          "graded": 38,
+          "wins": 33,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 86.84
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 25,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 96.15
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 20,
+          "graded": 20,
+          "wins": 18,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 90.0
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 19,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 19,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 17,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.44
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 19,
+          "sharePct": 2.14
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 16,
+          "sharePct": 1.8
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 15,
+          "sharePct": 1.69
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 11,
+          "sharePct": 1.24
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 11,
+          "sharePct": 1.24
+        },
+        {
+          "bucket": "Russell Westbrook",
+          "wins": 11,
+          "sharePct": 1.24
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 303,
+          "sharePct": 34.08
+        },
+        {
+          "bucket": "REB",
+          "wins": 240,
+          "sharePct": 27.0
+        },
+        {
+          "bucket": "AST",
+          "wins": 194,
+          "sharePct": 21.82
+        },
+        {
+          "bucket": "PRA",
+          "wins": 119,
+          "sharePct": 13.39
+        },
+        {
+          "bucket": "RA",
+          "wins": 19,
+          "sharePct": 2.14
+        },
+        {
+          "bucket": "THREES",
+          "wins": 14,
+          "sharePct": 1.57
+        }
+      ]
+    },
+    {
+      "name": "selected-rank date shift +3",
+      "summary": {
+        "samples": 938,
+        "graded": 938,
+        "wins": 888,
+        "losses": 50,
+        "pushes": 0,
+        "accuracyPct": 94.67
+      },
+      "availability": {
+        "matched": 938,
+        "coveragePct": 97.51,
+        "sameSidePct": 0.0,
+        "sameLineBucketPct": 0.0,
+        "sameExactLinePct": 0.0
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 323,
+          "graded": 323,
+          "wins": 309,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 95.67
+        },
+        {
+          "bucket": "REB",
+          "samples": 255,
+          "graded": 255,
+          "wins": 236,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 92.55
+        },
+        {
+          "bucket": "AST",
+          "samples": 200,
+          "graded": 200,
+          "wins": 191,
+          "losses": 9,
+          "pushes": 0,
+          "accuracyPct": 95.5
+        },
+        {
+          "bucket": "PRA",
+          "samples": 126,
+          "graded": 126,
+          "wins": 119,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 94.44
+        },
+        {
+          "bucket": "RA",
+          "samples": 20,
+          "graded": 20,
+          "wins": 19,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 95.0
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 14,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 510,
+          "graded": 510,
+          "wins": 483,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 94.71
+        },
+        {
+          "bucket": "OVER",
+          "samples": 428,
+          "graded": 428,
+          "wins": 405,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 94.63
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 489,
+          "graded": 489,
+          "wins": 465,
+          "losses": 24,
+          "pushes": 0,
+          "accuracyPct": 95.09
+        },
+        {
+          "bucket": "A",
+          "samples": 448,
+          "graded": 448,
+          "wins": 422,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 94.2
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 449,
+          "graded": 449,
+          "wins": 423,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 94.21
+        },
+        {
+          "bucket": "94+",
+          "samples": 360,
+          "graded": 360,
+          "wins": 338,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 93.89
+        },
+        {
+          "bucket": "92-94",
+          "samples": 129,
+          "graded": 129,
+          "wins": 127,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 98.45
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 86,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 96.63
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 85,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 95.51
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 83,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 95.4
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 75,
+          "graded": 75,
+          "wins": 74,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 98.67
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 69,
+          "graded": 69,
+          "wins": 61,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 88.41
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 65,
+          "graded": 65,
+          "wins": 59,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 90.77
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 56,
+          "graded": 56,
+          "wins": 53,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 94.64
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 40,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 90.91
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 43,
+          "graded": 43,
+          "wins": 42,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.67
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 42,
+          "graded": 42,
+          "wins": 40,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.24
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 40,
+          "graded": 40,
+          "wins": 38,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.0
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 37,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.37
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 170,
+          "graded": 170,
+          "wins": 166,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 97.65
+        },
+        {
+          "bucket": "none",
+          "samples": 102,
+          "graded": 102,
+          "wins": 96,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 94.12
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 67,
+          "graded": 67,
+          "wins": 60,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 89.55
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 55,
+          "graded": 55,
+          "wins": 50,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 90.91
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 45,
+          "graded": 45,
+          "wins": 40,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 88.89
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 42,
+          "graded": 42,
+          "wins": 41,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.62
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 40,
+          "graded": 40,
+          "wins": 39,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.5
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 27,
+          "graded": 27,
+          "wins": 25,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 92.59
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 20,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 95.24
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 18,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.74
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 18,
+          "graded": 18,
+          "wins": 17,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.44
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 17,
+          "graded": 17,
+          "wins": 16,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.12
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 18,
+          "sharePct": 2.03
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 17,
+          "sharePct": 1.91
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 15,
+          "sharePct": 1.69
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 15,
+          "sharePct": 1.69
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 14,
+          "sharePct": 1.58
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Quentin Grimes",
+          "wins": 12,
+          "sharePct": 1.35
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 309,
+          "sharePct": 34.8
+        },
+        {
+          "bucket": "REB",
+          "wins": 236,
+          "sharePct": 26.58
+        },
+        {
+          "bucket": "AST",
+          "wins": 191,
+          "sharePct": 21.51
+        },
+        {
+          "bucket": "PRA",
+          "wins": 119,
+          "sharePct": 13.4
+        },
+        {
+          "bucket": "RA",
+          "wins": 19,
+          "sharePct": 2.14
+        },
+        {
+          "bucket": "THREES",
+          "wins": 14,
+          "sharePct": 1.58
+        }
+      ]
+    },
+    {
+      "name": "selected-rank date shift +7",
+      "summary": {
+        "samples": 942,
+        "graded": 942,
+        "wins": 889,
+        "losses": 53,
+        "pushes": 0,
+        "accuracyPct": 94.37
+      },
+      "availability": {
+        "matched": 942,
+        "coveragePct": 97.92,
+        "sameSidePct": 0.0,
+        "sameLineBucketPct": 0.0,
+        "sameExactLinePct": 0.0
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 321,
+          "graded": 321,
+          "wins": 304,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 94.7
+        },
+        {
+          "bucket": "REB",
+          "samples": 255,
+          "graded": 255,
+          "wins": 245,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 96.08
+        },
+        {
+          "bucket": "AST",
+          "samples": 203,
+          "graded": 203,
+          "wins": 189,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 93.1
+        },
+        {
+          "bucket": "PRA",
+          "samples": 129,
+          "graded": 129,
+          "wins": 118,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 91.47
+        },
+        {
+          "bucket": "RA",
+          "samples": 20,
+          "graded": 20,
+          "wins": 19,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 95.0
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 14,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 508,
+          "graded": 508,
+          "wins": 478,
+          "losses": 30,
+          "pushes": 0,
+          "accuracyPct": 94.09
+        },
+        {
+          "bucket": "OVER",
+          "samples": 434,
+          "graded": 434,
+          "wins": 411,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 94.7
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 490,
+          "graded": 490,
+          "wins": 459,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 93.67
+        },
+        {
+          "bucket": "A",
+          "samples": 452,
+          "graded": 452,
+          "wins": 430,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 95.13
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 452,
+          "graded": 452,
+          "wins": 430,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 95.13
+        },
+        {
+          "bucket": "94+",
+          "samples": 361,
+          "graded": 361,
+          "wins": 335,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 92.8
+        },
+        {
+          "bucket": "92-94",
+          "samples": 129,
+          "graded": 129,
+          "wins": 124,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 96.12
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 90,
+          "graded": 90,
+          "wins": 84,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 93.33
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 85,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 95.51
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 86,
+          "graded": 86,
+          "wins": 79,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 91.86
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 74,
+          "graded": 74,
+          "wins": 73,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 98.65
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 68,
+          "graded": 68,
+          "wins": 67,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 98.53
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 64,
+          "graded": 64,
+          "wins": 61,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 95.31
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 59,
+          "graded": 59,
+          "wins": 56,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 94.92
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 46,
+          "graded": 46,
+          "wins": 43,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 93.48
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 43,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 97.73
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 42,
+          "graded": 42,
+          "wins": 38,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 90.48
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 39,
+          "graded": 39,
+          "wins": 36,
+          "losses": 3,
+          "pushes": 0,
+          "accuracyPct": 92.31
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 36,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 94.74
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 176,
+          "graded": 176,
+          "wins": 170,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 96.59
+        },
+        {
+          "bucket": "none",
+          "samples": 101,
+          "graded": 101,
+          "wins": 97,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 96.04
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 68,
+          "graded": 68,
+          "wins": 61,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 89.71
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 53,
+          "graded": 53,
+          "wins": 49,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 92.45
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 47,
+          "graded": 47,
+          "wins": 42,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 89.36
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 42,
+          "graded": 42,
+          "wins": 40,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 95.24
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 40,
+          "graded": 40,
+          "wins": 40,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 25,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 96.15
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 19,
+          "graded": 19,
+          "wins": 18,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.74
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 17,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 89.47
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 18,
+          "graded": 18,
+          "wins": 17,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 94.44
+        },
+        {
+          "bucket": "low_projected_minutes;projection_side_split",
+          "samples": 16,
+          "graded": 16,
+          "wins": 14,
+          "losses": 2,
+          "pushes": 0,
+          "accuracyPct": 87.5
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 18,
+          "sharePct": 2.02
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 16,
+          "sharePct": 1.8
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 15,
+          "sharePct": 1.69
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 15,
+          "sharePct": 1.69
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 14,
+          "sharePct": 1.57
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 13,
+          "sharePct": 1.46
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 12,
+          "sharePct": 1.35
+        },
+        {
+          "bucket": "Quentin Grimes",
+          "wins": 12,
+          "sharePct": 1.35
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 304,
+          "sharePct": 34.2
+        },
+        {
+          "bucket": "REB",
+          "wins": 245,
+          "sharePct": 27.56
+        },
+        {
+          "bucket": "AST",
+          "wins": 189,
+          "sharePct": 21.26
+        },
+        {
+          "bucket": "PRA",
+          "wins": 118,
+          "sharePct": 13.27
+        },
+        {
+          "bucket": "RA",
+          "wins": 19,
+          "sharePct": 2.14
+        },
+        {
+          "bucket": "THREES",
+          "wins": 14,
+          "sharePct": 1.57
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market shift +1",
+      "summary": {
+        "samples": 928,
+        "graded": 925,
+        "wins": 528,
+        "losses": 397,
+        "pushes": 3,
+        "accuracyPct": 57.08
+      },
+      "availability": {
+        "matched": 928,
+        "coveragePct": 96.47,
+        "sameSidePct": 56.79,
+        "sameLineBucketPct": 71.44,
+        "sameExactLinePct": 36.31
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 311,
+          "graded": 311,
+          "wins": 173,
+          "losses": 138,
+          "pushes": 0,
+          "accuracyPct": 55.63
+        },
+        {
+          "bucket": "REB",
+          "samples": 255,
+          "graded": 255,
+          "wins": 149,
+          "losses": 106,
+          "pushes": 0,
+          "accuracyPct": 58.43
+        },
+        {
+          "bucket": "AST",
+          "samples": 203,
+          "graded": 200,
+          "wins": 111,
+          "losses": 89,
+          "pushes": 3,
+          "accuracyPct": 55.5
+        },
+        {
+          "bucket": "PRA",
+          "samples": 126,
+          "graded": 126,
+          "wins": 74,
+          "losses": 52,
+          "pushes": 0,
+          "accuracyPct": 58.73
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 14,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 73.68
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 7,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 510,
+          "graded": 510,
+          "wins": 294,
+          "losses": 216,
+          "pushes": 0,
+          "accuracyPct": 57.65
+        },
+        {
+          "bucket": "OVER",
+          "samples": 418,
+          "graded": 415,
+          "wins": 234,
+          "losses": 181,
+          "pushes": 3,
+          "accuracyPct": 56.39
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 485,
+          "graded": 483,
+          "wins": 281,
+          "losses": 202,
+          "pushes": 2,
+          "accuracyPct": 58.18
+        },
+        {
+          "bucket": "A",
+          "samples": 442,
+          "graded": 441,
+          "wins": 247,
+          "losses": 194,
+          "pushes": 1,
+          "accuracyPct": 56.01
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 0,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 0.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 443,
+          "graded": 442,
+          "wins": 247,
+          "losses": 195,
+          "pushes": 1,
+          "accuracyPct": 55.88
+        },
+        {
+          "bucket": "94+",
+          "samples": 361,
+          "graded": 360,
+          "wins": 207,
+          "losses": 153,
+          "pushes": 1,
+          "accuracyPct": 57.5
+        },
+        {
+          "bucket": "92-94",
+          "samples": 124,
+          "graded": 123,
+          "wins": 74,
+          "losses": 49,
+          "pushes": 1,
+          "accuracyPct": 60.16
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 90,
+          "graded": 88,
+          "wins": 49,
+          "losses": 39,
+          "pushes": 2,
+          "accuracyPct": 55.68
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 88,
+          "graded": 88,
+          "wins": 44,
+          "losses": 44,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 85,
+          "graded": 85,
+          "wins": 53,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 62.35
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 70,
+          "graded": 70,
+          "wins": 53,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 75.71
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 69,
+          "graded": 69,
+          "wins": 45,
+          "losses": 24,
+          "pushes": 0,
+          "accuracyPct": 65.22
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 67,
+          "graded": 67,
+          "wins": 33,
+          "losses": 34,
+          "pushes": 0,
+          "accuracyPct": 49.25
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 55,
+          "graded": 55,
+          "wins": 26,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 47.27
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 27,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 61.36
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 24,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 54.55
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 43,
+          "graded": 43,
+          "wins": 19,
+          "losses": 24,
+          "pushes": 0,
+          "accuracyPct": 44.19
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 40,
+          "graded": 40,
+          "wins": 20,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 23,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 62.16
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 173,
+          "graded": 172,
+          "wins": 82,
+          "losses": 90,
+          "pushes": 1,
+          "accuracyPct": 47.67
+        },
+        {
+          "bucket": "none",
+          "samples": 98,
+          "graded": 98,
+          "wins": 61,
+          "losses": 37,
+          "pushes": 0,
+          "accuracyPct": 62.24
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 62,
+          "graded": 62,
+          "wins": 28,
+          "losses": 34,
+          "pushes": 0,
+          "accuracyPct": 45.16
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 56,
+          "graded": 56,
+          "wins": 31,
+          "losses": 25,
+          "pushes": 0,
+          "accuracyPct": 55.36
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 48,
+          "graded": 48,
+          "wins": 32,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 66.67
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 42,
+          "graded": 42,
+          "wins": 15,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 35.71
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 29,
+          "losses": 12,
+          "pushes": 0,
+          "accuracyPct": 70.73
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 28,
+          "graded": 28,
+          "wins": 22,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 78.57
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 13,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 61.9
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 11,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 8,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 44.44
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 12,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 66.67
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 10,
+          "sharePct": 1.89
+        },
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 10,
+          "sharePct": 1.89
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 9,
+          "sharePct": 1.7
+        },
+        {
+          "bucket": "Collin Gillespie",
+          "wins": 9,
+          "sharePct": 1.7
+        },
+        {
+          "bucket": "Khris Middleton",
+          "wins": 8,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "Bobby Portis",
+          "wins": 8,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "Jeremiah Fears",
+          "wins": 8,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 8,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 8,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 7,
+          "sharePct": 1.33
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 173,
+          "sharePct": 32.77
+        },
+        {
+          "bucket": "REB",
+          "wins": 149,
+          "sharePct": 28.22
+        },
+        {
+          "bucket": "AST",
+          "wins": 111,
+          "sharePct": 21.02
+        },
+        {
+          "bucket": "PRA",
+          "wins": 74,
+          "sharePct": 14.02
+        },
+        {
+          "bucket": "RA",
+          "wins": 14,
+          "sharePct": 2.65
+        },
+        {
+          "bucket": "THREES",
+          "wins": 7,
+          "sharePct": 1.33
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market shift -1",
+      "summary": {
+        "samples": 944,
+        "graded": 938,
+        "wins": 475,
+        "losses": 463,
+        "pushes": 6,
+        "accuracyPct": 50.64
+      },
+      "availability": {
+        "matched": 944,
+        "coveragePct": 98.13,
+        "sameSidePct": 54.03,
+        "sameLineBucketPct": 70.66,
+        "sameExactLinePct": 31.99
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 321,
+          "graded": 320,
+          "wins": 139,
+          "losses": 181,
+          "pushes": 1,
+          "accuracyPct": 43.44
+        },
+        {
+          "bucket": "REB",
+          "samples": 254,
+          "graded": 254,
+          "wins": 138,
+          "losses": 116,
+          "pushes": 0,
+          "accuracyPct": 54.33
+        },
+        {
+          "bucket": "AST",
+          "samples": 206,
+          "graded": 201,
+          "wins": 96,
+          "losses": 105,
+          "pushes": 5,
+          "accuracyPct": 47.76
+        },
+        {
+          "bucket": "PRA",
+          "samples": 130,
+          "graded": 130,
+          "wins": 82,
+          "losses": 48,
+          "pushes": 0,
+          "accuracyPct": 63.08
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 12,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 63.16
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 8,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 57.14
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 511,
+          "graded": 508,
+          "wins": 245,
+          "losses": 263,
+          "pushes": 3,
+          "accuracyPct": 48.23
+        },
+        {
+          "bucket": "OVER",
+          "samples": 433,
+          "graded": 430,
+          "wins": 230,
+          "losses": 200,
+          "pushes": 3,
+          "accuracyPct": 53.49
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 481,
+          "graded": 478,
+          "wins": 238,
+          "losses": 240,
+          "pushes": 3,
+          "accuracyPct": 49.79
+        },
+        {
+          "bucket": "A",
+          "samples": 462,
+          "graded": 459,
+          "wins": 236,
+          "losses": 223,
+          "pushes": 3,
+          "accuracyPct": 51.42
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 463,
+          "graded": 460,
+          "wins": 237,
+          "losses": 223,
+          "pushes": 3,
+          "accuracyPct": 51.52
+        },
+        {
+          "bucket": "94+",
+          "samples": 357,
+          "graded": 354,
+          "wins": 163,
+          "losses": 191,
+          "pushes": 3,
+          "accuracyPct": 46.05
+        },
+        {
+          "bucket": "92-94",
+          "samples": 124,
+          "graded": 124,
+          "wins": 75,
+          "losses": 49,
+          "pushes": 0,
+          "accuracyPct": 60.48
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 91,
+          "graded": 90,
+          "wins": 39,
+          "losses": 51,
+          "pushes": 1,
+          "accuracyPct": 43.33
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 41,
+          "losses": 48,
+          "pushes": 0,
+          "accuracyPct": 46.07
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 32,
+          "losses": 55,
+          "pushes": 0,
+          "accuracyPct": 36.78
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 72,
+          "graded": 71,
+          "wins": 42,
+          "losses": 29,
+          "pushes": 1,
+          "accuracyPct": 59.15
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 69,
+          "graded": 69,
+          "wins": 44,
+          "losses": 25,
+          "pushes": 0,
+          "accuracyPct": 63.77
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 65,
+          "graded": 65,
+          "wins": 33,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 50.77
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 57,
+          "graded": 57,
+          "wins": 25,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 43.86
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 46,
+          "graded": 44,
+          "wins": 19,
+          "losses": 25,
+          "pushes": 2,
+          "accuracyPct": 43.18
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 25,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 56.82
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 15,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 34.09
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 22,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "PRA:27-34.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 24,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 63.16
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 174,
+          "graded": 174,
+          "wins": 56,
+          "losses": 118,
+          "pushes": 0,
+          "accuracyPct": 32.18
+        },
+        {
+          "bucket": "none",
+          "samples": 102,
+          "graded": 102,
+          "wins": 79,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 77.45
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 69,
+          "graded": 68,
+          "wins": 22,
+          "losses": 46,
+          "pushes": 1,
+          "accuracyPct": 32.35
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 56,
+          "graded": 56,
+          "wins": 18,
+          "losses": 38,
+          "pushes": 0,
+          "accuracyPct": 32.14
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 48,
+          "graded": 48,
+          "wins": 34,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 70.83
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 39,
+          "graded": 39,
+          "wins": 13,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 33.33
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 39,
+          "graded": 39,
+          "wins": 34,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 87.18
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 18,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 69.23
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 8,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 38.1
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 18,
+          "wins": 11,
+          "losses": 7,
+          "pushes": 1,
+          "accuracyPct": 61.11
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 10,
+          "losses": 9,
+          "pushes": 0,
+          "accuracyPct": 52.63
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 4,
+          "losses": 14,
+          "pushes": 0,
+          "accuracyPct": 22.22
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 11,
+          "sharePct": 2.32
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 9,
+          "sharePct": 1.89
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 8,
+          "sharePct": 1.68
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 8,
+          "sharePct": 1.68
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 8,
+          "sharePct": 1.68
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 8,
+          "sharePct": 1.68
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 7,
+          "sharePct": 1.47
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 7,
+          "sharePct": 1.47
+        },
+        {
+          "bucket": "Collin Gillespie",
+          "wins": 7,
+          "sharePct": 1.47
+        },
+        {
+          "bucket": "Pat Spencer",
+          "wins": 7,
+          "sharePct": 1.47
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 139,
+          "sharePct": 29.26
+        },
+        {
+          "bucket": "REB",
+          "wins": 138,
+          "sharePct": 29.05
+        },
+        {
+          "bucket": "AST",
+          "wins": 96,
+          "sharePct": 20.21
+        },
+        {
+          "bucket": "PRA",
+          "wins": 82,
+          "sharePct": 17.26
+        },
+        {
+          "bucket": "RA",
+          "wins": 12,
+          "sharePct": 2.53
+        },
+        {
+          "bucket": "THREES",
+          "wins": 8,
+          "sharePct": 1.68
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market shift +3",
+      "summary": {
+        "samples": 883,
+        "graded": 882,
+        "wins": 482,
+        "losses": 400,
+        "pushes": 1,
+        "accuracyPct": 54.65
+      },
+      "availability": {
+        "matched": 883,
+        "coveragePct": 91.79,
+        "sameSidePct": 54.59,
+        "sameLineBucketPct": 69.08,
+        "sameExactLinePct": 27.97
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 296,
+          "graded": 295,
+          "wins": 160,
+          "losses": 135,
+          "pushes": 1,
+          "accuracyPct": 54.24
+        },
+        {
+          "bucket": "REB",
+          "samples": 245,
+          "graded": 245,
+          "wins": 141,
+          "losses": 104,
+          "pushes": 0,
+          "accuracyPct": 57.55
+        },
+        {
+          "bucket": "AST",
+          "samples": 189,
+          "graded": 189,
+          "wins": 96,
+          "losses": 93,
+          "pushes": 0,
+          "accuracyPct": 50.79
+        },
+        {
+          "bucket": "PRA",
+          "samples": 121,
+          "graded": 121,
+          "wins": 64,
+          "losses": 57,
+          "pushes": 0,
+          "accuracyPct": 52.89
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 13,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 68.42
+        },
+        {
+          "bucket": "THREES",
+          "samples": 13,
+          "graded": 13,
+          "wins": 8,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 61.54
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 495,
+          "graded": 494,
+          "wins": 267,
+          "losses": 227,
+          "pushes": 1,
+          "accuracyPct": 54.05
+        },
+        {
+          "bucket": "OVER",
+          "samples": 388,
+          "graded": 388,
+          "wins": 215,
+          "losses": 173,
+          "pushes": 0,
+          "accuracyPct": 55.41
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 465,
+          "graded": 464,
+          "wins": 253,
+          "losses": 211,
+          "pushes": 1,
+          "accuracyPct": 54.53
+        },
+        {
+          "bucket": "A",
+          "samples": 417,
+          "graded": 417,
+          "wins": 228,
+          "losses": 189,
+          "pushes": 0,
+          "accuracyPct": 54.68
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 418,
+          "graded": 418,
+          "wins": 229,
+          "losses": 189,
+          "pushes": 0,
+          "accuracyPct": 54.78
+        },
+        {
+          "bucket": "94+",
+          "samples": 354,
+          "graded": 353,
+          "wins": 185,
+          "losses": 168,
+          "pushes": 1,
+          "accuracyPct": 52.41
+        },
+        {
+          "bucket": "92-94",
+          "samples": 111,
+          "graded": 111,
+          "wins": 68,
+          "losses": 43,
+          "pushes": 0,
+          "accuracyPct": 61.26
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 46,
+          "losses": 41,
+          "pushes": 0,
+          "accuracyPct": 52.87
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 83,
+          "graded": 82,
+          "wins": 49,
+          "losses": 33,
+          "pushes": 1,
+          "accuracyPct": 59.76
+        },
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 81,
+          "graded": 81,
+          "wins": 35,
+          "losses": 46,
+          "pushes": 0,
+          "accuracyPct": 43.21
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 67,
+          "graded": 67,
+          "wins": 34,
+          "losses": 33,
+          "pushes": 0,
+          "accuracyPct": 50.75
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 67,
+          "graded": 67,
+          "wins": 39,
+          "losses": 28,
+          "pushes": 0,
+          "accuracyPct": 58.21
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 63,
+          "graded": 63,
+          "wins": 36,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 57.14
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 52,
+          "graded": 52,
+          "wins": 32,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 61.54
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 25,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 56.82
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 40,
+          "graded": 40,
+          "wins": 20,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 16,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 42.11
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 19,
+          "losses": 18,
+          "pushes": 0,
+          "accuracyPct": 51.35
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 36,
+          "graded": 36,
+          "wins": 19,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 52.78
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 164,
+          "graded": 164,
+          "wins": 68,
+          "losses": 96,
+          "pushes": 0,
+          "accuracyPct": 41.46
+        },
+        {
+          "bucket": "none",
+          "samples": 95,
+          "graded": 95,
+          "wins": 59,
+          "losses": 36,
+          "pushes": 0,
+          "accuracyPct": 62.11
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 59,
+          "graded": 59,
+          "wins": 32,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 54.24
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 54,
+          "graded": 54,
+          "wins": 22,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 40.74
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 45,
+          "graded": 45,
+          "wins": 27,
+          "losses": 18,
+          "pushes": 0,
+          "accuracyPct": 60.0
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 15,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 36.59
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 32,
+          "losses": 9,
+          "pushes": 0,
+          "accuracyPct": 78.05
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 21,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 80.77
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 20,
+          "graded": 19,
+          "wins": 12,
+          "losses": 7,
+          "pushes": 1,
+          "accuracyPct": 63.16
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 14,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 73.68
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 6,
+          "losses": 12,
+          "pushes": 0,
+          "accuracyPct": 33.33
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 17,
+          "graded": 17,
+          "wins": 11,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 64.71
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 10,
+          "sharePct": 2.07
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 10,
+          "sharePct": 2.07
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 9,
+          "sharePct": 1.87
+        },
+        {
+          "bucket": "Russell Westbrook",
+          "wins": 8,
+          "sharePct": 1.66
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 8,
+          "sharePct": 1.66
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 7,
+          "sharePct": 1.45
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 7,
+          "sharePct": 1.45
+        },
+        {
+          "bucket": "Collin Gillespie",
+          "wins": 7,
+          "sharePct": 1.45
+        },
+        {
+          "bucket": "Bobby Portis",
+          "wins": 6,
+          "sharePct": 1.24
+        },
+        {
+          "bucket": "Brook Lopez",
+          "wins": 6,
+          "sharePct": 1.24
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 160,
+          "sharePct": 33.2
+        },
+        {
+          "bucket": "REB",
+          "wins": 141,
+          "sharePct": 29.25
+        },
+        {
+          "bucket": "AST",
+          "wins": 96,
+          "sharePct": 19.92
+        },
+        {
+          "bucket": "PRA",
+          "wins": 64,
+          "sharePct": 13.28
+        },
+        {
+          "bucket": "RA",
+          "wins": 13,
+          "sharePct": 2.7
+        },
+        {
+          "bucket": "THREES",
+          "wins": 8,
+          "sharePct": 1.66
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market shift +7",
+      "summary": {
+        "samples": 815,
+        "graded": 814,
+        "wins": 428,
+        "losses": 386,
+        "pushes": 1,
+        "accuracyPct": 52.58
+      },
+      "availability": {
+        "matched": 815,
+        "coveragePct": 84.72,
+        "sameSidePct": 47.98,
+        "sameLineBucketPct": 66.38,
+        "sameExactLinePct": 28.71
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 275,
+          "graded": 275,
+          "wins": 137,
+          "losses": 138,
+          "pushes": 0,
+          "accuracyPct": 49.82
+        },
+        {
+          "bucket": "REB",
+          "samples": 221,
+          "graded": 221,
+          "wins": 117,
+          "losses": 104,
+          "pushes": 0,
+          "accuracyPct": 52.94
+        },
+        {
+          "bucket": "AST",
+          "samples": 176,
+          "graded": 175,
+          "wins": 98,
+          "losses": 77,
+          "pushes": 1,
+          "accuracyPct": 56.0
+        },
+        {
+          "bucket": "PRA",
+          "samples": 112,
+          "graded": 112,
+          "wins": 59,
+          "losses": 53,
+          "pushes": 0,
+          "accuracyPct": 52.68
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 10,
+          "losses": 9,
+          "pushes": 0,
+          "accuracyPct": 52.63
+        },
+        {
+          "bucket": "THREES",
+          "samples": 12,
+          "graded": 12,
+          "wins": 7,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 58.33
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 456,
+          "graded": 456,
+          "wins": 237,
+          "losses": 219,
+          "pushes": 0,
+          "accuracyPct": 51.97
+        },
+        {
+          "bucket": "OVER",
+          "samples": 359,
+          "graded": 358,
+          "wins": 191,
+          "losses": 167,
+          "pushes": 1,
+          "accuracyPct": 53.35
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 434,
+          "graded": 433,
+          "wins": 234,
+          "losses": 199,
+          "pushes": 1,
+          "accuracyPct": 54.04
+        },
+        {
+          "bucket": "A",
+          "samples": 380,
+          "graded": 380,
+          "wins": 193,
+          "losses": 187,
+          "pushes": 0,
+          "accuracyPct": 50.79
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 381,
+          "graded": 381,
+          "wins": 194,
+          "losses": 187,
+          "pushes": 0,
+          "accuracyPct": 50.92
+        },
+        {
+          "bucket": "94+",
+          "samples": 331,
+          "graded": 331,
+          "wins": 175,
+          "losses": 156,
+          "pushes": 0,
+          "accuracyPct": 52.87
+        },
+        {
+          "bucket": "92-94",
+          "samples": 103,
+          "graded": 102,
+          "wins": 59,
+          "losses": 43,
+          "pushes": 1,
+          "accuracyPct": 57.84
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 81,
+          "graded": 81,
+          "wins": 43,
+          "losses": 38,
+          "pushes": 0,
+          "accuracyPct": 53.09
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 77,
+          "graded": 77,
+          "wins": 37,
+          "losses": 40,
+          "pushes": 0,
+          "accuracyPct": 48.05
+        },
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 76,
+          "graded": 75,
+          "wins": 43,
+          "losses": 32,
+          "pushes": 1,
+          "accuracyPct": 57.33
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 61,
+          "graded": 61,
+          "wins": 33,
+          "losses": 28,
+          "pushes": 0,
+          "accuracyPct": 54.1
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 59,
+          "graded": 59,
+          "wins": 28,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 47.46
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 59,
+          "graded": 59,
+          "wins": 27,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 45.76
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 46,
+          "graded": 46,
+          "wins": 23,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 42,
+          "graded": 42,
+          "wins": 21,
+          "losses": 21,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 26,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 70.27
+        },
+        {
+          "bucket": "PRA:27-34.5",
+          "samples": 35,
+          "graded": 35,
+          "wins": 19,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 54.29
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 35,
+          "graded": 35,
+          "wins": 17,
+          "losses": 18,
+          "pushes": 0,
+          "accuracyPct": 48.57
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 34,
+          "graded": 34,
+          "wins": 19,
+          "losses": 15,
+          "pushes": 0,
+          "accuracyPct": 55.88
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 159,
+          "graded": 159,
+          "wins": 73,
+          "losses": 86,
+          "pushes": 0,
+          "accuracyPct": 45.91
+        },
+        {
+          "bucket": "none",
+          "samples": 83,
+          "graded": 83,
+          "wins": 49,
+          "losses": 34,
+          "pushes": 0,
+          "accuracyPct": 59.04
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 53,
+          "graded": 53,
+          "wins": 25,
+          "losses": 28,
+          "pushes": 0,
+          "accuracyPct": 47.17
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 49,
+          "graded": 49,
+          "wins": 18,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 36.73
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 42,
+          "graded": 42,
+          "wins": 27,
+          "losses": 15,
+          "pushes": 0,
+          "accuracyPct": 64.29
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 24,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 58.54
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 40,
+          "graded": 40,
+          "wins": 16,
+          "losses": 24,
+          "pushes": 0,
+          "accuracyPct": 40.0
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 25,
+          "graded": 25,
+          "wins": 19,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 76.0
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 11,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 18,
+          "graded": 18,
+          "wins": 7,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 38.89
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 7,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 38.89
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 17,
+          "graded": 17,
+          "wins": 5,
+          "losses": 12,
+          "pushes": 0,
+          "accuracyPct": 29.41
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 8,
+          "sharePct": 1.87
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 8,
+          "sharePct": 1.87
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 7,
+          "sharePct": 1.64
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 7,
+          "sharePct": 1.64
+        },
+        {
+          "bucket": "Paolo Banchero",
+          "wins": 7,
+          "sharePct": 1.64
+        },
+        {
+          "bucket": "Daniss Jenkins",
+          "wins": 7,
+          "sharePct": 1.64
+        },
+        {
+          "bucket": "Victor Wembanyama",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Jeremiah Fears",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 6,
+          "sharePct": 1.4
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 137,
+          "sharePct": 32.01
+        },
+        {
+          "bucket": "REB",
+          "wins": 117,
+          "sharePct": 27.34
+        },
+        {
+          "bucket": "AST",
+          "wins": 98,
+          "sharePct": 22.9
+        },
+        {
+          "bucket": "PRA",
+          "wins": 59,
+          "sharePct": 13.79
+        },
+        {
+          "bucket": "RA",
+          "wins": 10,
+          "sharePct": 2.34
+        },
+        {
+          "bucket": "THREES",
+          "wins": 7,
+          "sharePct": 1.64
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market line-bucket shift +1",
+      "summary": {
+        "samples": 928,
+        "graded": 926,
+        "wins": 529,
+        "losses": 397,
+        "pushes": 2,
+        "accuracyPct": 57.13
+      },
+      "availability": {
+        "matched": 928,
+        "coveragePct": 96.47,
+        "sameSidePct": 57.87,
+        "sameLineBucketPct": 95.8,
+        "sameExactLinePct": 47.63
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 311,
+          "graded": 311,
+          "wins": 177,
+          "losses": 134,
+          "pushes": 0,
+          "accuracyPct": 56.91
+        },
+        {
+          "bucket": "REB",
+          "samples": 255,
+          "graded": 255,
+          "wins": 146,
+          "losses": 109,
+          "pushes": 0,
+          "accuracyPct": 57.25
+        },
+        {
+          "bucket": "AST",
+          "samples": 203,
+          "graded": 201,
+          "wins": 111,
+          "losses": 90,
+          "pushes": 2,
+          "accuracyPct": 55.22
+        },
+        {
+          "bucket": "PRA",
+          "samples": 126,
+          "graded": 126,
+          "wins": 71,
+          "losses": 55,
+          "pushes": 0,
+          "accuracyPct": 56.35
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 15,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 78.95
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 9,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 64.29
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 510,
+          "graded": 510,
+          "wins": 290,
+          "losses": 220,
+          "pushes": 0,
+          "accuracyPct": 56.86
+        },
+        {
+          "bucket": "OVER",
+          "samples": 418,
+          "graded": 416,
+          "wins": 239,
+          "losses": 177,
+          "pushes": 2,
+          "accuracyPct": 57.45
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 485,
+          "graded": 483,
+          "wins": 278,
+          "losses": 205,
+          "pushes": 2,
+          "accuracyPct": 57.56
+        },
+        {
+          "bucket": "A",
+          "samples": 442,
+          "graded": 442,
+          "wins": 251,
+          "losses": 191,
+          "pushes": 0,
+          "accuracyPct": 56.79
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 0,
+          "losses": 1,
+          "pushes": 0,
+          "accuracyPct": 0.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 443,
+          "graded": 443,
+          "wins": 251,
+          "losses": 192,
+          "pushes": 0,
+          "accuracyPct": 56.66
+        },
+        {
+          "bucket": "94+",
+          "samples": 361,
+          "graded": 360,
+          "wins": 207,
+          "losses": 153,
+          "pushes": 1,
+          "accuracyPct": 57.5
+        },
+        {
+          "bucket": "92-94",
+          "samples": 124,
+          "graded": 123,
+          "wins": 71,
+          "losses": 52,
+          "pushes": 1,
+          "accuracyPct": 57.72
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 90,
+          "graded": 88,
+          "wins": 48,
+          "losses": 40,
+          "pushes": 2,
+          "accuracyPct": 54.55
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 88,
+          "graded": 88,
+          "wins": 46,
+          "losses": 42,
+          "pushes": 0,
+          "accuracyPct": 52.27
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 85,
+          "graded": 85,
+          "wins": 53,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 62.35
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 70,
+          "graded": 70,
+          "wins": 47,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 67.14
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 69,
+          "graded": 69,
+          "wins": 45,
+          "losses": 24,
+          "pushes": 0,
+          "accuracyPct": 65.22
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 67,
+          "graded": 67,
+          "wins": 35,
+          "losses": 32,
+          "pushes": 0,
+          "accuracyPct": 52.24
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 55,
+          "graded": 55,
+          "wins": 25,
+          "losses": 30,
+          "pushes": 0,
+          "accuracyPct": 45.45
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 28,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 63.64
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 24,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 54.55
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 43,
+          "graded": 43,
+          "wins": 20,
+          "losses": 23,
+          "pushes": 0,
+          "accuracyPct": 46.51
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 40,
+          "graded": 40,
+          "wins": 23,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 57.5
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 22,
+          "losses": 15,
+          "pushes": 0,
+          "accuracyPct": 59.46
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 173,
+          "graded": 173,
+          "wins": 82,
+          "losses": 91,
+          "pushes": 0,
+          "accuracyPct": 47.4
+        },
+        {
+          "bucket": "none",
+          "samples": 98,
+          "graded": 98,
+          "wins": 63,
+          "losses": 35,
+          "pushes": 0,
+          "accuracyPct": 64.29
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 62,
+          "graded": 62,
+          "wins": 29,
+          "losses": 33,
+          "pushes": 0,
+          "accuracyPct": 46.77
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 56,
+          "graded": 56,
+          "wins": 37,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 66.07
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 48,
+          "graded": 48,
+          "wins": 33,
+          "losses": 15,
+          "pushes": 0,
+          "accuracyPct": 68.75
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 42,
+          "graded": 42,
+          "wins": 16,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 38.1
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 28,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 68.29
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 28,
+          "graded": 28,
+          "wins": 24,
+          "losses": 4,
+          "pushes": 0,
+          "accuracyPct": 85.71
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 11,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 52.38
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 11,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 8,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 44.44
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 11,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 61.11
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 12,
+          "sharePct": 2.27
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 11,
+          "sharePct": 2.08
+        },
+        {
+          "bucket": "Collin Gillespie",
+          "wins": 9,
+          "sharePct": 1.7
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 9,
+          "sharePct": 1.7
+        },
+        {
+          "bucket": "Khris Middleton",
+          "wins": 8,
+          "sharePct": 1.51
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 8,
+          "sharePct": 1.51
+        },
+        {
+          "bucket": "Quentin Grimes",
+          "wins": 8,
+          "sharePct": 1.51
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 8,
+          "sharePct": 1.51
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 8,
+          "sharePct": 1.51
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 7,
+          "sharePct": 1.32
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 177,
+          "sharePct": 33.46
+        },
+        {
+          "bucket": "REB",
+          "wins": 146,
+          "sharePct": 27.6
+        },
+        {
+          "bucket": "AST",
+          "wins": 111,
+          "sharePct": 20.98
+        },
+        {
+          "bucket": "PRA",
+          "wins": 71,
+          "sharePct": 13.42
+        },
+        {
+          "bucket": "RA",
+          "wins": 15,
+          "sharePct": 2.84
+        },
+        {
+          "bucket": "THREES",
+          "wins": 9,
+          "sharePct": 1.7
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market line-bucket shift -1",
+      "summary": {
+        "samples": 944,
+        "graded": 939,
+        "wins": 470,
+        "losses": 469,
+        "pushes": 5,
+        "accuracyPct": 50.05
+      },
+      "availability": {
+        "matched": 944,
+        "coveragePct": 98.13,
+        "sameSidePct": 52.65,
+        "sameLineBucketPct": 95.44,
+        "sameExactLinePct": 42.58
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 321,
+          "graded": 320,
+          "wins": 137,
+          "losses": 183,
+          "pushes": 1,
+          "accuracyPct": 42.81
+        },
+        {
+          "bucket": "REB",
+          "samples": 254,
+          "graded": 254,
+          "wins": 135,
+          "losses": 119,
+          "pushes": 0,
+          "accuracyPct": 53.15
+        },
+        {
+          "bucket": "AST",
+          "samples": 206,
+          "graded": 202,
+          "wins": 101,
+          "losses": 101,
+          "pushes": 4,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "PRA",
+          "samples": 130,
+          "graded": 130,
+          "wins": 78,
+          "losses": 52,
+          "pushes": 0,
+          "accuracyPct": 60.0
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 11,
+          "losses": 8,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "THREES",
+          "samples": 14,
+          "graded": 14,
+          "wins": 8,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 57.14
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 511,
+          "graded": 508,
+          "wins": 245,
+          "losses": 263,
+          "pushes": 3,
+          "accuracyPct": 48.23
+        },
+        {
+          "bucket": "OVER",
+          "samples": 433,
+          "graded": 431,
+          "wins": 225,
+          "losses": 206,
+          "pushes": 2,
+          "accuracyPct": 52.2
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 481,
+          "graded": 478,
+          "wins": 238,
+          "losses": 240,
+          "pushes": 3,
+          "accuracyPct": 49.79
+        },
+        {
+          "bucket": "A",
+          "samples": 462,
+          "graded": 460,
+          "wins": 231,
+          "losses": 229,
+          "pushes": 2,
+          "accuracyPct": 50.22
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 463,
+          "graded": 461,
+          "wins": 232,
+          "losses": 229,
+          "pushes": 2,
+          "accuracyPct": 50.33
+        },
+        {
+          "bucket": "94+",
+          "samples": 357,
+          "graded": 354,
+          "wins": 164,
+          "losses": 190,
+          "pushes": 3,
+          "accuracyPct": 46.33
+        },
+        {
+          "bucket": "92-94",
+          "samples": 124,
+          "graded": 124,
+          "wins": 74,
+          "losses": 50,
+          "pushes": 0,
+          "accuracyPct": 59.68
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 91,
+          "graded": 90,
+          "wins": 40,
+          "losses": 50,
+          "pushes": 1,
+          "accuracyPct": 44.44
+        },
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 89,
+          "graded": 89,
+          "wins": 38,
+          "losses": 51,
+          "pushes": 0,
+          "accuracyPct": 42.7
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 33,
+          "losses": 54,
+          "pushes": 0,
+          "accuracyPct": 37.93
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 72,
+          "graded": 71,
+          "wins": 40,
+          "losses": 31,
+          "pushes": 1,
+          "accuracyPct": 56.34
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 69,
+          "graded": 69,
+          "wins": 44,
+          "losses": 25,
+          "pushes": 0,
+          "accuracyPct": 63.77
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 65,
+          "graded": 65,
+          "wins": 32,
+          "losses": 33,
+          "pushes": 0,
+          "accuracyPct": 49.23
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 57,
+          "graded": 57,
+          "wins": 26,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 45.61
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 46,
+          "graded": 45,
+          "wins": 22,
+          "losses": 23,
+          "pushes": 1,
+          "accuracyPct": 48.89
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 25,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 56.82
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 17,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 38.64
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 22,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "PRA:27-34.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 22,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 174,
+          "graded": 174,
+          "wins": 56,
+          "losses": 118,
+          "pushes": 0,
+          "accuracyPct": 32.18
+        },
+        {
+          "bucket": "none",
+          "samples": 102,
+          "graded": 102,
+          "wins": 72,
+          "losses": 30,
+          "pushes": 0,
+          "accuracyPct": 70.59
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 69,
+          "graded": 68,
+          "wins": 21,
+          "losses": 47,
+          "pushes": 1,
+          "accuracyPct": 30.88
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 56,
+          "graded": 56,
+          "wins": 17,
+          "losses": 39,
+          "pushes": 0,
+          "accuracyPct": 30.36
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 48,
+          "graded": 48,
+          "wins": 35,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 72.92
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 39,
+          "graded": 39,
+          "wins": 12,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 30.77
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 39,
+          "graded": 39,
+          "wins": 33,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 84.62
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 15,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 57.69
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 21,
+          "graded": 21,
+          "wins": 5,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 23.81
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 18,
+          "wins": 12,
+          "losses": 6,
+          "pushes": 1,
+          "accuracyPct": 66.67
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 19,
+          "graded": 19,
+          "wins": 10,
+          "losses": 9,
+          "pushes": 0,
+          "accuracyPct": 52.63
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 6,
+          "losses": 12,
+          "pushes": 0,
+          "accuracyPct": 33.33
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 11,
+          "sharePct": 2.34
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 9,
+          "sharePct": 1.91
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 9,
+          "sharePct": 1.91
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 9,
+          "sharePct": 1.91
+        },
+        {
+          "bucket": "Evan Mobley",
+          "wins": 8,
+          "sharePct": 1.7
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 7,
+          "sharePct": 1.49
+        },
+        {
+          "bucket": "Svi Mykhailiuk",
+          "wins": 7,
+          "sharePct": 1.49
+        },
+        {
+          "bucket": "Ryan Rollins",
+          "wins": 7,
+          "sharePct": 1.49
+        },
+        {
+          "bucket": "Kyle Filipowski",
+          "wins": 7,
+          "sharePct": 1.49
+        },
+        {
+          "bucket": "Pat Spencer",
+          "wins": 7,
+          "sharePct": 1.49
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 137,
+          "sharePct": 29.15
+        },
+        {
+          "bucket": "REB",
+          "wins": 135,
+          "sharePct": 28.72
+        },
+        {
+          "bucket": "AST",
+          "wins": 101,
+          "sharePct": 21.49
+        },
+        {
+          "bucket": "PRA",
+          "wins": 78,
+          "sharePct": 16.6
+        },
+        {
+          "bucket": "RA",
+          "wins": 11,
+          "sharePct": 2.34
+        },
+        {
+          "bucket": "THREES",
+          "wins": 8,
+          "sharePct": 1.7
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market line-bucket shift +3",
+      "summary": {
+        "samples": 883,
+        "graded": 883,
+        "wins": 461,
+        "losses": 422,
+        "pushes": 0,
+        "accuracyPct": 52.21
+      },
+      "availability": {
+        "matched": 883,
+        "coveragePct": 91.79,
+        "sameSidePct": 53.91,
+        "sameLineBucketPct": 96.49,
+        "sameExactLinePct": 41.11
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 296,
+          "graded": 296,
+          "wins": 151,
+          "losses": 145,
+          "pushes": 0,
+          "accuracyPct": 51.01
+        },
+        {
+          "bucket": "REB",
+          "samples": 245,
+          "graded": 245,
+          "wins": 132,
+          "losses": 113,
+          "pushes": 0,
+          "accuracyPct": 53.88
+        },
+        {
+          "bucket": "AST",
+          "samples": 189,
+          "graded": 189,
+          "wins": 98,
+          "losses": 91,
+          "pushes": 0,
+          "accuracyPct": 51.85
+        },
+        {
+          "bucket": "PRA",
+          "samples": 121,
+          "graded": 121,
+          "wins": 59,
+          "losses": 62,
+          "pushes": 0,
+          "accuracyPct": 48.76
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 13,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 68.42
+        },
+        {
+          "bucket": "THREES",
+          "samples": 13,
+          "graded": 13,
+          "wins": 8,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 61.54
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 495,
+          "graded": 495,
+          "wins": 257,
+          "losses": 238,
+          "pushes": 0,
+          "accuracyPct": 51.92
+        },
+        {
+          "bucket": "OVER",
+          "samples": 388,
+          "graded": 388,
+          "wins": 204,
+          "losses": 184,
+          "pushes": 0,
+          "accuracyPct": 52.58
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 465,
+          "graded": 465,
+          "wins": 239,
+          "losses": 226,
+          "pushes": 0,
+          "accuracyPct": 51.4
+        },
+        {
+          "bucket": "A",
+          "samples": 417,
+          "graded": 417,
+          "wins": 221,
+          "losses": 196,
+          "pushes": 0,
+          "accuracyPct": 53.0
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 418,
+          "graded": 418,
+          "wins": 222,
+          "losses": 196,
+          "pushes": 0,
+          "accuracyPct": 53.11
+        },
+        {
+          "bucket": "94+",
+          "samples": 354,
+          "graded": 354,
+          "wins": 176,
+          "losses": 178,
+          "pushes": 0,
+          "accuracyPct": 49.72
+        },
+        {
+          "bucket": "92-94",
+          "samples": 111,
+          "graded": 111,
+          "wins": 63,
+          "losses": 48,
+          "pushes": 0,
+          "accuracyPct": 56.76
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 87,
+          "graded": 87,
+          "wins": 44,
+          "losses": 43,
+          "pushes": 0,
+          "accuracyPct": 50.57
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 83,
+          "graded": 83,
+          "wins": 45,
+          "losses": 38,
+          "pushes": 0,
+          "accuracyPct": 54.22
+        },
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 81,
+          "graded": 81,
+          "wins": 35,
+          "losses": 46,
+          "pushes": 0,
+          "accuracyPct": 43.21
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 67,
+          "graded": 67,
+          "wins": 32,
+          "losses": 35,
+          "pushes": 0,
+          "accuracyPct": 47.76
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 67,
+          "graded": 67,
+          "wins": 38,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 56.72
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 63,
+          "graded": 63,
+          "wins": 32,
+          "losses": 31,
+          "pushes": 0,
+          "accuracyPct": 50.79
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 52,
+          "graded": 52,
+          "wins": 26,
+          "losses": 26,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 44,
+          "graded": 44,
+          "wins": 28,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 63.64
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 40,
+          "graded": 40,
+          "wins": 22,
+          "losses": 18,
+          "pushes": 0,
+          "accuracyPct": 55.0
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 38,
+          "graded": 38,
+          "wins": 18,
+          "losses": 20,
+          "pushes": 0,
+          "accuracyPct": 47.37
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 21,
+          "losses": 16,
+          "pushes": 0,
+          "accuracyPct": 56.76
+        },
+        {
+          "bucket": "PRA:19-26.5",
+          "samples": 36,
+          "graded": 36,
+          "wins": 15,
+          "losses": 21,
+          "pushes": 0,
+          "accuracyPct": 41.67
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 164,
+          "graded": 164,
+          "wins": 71,
+          "losses": 93,
+          "pushes": 0,
+          "accuracyPct": 43.29
+        },
+        {
+          "bucket": "none",
+          "samples": 95,
+          "graded": 95,
+          "wins": 55,
+          "losses": 40,
+          "pushes": 0,
+          "accuracyPct": 57.89
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 59,
+          "graded": 59,
+          "wins": 32,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 54.24
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 54,
+          "graded": 54,
+          "wins": 25,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 46.3
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 45,
+          "graded": 45,
+          "wins": 28,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 62.22
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 11,
+          "losses": 30,
+          "pushes": 0,
+          "accuracyPct": 26.83
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 28,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 68.29
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 26,
+          "graded": 26,
+          "wins": 21,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 80.77
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 20,
+          "graded": 20,
+          "wins": 10,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 12,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 63.16
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 8,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 44.44
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 17,
+          "graded": 17,
+          "wins": 11,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 64.71
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 12,
+          "sharePct": 2.6
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 10,
+          "sharePct": 2.17
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 8,
+          "sharePct": 1.74
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 8,
+          "sharePct": 1.74
+        },
+        {
+          "bucket": "Collin Gillespie",
+          "wins": 8,
+          "sharePct": 1.74
+        },
+        {
+          "bucket": "Cam Spencer",
+          "wins": 7,
+          "sharePct": 1.52
+        },
+        {
+          "bucket": "Payton Pritchard",
+          "wins": 6,
+          "sharePct": 1.3
+        },
+        {
+          "bucket": "Luka Don\u010di\u0107",
+          "wins": 6,
+          "sharePct": 1.3
+        },
+        {
+          "bucket": "Quentin Grimes",
+          "wins": 6,
+          "sharePct": 1.3
+        },
+        {
+          "bucket": "Brook Lopez",
+          "wins": 6,
+          "sharePct": 1.3
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 151,
+          "sharePct": 32.75
+        },
+        {
+          "bucket": "REB",
+          "wins": 132,
+          "sharePct": 28.63
+        },
+        {
+          "bucket": "AST",
+          "wins": 98,
+          "sharePct": 21.26
+        },
+        {
+          "bucket": "PRA",
+          "wins": 59,
+          "sharePct": 12.8
+        },
+        {
+          "bucket": "RA",
+          "wins": 13,
+          "sharePct": 2.82
+        },
+        {
+          "bucket": "THREES",
+          "wins": 8,
+          "sharePct": 1.74
+        }
+      ]
+    },
+    {
+      "name": "same-player same-market line-bucket shift +7",
+      "summary": {
+        "samples": 815,
+        "graded": 814,
+        "wins": 430,
+        "losses": 384,
+        "pushes": 1,
+        "accuracyPct": 52.83
+      },
+      "availability": {
+        "matched": 815,
+        "coveragePct": 84.72,
+        "sameSidePct": 51.78,
+        "sameLineBucketPct": 96.93,
+        "sameExactLinePct": 43.68
+      },
+      "byMarket": [
+        {
+          "bucket": "PTS",
+          "samples": 275,
+          "graded": 275,
+          "wins": 138,
+          "losses": 137,
+          "pushes": 0,
+          "accuracyPct": 50.18
+        },
+        {
+          "bucket": "REB",
+          "samples": 221,
+          "graded": 221,
+          "wins": 115,
+          "losses": 106,
+          "pushes": 0,
+          "accuracyPct": 52.04
+        },
+        {
+          "bucket": "AST",
+          "samples": 176,
+          "graded": 175,
+          "wins": 99,
+          "losses": 76,
+          "pushes": 1,
+          "accuracyPct": 56.57
+        },
+        {
+          "bucket": "PRA",
+          "samples": 112,
+          "graded": 112,
+          "wins": 59,
+          "losses": 53,
+          "pushes": 0,
+          "accuracyPct": 52.68
+        },
+        {
+          "bucket": "RA",
+          "samples": 19,
+          "graded": 19,
+          "wins": 12,
+          "losses": 7,
+          "pushes": 0,
+          "accuracyPct": 63.16
+        },
+        {
+          "bucket": "THREES",
+          "samples": 12,
+          "graded": 12,
+          "wins": 7,
+          "losses": 5,
+          "pushes": 0,
+          "accuracyPct": 58.33
+        }
+      ],
+      "bySide": [
+        {
+          "bucket": "UNDER",
+          "samples": 456,
+          "graded": 456,
+          "wins": 241,
+          "losses": 215,
+          "pushes": 0,
+          "accuracyPct": 52.85
+        },
+        {
+          "bucket": "OVER",
+          "samples": 359,
+          "graded": 358,
+          "wins": 189,
+          "losses": 169,
+          "pushes": 1,
+          "accuracyPct": 52.79
+        }
+      ],
+      "byTier": [
+        {
+          "bucket": "S",
+          "samples": 434,
+          "graded": 433,
+          "wins": 233,
+          "losses": 200,
+          "pushes": 1,
+          "accuracyPct": 53.81
+        },
+        {
+          "bucket": "A",
+          "samples": 380,
+          "graded": 380,
+          "wins": 196,
+          "losses": 184,
+          "pushes": 0,
+          "accuracyPct": 51.58
+        },
+        {
+          "bucket": "B",
+          "samples": 1,
+          "graded": 1,
+          "wins": 1,
+          "losses": 0,
+          "pushes": 0,
+          "accuracyPct": 100.0
+        }
+      ],
+      "byPriorBucket": [
+        {
+          "bucket": "90-92",
+          "samples": 381,
+          "graded": 381,
+          "wins": 197,
+          "losses": 184,
+          "pushes": 0,
+          "accuracyPct": 51.71
+        },
+        {
+          "bucket": "94+",
+          "samples": 331,
+          "graded": 331,
+          "wins": 180,
+          "losses": 151,
+          "pushes": 0,
+          "accuracyPct": 54.38
+        },
+        {
+          "bucket": "92-94",
+          "samples": 103,
+          "graded": 102,
+          "wins": 53,
+          "losses": 49,
+          "pushes": 1,
+          "accuracyPct": 51.96
+        }
+      ],
+      "byLineBucket": [
+        {
+          "bucket": "PTS:10-14.5",
+          "samples": 81,
+          "graded": 81,
+          "wins": 46,
+          "losses": 35,
+          "pushes": 0,
+          "accuracyPct": 56.79
+        },
+        {
+          "bucket": "PTS:15-19.5",
+          "samples": 77,
+          "graded": 77,
+          "wins": 37,
+          "losses": 40,
+          "pushes": 0,
+          "accuracyPct": 48.05
+        },
+        {
+          "bucket": "AST:<=1.5",
+          "samples": 76,
+          "graded": 75,
+          "wins": 44,
+          "losses": 31,
+          "pushes": 1,
+          "accuracyPct": 58.67
+        },
+        {
+          "bucket": "REB:8+",
+          "samples": 61,
+          "graded": 61,
+          "wins": 34,
+          "losses": 27,
+          "pushes": 0,
+          "accuracyPct": 55.74
+        },
+        {
+          "bucket": "PTS:<=9.5",
+          "samples": 59,
+          "graded": 59,
+          "wins": 26,
+          "losses": 33,
+          "pushes": 0,
+          "accuracyPct": 44.07
+        },
+        {
+          "bucket": "REB:2-3.5",
+          "samples": 59,
+          "graded": 59,
+          "wins": 24,
+          "losses": 35,
+          "pushes": 0,
+          "accuracyPct": 40.68
+        },
+        {
+          "bucket": "REB:4-5.5",
+          "samples": 46,
+          "graded": 46,
+          "wins": 24,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 52.17
+        },
+        {
+          "bucket": "AST:4-5.5",
+          "samples": 42,
+          "graded": 42,
+          "wins": 21,
+          "losses": 21,
+          "pushes": 0,
+          "accuracyPct": 50.0
+        },
+        {
+          "bucket": "AST:2-3.5",
+          "samples": 37,
+          "graded": 37,
+          "wins": 24,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 64.86
+        },
+        {
+          "bucket": "PRA:27-34.5",
+          "samples": 35,
+          "graded": 35,
+          "wins": 18,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 51.43
+        },
+        {
+          "bucket": "PTS:20-24.5",
+          "samples": 35,
+          "graded": 35,
+          "wins": 16,
+          "losses": 19,
+          "pushes": 0,
+          "accuracyPct": 45.71
+        },
+        {
+          "bucket": "REB:6-7.5",
+          "samples": 34,
+          "graded": 34,
+          "wins": 21,
+          "losses": 13,
+          "pushes": 0,
+          "accuracyPct": 61.76
+        }
+      ],
+      "byRiskFlags": [
+        {
+          "bucket": "projection_side_split",
+          "samples": 159,
+          "graded": 159,
+          "wins": 79,
+          "losses": 80,
+          "pushes": 0,
+          "accuracyPct": 49.69
+        },
+        {
+          "bucket": "none",
+          "samples": 83,
+          "graded": 83,
+          "wins": 48,
+          "losses": 35,
+          "pushes": 0,
+          "accuracyPct": 57.83
+        },
+        {
+          "bucket": "projection_side_split;blowout_spread_risk",
+          "samples": 53,
+          "graded": 53,
+          "wins": 24,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 45.28
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side",
+          "samples": 49,
+          "graded": 49,
+          "wins": 20,
+          "losses": 29,
+          "pushes": 0,
+          "accuracyPct": 40.82
+        },
+        {
+          "bucket": "blowout_spread_risk",
+          "samples": 42,
+          "graded": 42,
+          "wins": 25,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 59.52
+        },
+        {
+          "bucket": "thin_context_completeness",
+          "samples": 41,
+          "graded": 41,
+          "wins": 24,
+          "losses": 17,
+          "pushes": 0,
+          "accuracyPct": 58.54
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness",
+          "samples": 40,
+          "graded": 40,
+          "wins": 18,
+          "losses": 22,
+          "pushes": 0,
+          "accuracyPct": 45.0
+        },
+        {
+          "bucket": "minutes_lift_against_side",
+          "samples": 25,
+          "graded": 25,
+          "wins": 19,
+          "losses": 6,
+          "pushes": 0,
+          "accuracyPct": 76.0
+        },
+        {
+          "bucket": "low_projected_minutes",
+          "samples": 19,
+          "graded": 19,
+          "wins": 9,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 47.37
+        },
+        {
+          "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+          "samples": 18,
+          "graded": 18,
+          "wins": 8,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 44.44
+        },
+        {
+          "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+          "samples": 18,
+          "graded": 18,
+          "wins": 7,
+          "losses": 11,
+          "pushes": 0,
+          "accuracyPct": 38.89
+        },
+        {
+          "bucket": "projection_side_split;total_environment_against_side",
+          "samples": 17,
+          "graded": 17,
+          "wins": 7,
+          "losses": 10,
+          "pushes": 0,
+          "accuracyPct": 41.18
+        }
+      ],
+      "topWinningPlayers": [
+        {
+          "bucket": "Kawhi Leonard",
+          "wins": 13,
+          "sharePct": 3.02
+        },
+        {
+          "bucket": "VJ Edgecombe",
+          "wins": 9,
+          "sharePct": 2.09
+        },
+        {
+          "bucket": "Justin Champagnie",
+          "wins": 8,
+          "sharePct": 1.86
+        },
+        {
+          "bucket": "Scottie Barnes",
+          "wins": 7,
+          "sharePct": 1.63
+        },
+        {
+          "bucket": "Russell Westbrook",
+          "wins": 7,
+          "sharePct": 1.63
+        },
+        {
+          "bucket": "Khris Middleton",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Nickeil Alexander-Walker",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Ryan Dunn",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Karl-Anthony Towns",
+          "wins": 6,
+          "sharePct": 1.4
+        },
+        {
+          "bucket": "Quentin Grimes",
+          "wins": 6,
+          "sharePct": 1.4
+        }
+      ],
+      "topWinningMarkets": [
+        {
+          "bucket": "PTS",
+          "wins": 138,
+          "sharePct": 32.09
+        },
+        {
+          "bucket": "REB",
+          "wins": 115,
+          "sharePct": 26.74
+        },
+        {
+          "bucket": "AST",
+          "wins": 99,
+          "sharePct": 23.02
+        },
+        {
+          "bucket": "PRA",
+          "wins": 59,
+          "sharePct": 13.72
+        },
+        {
+          "bucket": "RA",
+          "wins": 12,
+          "sharePct": 2.79
+        },
+        {
+          "bucket": "THREES",
+          "wins": 7,
+          "sharePct": 1.63
+        }
+      ]
+    }
+  ],
+  "strongestSamePlayerMarketShift": {
+    "name": "same-player same-market line-bucket shift +1",
+    "summary": {
+      "samples": 928,
+      "graded": 926,
+      "wins": 529,
+      "losses": 397,
+      "pushes": 2,
+      "accuracyPct": 57.13
+    },
+    "availability": {
+      "matched": 928,
+      "coveragePct": 96.47,
+      "sameSidePct": 57.87,
+      "sameLineBucketPct": 95.8,
+      "sameExactLinePct": 47.63
+    },
+    "byMarket": [
+      {
+        "bucket": "PTS",
+        "samples": 311,
+        "graded": 311,
+        "wins": 177,
+        "losses": 134,
+        "pushes": 0,
+        "accuracyPct": 56.91
+      },
+      {
+        "bucket": "REB",
+        "samples": 255,
+        "graded": 255,
+        "wins": 146,
+        "losses": 109,
+        "pushes": 0,
+        "accuracyPct": 57.25
+      },
+      {
+        "bucket": "AST",
+        "samples": 203,
+        "graded": 201,
+        "wins": 111,
+        "losses": 90,
+        "pushes": 2,
+        "accuracyPct": 55.22
+      },
+      {
+        "bucket": "PRA",
+        "samples": 126,
+        "graded": 126,
+        "wins": 71,
+        "losses": 55,
+        "pushes": 0,
+        "accuracyPct": 56.35
+      },
+      {
+        "bucket": "RA",
+        "samples": 19,
+        "graded": 19,
+        "wins": 15,
+        "losses": 4,
+        "pushes": 0,
+        "accuracyPct": 78.95
+      },
+      {
+        "bucket": "THREES",
+        "samples": 14,
+        "graded": 14,
+        "wins": 9,
+        "losses": 5,
+        "pushes": 0,
+        "accuracyPct": 64.29
+      }
+    ],
+    "bySide": [
+      {
+        "bucket": "UNDER",
+        "samples": 510,
+        "graded": 510,
+        "wins": 290,
+        "losses": 220,
+        "pushes": 0,
+        "accuracyPct": 56.86
+      },
+      {
+        "bucket": "OVER",
+        "samples": 418,
+        "graded": 416,
+        "wins": 239,
+        "losses": 177,
+        "pushes": 2,
+        "accuracyPct": 57.45
+      }
+    ],
+    "byTier": [
+      {
+        "bucket": "S",
+        "samples": 485,
+        "graded": 483,
+        "wins": 278,
+        "losses": 205,
+        "pushes": 2,
+        "accuracyPct": 57.56
+      },
+      {
+        "bucket": "A",
+        "samples": 442,
+        "graded": 442,
+        "wins": 251,
+        "losses": 191,
+        "pushes": 0,
+        "accuracyPct": 56.79
+      },
+      {
+        "bucket": "B",
+        "samples": 1,
+        "graded": 1,
+        "wins": 0,
+        "losses": 1,
+        "pushes": 0,
+        "accuracyPct": 0.0
+      }
+    ],
+    "byPriorBucket": [
+      {
+        "bucket": "90-92",
+        "samples": 443,
+        "graded": 443,
+        "wins": 251,
+        "losses": 192,
+        "pushes": 0,
+        "accuracyPct": 56.66
+      },
+      {
+        "bucket": "94+",
+        "samples": 361,
+        "graded": 360,
+        "wins": 207,
+        "losses": 153,
+        "pushes": 1,
+        "accuracyPct": 57.5
+      },
+      {
+        "bucket": "92-94",
+        "samples": 124,
+        "graded": 123,
+        "wins": 71,
+        "losses": 52,
+        "pushes": 1,
+        "accuracyPct": 57.72
+      }
+    ],
+    "byLineBucket": [
+      {
+        "bucket": "AST:<=1.5",
+        "samples": 90,
+        "graded": 88,
+        "wins": 48,
+        "losses": 40,
+        "pushes": 2,
+        "accuracyPct": 54.55
+      },
+      {
+        "bucket": "PTS:10-14.5",
+        "samples": 88,
+        "graded": 88,
+        "wins": 46,
+        "losses": 42,
+        "pushes": 0,
+        "accuracyPct": 52.27
+      },
+      {
+        "bucket": "PTS:15-19.5",
+        "samples": 85,
+        "graded": 85,
+        "wins": 53,
+        "losses": 32,
+        "pushes": 0,
+        "accuracyPct": 62.35
+      },
+      {
+        "bucket": "REB:8+",
+        "samples": 70,
+        "graded": 70,
+        "wins": 47,
+        "losses": 23,
+        "pushes": 0,
+        "accuracyPct": 67.14
+      },
+      {
+        "bucket": "PTS:<=9.5",
+        "samples": 69,
+        "graded": 69,
+        "wins": 45,
+        "losses": 24,
+        "pushes": 0,
+        "accuracyPct": 65.22
+      },
+      {
+        "bucket": "REB:2-3.5",
+        "samples": 67,
+        "graded": 67,
+        "wins": 35,
+        "losses": 32,
+        "pushes": 0,
+        "accuracyPct": 52.24
+      },
+      {
+        "bucket": "REB:4-5.5",
+        "samples": 55,
+        "graded": 55,
+        "wins": 25,
+        "losses": 30,
+        "pushes": 0,
+        "accuracyPct": 45.45
+      },
+      {
+        "bucket": "AST:2-3.5",
+        "samples": 44,
+        "graded": 44,
+        "wins": 28,
+        "losses": 16,
+        "pushes": 0,
+        "accuracyPct": 63.64
+      },
+      {
+        "bucket": "AST:4-5.5",
+        "samples": 44,
+        "graded": 44,
+        "wins": 24,
+        "losses": 20,
+        "pushes": 0,
+        "accuracyPct": 54.55
+      },
+      {
+        "bucket": "PTS:20-24.5",
+        "samples": 43,
+        "graded": 43,
+        "wins": 20,
+        "losses": 23,
+        "pushes": 0,
+        "accuracyPct": 46.51
+      },
+      {
+        "bucket": "REB:6-7.5",
+        "samples": 40,
+        "graded": 40,
+        "wins": 23,
+        "losses": 17,
+        "pushes": 0,
+        "accuracyPct": 57.5
+      },
+      {
+        "bucket": "PRA:19-26.5",
+        "samples": 37,
+        "graded": 37,
+        "wins": 22,
+        "losses": 15,
+        "pushes": 0,
+        "accuracyPct": 59.46
+      }
+    ],
+    "byRiskFlags": [
+      {
+        "bucket": "projection_side_split",
+        "samples": 173,
+        "graded": 173,
+        "wins": 82,
+        "losses": 91,
+        "pushes": 0,
+        "accuracyPct": 47.4
+      },
+      {
+        "bucket": "none",
+        "samples": 98,
+        "graded": 98,
+        "wins": 63,
+        "losses": 35,
+        "pushes": 0,
+        "accuracyPct": 64.29
+      },
+      {
+        "bucket": "projection_side_split;blowout_spread_risk",
+        "samples": 62,
+        "graded": 62,
+        "wins": 29,
+        "losses": 33,
+        "pushes": 0,
+        "accuracyPct": 46.77
+      },
+      {
+        "bucket": "projection_side_split;minutes_lift_against_side",
+        "samples": 56,
+        "graded": 56,
+        "wins": 37,
+        "losses": 19,
+        "pushes": 0,
+        "accuracyPct": 66.07
+      },
+      {
+        "bucket": "blowout_spread_risk",
+        "samples": 48,
+        "graded": 48,
+        "wins": 33,
+        "losses": 15,
+        "pushes": 0,
+        "accuracyPct": 68.75
+      },
+      {
+        "bucket": "projection_side_split;thin_context_completeness",
+        "samples": 42,
+        "graded": 42,
+        "wins": 16,
+        "losses": 26,
+        "pushes": 0,
+        "accuracyPct": 38.1
+      },
+      {
+        "bucket": "thin_context_completeness",
+        "samples": 41,
+        "graded": 41,
+        "wins": 28,
+        "losses": 13,
+        "pushes": 0,
+        "accuracyPct": 68.29
+      },
+      {
+        "bucket": "minutes_lift_against_side",
+        "samples": 28,
+        "graded": 28,
+        "wins": 24,
+        "losses": 4,
+        "pushes": 0,
+        "accuracyPct": 85.71
+      },
+      {
+        "bucket": "projection_side_split;minutes_lift_against_side;blowout_spread_risk",
+        "samples": 21,
+        "graded": 21,
+        "wins": 11,
+        "losses": 10,
+        "pushes": 0,
+        "accuracyPct": 52.38
+      },
+      {
+        "bucket": "low_projected_minutes",
+        "samples": 19,
+        "graded": 19,
+        "wins": 11,
+        "losses": 8,
+        "pushes": 0,
+        "accuracyPct": 57.89
+      },
+      {
+        "bucket": "projection_side_split;thin_context_completeness;minutes_lift_against_side",
+        "samples": 18,
+        "graded": 18,
+        "wins": 8,
+        "losses": 10,
+        "pushes": 0,
+        "accuracyPct": 44.44
+      },
+      {
+        "bucket": "projection_side_split;total_environment_against_side",
+        "samples": 18,
+        "graded": 18,
+        "wins": 11,
+        "losses": 7,
+        "pushes": 0,
+        "accuracyPct": 61.11
+      }
+    ],
+    "topWinningPlayers": [
+      {
+        "bucket": "Kawhi Leonard",
+        "wins": 12,
+        "sharePct": 2.27
+      },
+      {
+        "bucket": "Scottie Barnes",
+        "wins": 11,
+        "sharePct": 2.08
+      },
+      {
+        "bucket": "Collin Gillespie",
+        "wins": 9,
+        "sharePct": 1.7
+      },
+      {
+        "bucket": "Justin Champagnie",
+        "wins": 9,
+        "sharePct": 1.7
+      },
+      {
+        "bucket": "Khris Middleton",
+        "wins": 8,
+        "sharePct": 1.51
+      },
+      {
+        "bucket": "Payton Pritchard",
+        "wins": 8,
+        "sharePct": 1.51
+      },
+      {
+        "bucket": "Quentin Grimes",
+        "wins": 8,
+        "sharePct": 1.51
+      },
+      {
+        "bucket": "Ryan Dunn",
+        "wins": 8,
+        "sharePct": 1.51
+      },
+      {
+        "bucket": "Kyle Filipowski",
+        "wins": 8,
+        "sharePct": 1.51
+      },
+      {
+        "bucket": "Nickeil Alexander-Walker",
+        "wins": 7,
+        "sharePct": 1.32
+      }
+    ],
+    "topWinningMarkets": [
+      {
+        "bucket": "PTS",
+        "wins": 177,
+        "sharePct": 33.46
+      },
+      {
+        "bucket": "REB",
+        "wins": 146,
+        "sharePct": 27.6
+      },
+      {
+        "bucket": "AST",
+        "wins": 111,
+        "sharePct": 20.98
+      },
+      {
+        "bucket": "PRA",
+        "wins": 71,
+        "sharePct": 13.42
+      },
+      {
+        "bucket": "RA",
+        "wins": 15,
+        "sharePct": 2.84
+      },
+      {
+        "bucket": "THREES",
+        "wins": 9,
+        "sharePct": 1.7
+      }
+    ]
+  },
+  "claimBoundary": {
+    "explains": "Breaks down whether selected-only date-shift controls remain stable because of a weak rank/date diagnostic or same-player/same-market persistence.",
+    "doesNotProve": "No-leakage, third-party as-of replay, odds/CLV/ROI, or live forward profitability."
+  }
+}

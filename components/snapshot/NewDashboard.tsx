@@ -998,6 +998,186 @@ function viewFor(
   };
 }
 
+function finalModelSourceLabel(row: SnapshotFinalModelBoardRow) {
+  const labels = row.sourceComponents.map((component) => component.label).filter(Boolean);
+  return labels.length ? labels.slice(0, 2).join(' + ') : 'Final V1 selector';
+}
+
+function finalModelRiskLabel(row: SnapshotFinalModelBoardRow) {
+  return row.riskFlags.length ? row.riskFlags.slice(0, 2).map(signalTokenLabel).filter(Boolean).join(', ') : 'Clean rule path';
+}
+
+function finalModelContextLabel(row: SnapshotFinalModelBoardRow) {
+  if (row.contextScore == null) return 'Context pending';
+  const adjustment = row.contextAdjustment == null ? '' : `, ${signed(row.contextAdjustment)}`;
+  return `Context ${n(row.contextScore, 2)}${adjustment}`;
+}
+
+function isSelectableFinalModelRow(row: SnapshotFinalModelBoardRow) {
+  return row.line != null && (row.sportsbookCount ?? 0) >= FINAL_V1_MIN_SELECTABLE_BOOKS;
+}
+
+function isSelectablePlayerTabPick(pick: PlayerTabComboPick) {
+  return pick.modelRow ? isSelectableFinalModelRow(pick.modelRow) : isSelectableLiveView(pick.view);
+}
+
+function finalModelComponentSignature(row: SnapshotFinalModelBoardRow) {
+  const ids = row.sourceComponents.map((component) => component.id).join(';');
+  const signature = [
+    ids.includes('top200_premium_90') ? 'P90' : null,
+    ids.includes('top200_accuracy_first') ? 'AF' : null,
+    ids.includes('top200_coverage_frontier') ? 'CF' : null,
+    ids.includes('top200_meta_reliability') ? 'MR' : null,
+    ids.includes('top200_primary') ? 'PR' : null,
+  ].filter(Boolean);
+  return signature.length ? signature.join('') : 'ROUTER';
+}
+
+function finalModelBoardRowSortKey(row: SnapshotFinalModelBoardRow) {
+  return {
+    score: row.finalScore ?? -1,
+    prior: row.estimatedAccuracyPriorPct ?? -1,
+    marketOrder: MARKETS.indexOf(row.market),
+  };
+}
+
+function compareFinalModelBoardRows(a: SnapshotFinalModelBoardRow, b: SnapshotFinalModelBoardRow) {
+  const left = finalModelBoardRowSortKey(a);
+  const right = finalModelBoardRowSortKey(b);
+  return (
+    right.score - left.score ||
+    right.prior - left.prior ||
+    left.marketOrder - right.marketOrder ||
+    a.playerName.localeCompare(b.playerName)
+  );
+}
+
+function isFinalModelPremiumPairLeg(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.tier === 'C' || row.tier === 'S') &&
+    row.market !== 'AST' &&
+    (row.finalScore ?? 0) >= 0.69
+  );
+}
+
+function isFinalModelPremiumTripletLeg(row: SnapshotFinalModelBoardRow) {
+  return (
+    row.tier === 'C' &&
+    row.market !== 'AST' &&
+    (row.finalScore ?? 0) >= 0.69
+  );
+}
+
+function isFinalModelPremiumQuartetLeg(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.tier === 'C' || row.tier === 'S') &&
+    row.side === 'OVER' &&
+    FINAL_V1_LONG_CARD_MARKET_SET.has(row.market) &&
+    (row.finalScore ?? 0) >= 0.80
+  );
+}
+
+function isFinalModelPremiumQuintetLeg(row: SnapshotFinalModelBoardRow) {
+  return isFinalModelPremiumQuartetLeg(row);
+}
+
+function isFinalModelPremiumSextetLeg(row: SnapshotFinalModelBoardRow) {
+  return isFinalModelPremiumQuartetLeg(row) && (row.finalScore ?? 0) >= 0.69;
+}
+
+function compareFinalModelPremiumTripletLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  const aScore = a.modelRow.finalScore ?? 0;
+  const bScore = b.modelRow.finalScore ?? 0;
+  const aPrior = a.modelRow.estimatedAccuracyPriorPct ?? 0;
+  const bPrior = b.modelRow.estimatedAccuracyPriorPct ?? 0;
+  return (
+    b.modelRow.tier.localeCompare(a.modelRow.tier) ||
+    Math.floor(bScore * 20) - Math.floor(aScore * 20) ||
+    finalModelComponentSignature(b.modelRow).localeCompare(finalModelComponentSignature(a.modelRow)) ||
+    aScore - bScore ||
+    aPrior - bPrior ||
+    b.modelRow.playerName.localeCompare(a.modelRow.playerName)
+  );
+}
+
+function compareFinalModelMarketHighLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  const aScore = a.modelRow.finalScore ?? 0;
+  const bScore = b.modelRow.finalScore ?? 0;
+  const aPrior = a.modelRow.estimatedAccuracyPriorPct ?? 0;
+  const bPrior = b.modelRow.estimatedAccuracyPriorPct ?? 0;
+  return (
+    a.modelRow.market.localeCompare(b.modelRow.market) ||
+    bScore - aScore ||
+    bPrior - aPrior ||
+    a.modelRow.playerName.localeCompare(b.modelRow.playerName)
+  );
+}
+
+function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  return (
+    b.view.score - a.view.score ||
+    (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
+    a.row.playerName.localeCompare(b.row.playerName)
+  );
+}
+
+function comparePlayerTabPremiumPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  if (a.modelRow && b.modelRow) {
+    return compareFinalModelPremiumTripletLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
+  }
+  return comparePlayerTabFallbackPicks(a, b);
+}
+
+function comparePlayerTabMarketHighPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  if (a.modelRow && b.modelRow) {
+    return compareFinalModelMarketHighLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
+  }
+  return comparePlayerTabFallbackPicks(a, b);
+}
+
+function viewForFinalModelRow(row: SnapshotDashboardRow, modelRow: SnapshotFinalModelBoardRow): View {
+  const base = viewFor(row, modelRow.market, null);
+  const live = modelRow.line ?? base.live;
+  const proj = modelRow.projectedValue ?? base.proj;
+  const edge =
+    modelRow.lineGap ??
+    (proj != null && live != null ? Number((proj - live).toFixed(1)) : base.edge);
+  const confidence = modelRow.estimatedAccuracyPriorPct ?? base.conf;
+  const reasons = [
+    ...modelRow.reasons,
+    ...modelRow.sourceComponents.map((component) => component.label),
+    ...modelRow.riskFlags.map((flag) => `Risk: ${signalTokenLabel(flag) ?? flag}`),
+  ].filter(Boolean).slice(0, 4);
+  return {
+    ...base,
+    live,
+    proj,
+    edge,
+    conf: confidence,
+    books: modelRow.sportsbookCount ?? base.books,
+    side: modelRow.side,
+    liveKind: live != null ? 'LIVE' : base.liveKind,
+    liveLineKind: live != null ? 'LIVE' : base.liveLineKind,
+    projKind: proj != null ? 'MODEL' : base.projKind,
+    edgeKind: edge != null ? 'DERIVED' : base.edgeKind,
+    confKind: confidence != null ? 'MODEL' : base.confKind,
+    booksKind: modelRow.sportsbookCount != null ? 'LIVE' : base.booksKind,
+    sideKind: 'MODEL',
+    rank: modelRow.selectedRank ? `#${modelRow.selectedRank}` : null,
+    source: `Final V1 ${modelRow.modelAction.toLowerCase()}`,
+    note: finalModelSourceLabel(modelRow),
+    score: (modelRow.finalScore ?? 0) * 100 + (confidence ?? 0),
+    reasons,
+    precision: null,
+  };
+}
+
 function trendRead(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) return 'Recent-versus-season trend is not available yet.';
   if (value >= 1.5) return `Running clearly above season baseline at ${signed(value, 1)}.`;
@@ -2938,7 +3118,242 @@ export default function NewDashboard({
                 </div>
               </div>
             </div>
-          {tab === 'precision' ? (
+          {tab === 'final' ? (
+            <section className="mt-5 space-y-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="max-w-3xl">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Final V1</div>
+                    <h3 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)]">Only the final selector is active on this site</h3>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-2)]">
+                      Final V1 is the 100% board-coverage model with correlation-aware selected picks. This is the only model surface exposed on the site.
+                    </p>
+                  </div>
+                  <Pill
+                    label={finalModel?.artifactStatus === 'LOADED' ? 'Artifact loaded' : 'Artifact missing'}
+                    tone={finalModel?.artifactStatus === 'LOADED' ? 'cyan' : 'amber'}
+                  />
+                </div>
+                <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                  <span className="font-semibold text-[var(--text)]">Status:</span>{' '}
+                  {finalModel?.artifactStatus === 'LOADED'
+                    ? `${finalModel.modelName} ${finalModel.modelVersion ?? ''} generated ${ts(finalModel.generatedAt)} for ${finalModel.slateDate}.`
+                    : finalModel?.warnings[0] ?? 'No Final V1 artifact is available for this slate yet.'}
+                </div>
+                {finalModel?.warnings.length ? (
+                  <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] px-4 py-3 text-sm leading-6 text-[var(--warning)]">
+                    {finalModel.warnings[0]}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+                <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
+                <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
+                <Stat dense label="90+ board" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
+                <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
+                <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
+                <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
+                <Stat dense label="4-leg cards" value={pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUAD_RECORD}; ${FINAL_V1_DAILY_QUAD_DAYS} all-card days`} />
+                <Stat dense label="5-leg cards" value={pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUINT_RECORD}; ${FINAL_V1_DAILY_QUINT_DAYS} all-card days`} />
+                <Stat dense label="6-leg cards" value={pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SEXT_RECORD}; ${FINAL_V1_DAILY_SEXT_DAYS} all-card days`} />
+                <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
+                <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
+                <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
+                <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
+                <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
+                <Stat dense label="Avg context" value={finalModel?.summary.averageContextScore == null ? '-' : n(finalModel.summary.averageContextScore, 2)} kind={finalModel?.summary.averageContextScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Lineup/stakes layer" />
+                <Stat dense label="Warnings" value={n(finalModel?.summary.warningCount ?? finalModel?.warnings.length ?? 0, 0)} kind={finalModel?.warnings.length ? 'DERIVED' : 'LIVE'} note="Artifact warnings" />
+              </div>
+
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
+                      Historical replay uses the broader player-tab board, picks one best market per player, then applies the improved 90+ ladder from singles through 6L. Longer cards use a stricter C/S OVER long-market plus REB lane, so coverage is intentionally narrow.
+                    </p>
+                  </div>
+                  <Pill label="Replay optimized" tone="amber" />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                  {playerTabComboLayers.map((layer) => (
+                    <div key={layer.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{layer.id}</div>
+                          <div className="mt-1 text-lg font-semibold text-[var(--text)]">{pct(layer.cardAccuracyPct, 2)}</div>
+                        </div>
+                        <Badge label={`${n(layer.cards.length, 0)} today`} kind={layer.cards.length ? 'LIVE' : 'PLACEHOLDER'} />
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--text-2)]">
+                        <div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">Record</div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{layer.record}</div>
+                        </div>
+                        <div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">Coverage</div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{pct(layer.legCoveragePct, 2)}</div>
+                        </div>
+                        <div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">Cards/day</div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{n(layer.avgCards, 2)}</div>
+                        </div>
+                        <div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">All-card</div>
+                          <div className="mt-1 font-semibold text-[var(--text)]">{pct(layer.allCardHitPct, 2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-5">
+                  {playerTabComboLayers.map((layer) => (
+                    <div key={layer.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm leading-6 text-[var(--text-2)]">
+                      <span className="font-semibold text-[var(--text)]">Today&apos;s {layer.label} set:</span>{' '}
+                      {layer.legs.length >= layer.size
+                        ? `${n(layer.legs.length, 0)} of ${n(playerTabComboPicks.length, 0)} selectable player-tab legs producing ${n(layer.cards.length, 0)} ${layer.label} cards.`
+                        : `Waiting for at least ${layer.size} selectable player-tab picks.`}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
+                  The 90+ target is now supported by the qualified board slice at {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)}, player-tab singles at {pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)}, 2L at {pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)}, 3L at {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)}, 4L at {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)}, 5L at {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)}, and 6L at {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)}. Today&apos;s card builder only uses live/selectable rows with {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books; the historical lanes are replay slices, not locked-forward proof.
+                </div>
+                <div className="mt-4 space-y-3">
+                  {playerTabComboLayers.map((layer) => (
+                    <details
+                      key={layer.id}
+                      open={layer.id === '2L'}
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3"
+                    >
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">{layer.label} cards</div>
+                            <div className="mt-1 text-sm font-semibold text-[var(--text)]">{layer.rule}</div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge label={`${pct(layer.cardAccuracyPct, 2)} replay`} kind="MODEL" />
+                            <Badge label={`${n(layer.cards.length, 0)} today`} kind={layer.cards.length ? 'LIVE' : 'PLACEHOLDER'} />
+                          </div>
+                        </div>
+                      </summary>
+                      {layer.cards.length ? (
+                        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                          {layer.cards.map((card, index) => (
+                            <div key={card.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--muted)]">
+                                  {layer.label} card {index + 1}
+                                </div>
+                                <Badge label={`${layer.size} legs`} kind="DERIVED" />
+                              </div>
+                              <div className="mt-3 space-y-2 text-sm text-[var(--text)]">
+                                {card.legs.map(({ row, view }) => (
+                                  <div key={`${card.id}:${row.playerId}:${view.market}`} className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="truncate font-semibold">{row.playerName}</div>
+                                      <div className="text-xs text-[var(--text-2)]">
+                                        {recommendationHeadline(view)}
+                                      </div>
+                                    </div>
+                                    <Badge label={MARKET_LABELS[view.market]} kind="DERIVED" />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
+                          Waiting for {layer.size} selectable player-tab picks with live lines and {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.
+                        </div>
+                      )}
+                    </details>
+                  ))}
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selectable picks</div>
+                    <div className="mt-1 text-sm text-[var(--text-2)]">
+                      {finalModelPicks.length
+                        ? `${n(finalModelPicks.length, 0)} Final V1 picks with live lines and ${FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.`
+                        : 'Waiting for current Final V1 picks with selectable live lines.'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshSlate}
+                    className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                  >
+                    Refresh slate
+                  </button>
+                </div>
+                {finalModelPicks.length ? (
+                  <div className="grid gap-4 p-4 lg:grid-cols-2">
+                    {finalModelPicks.map(({ modelRow, row, view }) => (
+                      <button
+                        key={`${modelRow.candidateId}:final-v1`}
+                        type="button"
+                        onClick={() => row && setResearch(row.playerId)}
+                        className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${row ? CARD_BUTTON_CLASS : ''}`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
+                              <Pill label={`Tier ${modelRow.tier}`} tone={modelRow.tier === 'S' || modelRow.tier === 'A' ? 'cyan' : 'amber'} />
+                              <Pill label={MARKET_LABELS[modelRow.market]} tone="amber" />
+                            </div>
+                            <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{modelRow.playerName}</div>
+                            <div className="mt-1 text-sm text-[var(--text-2)]">
+                              {row ? matchup(row) : modelRow.matchupKey ?? 'Matchup pending'}
+                            </div>
+                            <div className="mt-2 text-base font-semibold text-[var(--text)]">
+                              {view ? recommendationHeadline(view) : `${modelRow.side} ${modelRow.line ?? '-'} ${MARKET_LABELS[modelRow.market]}`}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-[var(--text-2)]">
+                            <div>{booksLiveLabel(modelRow.sportsbookCount) ?? 'Books pending'}</div>
+                            <div className="mt-1">Score {modelRow.finalScore == null ? '-' : n(modelRow.finalScore, 4)}</div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                          <CompactMetric label="Line" value={modelRow.line == null ? '-' : n(modelRow.line)} compact />
+                          <CompactMetric label="Projection" value={modelRow.projectedValue == null ? '-' : n(modelRow.projectedValue)} compact />
+                          <CompactMetric label="Gap" value={modelRow.lineGap == null ? '-' : signed(modelRow.lineGap)} compact />
+                          <CompactMetric label="Prior" value={modelRow.estimatedAccuracyPriorPct == null ? '-' : pct(modelRow.estimatedAccuracyPriorPct, 1)} compact />
+                          <CompactMetric label="Context" value={modelRow.contextScore == null ? '-' : n(modelRow.contextScore, 2)} compact />
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Pill label={finalModelSourceLabel(modelRow)} tone="cyan" />
+                          <Pill label={finalModelContextLabel(modelRow)} tone={modelRow.contextFlags.length ? 'amber' : 'cyan'} />
+                          <Pill label={finalModelRiskLabel(modelRow) || 'Clean rule path'} tone={modelRow.riskFlags.length ? 'amber' : 'default'} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <EmptyState
+                      eyebrow="Final V1"
+                      title="No current Final V1 selected picks are loaded."
+                      detail={finalModel?.warnings[0] ?? `Run the current slate score export, then run the Final V1 exporter. Picks need live lines and ${FINAL_V1_MIN_SELECTABLE_BOOKS}+ books before they show here.`}
+                      actionLabel="Refresh slate"
+                      onAction={refreshSlate}
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
+          ) : tab === 'precision' ? (
             <section className="mt-5 space-y-5">
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
