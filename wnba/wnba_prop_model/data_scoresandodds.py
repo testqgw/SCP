@@ -186,16 +186,19 @@ def _player_candidates(logs: pd.DataFrame, player: str) -> pd.DataFrame:
     ]
 
 
-def _latest_context(logs: pd.DataFrame, player: str, team_matchups: dict[str, str]) -> tuple[str, str, str, str]:
+def _latest_context(logs: pd.DataFrame, player: str, team_matchups: dict[str, str]) -> tuple[str, str, str, str, str]:
     candidates = _player_candidates(logs, player)
     if candidates.empty:
-        return "", "", "", player
+        return "", "", "", player, "unresolved_player"
     current_teams = set(team_matchups)
     in_slate = candidates[candidates["team_abbr"].astype(str).str.upper().map(normalize_team).isin(current_teams)]
+    if in_slate.empty and team_matchups:
+        picked = candidates.sort_values("game_date").iloc[-1]
+        return str(picked.get("player_id") or ""), "", "", str(picked.get("player") or player), "not_in_slate_matchup"
     picked = (in_slate if not in_slate.empty else candidates).sort_values("game_date").iloc[-1]
     team = normalize_team(picked.get("team_abbr"))
     opponent = team_matchups.get(team) or normalize_team(picked.get("opponent_abbr"))
-    return str(picked.get("player_id") or ""), team, opponent, str(picked.get("player") or player)
+    return str(picked.get("player_id") or ""), team, opponent, str(picked.get("player") or player), "slate_matchup_match" if not in_slate.empty else "historical_fallback"
 
 
 def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | None = None) -> list[dict[str, Any]]:
@@ -204,7 +207,7 @@ def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | Non
     team_matchups = _current_team_matchups(date)
     rows: list[dict[str, Any]] = []
     for prop in props:
-        player_id, team, opponent, model_player = _latest_context(logs, prop.player, team_matchups)
+        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, prop.player, team_matchups)
         rows.append(
             {
                 "game_date": prop.game_date,
@@ -223,6 +226,7 @@ def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | Non
                 "source_url": prop.source_url,
                 "source_event_id": prop.source_event_id,
                 "line_last_updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                "team_resolution_status": resolution_status,
             }
         )
     return rows
@@ -248,6 +252,7 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "source_url",
         "source_event_id",
         "line_last_updated",
+        "team_resolution_status",
     ]
     with out.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)

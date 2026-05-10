@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-05-10T17:53:14Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-10-team-sanity-v6",
+  "cardGeneratedAt": "2026-05-09T17:25:53Z",
+  "slateDate": "2026-05-09",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-05-09",
+      "selected_rank": 1,
+      "player": "Rickea Jackson",
+      "team": "CHI",
+      "team_name": null,
+      "opponent": "POR",
+      "opponent_name": null,
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 16.5,
+      "actual": 19.0,
+      "settlement": "LOSS",
+      "model_probability": 0.66681,
+      "final_score": 0.75401,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-portland-fire-scores-odds-picks-props-may-09-2026/7def09d1-d666-4e08-a6d4-213059a7ffe9"
+    }
+  ]
+}

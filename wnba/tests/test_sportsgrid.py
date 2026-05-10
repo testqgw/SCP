@@ -67,8 +67,11 @@ def test_parse_sportsgrid_card() -> None:
 def test_team_aliases() -> None:
     assert normalize_team("GSV") == "GS"
     assert normalize_team("LVA") == "LV"
+    assert normalize_team("LAS") == "LA"
     assert normalize_team("NYL") == "NY"
     assert normalize_team("PDX") == "POR"
+    assert normalize_team("Portland Fire") == "POR"
+    assert normalize_team("Toronto Tempo") == "TOR"
 
 
 def test_parse_next_data_fanduel_props() -> None:

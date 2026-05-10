@@ -42,7 +42,9 @@ type CurrentCardRow = {
   final_score: number;
   player: string;
   team: string;
+  team_name?: string;
   opponent: string;
+  opponent_name?: string;
   market: string;
   side: "OVER" | "UNDER";
   line: number;
@@ -122,6 +124,12 @@ function formatFlag(flag: string): string {
   return flag.replaceAll("_", " ");
 }
 
+function matchupLabel(row: CurrentCardRow): string {
+  const team = row.team_name || row.team || "Team TBD";
+  const opponent = row.opponent_name || row.opponent || "Team TBD";
+  return `${team} vs ${opponent}`;
+}
+
 function PickCard({ row }: { row: CurrentCardRow }) {
   const sideOdds = row.side === "OVER" ? row.over_odds : row.under_odds;
   const riskFlags = row.risk_flags.filter((flag) => flag !== "single_side_price").slice(0, 3);
@@ -136,7 +144,7 @@ function PickCard({ row }: { row: CurrentCardRow }) {
           </div>
           <h3 className="mt-2 truncate text-lg font-semibold text-[var(--text)]">{row.player}</h3>
           <div className="mt-1 text-sm text-[var(--text-2)]">
-            {row.team} vs {row.opponent}
+            {matchupLabel(row)}
           </div>
         </div>
         <div className="rounded-xl border border-[color:rgba(47,125,90,0.22)] bg-[color:rgba(47,125,90,0.10)] px-3 py-2 text-right">
@@ -218,7 +226,7 @@ function SlateBoardRow({ row }: { row: CurrentCardRow }) {
       <div className="min-w-0">
         <div className="truncate font-semibold text-[var(--text)]">{row.player}</div>
         <div className="mt-1 text-xs text-[var(--text-2)]">
-          {row.team} vs {row.opponent}
+          {matchupLabel(row)}
         </div>
       </div>
       <div>

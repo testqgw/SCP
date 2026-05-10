@@ -1,11 +1,13 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-09T17:25:53Z
-Slate: 2026-05-09
+Generated: 2026-05-10T17:55:11Z
+Slate: 2026-05-10
 
 ## Selected
 
-1. Rickea Jackson UNDER PTS 16.5 (CHI vs POR): p=66.7%, proj=12.65, edge +12.6%, score=0.754
+1. Jonquel Jones UNDER PTS 15.5 (New York Liberty vs Washington Mystics): p=78.5%, proj=8.89, edge +21.7%, score=0.906
+2. A'ja Wilson UNDER REB 11.5 (Las Vegas Aces vs Los Angeles Sparks): p=75.4%, proj=7.95, edge +17.4%, score=0.903
+3. Jackie Young UNDER THREES 2.5 (Las Vegas Aces vs Los Angeles Sparks): p=73.7%, proj=1.46, edge +17.1%, score=0.869
 
 ## Warnings
 

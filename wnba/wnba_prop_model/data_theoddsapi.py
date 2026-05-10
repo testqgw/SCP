@@ -30,6 +30,7 @@ TEAM_NAME_TO_ABBR = {
     "Minnesota Lynx": "MIN",
     "New York Liberty": "NY",
     "Phoenix Mercury": "PHX",
+    "Portland Fire": "POR",
     "Seattle Storm": "SEA",
     "Toronto Tempo": "TOR",
     "Washington Mystics": "WSH",
@@ -63,6 +64,7 @@ class OddsApiProp:
     source_book: str
     source_event_id: str
     source_url: str
+    team_resolution_status: str
 
 
 def _fetch_json(path: str, params: dict[str, str]) -> Any:
@@ -155,7 +157,7 @@ def parse_event_odds(event_odds: dict[str, Any], logs: pd.DataFrame | None = Non
                 row["books"].add(book_title)
     props: list[OddsApiProp] = []
     for row in grouped.values():
-        player_id, team, opponent, model_player = _latest_context(logs, row["player"], event_matchups)
+        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, row["player"], event_matchups)
         if not team:
             continue
         books = sorted(row["books"])
@@ -173,6 +175,7 @@ def parse_event_odds(event_odds: dict[str, Any], logs: pd.DataFrame | None = Non
                 source_book=books[0] if len(books) == 1 else "The Odds API best odds",
                 source_event_id=str(event_odds.get("id") or ""),
                 source_url="https://the-odds-api.com/sports/wnba-odds.html",
+                team_resolution_status=resolution_status,
             )
         )
     return props
@@ -215,6 +218,7 @@ def props_to_board_rows(props: list[OddsApiProp]) -> list[dict[str, Any]]:
             "source_url": prop.source_url,
             "source_event_id": prop.source_event_id,
             "line_last_updated": now,
+            "team_resolution_status": prop.team_resolution_status,
         }
         for prop in props
     ]
@@ -238,6 +242,7 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "source_url",
         "source_event_id",
         "line_last_updated",
+        "team_resolution_status",
     ]
     with out.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
