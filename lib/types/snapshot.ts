@@ -458,6 +458,7 @@ export type SnapshotBoardData = {
   precisionCardSummary?: SnapshotPrecisionCardSummary | null;
   precisionSystem?: SnapshotPrecisionSystemSummary | null;
   precisionDashboard?: SnapshotPrecisionDashboard | null;
+  finalModel?: SnapshotFinalModelData | null;
   universalSystem?: SnapshotUniversalSystemSummary | null;
   boardFeed?: SnapshotBoardFeed | null;
 };
