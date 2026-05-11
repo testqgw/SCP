@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-05-11T21:00:02Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-10-team-sanity-v7",
+  "cardGeneratedAt": "2026-05-10T20:09:09Z",
+  "slateDate": "2026-05-10",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "wins": 2,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-05-10",
+      "selected_rank": 1,
+      "player": "A'ja Wilson",
+      "team": "LV",
+      "team_name": "Las Vegas Aces",
+      "opponent": "LA",
+      "opponent_name": "Los Angeles Sparks",
+      "market": "REB",
+      "side": "UNDER",
+      "line": 11.5,
+      "actual": 4.0,
+      "settlement": "WIN",
+      "model_probability": 0.75416,
+      "final_score": 0.90267,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-los-angeles-sparks-scores-odds-picks-props-may-10-2026/9de17155-e91b-435c-855e-11c202996f68"
+    },
+    {
+      "slate_date": "2026-05-10",
+      "selected_rank": 2,
+      "player": "Jackie Young",
+      "team": "LV",
+      "team_name": "Las Vegas Aces",
+      "opponent": "LA",
+      "opponent_name": "Los Angeles Sparks",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 2.0,
+      "settlement": "WIN",
+      "model_probability": 0.73651,
+      "final_score": 0.86894,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-los-angeles-sparks-scores-odds-picks-props-may-10-2026/9de17155-e91b-435c-855e-11c202996f68"
+    }
+  ]
+}
