@@ -13,7 +13,7 @@ from typing import Any
 
 
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-10-role-floor-context-v2"
+MODEL_VERSION = "2026-05-11-portfolio-fragility-v3"
 EXPECTED_CONFIG = {
     "maxPicks": 6,
     "minScore": 0.75,

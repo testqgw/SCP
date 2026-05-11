@@ -21,11 +21,13 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-10-role-floor-context-v2"
+MODEL_VERSION = "2026-05-11-portfolio-fragility-v3"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 STABLE_STARTER_UNDER_RISK_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
 SELECTED_MARKET_VETO = {"PR", "PA"}
+SELECTED_SIDE_VETO = {("RA", "UNDER"), ("THREES", "OVER")}
+THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX = 1.0
 PORTFOLIO_LIMITS = {
     "maxPerPlayer": 1,
     "maxPerTeam": 2,
@@ -565,10 +567,30 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
         flags.append("baseline_source")
     if row.finalSide in {"OVER", "UNDER"} and row.projectionSide in {"OVER", "UNDER"} and row.finalSide != row.projectionSide:
         flags.append("projection_side_split")
+    if (
+        row.market == "PTS"
+        and row.finalSide == "UNDER"
+        and row.projectionSide == "OVER"
+        and clean_number(row.absLineGap, 99) <= THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX
+    ):
+        flags.append("counter_projection_pts_under_thin_gap")
+    if (row.market, row.finalSide) in SELECTED_SIDE_VETO:
+        flags.append("auxiliary_side_sample_risk")
     if clean_number(row.absLineGap, 0) < 0.5 and "top200_premium_90" not in components:
         flags.append("thin_projection_gap")
     flags.extend(context_layer(row)["contextFlags"])
     return flags
+
+
+def portfolio_fragility_rejection(row: dict[str, Any]) -> str | None:
+    risk = set(row.get("riskFlags") or [])
+    if (row["market"], row["side"]) in SELECTED_SIDE_VETO:
+        return "portfolio_guard_auxiliary_side_sample"
+    if "counter_projection_pts_under_thin_gap" in risk:
+        return "portfolio_guard_counter_projection_pts_under_thin_gap"
+    if "thin_projection_gap" in risk:
+        return "portfolio_guard_thin_projection_gap"
+    return None
 
 
 def build_model_rows(df: pd.DataFrame, model: dict[str, Any], component_acc: dict[str, float]) -> list[dict[str, Any]]:
@@ -687,6 +709,9 @@ def correlation_penalty(row: dict[str, Any], selected: list[dict[str, Any]]) -> 
 def cap_rejection(row: dict[str, Any], selected: list[dict[str, Any]]) -> str | None:
     if row["market"] in SELECTED_MARKET_VETO:
         return "portfolio_guard_market_veto"
+    fragility = portfolio_fragility_rejection(row)
+    if fragility:
+        return fragility
     if sum(1 for item in selected if item["playerId"] == row["playerId"]) >= PORTFOLIO_LIMITS["maxPerPlayer"]:
         return "same_player_cap"
     if row.get("teamCode") and sum(1 for item in selected if item.get("teamCode") == row.get("teamCode")) >= PORTFOLIO_LIMITS["maxPerTeam"]:
@@ -934,8 +959,8 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-10 role-floor context calibration keeps the tier-first selector, then adds bounded game-context scoring for lineup confidence, minutes stability, spread/total environment, step-up role, stable-starter UNDER risk, and completeness.",
-            "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, and a selected score floor of 0.75.",
+            "- The 2026-05-11 portfolio-fragility calibration keeps the tier-first selector, then adds bounded game-context scoring plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, and ultra-thin non-premium projection gaps.",
+            "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, fragility vetoes, and a selected score floor of 0.75.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
             "- ROI and CLV require the market-line and settlement ledgers.",
@@ -987,7 +1012,7 @@ def main() -> None:
         "dateRange": {"from": active_dates[0] if active_dates else None, "to": active_dates[-1] if active_dates else None, "activeDates": len(active_dates)},
         "config": {"maxPicks": args.max_picks, "minScore": args.min_score, **PORTFOLIO_LIMITS},
         "contextLayer": {
-            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, and stable-starter role-floor risk",
+            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, and portfolio-fragility vetoes",
             "rowsWithContextPct": round(
                 100
                 * sum(1 for row in board_rows if row.get("contextScore") is not None)

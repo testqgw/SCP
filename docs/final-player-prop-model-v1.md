@@ -5,7 +5,7 @@ This is now a new model, not a rename of the old champion lane.
 ```text
 Model ID: final-player-prop-model-v1
 Model name: Final Correlation-Aware Player Prop Model V1
-Version: 2026-05-10-role-floor-context-v2
+Version: 2026-05-11-portfolio-fragility-v3
 Role: full-board player prop model with a slate-safe top-pick portfolio
 ```
 
@@ -22,12 +22,13 @@ The old backtest champion becomes the precision core. The final model now scores
 | Full-board base | Live Quality Router V9 | Coverage side/score for every playable row |
 | Correlation layer | Precision Parlay v1 rules | Top-pick portfolio construction and exposure caps |
 | Game-context layer | Lineup, availability, minutes, team form, synergy, stake-level context | Current-slate awareness, role-floor risk, and hard-risk guardrails |
-| Proof layer | locked-forward ledgers | To be cloned for this new model after research validation |
+| Portfolio-fragility layer | Thin-gap, side-pocket, and counter-projection guards | Rejects historically fragile top-pick shapes before the portfolio fills |
+| Proof layer | locked-forward ledgers | Model-specific lock, market-line, settlement, report, and audit-summary lifecycle |
 
 ## Claim Boundary
 
-- This model is a research-preview candidate engine until it has its own locked-forward audit.
-- Existing Top Player premium proof infrastructure proves the old champion lane machinery, not this entire new meta-model.
+- This model is a research-preview candidate engine until it has real locked-forward rows.
+- Existing Final V1 proof infrastructure validates the evidence path, but empty or stale-preview ledgers do not prove a live edge.
 - Component accuracy priors are not calibrated forward probabilities.
 - The model gives every scored row a side, tier, score, and action.
 - The selected-pick portfolio never force-fills to six picks; underfilling is allowed when correlation or quality rules reject the rest.
@@ -75,17 +76,17 @@ Full-board rows scored: 113,791
 Full-board coverage: 100.00%
 Full-board accuracy: 88.86%
 Candidate-pool accuracy: 89.60%
-Selected-pick accuracy: 94.28%
-Selected record: 907-55
+Selected-pick accuracy: 94.70%
+Selected record: 911-51
 Average selected picks per slate: 5.83
-Selected lift vs full board: +5.42 points
-Context layer: attached without reducing selected-pick replay accuracy; score-90 board improved to 90.80%; role-floor risk now penalizes high-minute stable-starter UNDERs in counting markets.
+Selected lift vs full board: +5.84 points
+Context layer: attached without reducing selected-pick replay accuracy; score-90 board improved to 90.82%; role-floor risk penalizes high-minute stable-starter UNDERs, and the portfolio-fragility layer rejects thin counter-projection PTS UNDERs, tiny auxiliary side pockets, and ultra-thin non-premium projection gaps.
 ```
 
 Recent selected-pick windows:
 
 ```text
-Last 30 active dates: 93.45%
+Last 30 active dates: 92.86%
 Last 14 active dates: 91.67%
 ```
 
@@ -161,6 +162,10 @@ max 2 per game
 max 2 per market
 max 1 combo market
 max 1 same-team counting over
+reject selected PR/PA portfolio rows
+reject RA UNDER / THREES OVER auxiliary side pockets
+reject thin counter-projection PTS UNDERs at <= 1.0 projected-stat gap
+reject ultra-thin non-premium projection gaps
 selected rows require live lines from 3+ books in the current-slate exporter
 no forced fill
 ```

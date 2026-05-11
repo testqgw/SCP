@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-10T19:03:26.764135Z",
+  "generatedAt": "2026-05-11T23:47:09.261130Z",
   "modelId": "final-player-prop-model-v1",
-  "modelVersion": "2026-05-10-role-floor-context-v2",
+  "modelVersion": "2026-05-11-portfolio-fragility-v3",
   "result": {
     "overallStatus": "PENDING",
     "counts": {
@@ -25,12 +25,12 @@
     },
     "selected": {
       "samples": 962,
-      "wins": 907,
-      "losses": 55,
-      "accuracyPct": 94.28
+      "wins": 911,
+      "losses": 51,
+      "accuracyPct": 94.7
     },
     "avgSelectedPerSlate": 5.83,
-    "selectedLiftVsFullBoardPct": 5.42,
+    "selectedLiftVsFullBoardPct": 5.84,
     "last30": {
       "fullBoard": {
         "samples": 18910,
@@ -46,9 +46,9 @@
       },
       "selected": {
         "samples": 168,
-        "wins": 157,
-        "losses": 11,
-        "accuracyPct": 93.45
+        "wins": 156,
+        "losses": 12,
+        "accuracyPct": 92.86
       }
     },
     "last14": {
@@ -76,7 +76,7 @@
     {
       "status": "PASS",
       "name": "MODEL_ID_AND_VERSION",
-      "detail": "final-player-prop-model-v1 / 2026-05-10-role-floor-context-v2",
+      "detail": "final-player-prop-model-v1 / 2026-05-11-portfolio-fragility-v3",
       "evidence": {}
     },
     {
@@ -114,19 +114,19 @@
     {
       "status": "PASS",
       "name": "REPORTED_RESULTS_RECOMPUTE",
-      "detail": "Selected recompute 907-55 on 962 rows.",
+      "detail": "Selected recompute 911-51 on 962 rows.",
       "evidence": {
         "selectedCsv": {
           "samples": 962,
-          "wins": 907,
-          "losses": 55,
-          "accuracyPct": 94.28
+          "wins": 911,
+          "losses": 51,
+          "accuracyPct": 94.7
         },
         "summaryJson": {
           "samples": 962,
-          "wins": 907,
-          "losses": 55,
-          "accuracyPct": 94.28
+          "wins": 911,
+          "losses": 51,
+          "accuracyPct": 94.7
         }
       }
     },
@@ -180,7 +180,7 @@
     {
       "status": "PASS",
       "name": "STRICT_NEGATIVE_LABEL_SHUFFLES",
-      "detail": "Selected accuracy 94.28% vs strongest strict shuffle P99 92.83%.",
+      "detail": "Selected accuracy 94.70% vs strongest strict shuffle P99 93.04%.",
       "evidence": {
         "random_board_sample": {
           "trials": 1000,
@@ -191,36 +191,36 @@
         "random_same_market_outcomes": {
           "bucket": "market",
           "trials": 1000,
-          "meanAccuracyPct": 88.76,
-          "p95AccuracyPct": 90.33,
-          "p99AccuracyPct": 90.96
+          "meanAccuracyPct": 88.77,
+          "p95AccuracyPct": 90.44,
+          "p99AccuracyPct": 91.06
         },
         "shuffle_labels_by_market": {
           "bucket": "market",
           "trials": 1000,
-          "meanAccuracyPct": 88.76,
-          "p95AccuracyPct": 90.33,
-          "p99AccuracyPct": 90.96
+          "meanAccuracyPct": 88.77,
+          "p95AccuracyPct": 90.44,
+          "p99AccuracyPct": 91.06
         },
         "shuffle_labels_by_slate": {
           "bucket": "date",
           "trials": 1000,
-          "meanAccuracyPct": 88.8,
+          "meanAccuracyPct": 88.81,
           "p95AccuracyPct": 90.54,
-          "p99AccuracyPct": 91.06
+          "p99AccuracyPct": 91.16
         },
         "shuffle_labels_by_player_market": {
           "bucket": "playerName+market",
           "trials": 1000,
-          "meanAccuracyPct": 90.81,
-          "p95AccuracyPct": 92.31,
-          "p99AccuracyPct": 92.83
+          "meanAccuracyPct": 91.01,
+          "p95AccuracyPct": 92.41,
+          "p99AccuracyPct": 93.04
         },
         "shuffle_player_ids_preserve_date_market": {
           "bucket": "date+market random player",
           "trials": 1000,
-          "meanAccuracyPct": 88.74,
-          "p95AccuracyPct": 90.33,
+          "meanAccuracyPct": 88.81,
+          "p95AccuracyPct": 90.44,
           "p99AccuracyPct": 90.96
         }
       }
@@ -228,36 +228,36 @@
     {
       "status": "PASS",
       "name": "DATE_SHIFT_DIAGNOSTIC_EXPLAINED",
-      "detail": "Selected-rank date shift stayed high at 94.67% vs actual 94.28%, but stronger same-player/same-market controls collapsed to 57.13% with 96.47% coverage. Diagnostic retired as explained.",
+      "detail": "Selected-rank date shift stayed high at 94.78% vs actual 94.70%, but stronger same-player/same-market controls collapsed to 57.13% with 96.47% coverage. Diagnostic retired as explained.",
       "evidence": {
         "selectedRankDateShift": {
           "offset_1": {
             "offsetDates": 1,
             "samples": 944,
-            "wins": 891,
-            "losses": 53,
-            "accuracyPct": 94.39
+            "wins": 894,
+            "losses": 50,
+            "accuracyPct": 94.7
           },
           "offset_-1": {
             "offsetDates": -1,
             "samples": 944,
-            "wins": 889,
-            "losses": 55,
-            "accuracyPct": 94.17
+            "wins": 893,
+            "losses": 51,
+            "accuracyPct": 94.6
           },
           "offset_3": {
             "offsetDates": 3,
             "samples": 938,
-            "wins": 888,
-            "losses": 50,
-            "accuracyPct": 94.67
+            "wins": 889,
+            "losses": 49,
+            "accuracyPct": 94.78
           },
           "offset_7": {
             "offsetDates": 7,
             "samples": 942,
-            "wins": 889,
-            "losses": 53,
-            "accuracyPct": 94.37
+            "wins": 892,
+            "losses": 50,
+            "accuracyPct": 94.69
           }
         },
         "samePlayerSameMarketExplanation": {
@@ -267,7 +267,7 @@
           "samePlayerMarketAccuracyPct": 57.13,
           "coveragePct": 96.47,
           "sameLineBucketPct": 95.8,
-          "collapseMarginPct": 37.15,
+          "collapseMarginPct": 37.57,
           "thresholds": {
             "minCoveragePct": 75,
             "minCollapseMarginPct": 25,
@@ -289,24 +289,24 @@
       "name": "DATA_AND_CODE_HASHES",
       "detail": "Data/code hashes recorded for reproducibility.",
       "evidence": {
-        "summary": "e04145e166be7437570c29cad231ecf769082b676d15047d02e71ff390813ffa",
-        "selectedCsv": "7f6e507c2c8584bae19b5bc70b7a73c24dfe086338d555b54f0a83b4203d64af",
-        "boardCsv": "22fe43d7b57b1e95aa8406d5c8c798b767db80773594fa47cebedf94a47c2d6b",
-        "dailyCsv": "51cf5185c255a009fc6278d50cd10fc5b821f69d8d75933a64c35cef944b119c",
-        "sourceInput": "c6e8d83dbe517f6b8f6805e852721bf467d17ae6c8be6b225fa8d7ef6888b652",
-        "backtestScript": "d0ca211f51f03e96f010031edb1c03f13ff7dff2aa50876fab6286bc9aca0209",
-        "currentExporter": "a0c76500d0d97abe09702684cd7f5f1cdd976e6cbb0c443527375ae8a553782d"
+        "summary": "af6ea967aa624f36f6fca2089ebca2435e6388b25c05b681ce7c76962ba20abe",
+        "selectedCsv": "fa1091c26232c4937854717d5ae2d83a2749d2219ddba9cfa42efe5be6e1bde9",
+        "boardCsv": "78bed446c103c35eb5160f95bdcbd351292c095a1f1013003b20357a1842c867",
+        "dailyCsv": "de6a6053d23ec27e4858c050a2c4fe01a80c200203a4c6d2a95dcac272e8a0c3",
+        "sourceInput": "707b6f60203646d40494f0420c9b4c51c0ad14ac22334b396811a75b0259124a",
+        "backtestScript": "f8b5870d410e4e1d53f190d7a17dc0a33dee7914cf8e2bad6cb1ee0d84fa8fd1",
+        "currentExporter": "677d1e475e1e537e1bac719b8635a8fe361736b38597bc8a2e86a58ef0ae5565"
       }
     }
   ],
   "hashes": {
-    "summary": "e04145e166be7437570c29cad231ecf769082b676d15047d02e71ff390813ffa",
-    "selectedCsv": "7f6e507c2c8584bae19b5bc70b7a73c24dfe086338d555b54f0a83b4203d64af",
-    "boardCsv": "22fe43d7b57b1e95aa8406d5c8c798b767db80773594fa47cebedf94a47c2d6b",
-    "dailyCsv": "51cf5185c255a009fc6278d50cd10fc5b821f69d8d75933a64c35cef944b119c",
-    "sourceInput": "c6e8d83dbe517f6b8f6805e852721bf467d17ae6c8be6b225fa8d7ef6888b652",
-    "backtestScript": "d0ca211f51f03e96f010031edb1c03f13ff7dff2aa50876fab6286bc9aca0209",
-    "currentExporter": "a0c76500d0d97abe09702684cd7f5f1cdd976e6cbb0c443527375ae8a553782d"
+    "summary": "af6ea967aa624f36f6fca2089ebca2435e6388b25c05b681ce7c76962ba20abe",
+    "selectedCsv": "fa1091c26232c4937854717d5ae2d83a2749d2219ddba9cfa42efe5be6e1bde9",
+    "boardCsv": "78bed446c103c35eb5160f95bdcbd351292c095a1f1013003b20357a1842c867",
+    "dailyCsv": "de6a6053d23ec27e4858c050a2c4fe01a80c200203a4c6d2a95dcac272e8a0c3",
+    "sourceInput": "707b6f60203646d40494f0420c9b4c51c0ad14ac22334b396811a75b0259124a",
+    "backtestScript": "f8b5870d410e4e1d53f190d7a17dc0a33dee7914cf8e2bad6cb1ee0d84fa8fd1",
+    "currentExporter": "677d1e475e1e537e1bac719b8635a8fe361736b38597bc8a2e86a58ef0ae5565"
   },
   "negativeLeakageTests": {
     "random_board_sample": {
@@ -318,71 +318,71 @@
     "random_same_market_outcomes": {
       "bucket": "market",
       "trials": 1000,
-      "meanAccuracyPct": 88.76,
-      "p95AccuracyPct": 90.33,
-      "p99AccuracyPct": 90.96
+      "meanAccuracyPct": 88.77,
+      "p95AccuracyPct": 90.44,
+      "p99AccuracyPct": 91.06
     },
     "shuffle_labels_by_market": {
       "bucket": "market",
       "trials": 1000,
-      "meanAccuracyPct": 88.76,
-      "p95AccuracyPct": 90.33,
-      "p99AccuracyPct": 90.96
+      "meanAccuracyPct": 88.77,
+      "p95AccuracyPct": 90.44,
+      "p99AccuracyPct": 91.06
     },
     "shuffle_labels_by_slate": {
       "bucket": "date",
       "trials": 1000,
-      "meanAccuracyPct": 88.8,
+      "meanAccuracyPct": 88.81,
       "p95AccuracyPct": 90.54,
-      "p99AccuracyPct": 91.06
+      "p99AccuracyPct": 91.16
     },
     "shuffle_labels_by_player_market": {
       "bucket": "playerName+market",
       "trials": 1000,
-      "meanAccuracyPct": 90.81,
-      "p95AccuracyPct": 92.31,
-      "p99AccuracyPct": 92.83
+      "meanAccuracyPct": 91.01,
+      "p95AccuracyPct": 92.41,
+      "p99AccuracyPct": 93.04
     },
     "shuffle_player_ids_preserve_date_market": {
       "bucket": "date+market random player",
       "trials": 1000,
-      "meanAccuracyPct": 88.74,
-      "p95AccuracyPct": 90.33,
+      "meanAccuracyPct": 88.81,
+      "p95AccuracyPct": 90.44,
       "p99AccuracyPct": 90.96
     },
     "shift_selected_labels_plus_1_date": {
       "offsetDates": 1,
       "samples": 944,
-      "wins": 891,
-      "losses": 53,
-      "accuracyPct": 94.39,
+      "wins": 894,
+      "losses": 50,
+      "accuracyPct": 94.7,
       "diagnosticOnly": true,
       "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
     },
     "shift_selected_labels_minus_1_date": {
       "offsetDates": -1,
       "samples": 944,
-      "wins": 889,
-      "losses": 55,
-      "accuracyPct": 94.17,
+      "wins": 893,
+      "losses": 51,
+      "accuracyPct": 94.6,
       "diagnosticOnly": true,
       "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
     },
     "shift_selected_labels_plus_3_dates": {
       "offsetDates": 3,
       "samples": 938,
-      "wins": 888,
-      "losses": 50,
-      "accuracyPct": 94.67,
+      "wins": 889,
+      "losses": 49,
+      "accuracyPct": 94.78,
       "diagnosticOnly": true,
       "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
     },
     "shift_selected_labels_plus_7_dates": {
       "offsetDates": 7,
       "samples": 942,
-      "wins": 889,
-      "losses": 53,
-      "accuracyPct": 94.37,
+      "wins": 892,
+      "losses": 50,
+      "accuracyPct": 94.69,
       "diagnosticOnly": true,
       "note": "Selected-only date shifting is a stability diagnostic, not a strict label-randomization test."
     }
@@ -393,7 +393,7 @@
     "losingSlates": 0,
     "breakEvenSlates": 0,
     "worstDay": {
-      "date": "2025-11-13",
+      "date": "2025-12-19",
       "samples": 6,
       "wins": 4,
       "losses": 2,
@@ -408,54 +408,54 @@
       "accuracyPct": 88.1
     },
     "worst30Day": {
-      "from": "2025-11-13",
-      "to": "2025-12-13",
-      "samples": 174,
-      "wins": 158,
-      "losses": 16,
-      "accuracyPct": 90.8
+      "from": "2026-03-22",
+      "to": "2026-04-23",
+      "samples": 168,
+      "wins": 156,
+      "losses": 12,
+      "accuracyPct": 92.86
     },
     "playerConcentration": {
-      "unique": 197,
-      "maxSharePct": 2.08,
+      "unique": 204,
+      "maxSharePct": 1.98,
       "top": [
         {
-          "key": "Kawhi Leonard",
-          "count": 20,
-          "sharePct": 2.08
+          "key": "Justin Champagnie",
+          "count": 19,
+          "sharePct": 1.98
         },
         {
-          "key": "Justin Champagnie",
+          "key": "Payton Pritchard",
+          "count": 18,
+          "sharePct": 1.87
+        },
+        {
+          "key": "Ryan Rollins",
           "count": 17,
           "sharePct": 1.77
         },
         {
-          "key": "Payton Pritchard",
+          "key": "Kawhi Leonard",
+          "count": 17,
+          "sharePct": 1.77
+        },
+        {
+          "key": "Ryan Dunn",
           "count": 16,
           "sharePct": 1.66
         },
         {
-          "key": "Ryan Dunn",
-          "count": 15,
-          "sharePct": 1.56
-        },
-        {
-          "key": "Scottie Barnes",
-          "count": 15,
-          "sharePct": 1.56
-        },
-        {
-          "key": "Evan Mobley",
+          "key": "VJ Edgecombe",
           "count": 14,
           "sharePct": 1.46
         },
         {
-          "key": "VJ Edgecombe",
+          "key": "Luka Don\u010di\u0107",
           "count": 13,
           "sharePct": 1.35
         },
         {
-          "key": "Ryan Rollins",
+          "key": "Kyle Filipowski",
           "count": 13,
           "sharePct": 1.35
         }
@@ -463,52 +463,52 @@
     },
     "teamConcentration": {
       "unique": 30,
-      "maxSharePct": 5.2,
+      "maxSharePct": 5.09,
       "top": [
         {
           "key": "PHX",
-          "count": 50,
-          "sharePct": 5.2
+          "count": 49,
+          "sharePct": 5.09
         },
         {
           "key": "UTA",
-          "count": 44,
-          "sharePct": 4.57
-        },
-        {
-          "key": "TOR",
-          "count": 43,
-          "sharePct": 4.47
-        },
-        {
-          "key": "BOS",
-          "count": 43,
-          "sharePct": 4.47
+          "count": 48,
+          "sharePct": 4.99
         },
         {
           "key": "SAS",
-          "count": 42,
-          "sharePct": 4.37
+          "count": 45,
+          "sharePct": 4.68
         },
         {
-          "key": "DET",
+          "key": "BOS",
           "count": 41,
           "sharePct": 4.26
         },
         {
-          "key": "LAC",
-          "count": 40,
-          "sharePct": 4.16
+          "key": "DET",
+          "count": 39,
+          "sharePct": 4.05
         },
         {
           "key": "WAS",
           "count": 38,
           "sharePct": 3.95
+        },
+        {
+          "key": "MIL",
+          "count": 38,
+          "sharePct": 3.95
+        },
+        {
+          "key": "TOR",
+          "count": 37,
+          "sharePct": 3.85
         }
       ]
     },
     "gameConcentration": {
-      "unique": 808,
+      "unique": 813,
       "maxSharePct": 0.21,
       "top": [
         {
@@ -555,37 +555,37 @@
     },
     "marketConcentration": {
       "unique": 6,
-      "maxSharePct": 33.89,
+      "maxSharePct": 33.26,
       "top": [
         {
           "key": "PTS",
-          "count": 326,
-          "sharePct": 33.89
+          "count": 320,
+          "sharePct": 33.26
         },
         {
           "key": "REB",
-          "count": 261,
-          "sharePct": 27.13
+          "count": 263,
+          "sharePct": 27.34
         },
         {
           "key": "AST",
-          "count": 210,
-          "sharePct": 21.83
+          "count": 212,
+          "sharePct": 22.04
         },
         {
           "key": "PRA",
-          "count": 131,
-          "sharePct": 13.62
+          "count": 142,
+          "sharePct": 14.76
         },
         {
           "key": "RA",
-          "count": 20,
-          "sharePct": 2.08
+          "count": 13,
+          "sharePct": 1.35
         },
         {
           "key": "THREES",
-          "count": 14,
-          "sharePct": 1.46
+          "count": 12,
+          "sharePct": 1.25
         }
       ]
     }

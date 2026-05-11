@@ -313,12 +313,14 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-10-role-floor-context-v2" as const;
+const MODEL_VERSION = "2026-05-11-portfolio-fragility-v3" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
+const SELECTED_SIDE_VETO = new Set(["RA:UNDER", "THREES:OVER"]);
+const THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX = 1;
 
 const PORTFOLIO_LIMITS = {
   maxPerPlayer: 1,
@@ -873,6 +875,17 @@ function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], fin
   }
   const projectionSide = projectionSideFromRow(row);
   if (finalSide && projectionSide && finalSide !== projectionSide) flags.push("projection_side_split");
+  if (
+    row.market === "PTS" &&
+    finalSide === "UNDER" &&
+    projectionSide === "OVER" &&
+    (row.absLineGap ?? 99) <= THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX
+  ) {
+    flags.push("counter_projection_pts_under_thin_gap");
+  }
+  if (SELECTED_SIDE_VETO.has(`${row.market}:${finalSide}`)) {
+    flags.push("auxiliary_side_sample_risk");
+  }
   if ((row.absLineGap ?? 0) < 0.5 && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("thin_projection_gap");
   }
@@ -1125,6 +1138,19 @@ function isCountingOver(candidate: Candidate): boolean {
   return candidate.side === "OVER" && COUNTING_OVER_MARKETS.has(candidate.market);
 }
 
+function portfolioFragilityRejection(candidate: Candidate): string | null {
+  if (SELECTED_SIDE_VETO.has(`${candidate.market}:${candidate.side}`)) {
+    return "portfolio_guard_auxiliary_side_sample";
+  }
+  if (candidate.risk_flags.includes("counter_projection_pts_under_thin_gap")) {
+    return "portfolio_guard_counter_projection_pts_under_thin_gap";
+  }
+  if (candidate.risk_flags.includes("thin_projection_gap")) {
+    return "portfolio_guard_thin_projection_gap";
+  }
+  return null;
+}
+
 function correlationPenalty(candidate: Candidate, selected: Candidate[]): number {
   let penalty = 0;
   for (const leg of selected) {
@@ -1143,6 +1169,8 @@ function capRejectionReason(candidate: Candidate, selected: Candidate[]): string
   if (SELECTED_MARKET_VETO.has(candidate.market)) {
     return "portfolio_guard_market_veto";
   }
+  const fragilityRejection = portfolioFragilityRejection(candidate);
+  if (fragilityRejection) return fragilityRejection;
   if (selected.filter((pick) => hasSamePlayer(pick, candidate)).length >= PORTFOLIO_LIMITS.maxPerPlayer) {
     return "same_player_cap";
   }
@@ -1410,7 +1438,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-10 context-aware selection calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer for lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
+    "This is a correlation-aware meta-selector with the 2026-05-11 portfolio-fragility calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");
