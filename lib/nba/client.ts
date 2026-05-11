@@ -4,6 +4,11 @@ import { toNumber } from "@/lib/utils";
 
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 const NBA_SCHEDULE_URL = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json";
+const NBA_SCHEDULE_FALLBACK_URLS = [
+  NBA_SCHEDULE_URL,
+  "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json",
+  "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_2.json",
+];
 const NBA_BOXSCORE_URL = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{gameId}.json";
 const NBA_HTTP_TIMEOUT_MS = (() => {
   const parsed = Number(process.env.NBA_HTTP_TIMEOUT_MS);
@@ -25,6 +30,17 @@ const NBA_HISTORICAL_BOXSCORE_CACHE_TTL_MS = (() => {
   if (!Number.isFinite(parsed) || parsed < 0) return 60 * 60_000;
   return Math.min(Math.max(0, Math.floor(parsed)), 24 * 60 * 60_000);
 })();
+const NBA_SCHEDULE_URLS = Array.from(
+  new Set(
+    [
+      ...(process.env.NBA_SCHEDULE_URLS ?? "")
+        .split(",")
+        .map((url) => url.trim())
+        .filter(Boolean),
+      ...NBA_SCHEDULE_FALLBACK_URLS,
+    ].filter((url) => /^https?:\/\//i.test(url)),
+  ),
+);
 
 let cachedSchedule:
   | {
@@ -137,8 +153,12 @@ async function fetchJsonAttempt(url: string): Promise<FetchJsonAttemptResult> {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        Accept: "application/json",
-        "User-Agent": "Mozilla/5.0",
+        Accept: "application/json,text/plain,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        Origin: "https://www.nba.com",
+        Referer: "https://www.nba.com/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
       },
       cache: "no-store",
       signal: controller.signal,
@@ -367,6 +387,20 @@ export class NbaDataClient {
     throw lastError ?? new Error(`NBA endpoint failed: ${url}`);
   }
 
+  private async fetchScheduleJson(): Promise<unknown> {
+    let lastError: Error | null = null;
+
+    for (const url of NBA_SCHEDULE_URLS) {
+      try {
+        return await this.fetchJson(url);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Unknown NBA schedule fetch error");
+      }
+    }
+
+    throw lastError ?? new Error("NBA schedule endpoint failed.");
+  }
+
   async fetchSchedule(): Promise<NormalizedNbaScheduleGame[]> {
     const now = Date.now();
     if (cachedSchedule && cachedSchedule.expiresAt > now) {
@@ -377,7 +411,7 @@ export class NbaDataClient {
     }
 
     const task = (async (): Promise<NormalizedNbaScheduleGame[]> => {
-      const payload = await this.fetchJson(NBA_SCHEDULE_URL);
+      const payload = await this.fetchScheduleJson();
       const root = asRecord(payload);
       const leagueSchedule = asRecord(root?.leagueSchedule);
       const gameDates = asArray(leagueSchedule?.gameDates);

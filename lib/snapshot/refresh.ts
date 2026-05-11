@@ -170,6 +170,34 @@ function dedupeGames(games: NormalizedGame[]): NormalizedGame[] {
   return Array.from(map.values());
 }
 
+async function loadScheduleGamesFromDb(from: string, to: string): Promise<NormalizedGame[]> {
+  const games = await prisma.game.findMany({
+    where: {
+      gameDateEt: {
+        gte: from,
+        lte: to,
+      },
+    },
+    include: {
+      homeTeam: { select: { abbreviation: true, name: true } },
+      awayTeam: { select: { abbreviation: true, name: true } },
+    },
+    orderBy: [{ gameDateEt: "asc" }, { commenceTimeUtc: "asc" }],
+  });
+
+  return games.map((game) => ({
+    externalGameId: game.externalId,
+    gameDateEt: game.gameDateEt,
+    commenceTimeUtc: game.commenceTimeUtc,
+    status: game.status,
+    homeTeamAbbr: game.homeTeam.abbreviation,
+    awayTeamAbbr: game.awayTeam.abbreviation,
+    homeTeamName: game.homeTeam.name ?? teamNameFromAbbr(game.homeTeam.abbreviation),
+    awayTeamName: game.awayTeam.name ?? teamNameFromAbbr(game.awayTeam.abbreviation),
+    season: game.season,
+  }));
+}
+
 function mergePlayersFromLogs(players: NormalizedPlayerSeason[], logs: NormalizedPlayerGameStat[]): NormalizedPlayerSeason[] {
   const byId = new Map<string, NormalizedPlayerSeason>();
 
@@ -647,7 +675,29 @@ type FetchDataResult = {
 async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataResult> {
   const client = new NbaDataClient();
   const warnings: string[] = [];
-  const schedule = await client.fetchSchedule();
+  const scheduleWindow = mode === "FAST" ? { from: dateEt, to: dateEt } : collectDateWindow(mode, dateEt);
+  let schedule;
+  try {
+    schedule = await client.fetchSchedule();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "unknown NBA schedule error";
+    const fallbackGames = await loadScheduleGamesFromDb(scheduleWindow.from, scheduleWindow.to);
+    warnings.push(`NBA schedule unavailable; using existing database slate data. ${message}`);
+    logger.warn("NBA schedule fetch failed; using database fallback", {
+      dateEt,
+      refreshMode: mode,
+      windowFrom: scheduleWindow.from,
+      windowTo: scheduleWindow.to,
+      fallbackGames: fallbackGames.length,
+      reason: message,
+    });
+    return {
+      games: dedupeGames(fallbackGames),
+      players: [],
+      logs: [],
+      warnings,
+    };
+  }
   const todaysGames = schedule.filter((game) => game.gameDateEt === dateEt);
   if (mode === "FAST") {
     const games = dedupeGames(todaysGames);
@@ -671,7 +721,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     };
   }
 
-  const { from, to } = collectDateWindow(mode, dateEt);
+  const { from, to } = scheduleWindow;
   const windowGames = schedule.filter((game) => game.gameDateEt >= from && game.gameDateEt <= to);
   const finalWindowGames = windowGames.filter((game) => game.statusNumber >= 3);
   const historicalCompletedGameIds = new Set(

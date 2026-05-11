@@ -7,6 +7,7 @@ export type NbaScheduleDateSyncResult = {
   scheduleGames: number;
   upsertedGames: number;
   skippedGames: number;
+  warning?: string;
 };
 
 type ScheduledTeam = {
@@ -37,7 +38,19 @@ export async function ensureNbaScheduleGamesForDate(dateEt: string): Promise<Nba
     };
   }
 
-  const schedule = await new NbaDataClient().fetchSchedule();
+  let schedule;
+  try {
+    schedule = await new NbaDataClient().fetchSchedule();
+  } catch (error) {
+    return {
+      dateEt,
+      existingGames,
+      scheduleGames: 0,
+      upsertedGames: 0,
+      skippedGames: 0,
+      warning: `NBA schedule sync skipped: ${error instanceof Error ? error.message : "unknown schedule error"}`,
+    };
+  }
   const games = schedule.filter((game) => game.gameDateEt === dateEt);
   if (games.length === 0) {
     return {
