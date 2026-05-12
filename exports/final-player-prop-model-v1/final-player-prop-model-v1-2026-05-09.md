@@ -1,13 +1,13 @@
 # Final Player Prop Model V1
 
-Generated: 2026-05-11T23:48:05.867Z
+Generated: 2026-05-12T04:25:51.598Z
 Mode: PREVIEW
 Slate date ET: 2026-05-09
-Current date ET: 2026-05-11
+Current date ET: 2026-05-12
 
 ## Model Build
 
-This is a correlation-aware meta-selector with the 2026-05-11 portfolio-fragility calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.
+This is a correlation-aware meta-selector with the 2026-05-12 context-trap calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.
 
 ## Claim Boundary
 
@@ -98,7 +98,7 @@ Every scored row is included in the JSON and board CSV. The rows below are the t
 
 ## Warnings
 
-- Input score artifact is stale: slate 2026-05-09, current ET date 2026-05-11. Preview only.
+- Input score artifact is stale: slate 2026-05-09, current ET date 2026-05-12. Preview only.
 - The model intentionally underfilled rather than force weak, unavailable, or correlated picks.
 - 4 selected pick(s) carry role, source, gap, book-depth, or game-context risk flags.
 - Estimated accuracy priors are component priors, not calibrated forward probabilities.

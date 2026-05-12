@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-11-portfolio-fragility-v3"
+MODEL_VERSION = "2026-05-12-context-trap-v4"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 STABLE_STARTER_UNDER_RISK_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
@@ -561,6 +561,7 @@ def action_for(tier: str, components: list[str], base_score: float) -> str:
 
 def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
     flags = []
+    context = context_layer(row)
     if clean_number(row.projectedMinutes, 99) < 22:
         flags.append("low_projected_minutes")
     if row.finalSource == "baseline" and "top200_premium_90" not in components:
@@ -578,7 +579,11 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
         flags.append("auxiliary_side_sample_risk")
     if clean_number(row.absLineGap, 0) < 0.5 and "top200_premium_90" not in components:
         flags.append("thin_projection_gap")
-    flags.extend(context_layer(row)["contextFlags"])
+    if "low_total_supports_counting_under" in context["contextNotes"]:
+        flags.append("low_total_counting_under_trap")
+    if row.market == "REB" and row.finalSide == "OVER" and "volatile_minutes" in context["contextFlags"]:
+        flags.append("volatile_reb_over_risk")
+    flags.extend(context["contextFlags"])
     return flags
 
 
@@ -590,6 +595,10 @@ def portfolio_fragility_rejection(row: dict[str, Any]) -> str | None:
         return "portfolio_guard_counter_projection_pts_under_thin_gap"
     if "thin_projection_gap" in risk:
         return "portfolio_guard_thin_projection_gap"
+    if "low_total_counting_under_trap" in risk:
+        return "portfolio_guard_low_total_counting_under_trap"
+    if "volatile_reb_over_risk" in risk:
+        return "portfolio_guard_volatile_reb_over"
     return None
 
 
@@ -959,7 +968,7 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-11 portfolio-fragility calibration keeps the tier-first selector, then adds bounded game-context scoring plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, and ultra-thin non-premium projection gaps.",
+            "- The 2026-05-12 context-trap calibration keeps the tier-first selector, then adds bounded game-context scoring plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, and volatile REB OVER rows.",
             "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, fragility vetoes, and a selected score floor of 0.75.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
@@ -1012,7 +1021,7 @@ def main() -> None:
         "dateRange": {"from": active_dates[0] if active_dates else None, "to": active_dates[-1] if active_dates else None, "activeDates": len(active_dates)},
         "config": {"maxPicks": args.max_picks, "minScore": args.min_score, **PORTFOLIO_LIMITS},
         "contextLayer": {
-            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, and portfolio-fragility vetoes",
+            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, portfolio-fragility vetoes, and context-trap vetoes",
             "rowsWithContextPct": round(
                 100
                 * sum(1 for row in board_rows if row.get("contextScore") is not None)

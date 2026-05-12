@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-05-11T23:48:05.867Z",
+  "generatedAt": "2026-05-12T04:25:51.598Z",
   "modelId": "final-player-prop-model-v1",
   "modelName": "Final Correlation-Aware Player Prop Model V1",
-  "modelVersion": "2026-05-11-portfolio-fragility-v3",
+  "modelVersion": "2026-05-12-context-trap-v4",
   "mode": "PREVIEW",
   "slateDate": "2026-05-09",
-  "currentDateEt": "2026-05-11",
+  "currentDateEt": "2026-05-12",
   "claimBoundary": "This is a projection-calibrated, context-aware, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and 3+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.",
   "sourceArtifacts": {
     "scoresInput": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\top-player-200-sample-current-slate-scores.json",
@@ -150,7 +150,7 @@
     "warningCount": 4
   },
   "warnings": [
-    "Input score artifact is stale: slate 2026-05-09, current ET date 2026-05-11. Preview only.",
+    "Input score artifact is stale: slate 2026-05-09, current ET date 2026-05-12. Preview only.",
     "The model intentionally underfilled rather than force weak, unavailable, or correlated picks.",
     "4 selected pick(s) carry role, source, gap, book-depth, or game-context risk flags.",
     "Estimated accuracy priors are component priors, not calibrated forward probabilities."

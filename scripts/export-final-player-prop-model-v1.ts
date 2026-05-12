@@ -313,7 +313,7 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-11-portfolio-fragility-v3" as const;
+const MODEL_VERSION = "2026-05-12-context-trap-v4" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
@@ -865,6 +865,7 @@ function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
 
 function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], finalSide: Side): string[] {
   const flags: string[] = [];
+  const context = contextLayer(row, finalSide);
   if ((row.projectedMinutes ?? 99) < 22) flags.push("low_projected_minutes");
   if (finite(row.line) == null) flags.push("missing_live_line");
   const sportsbookCount = row.sportsbookCount ?? 0;
@@ -889,7 +890,13 @@ function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], fin
   if ((row.absLineGap ?? 0) < 0.5 && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("thin_projection_gap");
   }
-  flags.push(...contextLayer(row, finalSide).flags);
+  if (context.notes.includes("low_total_supports_counting_under")) {
+    flags.push("low_total_counting_under_trap");
+  }
+  if (row.market === "REB" && finalSide === "OVER" && context.flags.includes("volatile_minutes")) {
+    flags.push("volatile_reb_over_risk");
+  }
+  flags.push(...context.flags);
   return flags;
 }
 
@@ -1147,6 +1154,12 @@ function portfolioFragilityRejection(candidate: Candidate): string | null {
   }
   if (candidate.risk_flags.includes("thin_projection_gap")) {
     return "portfolio_guard_thin_projection_gap";
+  }
+  if (candidate.risk_flags.includes("low_total_counting_under_trap")) {
+    return "portfolio_guard_low_total_counting_under_trap";
+  }
+  if (candidate.risk_flags.includes("volatile_reb_over_risk")) {
+    return "portfolio_guard_volatile_reb_over";
   }
   return null;
 }
@@ -1438,7 +1451,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-11 portfolio-fragility calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
+    "This is a correlation-aware meta-selector with the 2026-05-12 context-trap calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");
