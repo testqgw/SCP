@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-14T17:16:50Z",
+  "generatedAt": "2026-05-14T20:50:41Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-10-team-sanity-v7",
-  "cardGeneratedAt": "2026-05-14T17:16:50Z",
+  "cardGeneratedAt": "2026-05-14T20:50:41Z",
   "slateDate": "2026-05-14",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 4,
+    "trackedPicks": 3,
     "settledPicks": 0,
-    "pendingPicks": 4,
+    "pendingPicks": 3,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
@@ -41,13 +41,13 @@
       "team_name": "Minnesota Lynx",
       "opponent": "DAL",
       "opponent_name": "Dallas Wings",
-      "market": "REB",
+      "market": "PTS",
       "side": "UNDER",
-      "line": 7.5,
+      "line": 13.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.68124,
-      "final_score": 0.76754,
+      "model_probability": 0.68842,
+      "final_score": 0.79674,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-dallas-wings-scores-odds-picks-props-may-14-2026/79695927-6dad-4aac-9d45-87b64c207526"
     },
@@ -68,24 +68,6 @@
       "final_score": 0.68377,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-portland-fire-scores-odds-picks-props-may-14-2026/2334666b-40bd-4c36-a856-57a7fa46c157"
-    },
-    {
-      "slate_date": "2026-05-14",
-      "selected_rank": 4,
-      "player": "Alanna Smith",
-      "team": "DAL",
-      "team_name": "Dallas Wings",
-      "opponent": "MIN",
-      "opponent_name": "Minnesota Lynx",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 8.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.60543,
-      "final_score": 0.55119,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-dallas-wings-scores-odds-picks-props-may-14-2026/79695927-6dad-4aac-9d45-87b64c207526"
     }
   ]
 }
