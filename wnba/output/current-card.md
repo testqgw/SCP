@@ -1,16 +1,14 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-13T21:00:48Z
-Slate: 2026-05-13
+Generated: 2026-05-14T17:16:50Z
+Slate: 2026-05-14
 
 ## Selected
 
-1. Nyara Sabally UNDER REB 6.5 (Toronto Tempo vs Seattle Storm): p=81.2%, proj=3.15, edge +22.2%, score=0.936
-2. Brittney Sykes UNDER PTS 16.5 (Toronto Tempo vs Seattle Storm): p=80.4%, proj=10.17, edge +24.9%, score=0.892
-3. A'ja Wilson UNDER REB 10.5 (Las Vegas Aces vs Connecticut Sun): p=74.2%, proj=7.18, edge +13.6%, score=0.890
-4. Jackie Young UNDER THREES 2.5 (Las Vegas Aces vs Connecticut Sun): p=72.6%, proj=1.58, edge +8.3%, score=0.855
-5. Gabby Williams UNDER PA 18.5 (Golden State Valkyries vs Chicago Sky): p=70.7%, proj=14.67, edge +13.8%, score=0.828
-6. Caitlin Clark UNDER THREES 2.5 (Indiana Fever vs Los Angeles Sparks): p=65.9%, proj=1.95, edge +20.8%, score=0.697
+1. Jonquel Jones UNDER PR 25.5 (New York Liberty vs Portland Fire): p=76.1%, proj=18.98, edge +21.1%, score=0.816
+2. Natasha Howard UNDER REB 7.5 (Minnesota Lynx vs Dallas Wings): p=68.1%, proj=5.97, edge +18.1%, score=0.768
+3. Betnijah Laney-Hamilton UNDER PTS 10.5 (New York Liberty vs Portland Fire): p=66.4%, proj=8.20, edge +13.1%, score=0.684
+4. Alanna Smith UNDER PTS 8.5 (Dallas Wings vs Minnesota Lynx): p=60.5%, proj=6.85, edge +10.5%, score=0.551
 
 ## Warnings
 

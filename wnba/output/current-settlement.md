@@ -1,15 +1,13 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-13T21:00:48Z
-Slate: 2026-05-13
-Settled: 0 / 6
+Generated: 2026-05-14T17:16:50Z
+Slate: 2026-05-14
+Settled: 0 / 4
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Nyara Sabally UNDER REB 6.5 (actual pending)
-- PENDING: Brittney Sykes UNDER PTS 16.5 (actual pending)
-- PENDING: A'ja Wilson UNDER REB 10.5 (actual pending)
-- PENDING: Jackie Young UNDER THREES 2.5 (actual pending)
-- PENDING: Gabby Williams UNDER PA 18.5 (actual pending)
-- PENDING: Caitlin Clark UNDER THREES 2.5 (actual pending)
+- PENDING: Jonquel Jones UNDER PR 25.5 (actual pending)
+- PENDING: Natasha Howard UNDER REB 7.5 (actual pending)
+- PENDING: Betnijah Laney-Hamilton UNDER PTS 10.5 (actual pending)
+- PENDING: Alanna Smith UNDER PTS 8.5 (actual pending)
