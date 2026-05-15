@@ -1,11 +1,15 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-15T01:57:00Z
+Generated: 2026-05-15T17:05:32Z
 Slate: 2026-05-15
-Settled: 0 / 2
+Settled: 0 / 6
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Emily Engstler UNDER PTS 9.5 (actual pending)
-- PENDING: Natasha Howard UNDER PA 16.5 (actual pending)
+- PENDING: Jackie Young UNDER THREES 2.5 (actual pending)
+- PENDING: Brittney Sykes UNDER PTS 16.5 (actual pending)
+- PENDING: Nyara Sabally UNDER PTS 8.5 (actual pending)
+- PENDING: Aliyah Boston UNDER PTS 15.5 (actual pending)
+- PENDING: Caitlin Clark UNDER THREES 2.5 (actual pending)
+- PENDING: Kahleah Copper UNDER THREES 2.5 (actual pending)
