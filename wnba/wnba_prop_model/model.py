@@ -31,7 +31,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-10-team-sanity-v7"
+MODEL_VERSION = "2026-05-14-expanded-slate-v8"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -39,11 +39,12 @@ CLAIM_BOUNDARY = (
 
 PORTFOLIO_LIMITS = {
     "max_picks": 6,
+    "target_picks": 6,
     "min_score": 0.68,
     "max_per_player": 1,
-    "max_per_team": 2,
-    "max_per_game": 2,
-    "max_per_market": 2,
+    "max_per_team": 4,
+    "max_per_game": 4,
+    "max_per_market": 4,
     "max_same_team_counting_overs": 1,
     "max_combo_markets": 2,
     "required_source_book": "",
@@ -51,6 +52,10 @@ PORTFOLIO_LIMITS = {
     "allow_source_consensus_leans": False,
     "min_consensus_probability": 0.60,
     "min_consensus_score": 0.25,
+    "allow_expanded_fill": True,
+    "expanded_min_score": 0.58,
+    "expanded_min_probability": 0.62,
+    "expanded_min_price_edge": 0.04,
     "volatile_short_rest_min_score": 0.82,
 }
 
@@ -182,6 +187,8 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
         "team_resolution_status",
         "source_away_abbr",
         "source_home_abbr",
+        "over_book",
+        "under_book",
     ]:
         if column not in df.columns:
             df[column] = ""
@@ -486,6 +493,9 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
     over_prob = clamp(over_prob, 0.02, 0.98)
     side = "OVER" if over_prob >= 0.5 else "UNDER"
     model_prob = over_prob if side == "OVER" else 1.0 - over_prob
+    side_book_value = row.get("over_book") if side == "OVER" else row.get("under_book")
+    side_source_book = str(side_book_value or "").strip()
+    source_book = side_source_book or str(row.get("source_book") or "")
     fair_prob = no_vig_probability(row.get("over_odds"), row.get("under_odds"), side)
     edge = model_prob - fair_prob if fair_prob is not None else None
     line_gap = projection - line
@@ -585,7 +595,7 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "source_pick": source_pick or None,
         "source_projection": round_or_none(source_projection, 3),
         "source_odds": round_or_none(row.get("source_odds"), 0),
-        "source_book": str(row.get("source_book") or ""),
+        "source_book": source_book,
         "source_market": str(row.get("source_market") or ""),
         "source_url": str(row.get("source_url") or ""),
         "source_event_id": str(row.get("source_event_id") or ""),
@@ -690,9 +700,104 @@ def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) 
     return True
 
 
+def _is_expanded_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    if not limits.get("allow_expanded_fill"):
+        return False
+    if row["final_score"] < float(limits.get("expanded_min_score", 0.58)):
+        return False
+    if row["model_probability"] < float(limits.get("expanded_min_probability", 0.62)):
+        row["rejection_reason"] = "below_expanded_probability"
+        return False
+    if row["tier"] not in {"S", "A", "B", "C"}:
+        return False
+    if row["fair_probability"] is not None and (row["price_edge"] or 0.0) < float(limits.get("expanded_min_price_edge", 0.04)):
+        row["rejection_reason"] = "below_expanded_price_edge"
+        return False
+    hard_flags = {
+        "injury_or_status_note",
+        "unresolved_player",
+        "thin_player_history",
+        "source_pick_disagreement",
+        "source_projection_disagreement",
+        "source_projection_near_line",
+        "missing_source_projection",
+        "not_current_source_snapshot",
+        "unknown_team_context",
+        "team_resolution_mismatch",
+        "team_source_game_mismatch",
+    }
+    if hard_flags & set(row.get("risk_flags") or []):
+        return False
+    if not _passes_book_gate(row, limits):
+        return False
+    return True
+
+
+def _candidate_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
+    return (float(row["final_score"]), float(row["model_probability"]), float(row["abs_line_gap"]))
+
+
+def _mark_candidate_rows(rows: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> None:
+    candidate_ids = {row["candidate_id"] for row in candidates}
+    for row in rows:
+        if row["candidate_id"] in candidate_ids and row["model_action"] == "COVERAGE":
+            row["model_action"] = "CANDIDATE"
+
+
+def _try_select_row(
+    row: dict[str, Any],
+    limits: dict[str, Any],
+    selected: int,
+    player_counts: Counter[str],
+    team_counts: Counter[str],
+    game_counts: Counter[str],
+    market_counts: Counter[str],
+    same_team_counting_overs: Counter[tuple[str, str]],
+    combo_count: int,
+) -> tuple[bool, int]:
+    rejection = None
+    player_key = row["player_id"] or str(row["player"]).lower()
+    if selected >= int(limits["max_picks"]):
+        rejection = "portfolio_full"
+    elif player_counts[player_key] >= int(limits["max_per_player"]):
+        rejection = "max_per_player"
+    elif team_counts[row["team"]] >= int(limits["max_per_team"]):
+        rejection = "max_per_team"
+    elif game_counts[row["matchup_key"]] >= int(limits["max_per_game"]):
+        rejection = "max_per_game"
+    elif market_counts[row["market"]] >= int(limits["max_per_market"]):
+        rejection = "max_per_market"
+    elif row["market"] in COMBO_MARKETS and combo_count >= int(limits["max_combo_markets"]):
+        rejection = "max_combo_markets"
+    elif (
+        row["side"] == "OVER"
+        and row["market"] in COUNTING_OVER_MARKETS
+        and same_team_counting_overs[(row["matchup_key"], row["team"])] >= int(limits["max_same_team_counting_overs"])
+    ):
+        rejection = "same_team_counting_over_correlation"
+    if rejection:
+        row["rejection_reason"] = rejection
+        return False, combo_count
+    selected += 1
+    row["model_action"] = "SELECTED"
+    row["selected_rank"] = selected
+    player_counts[player_key] += 1
+    team_counts[row["team"]] += 1
+    game_counts[row["matchup_key"]] += 1
+    market_counts[row["market"]] += 1
+    if row["market"] in COMBO_MARKETS:
+        combo_count += 1
+    if row["side"] == "OVER" and row["market"] in COUNTING_OVER_MARKETS:
+        same_team_counting_overs[(row["matchup_key"], row["team"])] += 1
+    return True, combo_count
+
+
 def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
-    candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
-    candidates.sort(key=lambda item: (item["final_score"], item["model_probability"], item["abs_line_gap"]), reverse=True)
+    standard_candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
+    expanded_candidates = [row for row in rows if row not in standard_candidates and _is_expanded_fill_candidate(row, limits)]
+    standard_candidates.sort(key=_candidate_sort_key, reverse=True)
+    expanded_candidates.sort(key=_candidate_sort_key, reverse=True)
+    candidates = standard_candidates + expanded_candidates
     player_counts: Counter[str] = Counter()
     team_counts: Counter[str] = Counter()
     game_counts: Counter[str] = Counter()
@@ -700,45 +805,56 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
     same_team_counting_overs: Counter[tuple[str, str]] = Counter()
     combo_count = 0
     selected = 0
-    candidate_ids = {row["candidate_id"] for row in candidates}
-    for row in rows:
-        if row["candidate_id"] in candidate_ids:
-            row["model_action"] = "CANDIDATE"
-    for row in candidates:
-        rejection = None
-        player_key = row["player_id"] or str(row["player"]).lower()
-        if selected >= limits["max_picks"]:
-            rejection = "portfolio_full"
-        elif player_counts[player_key] >= limits["max_per_player"]:
-            rejection = "max_per_player"
-        elif team_counts[row["team"]] >= limits["max_per_team"]:
-            rejection = "max_per_team"
-        elif game_counts[row["matchup_key"]] >= limits["max_per_game"]:
-            rejection = "max_per_game"
-        elif market_counts[row["market"]] >= limits["max_per_market"]:
-            rejection = "max_per_market"
-        elif row["market"] in COMBO_MARKETS and combo_count >= limits["max_combo_markets"]:
-            rejection = "max_combo_markets"
-        elif (
-            row["side"] == "OVER"
-            and row["market"] in COUNTING_OVER_MARKETS
-            and same_team_counting_overs[(row["matchup_key"], row["team"])] >= limits["max_same_team_counting_overs"]
-        ):
-            rejection = "same_team_counting_over_correlation"
-        if rejection:
-            row["rejection_reason"] = rejection
+    _mark_candidate_rows(rows, candidates)
+    target = min(int(limits.get("target_picks") or limits["max_picks"]), int(limits["max_picks"]))
+    for row in standard_candidates:
+        if selected >= target:
+            row["rejection_reason"] = "portfolio_full"
             continue
-        selected += 1
-        row["model_action"] = "SELECTED"
-        row["selected_rank"] = selected
-        player_counts[player_key] += 1
-        team_counts[row["team"]] += 1
-        game_counts[row["matchup_key"]] += 1
-        market_counts[row["market"]] += 1
-        if row["market"] in COMBO_MARKETS:
-            combo_count += 1
-        if row["side"] == "OVER" and row["market"] in COUNTING_OVER_MARKETS:
-            same_team_counting_overs[(row["matchup_key"], row["team"])] += 1
+        _, combo_count = _try_select_row(
+            row,
+            limits,
+            selected,
+            player_counts,
+            team_counts,
+            game_counts,
+            market_counts,
+            same_team_counting_overs,
+            combo_count,
+        )
+        selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
+    if selected < target:
+        for row in expanded_candidates:
+            if selected >= target:
+                row["rejection_reason"] = "portfolio_full"
+                continue
+            if row["model_action"] == "SELECTED":
+                continue
+            picked, combo_count = _try_select_row(
+                row,
+                limits,
+                selected,
+                player_counts,
+                team_counts,
+                game_counts,
+                market_counts,
+                same_team_counting_overs,
+                combo_count,
+            )
+            if picked:
+                row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["expanded_card_fill"]))
+            selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
+    selected_rows = [row for row in rows if row["model_action"] == "SELECTED"]
+    selected_player_counts = Counter(row["player_id"] or str(row["player"]).lower() for row in selected_rows)
+    selected_game_counts = Counter(row["matchup_key"] for row in selected_rows)
+    for row in selected_rows:
+        flags = set(row.get("risk_flags") or [])
+        player_key = row["player_id"] or str(row["player"]).lower()
+        if selected_player_counts[player_key] > 1:
+            flags.add("same_player_correlation")
+        if selected_game_counts[row["matchup_key"]] > 2:
+            flags.add("same_game_concentration")
+        row["risk_flags"] = sorted(flags)
 
 
 def score_board(
@@ -785,6 +901,15 @@ def score_board(
     required_book = str(active_limits.get("required_source_book") or "").strip()
     if required_book and not selected_rows:
         warnings.append(f"No selected rows cleared the {required_book} availability gate.")
+    target_picks = int(active_limits.get("target_picks") or active_limits["max_picks"])
+    if 0 < len(selected_rows) < target_picks:
+        warnings.append(f"Only {len(selected_rows)} rows cleared the current gates for a {target_picks}-pick target.")
+    if selected_rows and any("expanded_card_fill" in row["risk_flags"] for row in selected_rows):
+        warnings.append("Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.")
+    if selected_rows and any("same_player_correlation" in row["risk_flags"] for row in selected_rows):
+        warnings.append("Expanded card includes multiple props on the same player because the available slate board is concentrated.")
+    if selected_rows and any("same_game_concentration" in row["risk_flags"] for row in selected_rows):
+        warnings.append("Expanded card is concentrated in one matchup; treat correlated results as higher variance.")
     summary["warningCount"] = len(warnings)
     return {
         "generatedAt": utc_now(),
@@ -869,7 +994,8 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
         lines.append(
             f"{row['selected_rank']}. {row['player']} {row['side']} {row['market']} {row['line']} "
             f"({team_label} vs {opponent_label}): p={row['model_probability']:.1%}, "
-            f"proj={row['projected_value']:.2f}{edge}, score={row['final_score']:.3f}"
+            f"proj={row['projected_value']:.2f}{edge}, score={row['final_score']:.3f}, "
+            f"source={row.get('source_book') or 'Public board'}"
         )
     lines.extend(["", "## Warnings", ""])
     lines.extend(card["warnings"] or ["None"])

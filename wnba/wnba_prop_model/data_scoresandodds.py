@@ -12,8 +12,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-from .data_sportsgrid import normalize_team
-from .utils import canonical_name, normalize_market, today_et
+from .utils import canonical_name, normalize_market, normalize_team, today_et
 
 SCORESANDODDS_BASE_URL = "https://www.scoresandodds.com"
 SCORESANDODDS_USER_AGENT = "Mozilla/5.0 (compatible; wnba-prop-model/1.0)"
@@ -23,6 +22,10 @@ MARKET_PATHS = {
     "REB": "rebounds",
     "AST": "assists",
     "THREES": "3-pointers",
+    "PR": "points-&-rebounds",
+    "PA": "points-&-assists",
+    "PRA": "points,-rebounds,-&-assists",
+    "RA": "rebounds-&-assists",
 }
 
 
@@ -35,6 +38,8 @@ class ScoresAndOddsProp:
     line: float
     over_odds: int | None
     under_odds: int | None
+    over_book: str
+    under_book: str
     source_projection: float | None
     source_url: str
     source_event_id: str
@@ -99,20 +104,29 @@ def parse_props_from_html(
             player = unescape(filter_match.group(1)).strip()
         projection_match = re.search(r'data-proj="([^"]+)"', attrs, flags=re.IGNORECASE)
         source_projection = float(projection_match.group(1)) if projection_match else None
-        prices = re.findall(
-            r'<span class="data-moneyline">([ou])([0-9.]+)</span>\s*<small class="data-odds(?: best)?">([^<]+)</small>',
-            body,
-            flags=re.IGNORECASE,
+        prices = list(
+            re.finditer(
+                r'<span class="data-moneyline">([ou])([0-9.]+)</span>\s*<small class="data-odds(?: best)?">([^<]+)</small>',
+                body,
+                flags=re.IGNORECASE,
+            )
         )
         over_line = under_line = None
         over_odds = under_odds = None
-        for side, line_text, odds_text in prices:
+        over_book = under_book = ""
+        for match in prices:
+            side, line_text, odds_text = match.groups()
+            book_segment = body[match.end() : match.end() + 900]
+            book_match = re.search(r'<img[^>]+alt="([^"]+)"', book_segment, flags=re.IGNORECASE)
+            book = unescape(book_match.group(1)).strip() if book_match else ""
             if side.lower() == "o" and over_line is None:
                 over_line = float(line_text)
                 over_odds = _parse_american(odds_text)
+                over_book = book
             elif side.lower() == "u" and under_line is None:
                 under_line = float(line_text)
                 under_odds = _parse_american(odds_text)
+                under_book = book
         line = over_line if over_line is not None else under_line
         if line is None:
             continue
@@ -127,6 +141,8 @@ def parse_props_from_html(
                 line=line,
                 over_odds=over_odds,
                 under_odds=under_odds,
+                over_book=over_book,
+                under_book=under_book,
                 source_projection=source_projection,
                 source_url=source_url,
                 source_event_id=_event_id(body),
@@ -219,6 +235,8 @@ def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | Non
                 "line": prop.line,
                 "over_odds": prop.over_odds,
                 "under_odds": prop.under_odds,
+                "over_book": prop.over_book,
+                "under_book": prop.under_book,
                 "sportsbook_count": 2 if prop.over_odds is not None and prop.under_odds is not None else 1,
                 "source_projection": prop.source_projection,
                 "source_book": "ScoresAndOdds Best Odds",
@@ -226,6 +244,7 @@ def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | Non
                 "source_url": prop.source_url,
                 "source_event_id": prop.source_event_id,
                 "line_last_updated": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                "source_status": "live_current",
                 "team_resolution_status": resolution_status,
             }
         )
@@ -245,6 +264,8 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "line",
         "over_odds",
         "under_odds",
+        "over_book",
+        "under_book",
         "sportsbook_count",
         "source_projection",
         "source_book",
@@ -252,6 +273,7 @@ def write_board_csv(rows: list[dict[str, Any]], path: str | Path) -> None:
         "source_url",
         "source_event_id",
         "line_last_updated",
+        "source_status",
         "team_resolution_status",
     ]
     with out.open("w", newline="", encoding="utf-8") as handle:

@@ -58,15 +58,15 @@ Outputs:
 
 The site card is refreshed by `.github/workflows/wnba-daily-card.yml`. The workflow runs every day at `15:20 UTC` and `19:20 UTC`, refreshes ESPN player logs, pulls the current WNBA prop board, settles the prior card when final boxscores are available, writes new `wnba/output/current-*` artifacts, commits them, and then lets Vercel serve the updated `/wnba` section.
 
-Daily cards run in FanDuel-strict mode. If `THE_ODDS_API_KEY` is set, the refresh asks The Odds API for `fanduel` WNBA props only. Without that key, it auto-discovers SportsGrid WNBA game pages and imports only the FanDuel player props shown there. ScoresAndOdds is now only a fallback coverage source in this mode; it will not produce selected picks unless the source book is FanDuel.
+Daily cards run in expanded six-pick mode. The refresh prefers FanDuel-sourced rows from SportsGrid or The Odds API when available, then uses ScoresAndOdds best-odds rows to widen access when the FanDuel-only board is too thin. The selected card is still gated by model probability, price edge, source projection alignment, team-context sanity, stale-row checks, player/team/game/market exposure limits, and a controlled expanded-fill threshold. Rows from non-FanDuel sources are labeled so you can confirm current book availability before using them.
 
 You can run the same refresh locally from the repo root:
 
 ```powershell
-python wnba/scripts/daily_refresh.py --book fanduel
+python wnba/scripts/daily_refresh.py --book expanded --max-picks 6
 ```
 
-Use `--date YYYY-MM-DD` to rebuild a specific slate. Use `--book best` only when you intentionally want best-odds research that is not constrained to FanDuel availability.
+Use `--date YYYY-MM-DD` to rebuild a specific slate. Use `--book fanduel` when you intentionally want a strict FanDuel-only card, or `--book best` for broader best-odds research without the expanded six-pick fill.
 
 ## Board Columns
 

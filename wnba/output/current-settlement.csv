@@ -1,4 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-05-14,1,Jonquel Jones,NY,New York Liberty,POR,Portland Fire,PR,UNDER,25.5,,PENDING,0.76061,0.81645,FanDuel,https://www.sportsgrid.com/wnba/game/new-york-liberty-portland-fire-scores-odds-picks-props-may-14-2026/2334666b-40bd-4c36-a856-57a7fa46c157
-2026-05-14,2,Natasha Howard,MIN,Minnesota Lynx,DAL,Dallas Wings,PTS,UNDER,13.5,,PENDING,0.68842,0.79674,FanDuel,https://www.sportsgrid.com/wnba/game/minnesota-lynx-dallas-wings-scores-odds-picks-props-may-14-2026/79695927-6dad-4aac-9d45-87b64c207526
-2026-05-14,3,Betnijah Laney-Hamilton,NY,New York Liberty,POR,Portland Fire,PTS,UNDER,10.5,,PENDING,0.66412,0.68377,FanDuel,https://www.sportsgrid.com/wnba/game/new-york-liberty-portland-fire-scores-odds-picks-props-may-14-2026/2334666b-40bd-4c36-a856-57a7fa46c157
+2026-05-15,1,Emily Engstler,WSH,Washington Mystics,IND,Indiana Fever,PTS,UNDER,9.5,,PENDING,0.78372,0.90268,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-05-15,2,Emily Engstler,WSH,Washington Mystics,IND,Indiana Fever,PA,UNDER,12.5,,PENDING,0.78684,0.88095,bet365,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-15,3,Emily Engstler,WSH,Washington Mystics,IND,Indiana Fever,PR,UNDER,14.5,,PENDING,0.75902,0.853,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-05-15,4,Natasha Howard,IND,Indiana Fever,WSH,Washington Mystics,PA,UNDER,16.5,,PENDING,0.71662,0.83626,bet365,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-15,5,Natasha Howard,IND,Indiana Fever,WSH,Washington Mystics,PTS,UNDER,13.5,,PENDING,0.68118,0.80343,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-05-15,6,Natasha Howard,IND,Indiana Fever,WSH,Washington Mystics,PRA,UNDER,23.5,,PENDING,0.67445,0.76353,bet365,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"

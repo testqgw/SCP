@@ -1,21 +1,12 @@
 {
-  "generatedAt": "2026-05-14T20:50:41Z",
-  "targetDate": "2026-05-14",
-  "source": "sportsgrid-fanduel",
-  "boardPath": "data/current/sportsgrid_fanduel_board_2026-05-14.csv",
-  "archivedSlate": null,
-  "selectedCount": 3,
-  "totalBoardRows": 7,
+  "generatedAt": "2026-05-15T01:48:26Z",
+  "targetDate": "2026-05-15",
+  "source": "scoresandodds",
+  "boardPath": "data\\current\\expanded_board_2026-05-15.csv",
+  "archivedSlate": "2026-05-14",
+  "selectedCount": 6,
+  "totalBoardRows": 124,
   "priorSettlement": {
-    "trackedPicks": 4,
-    "settledPicks": 0,
-    "pendingPicks": 4,
-    "wins": 0,
-    "losses": 0,
-    "pushes": 0,
-    "accuracyPct": null
-  },
-  "currentSettlement": {
     "trackedPicks": 3,
     "settledPicks": 0,
     "pendingPicks": 3,
@@ -24,14 +15,23 @@
     "pushes": 0,
     "accuracyPct": null
   },
+  "currentSettlement": {
+    "trackedPicks": 6,
+    "settledPicks": 0,
+    "pendingPicks": 6,
+    "wins": 0,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": null
+  },
   "cardPaths": {
-    "json": "output/current-card.json",
-    "csv": "output/current-card.csv",
-    "md": "output/current-card.md"
+    "json": "output\\current-card.json",
+    "csv": "output\\current-card.csv",
+    "md": "output\\current-card.md"
   },
   "settlementPaths": {
-    "json": "output/current-settlement.json",
-    "csv": "output/current-settlement.csv",
-    "md": "output/current-settlement.md"
+    "json": "output\\current-settlement.json",
+    "csv": "output\\current-settlement.csv",
+    "md": "output\\current-settlement.md"
   }
 }

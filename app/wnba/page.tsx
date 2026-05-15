@@ -177,7 +177,8 @@ function PickCard({ row }: { row: CurrentCardRow }) {
       </div>
 
       <div className="mt-4 text-sm leading-6 text-[var(--text-2)]">
-        {row.source_book || "Source"} projection {row.source_projection?.toFixed(1) ?? "n/a"} on {row.source_market || row.market};
+        Listed source {row.source_book || "Public board"}; projection {row.source_projection?.toFixed(1) ?? "n/a"} on{" "}
+        {row.source_market || row.market};
         model gap {row.line_gap > 0 ? "+" : ""}
         {row.line_gap.toFixed(2)}.
       </div>
@@ -205,7 +206,8 @@ function PickCard({ row }: { row: CurrentCardRow }) {
 }
 
 function SlateBoardRow({ row }: { row: CurrentCardRow }) {
-  const bookOdds = row.source_odds ?? (row.source_pick === "OVER" ? row.over_odds : row.under_odds);
+  const listedSide = row.source_pick || row.side;
+  const bookOdds = row.source_odds ?? (listedSide === "OVER" ? row.over_odds : row.under_odds);
   const status =
     row.model_action === "SELECTED"
       ? "Top card"
@@ -236,11 +238,12 @@ function SlateBoardRow({ row }: { row: CurrentCardRow }) {
         </div>
       </div>
       <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">FanDuel listed</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Listed source</div>
         <div className="mt-1 font-semibold text-[var(--text)]">
-          {row.source_pick || row.side} {row.source_market || row.market} {row.line}
+          {listedSide} {row.source_market || row.market} {row.line}
           {bookOdds ? ` ${formatOdds(bookOdds)}` : ""}
         </div>
+        <div className="mt-1 truncate text-xs text-[var(--text-2)]">{row.source_book || "Public board"}</div>
       </div>
       <div>
         <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--muted)]">Model</div>
@@ -412,9 +415,9 @@ export default function WnbaPage(): React.ReactElement {
           <div className="mt-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-[var(--text)]">Full FanDuel Slate Board</h3>
+                <h3 className="text-lg font-semibold text-[var(--text)]">Full WNBA Slate Board</h3>
                 <p className="mt-1 text-sm leading-6 text-[var(--text-2)]">
-                  Every FanDuel-listed WNBA prop the model scored for this slate, sorted by final model score.
+                  Every sourced WNBA prop the model scored for this slate, sorted by final model score.
                 </p>
               </div>
               <div className="text-sm font-semibold text-[var(--text-2)]">{WNBA_CURRENT_CARD.boardRows.length} props</div>

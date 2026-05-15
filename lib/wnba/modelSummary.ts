@@ -12,9 +12,9 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-05-08-best-odds-source-gated-v3",
-  status: "Current best-odds WNBA card published",
-  currentDateEt: "2026-05-08",
+  modelVersion: "2026-05-14-expanded-slate-v8",
+  status: "Current expanded WNBA card published",
+  currentDateEt: "2026-05-14",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
   boardTemplatePath: "wnba/data/templates/market_board_template.csv",
@@ -23,7 +23,7 @@ export const WNBA_MODEL_SUMMARY = {
   claimBoundary:
     "WNBA V1 ranks sourced player props with historical boxscore evidence, best available over/under prices, source projection alignment, and portfolio gates. It is not a guarantee, and live use still requires player availability confirmation.",
   dataSource:
-    "ESPN public WNBA scoreboard and boxscore endpoints for logs, ScoresAndOdds public best-odds prop tables for the free current card, SportsGrid as a fallback source, and optional The Odds API support when an API key is supplied.",
+    "ESPN public WNBA scoreboard and boxscore endpoints for logs, SportsGrid FanDuel prop cards when available, ScoresAndOdds public best-odds prop tables for expanded coverage, and optional The Odds API support when an API key is supplied.",
   rawRows: "11,926",
   regularRows: "9,969",
   games: "530",
@@ -79,18 +79,19 @@ export const WNBA_MODEL_STAGES: WnbaModelStage[] = [
   {
     label: "Portfolio gates",
     detail:
-      "Limits exposure by player, team, game, market, combo market, and same-team counting overs before selecting the final card.",
+      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses controlled expanded-fill gates to reach the six-pick target when enough valid rows exist.",
   },
 ];
 
 export const WNBA_PORTFOLIO_RULES = [
   "Max 6 picks",
-  "Max 1 per player",
-  "Max 2 per team",
-  "Max 2 per game",
-  "Max 2 per market",
-  "Max 2 combo markets",
+  "Max 3 per player in expanded mode",
+  "Max 6 per team in expanded mode",
+  "Max 6 per game in expanded mode",
+  "Max 4 per market",
+  "Max 4 combo markets",
   "Max 1 same-team counting over",
+  "Expanded fill requires probability, edge, and clean team context",
 ] as const;
 
 export const WNBA_INPUT_COLUMNS = [

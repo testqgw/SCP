@@ -8,6 +8,7 @@ import shutil
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -19,6 +20,7 @@ from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
 from wnba_prop_model.model import load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
+from wnba_prop_model.utils import canonical_name
 
 LOGS_PATH = ROOT / "data/raw/wnba_player_game_logs.csv"
 CURRENT_OUTPUT_PREFIX = ROOT / "output/current-card"
@@ -37,7 +39,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seasons", nargs="+", type=int, default=[2024, 2025, 2026])
     parser.add_argument("--fetch-sleep", type=float, default=0.05)
     parser.add_argument("--source", choices=["auto", "sportsgrid", "scoresandodds", "oddsapi"], default="auto")
-    parser.add_argument("--book", choices=["fanduel", "best"], default="fanduel")
+    parser.add_argument("--book", choices=["fanduel", "best", "expanded"], default="expanded")
     parser.add_argument("--bookmakers", default=None)
     parser.add_argument("--sportsgrid-urls", nargs="*", default=None)
     parser.add_argument("--max-picks", type=int, default=6)
@@ -72,6 +74,88 @@ def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str]:
         str(row.get("source_market") or "").strip().lower(),
         str(row.get("source_url") or "").strip().lower(),
     )
+
+
+COMBINED_BOARD_FIELDNAMES = [
+    "game_date",
+    "player",
+    "player_id",
+    "team_abbr",
+    "opponent_abbr",
+    "market",
+    "line",
+    "over_odds",
+    "under_odds",
+    "over_book",
+    "under_book",
+    "sportsbook_count",
+    "game_total",
+    "spread",
+    "source_pick",
+    "source_projection",
+    "source_odds",
+    "source_book",
+    "source_market",
+    "source_url",
+    "source_event_id",
+    "source_away_abbr",
+    "source_home_abbr",
+    "game_time_et",
+    "line_last_updated",
+    "source_status",
+    "team_resolution_status",
+]
+
+
+def _combined_source_priority(row: dict[str, Any]) -> int:
+    source_book = str(row.get("source_book") or "").lower()
+    source_url = str(row.get("source_url") or "").lower()
+    if "fanduel" in source_book:
+        return 0
+    if "sportsgrid" in source_url:
+        return 1
+    if "odds api" in source_book or "the-odds-api" in source_url:
+        return 2
+    return 3
+
+
+def _combined_row_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
+    player_key = str(row.get("player_id") or "").strip()
+    if not player_key:
+        player_key = canonical_name(str(row.get("player") or ""))
+    return (
+        str(row.get("game_date") or "").strip(),
+        player_key,
+        str(row.get("market") or "").strip().upper(),
+        str(row.get("line") or "").strip(),
+    )
+
+
+def dedupe_combined_board_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+    for row in sorted(rows, key=_combined_source_priority):
+        key = _combined_row_key(row)
+        if key not in deduped:
+            deduped[key] = row
+    return sorted(
+        deduped.values(),
+        key=lambda row: (
+            _combined_source_priority(row),
+            str(row.get("game_time_et") or ""),
+            str(row.get("team_abbr") or ""),
+            str(row.get("player") or ""),
+            str(row.get("market") or ""),
+        ),
+    )
+
+
+def write_combined_board_csv(rows: list[dict[str, Any]], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=COMBINED_BOARD_FIELDNAMES, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
 
 
 def merge_same_day_board_rows(board_path: Path, target_date: str, fresh_rows: list[dict]) -> list[dict]:
@@ -145,6 +229,22 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
         limits["required_source_book"] = "FanDuel"
         limits["require_playable_side_odds"] = True
         limits["allow_source_consensus_leans"] = True
+    elif args.book == "expanded":
+        limits.update(
+            {
+                "target_picks": args.max_picks,
+                "require_playable_side_odds": True,
+                "allow_expanded_fill": True,
+                "expanded_min_score": 0.58,
+                "expanded_min_probability": 0.62,
+                "expanded_min_price_edge": 0.04,
+                "max_per_player": 3,
+                "max_per_team": 6,
+                "max_per_game": 6,
+                "max_per_market": 4,
+                "max_combo_markets": 4,
+            }
+        )
     return score_board(logs, board, slate_date=target_date, limits=limits)
 
 
@@ -169,7 +269,7 @@ def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tupl
 
 def generate_from_scoresandodds(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
     resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
-    props = data_scoresandodds.fetch_props(["PTS", "REB", "AST", "THREES"], default_date=target_date)
+    props = data_scoresandodds.fetch_props(list(data_scoresandodds.MARKET_PATHS), default_date=target_date)
     rows = data_scoresandodds.props_to_board_rows(props, resolver_logs)
     board_path = ROOT / f"data/current/scoresandodds_board_{target_date}.csv"
     data_scoresandodds.write_board_csv(rows, board_path)
@@ -205,7 +305,69 @@ def generate_from_oddsapi(target_date: str, args: argparse.Namespace) -> tuple[d
     return card, "oddsapi-fanduel" if args.book == "fanduel" else "oddsapi", board_path
 
 
+def generate_from_expanded(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
+    resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
+    rows: list[dict[str, Any]] = []
+    source_urls: set[str] = set()
+    source_names: list[str] = []
+
+    api_key = os.getenv("THE_ODDS_API_KEY")
+    if api_key:
+        try:
+            bookmakers = args.bookmakers or None
+            props = data_theoddsapi.fetch_props(api_key, logs=resolver_logs, bookmakers=bookmakers)
+            odds_rows = data_theoddsapi.props_to_board_rows(props)
+            rows.extend(odds_rows)
+            if odds_rows:
+                source_names.append("oddsapi")
+                source_urls.add("https://the-odds-api.com/sports/wnba-odds.html")
+        except Exception as error:
+            print(f"Odds API expanded refresh skipped: {error}")
+
+    try:
+        urls = args.sportsgrid_urls or data_sportsgrid.discover_game_urls(target_date)
+        if urls:
+            props = data_sportsgrid.fetch_props(urls, default_date=target_date)
+            sportsgrid_rows = data_sportsgrid.props_to_board_rows(props, resolver_logs)
+            for row in sportsgrid_rows:
+                if str(row.get("game_date") or "") == target_date:
+                    row["source_status"] = "live_current"
+                    rows.append(row)
+            if sportsgrid_rows:
+                source_names.append("sportsgrid-fanduel")
+                source_urls.update(urls)
+    except Exception as error:
+        print(f"SportsGrid expanded refresh skipped: {error}")
+
+    try:
+        props = data_scoresandodds.fetch_props(list(data_scoresandodds.MARKET_PATHS), default_date=target_date)
+        scores_rows = data_scoresandodds.props_to_board_rows(props, resolver_logs)
+        rows.extend(row for row in scores_rows if str(row.get("game_date") or "") == target_date)
+        if scores_rows:
+            source_names.append("scoresandodds")
+            source_urls.update(row.get("source_url") for row in scores_rows if row.get("source_url"))
+    except Exception as error:
+        print(f"ScoresAndOdds expanded refresh skipped: {error}")
+
+    rows = dedupe_combined_board_rows(rows)
+    if not rows:
+        raise RuntimeError(f"No expanded WNBA player prop rows found for {target_date}.")
+    board_path = ROOT / f"data/current/expanded_board_{target_date}.csv"
+    write_combined_board_csv(rows, board_path)
+    card = score_current_board(LOGS_PATH, board_path, target_date, args)
+    card["mode"] = "CURRENT_EXPANDED_6_PICK_PREVIEW"
+    card["sourceUrls"] = sorted(source_urls)
+    card["sourceNote"] = (
+        "Expanded board: FanDuel-sourced rows are preferred when available, then broader best-odds public rows fill the 6-pick target. "
+        "Confirm the listed book and current odds before betting."
+    )
+    source = "+".join(dict.fromkeys(source_names)) or "expanded"
+    return card, source, board_path
+
+
 def generate_current_card(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
+    if args.book == "expanded":
+        return generate_from_expanded(target_date, args)
     if args.source == "oddsapi" or (args.source == "auto" and os.getenv("THE_ODDS_API_KEY")):
         try:
             return generate_from_oddsapi(target_date, args)
