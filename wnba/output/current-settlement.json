@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-15T17:05:32Z",
+  "generatedAt": "2026-05-15T20:40:22Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-15-one-per-player-v9",
-  "cardGeneratedAt": "2026-05-15T17:05:31Z",
+  "cardGeneratedAt": "2026-05-15T20:40:22Z",
   "slateDate": "2026-05-15",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -36,6 +36,24 @@
     {
       "slate_date": "2026-05-15",
       "selected_rank": 2,
+      "player": "Kahleah Copper",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "CHI",
+      "opponent_name": "Chicago Sky",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.7176,
+      "final_score": 0.86157,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-may-15-2026/846788b6-b37b-4859-a14c-5c10d60962f7"
+    },
+    {
+      "slate_date": "2026-05-15",
+      "selected_rank": 3,
       "player": "Brittney Sykes",
       "team": "TOR",
       "team_name": "Toronto Tempo",
@@ -53,7 +71,7 @@
     },
     {
       "slate_date": "2026-05-15",
-      "selected_rank": 3,
+      "selected_rank": 4,
       "player": "Nyara Sabally",
       "team": "TOR",
       "team_name": "Toronto Tempo",
@@ -68,24 +86,6 @@
       "final_score": 0.84684,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-los-angeles-sparks-scores-odds-picks-props-may-15-2026/f1045599-853f-41c4-a17e-342778fa301f"
-    },
-    {
-      "slate_date": "2026-05-15",
-      "selected_rank": 4,
-      "player": "Aliyah Boston",
-      "team": "IND",
-      "team_name": "Indiana Fever",
-      "opponent": "WSH",
-      "opponent_name": "Washington Mystics",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 15.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.69519,
-      "final_score": 0.84176,
-      "source_book": "bet365",
-      "source_url": "https://www.scoresandodds.com/wnba/props/points"
     },
     {
       "slate_date": "2026-05-15",
@@ -108,20 +108,20 @@
     {
       "slate_date": "2026-05-15",
       "selected_rank": 6,
-      "player": "Kahleah Copper",
-      "team": "PHX",
-      "team_name": "Phoenix Mercury",
-      "opponent": "CHI",
-      "opponent_name": "Chicago Sky",
+      "player": "Diamond Miller",
+      "team": "CON",
+      "team_name": "Connecticut Sun",
+      "opponent": "LV",
+      "opponent_name": "Las Vegas Aces",
       "market": "THREES",
       "side": "UNDER",
-      "line": 2.5,
+      "line": 1.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.7176,
-      "final_score": 0.81112,
-      "source_book": "nan",
-      "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-may-15-2026/846788b6-b37b-4859-a14c-5c10d60962f7"
+      "model_probability": 0.71922,
+      "final_score": 0.79889,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
     }
   ]
 }
