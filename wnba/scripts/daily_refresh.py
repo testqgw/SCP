@@ -238,7 +238,7 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
                 "expanded_min_score": 0.58,
                 "expanded_min_probability": 0.62,
                 "expanded_min_price_edge": 0.04,
-                "max_per_player": 3,
+                "max_per_player": 1,
                 "max_per_team": 6,
                 "max_per_game": 6,
                 "max_per_market": 4,
@@ -359,7 +359,7 @@ def generate_from_expanded(target_date: str, args: argparse.Namespace) -> tuple[
     card["sourceUrls"] = sorted(source_urls)
     card["sourceNote"] = (
         "Expanded board: FanDuel-sourced rows are preferred when available, then broader best-odds public rows fill the 6-pick target. "
-        "Confirm the listed book and current odds before betting."
+        "The portfolio allows only one selected prop per player per slate. Confirm the listed book and current odds before betting."
     )
     source = "+".join(dict.fromkeys(source_names)) or "expanded"
     return card, source, board_path

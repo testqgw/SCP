@@ -31,7 +31,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-14-expanded-slate-v8"
+MODEL_VERSION = "2026-05-15-one-per-player-v9"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."

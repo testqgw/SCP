@@ -12,9 +12,9 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-05-14-expanded-slate-v8",
-  status: "Current expanded WNBA card published",
-  currentDateEt: "2026-05-14",
+  modelVersion: "2026-05-15-one-per-player-v9",
+  status: "Current one-per-player WNBA card published",
+  currentDateEt: "2026-05-15",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
   boardTemplatePath: "wnba/data/templates/market_board_template.csv",
@@ -79,13 +79,13 @@ export const WNBA_MODEL_STAGES: WnbaModelStage[] = [
   {
     label: "Portfolio gates",
     detail:
-      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses controlled expanded-fill gates to reach the six-pick target when enough valid rows exist.",
+      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses controlled expanded-fill gates to reach the target only when enough different players clear the model.",
   },
 ];
 
 export const WNBA_PORTFOLIO_RULES = [
   "Max 6 picks",
-  "Max 3 per player in expanded mode",
+  "Max 1 per player per slate",
   "Max 6 per team in expanded mode",
   "Max 6 per game in expanded mode",
   "Max 4 per market",
