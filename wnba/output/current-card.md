@@ -1,17 +1,17 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-15T20:40:22Z
-Slate: 2026-05-15
+Generated: 2026-05-16T20:10:05Z
+Slate: 2026-05-16
 
 ## Selected
 
-1. Jackie Young UNDER THREES 2.5 (Las Vegas Aces vs Connecticut Sun): p=77.1%, proj=1.28, edge +10.4%, score=0.898, source=nan
-2. Kahleah Copper UNDER THREES 2.5 (Phoenix Mercury vs Chicago Sky): p=71.8%, proj=1.54, edge +6.5%, score=0.862, source=nan
-3. Brittney Sykes UNDER PTS 16.5 (Toronto Tempo vs Los Angeles Sparks): p=74.4%, proj=11.73, edge +22.4%, score=0.850, source=nan
-4. Nyara Sabally UNDER PTS 8.5 (Toronto Tempo vs Los Angeles Sparks): p=74.9%, proj=4.89, edge +21.6%, score=0.847, source=nan
-5. Caitlin Clark UNDER THREES 2.5 (Indiana Fever vs Washington Mystics): p=70.6%, proj=1.66, edge +17.8%, score=0.831, source=nan
-6. Diamond Miller UNDER THREES 1.5 (Connecticut Sun vs Las Vegas Aces): p=71.9%, proj=0.87, edge +4.1%, score=0.799, source=bet365
+1. Skylar Diggins UNDER PTS 16.5 (Chicago Sky vs Phoenix Mercury): p=70.2%, proj=11.99, edge +19.4%, score=0.854, source=bet365
+2. Marina Mabrey UNDER PR 24.5 (Toronto Tempo vs Los Angeles Sparks): p=68.1%, proj=19.89, edge +17.5%, score=0.792, source=bet365
+3. Aliyah Boston UNDER PTS 15.5 (Indiana Fever vs Washington Mystics): p=69.4%, proj=11.96, edge +17.7%, score=0.809, source=bet365
+4. Hailey Van Lith UNDER THREES 1.5 (Connecticut Sun vs Las Vegas Aces): p=69.7%, proj=0.98, edge +5.4%, score=0.778, source=fanduel
+5. Diamond Miller UNDER PR 14.5 (Connecticut Sun vs Las Vegas Aces): p=68.2%, proj=11.49, edge +16.6%, score=0.743, source=bet365
+6. Caitlin Clark UNDER REB 5.5 (Indiana Fever vs Washington Mystics): p=65.8%, proj=4.54, edge +7.8%, score=0.696, source=bet365
 
 ## Warnings
 
-Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
+Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.

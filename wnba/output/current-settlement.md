@@ -1,15 +1,15 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-15T20:40:22Z
-Slate: 2026-05-15
+Generated: 2026-05-16T20:10:05Z
+Slate: 2026-05-16
 Settled: 0 / 6
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Jackie Young UNDER THREES 2.5 (actual pending)
-- PENDING: Kahleah Copper UNDER THREES 2.5 (actual pending)
-- PENDING: Brittney Sykes UNDER PTS 16.5 (actual pending)
-- PENDING: Nyara Sabally UNDER PTS 8.5 (actual pending)
-- PENDING: Caitlin Clark UNDER THREES 2.5 (actual pending)
-- PENDING: Diamond Miller UNDER THREES 1.5 (actual pending)
+- PENDING: Skylar Diggins UNDER PTS 16.5 (actual pending)
+- PENDING: Marina Mabrey UNDER PR 24.5 (actual pending)
+- PENDING: Aliyah Boston UNDER PTS 15.5 (actual pending)
+- PENDING: Hailey Van Lith UNDER THREES 1.5 (actual pending)
+- PENDING: Diamond Miller UNDER PR 14.5 (actual pending)
+- PENDING: Caitlin Clark UNDER REB 5.5 (actual pending)
