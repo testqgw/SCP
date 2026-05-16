@@ -12,9 +12,9 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-05-15-one-per-player-v9",
-  status: "Current one-per-player WNBA card published",
-  currentDateEt: "2026-05-15",
+  modelVersion: "2026-05-16-roster-slate-gate-v10",
+  status: "Current ESPN-roster-gated WNBA card published",
+  currentDateEt: "2026-05-16",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
   boardTemplatePath: "wnba/data/templates/market_board_template.csv",
@@ -23,7 +23,7 @@ export const WNBA_MODEL_SUMMARY = {
   claimBoundary:
     "WNBA V1 ranks sourced player props with historical boxscore evidence, best available over/under prices, source projection alignment, and portfolio gates. It is not a guarantee, and live use still requires player availability confirmation.",
   dataSource:
-    "ESPN public WNBA scoreboard and boxscore endpoints for logs, SportsGrid FanDuel prop cards when available, ScoresAndOdds public best-odds prop tables for expanded coverage, and optional The Odds API support when an API key is supplied.",
+    "ESPN public WNBA scoreboard, roster, and boxscore endpoints for logs and active-player validation; SportsGrid FanDuel prop cards when available; ScoresAndOdds public best-odds prop tables for expanded coverage; and optional The Odds API support when an API key is supplied.",
   rawRows: "11,926",
   regularRows: "9,969",
   games: "530",
@@ -79,7 +79,7 @@ export const WNBA_MODEL_STAGES: WnbaModelStage[] = [
   {
     label: "Portfolio gates",
     detail:
-      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses controlled expanded-fill gates to reach the target only when enough different players clear the model.",
+      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses controlled expanded-fill gates to reach the target only when enough ESPN-roster-valid players clear the model.",
   },
 ];
 
@@ -91,6 +91,7 @@ export const WNBA_PORTFOLIO_RULES = [
   "Max 4 per market",
   "Max 4 combo markets",
   "Max 1 same-team counting over",
+  "Requires target-date ESPN slate and current ESPN roster match",
   "Expanded fill requires probability, edge, and clean team context",
 ] as const;
 

@@ -31,7 +31,7 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-15-one-per-player-v9"
+MODEL_VERSION = "2026-05-16-roster-slate-gate-v10"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
@@ -462,7 +462,7 @@ def _risk_flags(row: pd.Series, player_logs: pd.DataFrame, sample_size: int, res
     if not team or not opponent:
         flags.append("unknown_team_context")
     resolution_status = str(row.get("team_resolution_status") or "").strip().lower()
-    if resolution_status in {"not_in_source_game", "not_in_slate_matchup", "unresolved_player"}:
+    if resolution_status in {"not_in_source_game", "not_in_slate_matchup", "unresolved_player", "not_on_current_roster"}:
         flags.append("team_resolution_mismatch")
     source_teams = {normalize_team(row.get("source_away_abbr")), normalize_team(row.get("source_home_abbr"))} - {""}
     if source_teams and team and team not in source_teams:
@@ -926,6 +926,44 @@ def score_board(
         "boardRows": rows,
         "selectedRows": sorted(selected_rows, key=lambda item: item["selected_rank"] or 999),
         "candidateRows": sorted(candidate_rows, key=lambda item: item["final_score"], reverse=True),
+    }
+
+
+def empty_card(
+    slate_date: str,
+    limits: dict[str, Any] | None = None,
+    mode: str = "NO_SLATE",
+    warnings: list[str] | None = None,
+    source_note: str | None = None,
+) -> dict[str, Any]:
+    active_limits = {**PORTFOLIO_LIMITS, **(limits or {})}
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelName": "WNBA Correlation-Aware Player Prop Model V1",
+        "modelVersion": MODEL_VERSION,
+        "mode": mode,
+        "slateDate": slate_date,
+        "currentDateEt": today_et(),
+        "claimBoundary": CLAIM_BOUNDARY,
+        "portfolioConfig": active_limits,
+        "summary": {
+            "totalBoardRows": 0,
+            "candidateCount": 0,
+            "selectedCount": 0,
+            "selectedByTier": {},
+            "boardRowsByTier": {},
+            "boardRowsByAction": {},
+            "averageModelProbability": None,
+            "averageFinalScore": None,
+            "priceCoveragePct": 0.0,
+            "warningCount": len(warnings or []),
+        },
+        "warnings": warnings or [],
+        "boardRows": [],
+        "selectedRows": [],
+        "candidateRows": [],
+        **({"sourceNote": source_note} if source_note else {}),
     }
 
 

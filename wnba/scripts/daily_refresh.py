@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
-from wnba_prop_model.model import load_board, load_logs, score_board, write_card
+from wnba_prop_model.model import empty_card, load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
 from wnba_prop_model.utils import canonical_name
 
@@ -350,9 +350,37 @@ def generate_from_expanded(target_date: str, args: argparse.Namespace) -> tuple[
         print(f"ScoresAndOdds expanded refresh skipped: {error}")
 
     rows = dedupe_combined_board_rows(rows)
-    if not rows:
-        raise RuntimeError(f"No expanded WNBA player prop rows found for {target_date}.")
     board_path = ROOT / f"data/current/expanded_board_{target_date}.csv"
+    if not rows:
+        write_combined_board_csv([], board_path)
+        card = empty_card(
+            target_date,
+            limits={
+                "max_picks": args.max_picks,
+                "target_picks": args.max_picks,
+                "min_score": args.min_score,
+                "require_playable_side_odds": True,
+                "allow_expanded_fill": True,
+                "expanded_min_score": 0.58,
+                "expanded_min_probability": 0.62,
+                "expanded_min_price_edge": 0.04,
+                "max_per_player": 1,
+                "max_per_team": 6,
+                "max_per_game": 6,
+                "max_per_market": 4,
+                "max_combo_markets": 4,
+            },
+            mode="NO_ESPN_MATCHED_SLATE",
+            warnings=[
+                "No ESPN-matched WNBA slate rows were available for this date; stale public prop rows were ignored."
+            ],
+            source_note=(
+                "No selected WNBA props were published because the source rows did not match an ESPN scoreboard slate "
+                "and current ESPN rosters for the target date."
+            ),
+        )
+        card["sourceUrls"] = sorted(source_urls)
+        return card, "+".join(dict.fromkeys(source_names)) or "expanded", board_path
     write_combined_board_csv(rows, board_path)
     card = score_current_board(LOGS_PATH, board_path, target_date, args)
     card["mode"] = "CURRENT_EXPANDED_6_PICK_PREVIEW"

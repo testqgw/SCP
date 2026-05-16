@@ -34,6 +34,20 @@ def _actual_for_row(logs: pd.DataFrame, row: dict[str, Any]) -> float | None:
     return clean_number(candidates.iloc[0][market])
 
 
+def _has_final_team_boxscore(logs: pd.DataFrame, row: dict[str, Any]) -> bool:
+    slate_date = pd.to_datetime(row.get("slate_date"), errors="coerce")
+    if pd.isna(slate_date):
+        return False
+    candidates = logs[logs["game_date"].dt.date == slate_date.date()]
+    team = str(row.get("team") or "").upper()
+    opponent = str(row.get("opponent") or "").upper()
+    if team:
+        candidates = candidates[candidates["team_abbr"].astype(str).str.upper() == team]
+    if opponent:
+        candidates = candidates[candidates["opponent_abbr"].astype(str).str.upper() == opponent]
+    return not candidates.empty
+
+
 def _settlement_status(row: dict[str, Any], actual: float | None) -> str:
     if actual is None:
         return "PENDING"
@@ -50,12 +64,14 @@ def _rollup(rows: list[dict[str, Any]]) -> dict[str, Any]:
     wins = sum(row["settlement"] == "WIN" for row in rows)
     losses = sum(row["settlement"] == "LOSS" for row in rows)
     pushes = sum(row["settlement"] == "PUSH" for row in rows)
+    no_action = sum(row["settlement"] == "NO_ACTION" for row in rows)
     pending = sum(row["settlement"] == "PENDING" for row in rows)
     settled = wins + losses
     return {
         "trackedPicks": len(rows),
         "settledPicks": settled,
         "pendingPicks": pending,
+        "noActionPicks": no_action,
         "wins": wins,
         "losses": losses,
         "pushes": pushes,
@@ -68,6 +84,8 @@ def settle_card(card: dict[str, Any], logs: pd.DataFrame) -> dict[str, Any]:
     for row in card.get("selectedRows") or []:
         actual = _actual_for_row(logs, row)
         settlement = _settlement_status(row, actual)
+        if settlement == "PENDING" and _has_final_team_boxscore(logs, row):
+            settlement = "NO_ACTION"
         settled_rows.append(
             {
                 "slate_date": row.get("slate_date"),
@@ -121,6 +139,7 @@ def write_settlement(result: dict[str, Any], out_prefix: str | Path) -> dict[str
         f"Generated: {result['generatedAt']}",
         f"Slate: {result.get('slateDate')}",
         f"Settled: {summary['settledPicks']} / {summary['trackedPicks']}",
+        f"No action: {summary.get('noActionPicks', 0)}",
         f"Accuracy: {summary['accuracyPct'] if summary['accuracyPct'] is not None else 'pending'}",
         "",
         "## Rows",

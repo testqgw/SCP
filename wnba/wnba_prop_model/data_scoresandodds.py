@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import json
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -165,23 +166,52 @@ def fetch_props(markets: list[str] | None = None, default_date: str | None = Non
 
 
 def _current_team_matchups(slate_date: str) -> dict[str, str]:
-    date_key = slate_date.replace("-", "")
-    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard?dates={date_key}&limit=100"
-    try:
-        import json
+    matchups, _ = _current_team_context(slate_date)
+    return matchups
 
+
+def _fetch_team_roster(team_id: str) -> dict[str, dict[str, str]]:
+    if not team_id:
+        return {}
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/teams/{team_id}/roster"
+    try:
         payload = json.loads(fetch_page(url))
     except Exception:
         return {}
+    roster: dict[str, dict[str, str]] = {}
+    for athlete in payload.get("athletes") or []:
+        name = str(athlete.get("displayName") or athlete.get("fullName") or "").strip()
+        key = canonical_name(name)
+        if key:
+            roster[key] = {"player_id": str(athlete.get("id") or ""), "player": name}
+    return roster
+
+
+def _current_team_context(slate_date: str) -> tuple[dict[str, str], dict[str, dict[str, dict[str, str]]]]:
+    date_key = slate_date.replace("-", "")
+    url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/scoreboard?dates={date_key}&limit=100"
+    try:
+        payload = json.loads(fetch_page(url))
+    except Exception:
+        return {}, {}
     matchups: dict[str, str] = {}
+    team_ids: dict[str, str] = {}
     for event in payload.get("events") or []:
         competitors = (((event.get("competitions") or [{}])[0]).get("competitors") or [])
-        teams = [normalize_team(((competitor.get("team") or {}).get("abbreviation") or "")) for competitor in competitors]
+        teams = []
+        for competitor in competitors:
+            team = competitor.get("team") or {}
+            abbr = normalize_team(team.get("abbreviation") or "")
+            if not abbr:
+                continue
+            teams.append(abbr)
+            team_ids[abbr] = str(team.get("id") or "")
         teams = [team for team in teams if team]
         if len(teams) == 2:
             matchups[teams[0]] = teams[1]
             matchups[teams[1]] = teams[0]
-    return matchups
+    rosters = {abbr: _fetch_team_roster(team_id) for abbr, team_id in team_ids.items() if team_id}
+    return matchups, rosters
 
 
 def _player_candidates(logs: pd.DataFrame, player: str) -> pd.DataFrame:
@@ -202,10 +232,39 @@ def _player_candidates(logs: pd.DataFrame, player: str) -> pd.DataFrame:
     ]
 
 
-def _latest_context(logs: pd.DataFrame, player: str, team_matchups: dict[str, str]) -> tuple[str, str, str, str, str]:
+def _roster_match(
+    active_rosters: dict[str, Any] | None,
+    player: str,
+) -> tuple[str, str, str]:
+    key = canonical_name(player)
+    if not active_rosters or not key:
+        return "", "", ""
+    for team, roster in active_rosters.items():
+        if isinstance(roster, dict):
+            entry = roster.get(key)
+            if entry:
+                return team, str(entry.get("player_id") or ""), str(entry.get("player") or player)
+        elif key in roster:
+            return team, "", player
+    return "", "", ""
+
+
+def _latest_context(
+    logs: pd.DataFrame,
+    player: str,
+    team_matchups: dict[str, str],
+    active_rosters: dict[str, Any] | None = None,
+) -> tuple[str, str, str, str, str]:
+    roster_team, roster_player_id, roster_player = _roster_match(active_rosters, player)
+    if active_rosters and not roster_team:
+        return "", "", "", player, "not_on_current_roster"
     candidates = _player_candidates(logs, player)
+    if candidates.empty and roster_team:
+        return roster_player_id, roster_team, team_matchups.get(roster_team, ""), roster_player, "current_roster_match"
     if candidates.empty:
         return "", "", "", player, "unresolved_player"
+    if roster_team:
+        return roster_player_id, roster_team, team_matchups.get(roster_team, ""), roster_player, "current_roster_match"
     current_teams = set(team_matchups)
     in_slate = candidates[candidates["team_abbr"].astype(str).str.upper().map(normalize_team).isin(current_teams)]
     if in_slate.empty and team_matchups:
@@ -220,10 +279,12 @@ def _latest_context(logs: pd.DataFrame, player: str, team_matchups: dict[str, st
 def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | None = None) -> list[dict[str, Any]]:
     logs = logs if logs is not None else pd.DataFrame()
     date = props[0].game_date if props else today_et()
-    team_matchups = _current_team_matchups(date)
+    team_matchups, active_rosters = _current_team_context(date)
+    if props and not team_matchups:
+        return []
     rows: list[dict[str, Any]] = []
     for prop in props:
-        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, prop.player, team_matchups)
+        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, prop.player, team_matchups, active_rosters)
         rows.append(
             {
                 "game_date": prop.game_date,

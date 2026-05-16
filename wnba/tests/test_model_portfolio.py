@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from wnba_prop_model.model import PORTFOLIO_LIMITS, _select_portfolio
+from wnba_prop_model.model import PORTFOLIO_LIMITS, _select_portfolio, empty_card
 
 
 def _row(candidate_id: str, player: str, player_id: str, market: str, score: float) -> dict:
@@ -43,3 +43,15 @@ def test_portfolio_selects_one_pick_per_player() -> None:
     selected = [row for row in rows if row["model_action"] == "SELECTED"]
     assert [row["player"] for row in selected] == ["Player A", "Player B"]
     assert rows[1]["rejection_reason"] == "max_per_player"
+
+
+def test_empty_card_is_safe_for_no_slate_output() -> None:
+    card = empty_card("2026-05-16", mode="NO_SLATE", warnings=["No ESPN WNBA games found."])
+
+    assert card["slateDate"] == "2026-05-16"
+    assert card["mode"] == "NO_SLATE"
+    assert card["summary"]["selectedCount"] == 0
+    assert card["summary"]["priceCoveragePct"] == 0.0
+    assert card["boardRows"] == []
+    assert card["selectedRows"] == []
+    assert card["warnings"] == ["No ESPN WNBA games found."]

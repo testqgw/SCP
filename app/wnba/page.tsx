@@ -96,6 +96,7 @@ type CurrentSettlement = {
     trackedPicks: number;
     settledPicks: number;
     pendingPicks: number;
+    noActionPicks?: number;
     wins: number;
     losses: number;
     pushes: number;
@@ -454,7 +455,8 @@ export default function WnbaPage(): React.ReactElement {
             </span>
             . Settled {WNBA_CURRENT_SETTLEMENT.summary.settledPicks} of{" "}
             {WNBA_CURRENT_SETTLEMENT.summary.trackedPicks} current-card picks;{" "}
-            {WNBA_CURRENT_SETTLEMENT.summary.pendingPicks} pending final ESPN boxscores.
+            {WNBA_CURRENT_SETTLEMENT.summary.pendingPicks} pending final ESPN boxscores;{" "}
+            {WNBA_CURRENT_SETTLEMENT.summary.noActionPicks ?? 0} no-action roster/boxscore misses.
           </div>
         </section>
 
