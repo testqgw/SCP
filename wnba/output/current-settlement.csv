@@ -1,7 +1,5 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-05-16,1,Marina Mabrey,TOR,Toronto Tempo,LA,Los Angeles Sparks,PR,UNDER,24.5,,PENDING,0.68063,0.7918,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
-2026-05-16,2,Hailey Van Lith,CON,Connecticut Sun,LV,Las Vegas Aces,THREES,UNDER,1.5,,PENDING,0.69672,0.77838,fanduel,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-05-16,3,Diamond Miller,CON,Connecticut Sun,LV,Las Vegas Aces,PR,UNDER,14.5,,PENDING,0.68178,0.74319,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
-2026-05-16,4,Aliyah Boston,IND,Indiana Fever,WSH,Washington Mystics,PR,UNDER,23.5,,PENDING,0.66115,0.70508,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
-2026-05-16,5,Caitlin Clark,IND,Indiana Fever,WSH,Washington Mystics,REB,UNDER,5.5,,PENDING,0.65767,0.69591,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-05-16,6,A'ja Wilson,LV,Las Vegas Aces,CON,Connecticut Sun,REB,UNDER,9.5,,PENDING,0.6303,0.66511,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-05-18,1,Carla Leite,POR,Portland Fire,CON,Connecticut Sun,PRA,UNDER,23.5,,PENDING,0.70956,0.83725,draftkings,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-05-18,2,Jessica Shepard,DAL,Dallas Wings,WSH,Washington Mystics,AST,UNDER,4.5,,PENDING,0.68759,0.79295,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-05-18,3,Arike Ogunbowale,DAL,Dallas Wings,WSH,Washington Mystics,PTS,UNDER,17.5,,PENDING,0.62246,0.63682,nan,https://www.sportsgrid.com/wnba/game/washington-mystics-dallas-wings-scores-odds-picks-props-may-18-2026/05e5130f-d087-4f06-a748-fc6a89d60914
+2026-05-18,4,Saniya Rivers,CON,Connecticut Sun,POR,Portland Fire,RA,UNDER,7.5,,PENDING,0.6272,0.63607,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
