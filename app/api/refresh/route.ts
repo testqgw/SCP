@@ -15,9 +15,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     const normalizedMode = body.mode?.toUpperCase();
     const mode = normalizedMode === "FULL" ? "FULL" : normalizedMode === "FAST" ? "FAST" : "DELTA";
     const result = await runRefresh(mode, { source: body.source ?? "manual" });
-    return NextResponse.json({ ok: true, result });
+    const response = NextResponse.json({ ok: true, result });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Refresh failed";
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    const response = NextResponse.json({ ok: false, error: message }, { status: 500 });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

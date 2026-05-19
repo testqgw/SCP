@@ -14,6 +14,7 @@ type RunRefreshOptions = {
 
 type RefreshResult = {
   runId: string;
+  dateEt: string;
   status: "SUCCESS" | "PARTIAL";
   warnings: string[];
   isPublishable: boolean;
@@ -963,6 +964,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
     });
     return {
       runId: activeRun.id,
+      dateEt,
       status: "PARTIAL",
       warnings: ["Refresh already running. Please wait for completion."],
       isPublishable: false,
@@ -990,6 +992,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
     });
     return {
       runId: `recent:${dateEt}`,
+      dateEt,
       status: "PARTIAL",
       warnings: ["Refresh completed recently. Loading the latest board instead."],
       isPublishable: false,
@@ -1182,6 +1185,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
 
     return {
       runId: run.id,
+      dateEt,
       status,
       warnings,
       isPublishable,

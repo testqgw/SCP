@@ -64,7 +64,7 @@ export async function GET(): Promise<NextResponse> {
     const maxLogDateEt = maxLog._max.gameDateEt ?? null;
     const maxLogUpdatedAt = maxLog._max.updatedAt?.toISOString() ?? null;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       status: "ok",
       service: "nba-player-prop-snapshot",
       now: new Date().toISOString(),
@@ -83,8 +83,10 @@ export async function GET(): Promise<NextResponse> {
         lineupSnapshotUpdatedAt: lineupSnapshotSetting?.updatedAt?.toISOString() ?? null,
       },
     });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         status: "degraded",
         service: "nba-player-prop-snapshot",
@@ -93,5 +95,7 @@ export async function GET(): Promise<NextResponse> {
       },
       { status: 503 },
     );
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }

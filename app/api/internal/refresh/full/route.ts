@@ -13,10 +13,14 @@ async function handle(request: NextRequest): Promise<NextResponse> {
 
   try {
     const result = await runRefresh("FULL");
-    return NextResponse.json({ ok: true, result });
+    const response = NextResponse.json({ ok: true, result });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Refresh failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const response = NextResponse.json({ error: message }, { status: 500 });
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }
 

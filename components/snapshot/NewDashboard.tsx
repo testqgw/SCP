@@ -1510,6 +1510,7 @@ type RefreshResponse =
       ok: true;
       result: {
         runId: string;
+        dateEt?: string;
         status: 'SUCCESS' | 'PARTIAL';
         warnings: string[];
         isPublishable: boolean;
@@ -3463,7 +3464,8 @@ export default function NewDashboard({
         throw new Error(refreshPayload && !refreshPayload.ok ? refreshPayload.error : 'Manual slate refresh failed.');
       }
 
-      const boardResponse = await fetch(`/api/snapshot/board?date=${encodeURIComponent(data.dateEt)}&refresh=1&rebuild=1&t=${Date.now()}`, {
+      const refreshedDateEt = refreshPayload.result.dateEt ?? data.dateEt;
+      const boardResponse = await fetch(`/api/snapshot/board?date=${encodeURIComponent(refreshedDateEt)}&refresh=1&rebuild=1&t=${Date.now()}`, {
         cache: 'no-store',
       });
       const boardPayload = (await boardResponse.json().catch(() => null)) as BoardResponse | null;

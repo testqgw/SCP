@@ -18,6 +18,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     const result = rebuildBoard
       ? await getSnapshotBoardViewData(dateEt, true)
       : await getInitialSnapshotBoardViewData(dateEt);
+    if (bypassResponseCache && result.dateEt !== dateEt) {
+      const response = NextResponse.json(
+        {
+          ok: false,
+          error: `Live board refresh requested ${dateEt}, but only stale fallback data for ${result.dateEt} is available.`,
+        },
+        { status: 503 },
+      );
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    }
     const response = NextResponse.json({ ok: true, result });
     if (bypassResponseCache) {
       response.headers.set('Cache-Control', 'no-store');
