@@ -1,71 +1,71 @@
 # Final V1 Date-Shift Explainer
 
-Generated: 2026-05-12T04:30:45.486709Z
+Generated: 2026-05-18T23:42:31.018061Z
 
 ## Actual Selected Result
 
-- Accuracy: 95.11%
-- Record: 915-47
+- Accuracy: 95.74%
+- Record: 921-41
 - Picks: 962
 
 ## Shift Summary
 
 | Test | Accuracy | Record | Coverage | Same side | Same line bucket |
 |---|---:|---:|---:|---:|---:|
-| selected-rank date shift +1 | 95.13% | 898-46 | 98.13% | 0.00% | 0.00% |
-| selected-rank date shift -1 | 95.02% | 897-47 | 98.13% | 0.00% | 0.00% |
-| selected-rank date shift +3 | 95.20% | 893-45 | 97.51% | 0.00% | 0.00% |
-| selected-rank date shift +7 | 95.12% | 896-46 | 97.92% | 0.00% | 0.00% |
-| same-player same-market shift +1 | 56.43% | 522-403 | 96.47% | 56.36% | 72.41% |
-| same-player same-market shift -1 | 51.70% | 487-455 | 98.23% | 52.91% | 69.21% |
-| same-player same-market shift +3 | 55.38% | 489-394 | 91.89% | 54.64% | 69.34% |
-| same-player same-market shift +7 | 52.81% | 432-386 | 85.14% | 49.33% | 65.81% |
-| same-player same-market line-bucket shift +1 | 56.48% | 523-403 | 96.47% | 57.33% | 96.01% |
-| same-player same-market line-bucket shift -1 | 51.43% | 484-457 | 98.23% | 52.70% | 95.03% |
-| same-player same-market line-bucket shift +3 | 53.17% | 470-414 | 91.89% | 53.96% | 96.72% |
-| same-player same-market line-bucket shift +7 | 51.59% | 422-396 | 85.14% | 51.65% | 97.31% |
+| selected-rank date shift +1 | 95.76% | 904-40 | 98.13% | 0.00% | 0.00% |
+| selected-rank date shift -1 | 95.66% | 903-41 | 98.13% | 0.00% | 0.00% |
+| selected-rank date shift +3 | 95.74% | 898-40 | 97.51% | 0.00% | 0.00% |
+| selected-rank date shift +7 | 95.75% | 902-40 | 97.92% | 0.00% | 0.00% |
+| same-player same-market shift +1 | 56.59% | 524-402 | 96.67% | 56.45% | 71.61% |
+| same-player same-market shift -1 | 51.86% | 488-453 | 98.13% | 53.18% | 68.22% |
+| same-player same-market shift +3 | 54.37% | 479-402 | 91.79% | 54.70% | 67.38% |
+| same-player same-market shift +7 | 51.72% | 421-393 | 84.72% | 49.33% | 65.15% |
+| same-player same-market line-bucket shift +1 | 55.66% | 516-411 | 96.67% | 57.63% | 96.24% |
+| same-player same-market line-bucket shift -1 | 51.54% | 484-455 | 98.13% | 53.07% | 95.13% |
+| same-player same-market line-bucket shift +3 | 51.98% | 459-424 | 91.79% | 54.25% | 96.94% |
+| same-player same-market line-bucket shift +7 | 50.12% | 408-406 | 84.72% | 51.17% | 97.30% |
 
 ## Strongest Same-Player Same-Market Shift
 
-- Test: same-player same-market line-bucket shift +1
-- Accuracy: 56.48%
-- Coverage: 96.47%
-- Same line bucket: 96.01%
+- Test: same-player same-market shift +1
+- Accuracy: 56.59%
+- Coverage: 96.67%
+- Same line bucket: 71.61%
 
 ### By Market
 
 | bucket | samples | wins | losses | accuracyPct |
 |---|---|---|---|---|
-| PTS | 303 | 162 | 141 | 53.47 |
-| REB | 255 | 147 | 108 | 57.65 |
-| AST | 206 | 112 | 92 | 54.90 |
-| PRA | 139 | 84 | 55 | 60.43 |
-| RA | 13 | 9 | 4 | 69.23 |
-| THREES | 12 | 9 | 3 | 75.00 |
+| PTS | 302 | 159 | 143 | 52.65 |
+| REB | 253 | 146 | 107 | 57.71 |
+| AST | 209 | 115 | 90 | 56.10 |
+| PRA | 145 | 89 | 56 | 61.38 |
+| THREES | 13 | 10 | 3 | 76.92 |
+| RA | 8 | 5 | 3 | 62.50 |
 
 ### By Prior Bucket
 
 | bucket | samples | wins | losses | accuracyPct |
 |---|---|---|---|---|
-| 90-92 | 516 | 291 | 225 | 56.40 |
-| 94+ | 283 | 157 | 125 | 55.67 |
-| 92-94 | 128 | 74 | 53 | 58.27 |
+| 90-92 | 518 | 288 | 228 | 55.81 |
+| 94+ | 283 | 159 | 123 | 56.38 |
+| 92-94 | 128 | 76 | 51 | 59.84 |
 | 88-90 | 1 | 1 | 0 | 100.00 |
 
 ### Top Shifted Winning Players
 
 | bucket | wins | sharePct |
 |---|---|---|
-| Justin Champagnie | 10 | 1.91 |
-| Ryan Rollins | 9 | 1.72 |
+| Jeremiah Fears | 10 | 1.91 |
 | Ryan Dunn | 9 | 1.72 |
-| Kawhi Leonard | 9 | 1.72 |
+| VJ Edgecombe | 8 | 1.53 |
 | Scottie Barnes | 8 | 1.53 |
-| Quentin Grimes | 8 | 1.53 |
-| Luka Dončić | 8 | 1.53 |
-| Evan Mobley | 8 | 1.53 |
+| Ryan Rollins | 8 | 1.53 |
+| Kawhi Leonard | 8 | 1.53 |
 | Kyle Filipowski | 8 | 1.53 |
-| VJ Edgecombe | 7 | 1.34 |
+| Justin Champagnie | 8 | 1.53 |
+| Nickeil Alexander-Walker | 7 | 1.34 |
+| Svi Mykhailiuk | 7 | 1.34 |
 
 ## Interpretation
 

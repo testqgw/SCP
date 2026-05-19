@@ -5,7 +5,7 @@ This is now a new model, not a rename of the old champion lane.
 ```text
 Model ID: final-player-prop-model-v1
 Model name: Final Correlation-Aware Player Prop Model V1
-Version: 2026-05-12-context-trap-v4
+Version: 2026-05-18-soft-context-rerank-v5
 Role: full-board player prop model with a slate-safe top-pick portfolio
 ```
 
@@ -22,6 +22,7 @@ The old backtest champion becomes the precision core. The final model now scores
 | Full-board base | Live Quality Router V9 | Coverage side/score for every playable row |
 | Correlation layer | Precision Parlay v1 rules | Top-pick portfolio construction and exposure caps |
 | Game-context layer | Lineup, availability, minutes, team form, synergy, stake-level context | Current-slate awareness, role-floor risk, and hard-risk guardrails |
+| Soft context rerank layer | Blowout-spread and minutes-lift context | Nudges candidate order before the portfolio fills without forcing extra picks |
 | Portfolio-fragility / context-trap layer | Thin-gap, side-pocket, counter-projection, low-total, and volatility guards | Rejects historically fragile top-pick shapes before the portfolio fills |
 | Proof layer | locked-forward ledgers | Model-specific lock, market-line, settlement, report, and audit-summary lifecycle |
 
@@ -76,18 +77,18 @@ Full-board rows scored: 113,791
 Full-board coverage: 100.00%
 Full-board accuracy: 88.86%
 Candidate-pool accuracy: 89.60%
-Selected-pick accuracy: 95.11%
-Selected record: 915-47
+Selected-pick accuracy: 95.74%
+Selected record: 921-41
 Average selected picks per slate: 5.83
-Selected lift vs full board: +6.25 points
-Context layer: attached without reducing selected-pick replay accuracy; score-90 board is 90.80%; role-floor risk penalizes high-minute stable-starter UNDERs, and the portfolio-fragility/context-trap layer rejects thin counter-projection PTS UNDERs, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting UNDER traps, and volatile REB OVER rows.
+Selected lift vs full board: +6.88 points
+Context layer: attached without reducing selected-pick replay accuracy; score-90 board is 90.75%; role-floor risk penalizes high-minute stable-starter UNDERs, the soft rerank slightly downgrades A-tier OVERs in blowout-spread context and slightly boosts minutes-supported UNDERs, and the portfolio-fragility/context-trap layer rejects thin counter-projection PTS UNDERs, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting UNDER traps, and volatile REB OVER rows.
 ```
 
 Recent selected-pick windows:
 
 ```text
 Last 30 active dates: 94.64%
-Last 14 active dates: 93.06%
+Last 14 active dates: 94.44%
 ```
 
 The full-board recent windows match the V9 anchor:

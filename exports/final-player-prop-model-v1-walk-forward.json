@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-05-12T04:30:28.639223+00:00",
+  "generatedAt": "2026-05-18T23:42:15.269369+00:00",
   "modelId": "final-player-prop-model-v1",
-  "modelVersion": "2026-05-12-context-trap-v4",
+  "modelVersion": "2026-05-18-soft-context-rerank-v5",
   "input": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\live-quality-full-season-router-v9-details.json",
   "contextInput": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\projection-backtest-allplayers-with-rows-live-team-context.json",
   "dateRange": {
@@ -20,10 +20,10 @@
     "maxComboMarkets": 1
   },
   "contextLayer": {
-    "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, portfolio-fragility vetoes, and context-trap vetoes",
+    "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, soft context rerank, portfolio-fragility vetoes, and context-trap vetoes",
     "rowsWithContextPct": 100.0,
-    "avgContextScoreSelected": 0.504646,
-    "avgContextAdjustmentSelected": -0.000249
+    "avgContextScoreSelected": 0.50584,
+    "avgContextAdjustmentSelected": -0.000343
   },
   "coveragePct": 100.0,
   "rowsScored": 113791,
@@ -325,52 +325,52 @@
   },
   "score90Board": {
     "rule": "finalScore >= 0.78",
-    "coveragePct": 42.76,
+    "coveragePct": 42.68,
     "overall": {
-      "samples": 48652,
-      "wins": 44174,
-      "losses": 4478,
-      "accuracyPct": 90.8
+      "samples": 48569,
+      "wins": 44074,
+      "losses": 4495,
+      "accuracyPct": 90.75
     },
     "last30": {
-      "samples": 7482,
-      "wins": 6935,
-      "losses": 547,
-      "accuracyPct": 92.69
+      "samples": 7474,
+      "wins": 6924,
+      "losses": 550,
+      "accuracyPct": 92.64
     },
     "last14": {
-      "samples": 2761,
-      "wins": 2589,
-      "losses": 172,
-      "accuracyPct": 93.77
+      "samples": 2729,
+      "wins": 2563,
+      "losses": 166,
+      "accuracyPct": 93.92
     }
   },
   "candidatePool": {
     "overall": {
-      "samples": 93385,
-      "wins": 83676,
-      "losses": 9709,
-      "accuracyPct": 89.6
+      "samples": 93553,
+      "wins": 83834,
+      "losses": 9719,
+      "accuracyPct": 89.61
     },
     "last30": {
-      "samples": 15422,
-      "wins": 14102,
-      "losses": 1320,
-      "accuracyPct": 91.44
+      "samples": 15458,
+      "wins": 14137,
+      "losses": 1321,
+      "accuracyPct": 91.45
     },
     "last14": {
-      "samples": 5791,
-      "wins": 5334,
+      "samples": 5807,
+      "wins": 5350,
       "losses": 457,
-      "accuracyPct": 92.11
+      "accuracyPct": 92.13
     }
   },
   "selected": {
     "overall": {
       "samples": 962,
-      "wins": 915,
-      "losses": 47,
-      "accuracyPct": 95.11
+      "wins": 921,
+      "losses": 41,
+      "accuracyPct": 95.74
     },
     "last30": {
       "samples": 168,
@@ -380,13 +380,13 @@
     },
     "last14": {
       "samples": 72,
-      "wins": 67,
-      "losses": 5,
-      "accuracyPct": 93.06
+      "wins": 68,
+      "losses": 4,
+      "accuracyPct": 94.44
     }
   },
   "avgSelectedPerSlate": 5.83,
-  "selectedLiftVsFullBoardPct": 6.25,
+  "selectedLiftVsFullBoardPct": 6.88,
   "fullBoardByMarket": {
     "AST": {
       "samples": 15624,
@@ -439,38 +439,38 @@
   },
   "selectedByMarket": {
     "AST": {
-      "samples": 212,
-      "wins": 203,
+      "samples": 216,
+      "wins": 207,
       "losses": 9,
-      "accuracyPct": 95.75
+      "accuracyPct": 95.83
     },
     "PRA": {
-      "samples": 143,
-      "wins": 134,
-      "losses": 9,
-      "accuracyPct": 93.71
+      "samples": 148,
+      "wins": 141,
+      "losses": 7,
+      "accuracyPct": 95.27
     },
     "PTS": {
-      "samples": 319,
-      "wins": 304,
-      "losses": 15,
-      "accuracyPct": 95.3
+      "samples": 317,
+      "wins": 303,
+      "losses": 14,
+      "accuracyPct": 95.58
     },
     "RA": {
-      "samples": 13,
-      "wins": 12,
-      "losses": 1,
-      "accuracyPct": 92.31
+      "samples": 8,
+      "wins": 8,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     "REB": {
-      "samples": 263,
-      "wins": 250,
-      "losses": 13,
-      "accuracyPct": 95.06
+      "samples": 260,
+      "wins": 249,
+      "losses": 11,
+      "accuracyPct": 95.77
     },
     "THREES": {
-      "samples": 12,
-      "wins": 12,
+      "samples": 13,
+      "wins": 13,
       "losses": 0,
       "accuracyPct": 100.0
     }
@@ -478,9 +478,9 @@
   "selectedByTier": {
     "A": {
       "samples": 538,
-      "wins": 509,
-      "losses": 29,
-      "accuracyPct": 94.61
+      "wins": 515,
+      "losses": 23,
+      "accuracyPct": 95.72
     },
     "B": {
       "samples": 6,
@@ -503,8 +503,8 @@
   },
   "boardRowsByAction": {
     "SELECTED": 962,
-    "CANDIDATE": 92423,
-    "COVERAGE": 20406
+    "CANDIDATE": 92591,
+    "COVERAGE": 20238
   },
   "boardRowsByTier": {
     "S": 863,
@@ -769,9 +769,9 @@
     {
       "date": "2025-12-06",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2025-12-07",
@@ -944,9 +944,9 @@
     {
       "date": "2026-01-01",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-01-02",
@@ -1056,9 +1056,9 @@
     {
       "date": "2026-01-17",
       "samples": 6,
-      "wins": 4,
-      "losses": 2,
-      "accuracyPct": 66.67
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
     },
     {
       "date": "2026-01-18",
@@ -1189,9 +1189,9 @@
     {
       "date": "2026-02-05",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-02-06",
@@ -1287,9 +1287,9 @@
     {
       "date": "2026-02-25",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-02-26",
@@ -1329,9 +1329,9 @@
     {
       "date": "2026-03-03",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-03-04",
@@ -1483,9 +1483,9 @@
     {
       "date": "2026-03-25",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-03-26",
@@ -1518,9 +1518,9 @@
     {
       "date": "2026-03-30",
       "samples": 6,
-      "wins": 6,
-      "losses": 0,
-      "accuracyPct": 100.0
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
     },
     {
       "date": "2026-03-31",
@@ -1532,9 +1532,9 @@
     {
       "date": "2026-04-01",
       "samples": 6,
-      "wins": 6,
-      "losses": 0,
-      "accuracyPct": 100.0
+      "wins": 5,
+      "losses": 1,
+      "accuracyPct": 83.33
     },
     {
       "date": "2026-04-02",
@@ -1637,9 +1637,9 @@
     {
       "date": "2026-04-19",
       "samples": 6,
-      "wins": 5,
-      "losses": 1,
-      "accuracyPct": 83.33
+      "wins": 6,
+      "losses": 0,
+      "accuracyPct": 100.0
     },
     {
       "date": "2026-04-20",

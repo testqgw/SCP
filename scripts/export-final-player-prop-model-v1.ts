@@ -78,6 +78,7 @@ type CurrentSlateScore = {
   absLineGap: number | null;
   projectedMinutes?: number | null;
   minutesVolatility?: number | null;
+  minutesLiftPct?: number | null;
   starterRateLast10?: number | null;
   lineupStatus?: string | null;
   lineupStarter?: boolean | null;
@@ -88,6 +89,9 @@ type CurrentSlateScore = {
   projectedMinutesFloor?: number | null;
   projectedMinutesCeiling?: number | null;
   dataCompletenessScore?: number | null;
+  spreadResolved?: boolean | null;
+  openingTeamSpread?: number | null;
+  openingTotal?: number | null;
   stakeLevel?: string | null;
   teamRecentWinPct?: number | null;
   opponentRecentWinPct?: number | null;
@@ -313,7 +317,7 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-12-context-trap-v4" as const;
+const MODEL_VERSION = "2026-05-18-soft-context-rerank-v5" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
@@ -799,6 +803,20 @@ function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
     }
   }
 
+  const minutesLift = finite(row.minutesLiftPct ?? null);
+  if (minutesLift != null) {
+    if (finalSide === "OVER" && minutesLift >= 0.08) {
+      score += 0.03;
+      notes.push("minutes_lift_supports_over");
+    } else if (finalSide === "UNDER" && minutesLift <= -0.08) {
+      score += 0.03;
+      notes.push("minutes_lift_supports_under");
+    } else if (Math.abs(minutesLift) >= 0.12) {
+      score -= 0.035;
+      flags.push("minutes_lift_against_side");
+    }
+  }
+
   if (
     finalSide === "UNDER" &&
     STABLE_STARTER_UNDER_RISK_MARKETS.has(row.market) &&
@@ -807,6 +825,36 @@ function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
   ) {
     score -= 0.03;
     flags.push("stable_starter_under_risk");
+  }
+
+  if (row.spreadResolved === false) {
+    score -= 0.025;
+    flags.push("missing_spread_context");
+  }
+  const spread = finite(row.openingTeamSpread ?? null);
+  if (spread != null) {
+    const absSpread = Math.abs(spread);
+    if (absSpread <= 5) {
+      score += 0.025;
+      notes.push("competitive_spread");
+    } else if (absSpread >= 9) {
+      score -= 0.05;
+      flags.push("blowout_spread_risk");
+    }
+  }
+
+  const total = finite(row.openingTotal ?? null);
+  if (total != null && ["PTS", "THREES", "PRA", "PA", "PR"].includes(row.market)) {
+    if (total >= 232 && finalSide === "OVER") {
+      score += 0.018;
+      notes.push("high_total_supports_counting_over");
+    } else if (total <= 218 && finalSide === "UNDER") {
+      score += 0.018;
+      notes.push("low_total_supports_counting_under");
+    } else if ((total >= 236 && finalSide === "UNDER") || (total <= 214 && finalSide === "OVER")) {
+      score -= 0.02;
+      flags.push("total_environment_against_side");
+    }
   }
 
   const synergyNet = (row.marketSynergyBoost ?? 0) - (row.marketSynergyDrag ?? 0);
@@ -916,7 +964,19 @@ function scoreCandidate(
   const sourceAdjustment =
     row.runtimeFinalSource === "player_override" ? 0.035 : row.runtimeFinalSource === "baseline" ? -0.018 : 0;
   const finalSide = side(row.runtimeFinalSide) ?? "UNDER";
-  const contextAdjustment = contextLayer(row, finalSide).adjustment;
+  const context = contextLayer(row, finalSide);
+  const tier = tierFor(components, row);
+  let softContextRerank = 0;
+  if (tier === "A" && finalSide === "OVER" && context.flags.includes("blowout_spread_risk")) {
+    softContextRerank -= 0.02;
+  }
+  if (
+    finalSide === "UNDER" &&
+    (context.notes.includes("minutes_lift_supports_under") || context.notes.includes("minutes_trend_supports_under"))
+  ) {
+    softContextRerank += 0.005;
+  }
+  const contextAdjustment = context.adjustment + softContextRerank;
 
   return round(
     accuracyScore * 0.48 +
@@ -1451,7 +1511,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-12 context-trap calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
+    "This is a correlation-aware meta-selector with the 2026-05-18 soft-context rerank calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus soft score reranking for A-tier blowout OVERs and minutes-supported UNDERs, plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");

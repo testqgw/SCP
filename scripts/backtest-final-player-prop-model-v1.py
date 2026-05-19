@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-12-context-trap-v4"
+MODEL_VERSION = "2026-05-18-soft-context-rerank-v5"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 STABLE_STARTER_UNDER_RISK_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
@@ -516,7 +516,13 @@ def score_row(row: pd.Series, components: list[str], prior: float) -> float:
     minute_score = 0.5 if minute is None else clamp((minute - 16) / 18, 0, 1)
     consensus_score = clamp((len(components) - 1) / 4, 0, 1)
     source_adjustment = 0.035 if row.finalSource == "player_override" else -0.018 if row.finalSource == "baseline" else 0
-    context_adjustment = context_layer(row)["contextAdjustment"]
+    context = context_layer(row)
+    context_adjustment = context["contextAdjustment"]
+    soft_context_rerank = 0.0
+    if tier_for(components, row) == "A" and row.finalSide == "OVER" and "blowout_spread_risk" in context["contextFlags"]:
+        soft_context_rerank -= 0.02
+    if row.finalSide == "UNDER" and "minutes_lift_supports_under" in context["contextNotes"]:
+        soft_context_rerank += 0.005
     return round(
         accuracy_score * 0.48
         + wf_score * 0.18
@@ -526,7 +532,8 @@ def score_row(row: pd.Series, components: list[str], prior: float) -> float:
         + minute_score * 0.03
         + consensus_score * 0.04
         + source_adjustment
-        + context_adjustment,
+        + context_adjustment
+        + soft_context_rerank,
         6,
     )
 
@@ -968,7 +975,7 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-12 context-trap calibration keeps the tier-first selector, then adds bounded game-context scoring plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, and volatile REB OVER rows.",
+            "- The 2026-05-18 soft-context rerank keeps the tier-first selector, then adds bounded game-context scoring, a small A-tier blowout-OVER downgrade, a small minutes-lift UNDER bump, plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, and volatile REB OVER rows.",
             "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, fragility vetoes, and a selected score floor of 0.75.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
@@ -1021,7 +1028,7 @@ def main() -> None:
         "dateRange": {"from": active_dates[0] if active_dates else None, "to": active_dates[-1] if active_dates else None, "activeDates": len(active_dates)},
         "config": {"maxPicks": args.max_picks, "minScore": args.min_score, **PORTFOLIO_LIMITS},
         "contextLayer": {
-            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, portfolio-fragility vetoes, and context-trap vetoes",
+            "rule": "bounded adjustment from lineup timing, minutes stability, minutes lift, step-up role, opening spread/total, data completeness, stable-starter role-floor risk, soft context rerank, portfolio-fragility vetoes, and context-trap vetoes",
             "rowsWithContextPct": round(
                 100
                 * sum(1 for row in board_rows if row.get("contextScore") is not None)

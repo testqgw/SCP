@@ -14,7 +14,7 @@ from typing import Any
 
 
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-04-meta-correlation-v1"
+MODEL_VERSION = "2026-05-18-soft-context-rerank-v5"
 DEFAULT_FALLBACK_ODDS = -110.0
 
 
