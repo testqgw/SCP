@@ -1878,6 +1878,19 @@ function viewKeepsMatchupParam(view: ViewKey) {
   return view === 'overview' || view === 'final' || view === 'players' || view === 'feed' || view === 'tracker';
 }
 
+function clientEtDateString(timestampMs: number) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(timestampMs));
+  const year = parts.find((part) => part.type === 'year')?.value ?? '0000';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+  return `${year}-${month}-${day}`;
+}
+
 function buildRefreshNotice(result: Extract<RefreshResponse, { ok: true }>['result'], refreshedAt: string | null): RefreshNotice {
   const totals = `${n(result.totals.games, 0)} games | ${n(result.totals.players, 0)} players`;
   const boardTime = refreshedAt ? `Board updated ${ts(refreshedAt)}` : null;
@@ -2709,8 +2722,18 @@ export default function NewDashboard({
       ? formatRecord(teamMatchup.awayLast10Record.wins, teamMatchup.awayLast10Record.losses)
       : formatRecord(teamMatchup.homeLast10Record.wins, teamMatchup.homeLast10Record.losses)
     : null;
+  const todayEt = clientEtDateString(now);
+  const staleFallbackNotice: RefreshNotice | null =
+    data.dateEt !== todayEt && data.boardFeed?.note?.includes('last published board snapshot')
+      ? {
+          kind: 'PLACEHOLDER',
+          title: 'Live board is using fallback data',
+          detail: `Showing ${data.dateEt} because the live snapshot database is unavailable. Refresh will retry today's ${todayEt} slate.`,
+        }
+      : null;
+  const activeRefreshNotice = refreshNotice ?? staleFallbackNotice;
   const boardPulseNote =
-    refreshNotice?.detail ??
+    activeRefreshNotice?.detail ??
     (featured
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
@@ -3692,13 +3715,13 @@ export default function NewDashboard({
             </div>
           </section>
 
-          {refreshNotice ? (
+          {activeRefreshNotice ? (
             <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge label={refreshNotice.kind} kind={refreshNotice.kind} />
-                <div className="text-sm font-semibold text-[var(--text)]">{refreshNotice.title}</div>
+                <Badge label={activeRefreshNotice.kind} kind={activeRefreshNotice.kind} />
+                <div className="text-sm font-semibold text-[var(--text)]">{activeRefreshNotice.title}</div>
               </div>
-              <div className="mt-2 text-sm text-[var(--text-2)]">{refreshNotice.detail}</div>
+              <div className="mt-2 text-sm text-[var(--text-2)]">{activeRefreshNotice.detail}</div>
             </div>
           ) : null}
 
