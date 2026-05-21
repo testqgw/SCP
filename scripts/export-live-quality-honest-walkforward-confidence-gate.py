@@ -91,7 +91,16 @@ def fmt_bucket(bucket: dict) -> str:
 
 
 def prepare_frame(input_path: Path) -> tuple[pd.DataFrame, list[str], list[str]]:
-    rows = json.loads(input_path.read_text(encoding="utf-8"))
+    payload = json.loads(input_path.read_text(encoding="utf-8"))
+    if isinstance(payload, list):
+        rows = payload
+    elif isinstance(payload, dict):
+        rows = payload.get("playerMarketRows") or payload.get("rows") or payload.get("details")
+        if not isinstance(rows, list):
+            raise ValueError("Dictionary root must contain a list key: playerMarketRows, rows, or details")
+    else:
+        raise ValueError("Invalid JSON format: root is not a list or dictionary")
+
     df = pd.DataFrame(rows)
     if "rowKey" not in df.columns:
         df["rowKey"] = np.arange(len(df)).astype(str)

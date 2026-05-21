@@ -914,6 +914,12 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def markdown_report(output: dict[str, Any]) -> str:
+    def fmt_pct(val: Any) -> str:
+        return f"{val:.2f}%" if val is not None else "N/A"
+
+    def fmt_num(val: Any) -> str:
+        return f"{val:.2f}" if val is not None else "N/A"
+
     selected = output["selected"]
     full_board = output["fullBoard"]
     qualified = output["qualified90Board"]
@@ -928,24 +934,24 @@ def markdown_report(output: dict[str, Any]) -> str:
         "",
         "## Headline",
         "",
-        f"- Full-board coverage: {output['coveragePct']:.2f}%",
-        f"- Full-board accuracy: {full_board['overall']['accuracyPct']:.2f}% ({full_board['overall']['wins']:,}-{full_board['overall']['losses']:,}, {full_board['overall']['samples']:,} rows)",
-        f"- 90+ qualified-board accuracy: {qualified['overall']['accuracyPct']:.2f}% ({qualified['overall']['wins']:,}-{qualified['overall']['losses']:,}, {qualified['overall']['samples']:,} rows; {qualified['coveragePct']:.2f}% board coverage)",
-        f"- 90+ score-floor-board accuracy: {score_qualified['overall']['accuracyPct']:.2f}% ({score_qualified['overall']['wins']:,}-{score_qualified['overall']['losses']:,}, {score_qualified['overall']['samples']:,} rows; {score_qualified['coveragePct']:.2f}% board coverage)",
-        f"- Selected-pick accuracy: {selected['overall']['accuracyPct']:.2f}% ({selected['overall']['wins']:,}-{selected['overall']['losses']:,}, {selected['overall']['samples']:,} picks)",
-        f"- Candidate-pool accuracy: {candidate['overall']['accuracyPct']:.2f}% ({candidate['overall']['wins']:,}-{candidate['overall']['losses']:,}, {candidate['overall']['samples']:,} rows)",
-        f"- Avg selected picks per slate: {output['avgSelectedPerSlate']:.2f}",
-        f"- Selected lift vs full board: {output['selectedLiftVsFullBoardPct']:.2f} pts",
+        f"- Full-board coverage: {fmt_pct(output.get('coveragePct'))}",
+        f"- Full-board accuracy: {fmt_pct(full_board['overall']['accuracyPct'])} ({full_board['overall']['wins']:,}-{full_board['overall']['losses']:,}, {full_board['overall']['samples']:,} rows)",
+        f"- 90+ qualified-board accuracy: {fmt_pct(qualified['overall']['accuracyPct'])} ({qualified['overall']['wins']:,}-{qualified['overall']['losses']:,}, {qualified['overall']['samples']:,} rows; {fmt_pct(qualified.get('coveragePct'))} board coverage)",
+        f"- 90+ score-floor-board accuracy: {fmt_pct(score_qualified['overall']['accuracyPct'])} ({score_qualified['overall']['wins']:,}-{score_qualified['overall']['losses']:,}, {score_qualified['overall']['samples']:,} rows; {fmt_pct(score_qualified.get('coveragePct'))} board coverage)",
+        f"- Selected-pick accuracy: {fmt_pct(selected['overall']['accuracyPct'])} ({selected['overall']['wins']:,}-{selected['overall']['losses']:,}, {selected['overall']['samples']:,} picks)",
+        f"- Candidate-pool accuracy: {fmt_pct(candidate['overall']['accuracyPct'])} ({candidate['overall']['wins']:,}-{candidate['overall']['losses']:,}, {candidate['overall']['samples']:,} rows)",
+        f"- Avg selected picks per slate: {fmt_num(output.get('avgSelectedPerSlate'))}",
+        f"- Selected lift vs full board: {fmt_num(output.get('selectedLiftVsFullBoardPct'))} pts",
         "",
         "## Recent Windows",
         "",
         "| Slice | Overall | Last 30 | Last 14 |",
         "|---|---:|---:|---:|",
-        f"| Full board | {full_board['overall']['accuracyPct']:.2f}% | {full_board['last30']['accuracyPct']:.2f}% | {full_board['last14']['accuracyPct']:.2f}% |",
-        f"| 90+ qualified board | {qualified['overall']['accuracyPct']:.2f}% | {qualified['last30']['accuracyPct']:.2f}% | {qualified['last14']['accuracyPct']:.2f}% |",
-        f"| 90+ score-floor board | {score_qualified['overall']['accuracyPct']:.2f}% | {score_qualified['last30']['accuracyPct']:.2f}% | {score_qualified['last14']['accuracyPct']:.2f}% |",
-        f"| Candidate pool | {candidate['overall']['accuracyPct']:.2f}% | {candidate['last30']['accuracyPct']:.2f}% | {candidate['last14']['accuracyPct']:.2f}% |",
-        f"| Selected picks | {selected['overall']['accuracyPct']:.2f}% | {selected['last30']['accuracyPct']:.2f}% | {selected['last14']['accuracyPct']:.2f}% |",
+        f"| Full board | {fmt_pct(full_board['overall']['accuracyPct'])} | {fmt_pct(full_board['last30']['accuracyPct'])} | {fmt_pct(full_board['last14']['accuracyPct'])} |",
+        f"| 90+ qualified board | {fmt_pct(qualified['overall']['accuracyPct'])} | {fmt_pct(qualified['last30']['accuracyPct'])} | {fmt_pct(qualified['last14']['accuracyPct'])} |",
+        f"| 90+ score-floor board | {fmt_pct(score_qualified['overall']['accuracyPct'])} | {fmt_pct(score_qualified['last30']['accuracyPct'])} | {fmt_pct(score_qualified['last14']['accuracyPct'])} |",
+        f"| Candidate pool | {fmt_pct(candidate['overall']['accuracyPct'])} | {fmt_pct(candidate['last30']['accuracyPct'])} | {fmt_pct(candidate['last14']['accuracyPct'])} |",
+        f"| Selected picks | {fmt_pct(selected['overall']['accuracyPct'])} | {fmt_pct(selected['last30']['accuracyPct'])} | {fmt_pct(selected['last14']['accuracyPct'])} |",
         "",
         "## Selected By Market",
         "",
@@ -954,7 +960,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     ]
     for market, bucket in output["selectedByMarket"].items():
         lines.append(
-            f"| {market} | {bucket['samples']:,} | {bucket['accuracyPct']:.2f}% | {bucket['wins']:,}-{bucket['losses']:,} |"
+            f"| {market} | {bucket['samples']:,} | {fmt_pct(bucket.get('accuracyPct'))} | {bucket['wins']:,}-{bucket['losses']:,} |"
         )
     lines.extend(
         [
@@ -967,7 +973,7 @@ def markdown_report(output: dict[str, Any]) -> str:
     )
     for tier, bucket in output["selectedByTier"].items():
         lines.append(
-            f"| {tier} | {bucket['samples']:,} | {bucket['accuracyPct']:.2f}% | {bucket['wins']:,}-{bucket['losses']:,} |"
+            f"| {tier} | {bucket['samples']:,} | {fmt_pct(bucket.get('accuracyPct'))} | {bucket['wins']:,}-{bucket['losses']:,} |"
         )
     lines.extend(
         [

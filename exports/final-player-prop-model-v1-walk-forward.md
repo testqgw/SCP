@@ -1,49 +1,46 @@
 # Final Player Prop Model V1 Walk-Forward Backtest
 
-Generated: 2026-05-18T23:42:15.269369+00:00
+Generated: 2026-05-21T20:00:28.660216+00:00
 Model version: `2026-05-18-soft-context-rerank-v5`
-Input: `C:\Users\quinc\Desktop\Sports Betting Snapshot\compliance-reminder-saas\exports\live-quality-full-season-router-v9-details.json`
+Input: `C:\Users\quinc\Desktop\Sports Betting Snapshot\compliance-reminder-saas\exports\projection-backtest-allplayers-with-rows-live-team-context.json`
 
 ## Headline
 
 - Full-board coverage: 100.00%
-- Full-board accuracy: 88.86% (101,113-12,678, 113,791 rows)
-- 90+ qualified-board accuracy: 90.37% (68,630-7,313, 75,943 rows; 66.74% board coverage)
-- 90+ score-floor-board accuracy: 90.75% (44,074-4,495, 48,569 rows; 42.68% board coverage)
-- Selected-pick accuracy: 95.74% (921-41, 962 picks)
-- Candidate-pool accuracy: 89.61% (83,834-9,719, 93,553 rows)
-- Avg selected picks per slate: 5.83
-- Selected lift vs full board: 6.88 pts
+- Full-board accuracy: 53.69% (36,439-31,434, 67,873 rows)
+- 90+ qualified-board accuracy: 55.09% (2,821-2,300, 5,121 rows; 7.54% board coverage)
+- 90+ score-floor-board accuracy: 64.56% (204-112, 316 rows; 0.47% board coverage)
+- Selected-pick accuracy: 60.98% (50-32, 82 picks)
+- Candidate-pool accuracy: 62.37% (348-210, 558 rows)
+- Avg selected picks per slate: 0.71
+- Selected lift vs full board: 7.29 pts
 
 ## Recent Windows
 
 | Slice | Overall | Last 30 | Last 14 |
 |---|---:|---:|---:|
-| Full board | 88.86% | 90.73% | 91.68% |
-| 90+ qualified board | 90.37% | 92.14% | 93.24% |
-| 90+ score-floor board | 90.75% | 92.64% | 93.92% |
-| Candidate pool | 89.61% | 91.45% | 92.13% |
-| Selected picks | 95.74% | 94.64% | 94.44% |
+| Full board | 53.69% | 52.78% | 52.57% |
+| 90+ qualified board | 55.09% | 65.89% | 75.51% |
+| 90+ score-floor board | 64.56% | 60.00% | N/A |
+| Candidate pool | 62.37% | 60.00% | N/A |
+| Selected picks | 60.98% | 33.33% | N/A |
 
 ## Selected By Market
 
 | Market | Picks | Accuracy | Record |
 |---|---:|---:|---:|
-| AST | 216 | 95.83% | 207-9 |
-| PRA | 148 | 95.27% | 141-7 |
-| PTS | 317 | 95.58% | 303-14 |
-| RA | 8 | 100.00% | 8-0 |
-| REB | 260 | 95.77% | 249-11 |
-| THREES | 13 | 100.00% | 13-0 |
+| AST | 1 | 0.00% | 0-1 |
+| PRA | 51 | 62.75% | 32-19 |
+| PTS | 25 | 56.00% | 14-11 |
+| RA | 5 | 80.00% | 4-1 |
 
 ## Selected By Tier
 
 | Tier | Picks | Accuracy | Record |
 |---|---:|---:|---:|
-| A | 538 | 95.72% | 515-23 |
-| B | 6 | 100.00% | 6-0 |
-| C | 1 | 100.00% | 1-0 |
-| S | 417 | 95.68% | 399-18 |
+| A | 5 | 100.00% | 5-0 |
+| B | 21 | 61.90% | 13-8 |
+| C | 56 | 57.14% | 32-24 |
 
 ## Claim Boundary
 
