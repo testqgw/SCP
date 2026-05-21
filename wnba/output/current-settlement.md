@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-20T21:18:37Z
-Slate: 2026-05-20
+Generated: 2026-05-21T17:37:35Z
+Slate: 2026-05-21
 Settled: 0 / 6
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Luisa Geiselsoder UNDER PTS 20.5 (actual pending)
-- PENDING: Bridget Carleton UNDER PRA 31.5 (actual pending)
-- PENDING: Skylar Diggins UNDER PTS 15.5 (actual pending)
-- PENDING: Carla Leite UNDER PTS 15.5 (actual pending)
-- PENDING: Natisha Hiedeman UNDER PTS 12.5 (actual pending)
-- PENDING: Kamilla Cardoso UNDER PRA 27.5 (actual pending)
+- PENDING: Marine Johannes UNDER PTS 14.5 (actual pending)
+- PENDING: Gabby Williams UNDER PA 19.5 (actual pending)
+- PENDING: Kayla Thornton UNDER PTS 13.5 (actual pending)
+- PENDING: Sabrina Ionescu UNDER PA 20.5 (actual pending)
+- PENDING: Courtney Williams OVER AST 3.5 (actual pending)
+- PENDING: Jonquel Jones UNDER PR 21.5 (actual pending)
