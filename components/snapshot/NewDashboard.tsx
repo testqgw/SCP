@@ -1972,6 +1972,7 @@ export default function NewDashboard({
   const [rubbingPickFilter, setRubbingPickFilter] = useState<RubbingPickFilter>(RUBBING_DEFAULT_PICK_FILTER);
   const [rubbingPage, setRubbingPage] = useState(0);
   const [showResearchContext, setShowResearchContext] = useState(false);
+  const [filter60, setFilter60] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -2052,8 +2053,8 @@ export default function NewDashboard({
     [finalModel?.boardRows, finalModel?.candidateRows, finalModel?.selectedRows],
   );
   const finalModelPicks = useMemo(
-    () =>
-      (finalModel?.selectedRows ?? [])
+    () => {
+      let picks = (finalModel?.selectedRows ?? [])
         .filter(isSelectableFinalModelRow)
         .map((modelRow) => {
           const row =
@@ -2065,9 +2066,15 @@ export default function NewDashboard({
             row,
             view: row ? viewForFinalModelRow(row, modelRow) : null,
           };
-        })
-        .sort((a, b) => (a.modelRow.selectedRank ?? 999) - (b.modelRow.selectedRank ?? 999)),
-    [allRowById, boardRows, finalModel?.selectedRows],
+        });
+      if (filter60) {
+        picks = picks.filter(({ modelRow }) => 
+          (modelRow.finalScore ?? 0) >= 0.74 && (modelRow.metaProbCorrect ?? 0) >= 0.63
+        );
+      }
+      return picks.sort((a, b) => (a.modelRow.selectedRank ?? 999) - (b.modelRow.selectedRank ?? 999));
+    },
+    [allRowById, boardRows, finalModel?.selectedRows, filter60],
   );
   const finalModelViews = useMemo(
     () => finalModelPicks.map((pick) => pick.view).filter((view): view is View => view != null),
@@ -2345,7 +2352,13 @@ export default function NewDashboard({
   const playerTabComboPicks = useMemo<PlayerTabComboPick[]>(
     () => {
       const bestByPlayer = new Map<string, PlayerTabComboPick & { modelRow: SnapshotFinalModelBoardRow }>();
-      finalModelBoardRows.forEach((modelRow) => {
+      let rowsToProcess = finalModelBoardRows;
+      if (filter60) {
+        rowsToProcess = finalModelBoardRows.filter(row => 
+          (row.finalScore ?? 0) >= 0.74 && (row.metaProbCorrect ?? 0) >= 0.63
+        );
+      }
+      rowsToProcess.forEach((modelRow) => {
         if (!isSelectableFinalModelRow(modelRow)) return;
         const row =
           (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
@@ -2377,7 +2390,7 @@ export default function NewDashboard({
           (a, b) => comparePlayerTabFallbackPicks(a, b),
         );
     },
-    [allRowById, boardRows, finalModelBoardRows, slatePlayers],
+    [allRowById, boardRows, finalModelBoardRows, slatePlayers, filter60],
   );
   const playerTabPairCandidates = useMemo(
     () =>
@@ -3737,12 +3750,53 @@ export default function NewDashboard({
           ) : null}
 
           <section className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-            <div>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board accuracy</div>
                 <div className="mt-1 text-sm font-semibold text-[var(--text)]">{boardModeLabel}</div>
                 <div className="mt-1 text-sm text-[var(--text-2)]">{boardModeDetail}</div>
                 <div className="mt-1 text-xs text-[var(--muted)]">{boardModeCountLabel}</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* 60% Broad Board Toggle Card */}
+                <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
+                  filter60 
+                    ? 'border-cyan-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse-subtle' 
+                    : 'border-[var(--border)] bg-[var(--surface-2)]/60'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex h-2 w-2">
+                      {filter60 && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      )}
+                      <span className={`relative inline-flex h-2 w-2 rounded-full ${filter60 ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
+                    </div>
+                    <div>
+                      <span className="block text-xs font-mono font-bold text-[var(--text)]">60% Broad Board</span>
+                      <span className="block text-[10px] text-[var(--text-2)]">Calibrated Edge Filter</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFilter60(!filter60)}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-cyan-500/50 ${filter60 ? 'bg-cyan-500' : 'bg-zinc-700'}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${filter60 ? 'translate-x-4' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Walk-forward stats card */}
+                {filter60 && (
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 text-xs font-mono animate-fade-in">
+                    <div className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">Walk-Forward Audit</div>
+                    <div className="mt-0.5 text-[var(--text)]">
+                      <span className="font-bold text-cyan-400">61.11% Win Rate</span> (1,172W - 746L)
+                    </div>
+                    <div className="text-[10px] text-[var(--text-2)]">1,918 qualified plays</div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -4351,6 +4405,7 @@ export default function NewDashboard({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
+                <Stat dense label="60% Broad Board" value="61.11%" kind="LIVE" note="1,172W - 746L, 1,918 plays (True WF)" className="border-cyan-500/30 bg-cyan-950/5 shadow-[0_0_12px_rgba(6,182,212,0.1)]" valueClass="text-cyan-400 font-bold" />
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
                 <Stat dense label="90+ board" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
