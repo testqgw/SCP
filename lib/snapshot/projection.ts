@@ -1396,13 +1396,17 @@ function applyTeammateSynergyAdjustments(
   const active = synergy.activeCoreAverage;
   const missing = synergy.missingCoreAverage;
 
+  // Joint Pace vs. Usage Calibration for missing heliocentric creators
+  const isMissingHeliocentricCreator = (missing.AST ?? 0) >= 6.5 || (missing.PTS ?? 0) >= 22;
+  const paceDrag = isMissingHeliocentricCreator ? 0.968 : 1.0; // 3.2% pace drag when primary creator is OUT
+
   if (result.PTS != null) {
     const scorerRole = roleScale(result.PTS, last10Average.PTS, 20, 0.24, 1.18);
     const creatorSupport = (active.AST ?? 0) * scorerRole * 0.04;
     const spacingSupport = (active.THREES ?? 0) * scorerRole * 0.025;
     const scorerCompetition = (active.PTS ?? 0) * (1 - clamp(scorerRole / 1.18, 0.18, 0.92)) * 0.03;
     const missingBoost = (missing.PTS ?? 0) * scorerRole * 0.085 + (missing.THREES ?? 0) * scorerRole * 0.04;
-    result.PTS = round(Math.max(0, result.PTS + clamp(creatorSupport + spacingSupport + missingBoost - scorerCompetition, -1.4, 2.6)), 2);
+    result.PTS = round(Math.max(0, (result.PTS + clamp(creatorSupport + spacingSupport + missingBoost - scorerCompetition, -1.4, 2.6)) * paceDrag), 2);
   }
 
   if (result.REB != null) {
@@ -1417,7 +1421,7 @@ function applyTeammateSynergyAdjustments(
     const finisherSupport = (active.PTS ?? 0) * creatorRole * 0.02 + (active.THREES ?? 0) * creatorRole * 0.05;
     const creatorCompetition = (active.AST ?? 0) * (1 - clamp(creatorRole / 1.2, 0.18, 0.92)) * 0.05;
     const missingBoost = (missing.AST ?? 0) * creatorRole * 0.09;
-    result.AST = round(Math.max(0, result.AST + clamp(finisherSupport + missingBoost - creatorCompetition, -0.9, 1.8)), 2);
+    result.AST = round(Math.max(0, (result.AST + clamp(finisherSupport + missingBoost - creatorCompetition, -0.9, 1.8)) * paceDrag), 2);
   }
 
   if (result.THREES != null) {
@@ -1425,7 +1429,7 @@ function applyTeammateSynergyAdjustments(
     const creatorSupport = (active.AST ?? 0) * spacingRole * 0.028;
     const spacingCompetition = (active.THREES ?? 0) * (1 - clamp(spacingRole / 1.2, 0.18, 0.92)) * 0.04;
     const missingBoost = (missing.THREES ?? 0) * spacingRole * 0.11;
-    result.THREES = round(Math.max(0, result.THREES + clamp(creatorSupport + missingBoost - spacingCompetition, -0.35, 0.95)), 2);
+    result.THREES = round(Math.max(0, (result.THREES + clamp(creatorSupport + missingBoost - spacingCompetition, -0.35, 0.95)) * paceDrag), 2);
   }
 }
 
@@ -1710,6 +1714,152 @@ function projectMarket(input: ProjectMarketInput): number | null {
   return round(Math.max(0, projected), 2);
 }
 
+function applyOpponentDefensiveSchemeAdjustment(
+  result: SnapshotMetricRecord,
+  playerPosition: string | null | undefined,
+  allowanceDelta: SnapshotMetricRecord,
+  paceAdjustedDelta?: SnapshotMetricRecord | null
+): void {
+  const delta = paceAdjustedDelta ?? allowanceDelta;
+  if (!delta) return;
+
+  const position = (playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const isBigCenter =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+
+  const isGuardShooter =
+    position.includes("PG") ||
+    position.includes("SG") ||
+    position === "G";
+
+  if (isBigCenter) {
+    // Inside Roll-Men Bigs vs. Rim Protection Scheme
+    if (result.PTS != null && delta.PTS != null) {
+      if (delta.PTS > 1.0) {
+        result.PTS = round(result.PTS * 1.028, 2);
+      } else if (delta.PTS < -1.0) {
+        result.PTS = round(result.PTS * 0.975, 2);
+      }
+    }
+    if (result.REB != null && delta.REB != null) {
+      if (delta.REB > 0.6) {
+        result.REB = round(result.REB * 1.028, 2);
+      } else if (delta.REB < -0.6) {
+        result.REB = round(result.REB * 0.975, 2);
+      }
+    }
+  }
+
+  if (isGuardShooter) {
+    // Perimeter Playmakers / Shooters vs. Closing-out / Drop Coverage Schemes
+    if (result.THREES != null && delta.THREES != null) {
+      if (delta.THREES > 0.4) {
+        result.THREES = round(result.THREES * 1.026, 2);
+      } else if (delta.THREES < -0.4) {
+        result.THREES = round(result.THREES * 0.976, 2);
+      }
+    }
+    if (result.AST != null && delta.AST != null) {
+      if (delta.AST > 0.5) {
+        result.AST = round(result.AST * 1.026, 2);
+      } else if (delta.AST < -0.5) {
+        result.AST = round(result.AST * 0.976, 2);
+      }
+    }
+  }
+}
+
+function applyOpponentDefensiveSchemeAdjustmentToValue(
+  value: number | null,
+  market: SnapshotMarket,
+  playerPosition: string | null | undefined,
+  allowanceDelta: SnapshotMetricRecord,
+  paceAdjustedDelta?: SnapshotMetricRecord | null
+): number | null {
+  if (value == null) return null;
+  const delta = paceAdjustedDelta ?? allowanceDelta;
+  if (!delta) return value;
+
+  const position = (playerPosition ?? "").toUpperCase().replace(/\s+/g, "");
+  const isBigCenter =
+    position.includes("C") ||
+    position.includes("PF") ||
+    position === "F" ||
+    position === "FC" ||
+    position === "CF" ||
+    position === "F-C" ||
+    position === "C-F";
+
+  const isGuardShooter =
+    position.includes("PG") ||
+    position.includes("SG") ||
+    position === "G";
+
+  if (isBigCenter) {
+    if (market === "PTS") {
+      if (delta.PTS != null) {
+        if (delta.PTS > 1.0) return round(value * 1.028, 2);
+        if (delta.PTS < -1.0) return round(value * 0.975, 2);
+      }
+    }
+    if (market === "REB") {
+      if (delta.REB != null) {
+        if (delta.REB > 0.6) return round(value * 1.028, 2);
+        if (delta.REB < -0.6) return round(value * 0.975, 2);
+      }
+    }
+    if (market === "PR" || market === "PRA" || market === "RA" || market === "PA") {
+      const ptsDelta = delta.PTS ?? 0;
+      const rebDelta = delta.REB ?? 0;
+      if (ptsDelta > 1.0 && rebDelta > 0.6) {
+        return round(value * 1.028, 2);
+      } else if (ptsDelta < -1.0 && rebDelta < -0.6) {
+        return round(value * 0.975, 2);
+      } else if (ptsDelta > 1.0 || rebDelta > 0.6) {
+        return round(value * 1.014, 2);
+      } else if (ptsDelta < -1.0 || rebDelta < -0.6) {
+        return round(value * 0.988, 2);
+      }
+    }
+  }
+
+  if (isGuardShooter) {
+    if (market === "THREES") {
+      if (delta.THREES != null) {
+        if (delta.THREES > 0.4) return round(value * 1.026, 2);
+        if (delta.THREES < -0.4) return round(value * 0.976, 2);
+      }
+    }
+    if (market === "AST") {
+      if (delta.AST != null) {
+        if (delta.AST > 0.5) return round(value * 1.026, 2);
+        if (delta.AST < -0.5) return round(value * 0.976, 2);
+      }
+    }
+    if (market === "PA" || market === "PRA" || market === "RA") {
+      const astDelta = delta.AST ?? 0;
+      const threesDelta = delta.THREES ?? 0;
+      if (astDelta > 0.5 && threesDelta > 0.4) {
+        return round(value * 1.026, 2);
+      } else if (astDelta < -0.5 && threesDelta < -0.4) {
+        return round(value * 0.976, 2);
+      } else if (astDelta > 0.5 || threesDelta > 0.4) {
+        return round(value * 1.013, 2);
+      } else if (astDelta < -0.5 || threesDelta < -0.4) {
+        return round(value * 0.988, 2);
+      }
+    }
+  }
+
+  return value;
+}
+
 export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetricRecord {
   let minutesProfile = projectMinutesProfile({
     minutesLast3Avg: input.minutesLast3Avg,
@@ -1809,6 +1959,12 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
   applyTeammateSynergyAdjustments(result, input.last10Average, input.teammateSynergy);
   applyPairwiseTeammateSynergyAdjustments(result, input.pairwiseTeammateSynergy, "base");
   applyOpponentAvailabilityAdjustments(result, input.last10Average, input.opponentAvailability);
+  applyOpponentDefensiveSchemeAdjustment(
+    result,
+    input.playerPosition,
+    input.opponentAllowanceDelta,
+    input.opponentPaceAdjustedDelta
+  );
 
   baseMarkets.forEach((market) => {
     result[market] = applyOpeningTotalEnvironmentAdjustment(result[market], market, input.openingTotal);
@@ -1968,6 +2124,13 @@ export function projectTonightMetrics(input: ProjectTonightInput): SnapshotMetri
         favoriteGuardScoringPenaltyProfile,
       );
     }
+    directComboProjection[market] = applyOpponentDefensiveSchemeAdjustmentToValue(
+      directComboProjection[market],
+      market,
+      input.playerPosition,
+      input.opponentAllowanceDelta,
+      input.opponentPaceAdjustedDelta
+    );
   });
 
   const sumOrNull = (...values: Array<number | null>): number | null => {
