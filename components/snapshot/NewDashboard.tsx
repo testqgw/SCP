@@ -200,13 +200,10 @@ type TopNavItem =
   | { label: string; href: string };
 
 const TOP_NAV: TopNavItem[] = [
-  { label: 'Overview', tab: 'overview' },
-  { label: 'WNBA', href: '/wnba' },
-  { label: 'Final V1', tab: 'final' },
-  { label: 'Players', tab: 'research' },
-  { label: 'Feed', tab: 'scout' },
-  { label: 'Tracker', tab: 'tracking' },
-  { label: 'Method', action: 'help' },
+  { label: 'Board', tab: 'overview' },
+  { label: 'Research', tab: 'research' },
+  { label: 'Scout Feed', tab: 'scout' },
+  { label: 'Methodology / Support', action: 'help' },
 ];
 
 const KIND_CLASS: Record<Kind, string> = {
@@ -367,6 +364,8 @@ function Stat({
   note,
   dense = false,
   showKind = true,
+  className = '',
+  valueClass = '',
 }: {
   label: string;
   value: string;
@@ -374,14 +373,16 @@ function Stat({
   note?: string;
   dense?: boolean;
   showKind?: boolean;
+  className?: string;
+  valueClass?: string;
 }) {
   return (
-    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3 md:p-3.5' : 'p-3.5 md:p-4'}`}>
+    <div className={`rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] ${dense ? 'p-3 md:p-3.5' : 'p-3.5 md:p-4'} ${className}`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[9px] uppercase tracking-[0.18em] text-[var(--muted)] md:text-[10px]">{label}</p>
         {showKind ? <Badge label={kind} kind={kind} /> : null}
       </div>
-      <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-base md:text-lg' : 'text-xl md:text-2xl'}`}>{value}</div>
+      <div className={`mt-2 font-semibold tracking-tight text-[var(--text)] ${dense ? 'text-base md:text-lg' : 'text-xl md:text-2xl'} ${valueClass}`}>{value}</div>
       {note ? <div className="mt-1 text-[11px] leading-5 text-[var(--text-2)] md:text-xs">{note}</div> : null}
     </div>
   );
@@ -3523,146 +3524,157 @@ export default function NewDashboard({
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(109,74,255,0.10),transparent_32%),radial-gradient(circle_at_top_right,rgba(183,129,44,0.10),transparent_28%),linear-gradient(180deg,rgba(255,253,252,0.65)_0%,rgba(245,241,232,0.88)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_35%),radial-gradient(circle_at_top_right,rgba(251,191,36,0.06),transparent_30%),linear-gradient(180deg,rgba(9,9,11,0.85)_0%,rgba(17,17,21,0.95)_100%)]" />
       <div className="relative">
-        <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)] bg-[color:rgba(255,253,252,0.85)] backdrop-blur-md">
-          <div className="mx-auto max-w-[1440px] px-3 py-1.5 sm:px-6 sm:py-2 xl:px-8">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-xs font-semibold tracking-[0.12em] text-[var(--accent)] sm:h-10 sm:w-10 sm:rounded-2xl sm:text-sm">
+        <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)] bg-zinc-950/80 backdrop-blur-md">
+          <div className="mx-auto max-w-[1440px] px-3 py-2 sm:px-6 xl:px-8">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                {/* Brand Logo */}
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[10px] font-bold tracking-wider text-[var(--accent)] sm:h-8 sm:w-8 sm:rounded-xl sm:text-xs">
                     U
                   </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--muted)] sm:text-[11px] sm:tracking-[0.28em]">ULTOPS / Snapshot</div>
-                    <div className="mt-1 hidden text-sm text-[var(--text-2)] sm:block">NBA prop intelligence board</div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--text)] sm:text-[11px]">
+                      ULTOPS <span className="text-[var(--accent)]">/</span> SNAPSHOT
+                    </div>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                  <div className="relative hidden lg:block">
-                    <input
-                      type="search"
-                      value={searchQuery}
-                      onFocus={() => setHeaderSearchOpen(true)}
-                      onBlur={() => window.setTimeout(() => setHeaderSearchOpen(false), 120)}
-                      onChange={(event) => {
-                        setSearchQuery(event.target.value);
-                        setHeaderSearchOpen(true);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          commitHeaderSearch();
-                        }
-                        if (event.key === 'Escape') {
-                          setHeaderSearchOpen(false);
-                        }
-                      }}
-                      placeholder="Search players or matchups"
-                      className="w-[240px] rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.26)]"
-                    />
-                    {headerSearchOpen && deferredSearchQuery ? (
-                      <div className="absolute right-0 top-full z-50 mt-2 w-[320px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_18px_40px_rgba(20,16,35,0.12)]">
-                        {headerPlayerResults.length ? (
-                          <div className="border-b border-[var(--border)] p-2">
-                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Players</div>
-                            {headerPlayerResults.map((row) => (
-                              <button
-                                key={`header-player:${row.playerId}`}
-                                type="button"
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                  setSearchQuery(row.playerName);
-                                  setResearch(row.playerId);
-                                }}
-                                className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-[var(--surface-2)]`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-semibold text-[var(--text)]">{row.playerName}</div>
-                                  <div className="mt-0.5 truncate text-xs text-[var(--text-2)]">{matchup(row)}</div>
-                                </div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Player</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                        {headerMatchupResults.length ? (
-                          <div className="p-2">
-                            <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">Matchups</div>
-                            {headerMatchupResults.map((matchupResult) => (
-                              <button
-                                key={`header-matchup:${matchupResult.key}`}
-                                type="button"
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => {
-                                  setSearchQuery(matchupResult.label);
-                                  openMatchup(matchupResult.key);
-                                }}
-                                className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2 text-left hover:bg-[var(--surface-2)]`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-semibold text-[var(--text)]">{matchupResult.label}</div>
-                                  <div className="mt-0.5 truncate text-xs text-[var(--text-2)]">{matchupResult.gameTimeEt}</div>
-                                </div>
-                                <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Game</span>
-                              </button>
-                            ))}
-                          </div>
-                        ) : null}
-                        {!headerPlayerResults.length && !headerMatchupResults.length ? (
-                          <div className="px-4 py-3 text-sm text-[var(--text-2)]">No live player or matchup matches for that search yet.</div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={refreshSlate}
-                    disabled={isRefreshing}
-                    className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-xs font-medium sm:min-h-11 sm:px-4 sm:py-2.5 sm:text-sm ${
-                      isRefreshing
-                        ? 'cursor-wait bg-[color:rgba(183,129,44,0.12)] text-[var(--warning)]'
-                        : 'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]'
-                    }`}
-                  >
-                    <span className="sm:hidden">{isRefreshing ? 'Refreshing' : 'Refresh'}</span>
-                    <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh slate'}</span>
-                  </button>
-                  <Badge label={isRefreshing ? 'Updated' : 'Live'} kind={isRefreshing ? 'DERIVED' : 'LIVE'} />
+
+                {/* Main Navigation Links */}
+                <nav className="flex items-center gap-0.5 sm:gap-1.5">
+                  {TOP_NAV.map((item) => {
+                    const isActive =
+                      ('tab' in item && headerView === TAB_TO_VIEW[item.tab]) ||
+                      ('action' in item && headerView === 'method') ||
+                      ('href' in item && pathname === item.href);
+                    
+                    return (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onClick={() => ('action' in item ? openHelp() : 'tab' in item ? activateTab(item.tab) : undefined)}
+                        className={`${ACTION_CLASS} px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide sm:px-3 sm:py-1.5 sm:text-xs transition-all ${
+                          isActive
+                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 shadow-[0_0_12px_rgba(34,211,238,0.06)]'
+                            : 'text-[var(--text-soft)] border border-transparent hover:text-[var(--text)] hover:bg-zinc-900/40'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Search, Action, and Live Pill */}
+              <div className="flex items-center justify-between gap-3 md:justify-end">
+                {/* Terminal style command input for search */}
+                <div className="relative flex-1 md:flex-initial">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-[var(--accent)] font-mono font-bold select-none">$</span>
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onFocus={() => setHeaderSearchOpen(true)}
+                    onBlur={() => window.setTimeout(() => setHeaderSearchOpen(false), 120)}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                      setHeaderSearchOpen(true);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitHeaderSearch();
+                      }
+                      if (event.key === 'Escape') {
+                        setHeaderSearchOpen(false);
+                      }
+                    }}
+                    placeholder="search player/matchup..."
+                    className="w-full rounded-md border border-[var(--border)] bg-zinc-950 pl-5 pr-2.5 py-1 text-[11px] text-[var(--text)] outline-none placeholder:text-[var(--text-soft)] placeholder:italic focus:border-[var(--accent)]/30 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all font-mono md:w-[170px]"
+                  />
+                  {headerSearchOpen && deferredSearchQuery ? (
+                    <div className="absolute right-0 top-full z-50 mt-1.5 w-[300px] overflow-hidden rounded-xl border border-[var(--border)] bg-zinc-950 shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+                      {headerPlayerResults.length ? (
+                        <div className="border-b border-[var(--border)] p-1.5">
+                          <div className="px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--text-soft)]">Players</div>
+                          {headerPlayerResults.map((row) => (
+                            <button
+                              key={`header-player:${row.playerId}`}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                setSearchQuery(row.playerName);
+                                setResearch(row.playerId);
+                              }}
+                              className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--surface-2)]`}
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-xs font-semibold text-[var(--text)]">{row.playerName}</div>
+                                <div className="mt-0.5 truncate text-[10px] text-[var(--text-soft)]">{matchup(row)}</div>
+                              </div>
+                              <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-[var(--text-soft)]">Player</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      {headerMatchupResults.length ? (
+                        <div className="p-1.5">
+                          <div className="px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--text-soft)]">Matchups</div>
+                          {headerMatchupResults.map((matchupResult) => (
+                            <button
+                              key={`header-matchup:${matchupResult.key}`}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                setSearchQuery(matchupResult.label);
+                                openMatchup(matchupResult.key);
+                              }}
+                              className={`${ACTION_CLASS} flex w-full items-start justify-between gap-3 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--surface-2)]`}
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-xs font-semibold text-[var(--text)]">{matchupResult.label}</div>
+                                <div className="mt-0.5 truncate text-[10px] text-[var(--text-soft)]">{matchupResult.gameTimeEt}</div>
+                              </div>
+                              <span className="text-[9px] font-medium uppercase tracking-[0.16em] text-[var(--text-soft)]">Game</span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                      {!headerPlayerResults.length && !headerMatchupResults.length ? (
+                        <div className="px-3 py-2 text-xs text-[var(--text-soft)]">No matches found.</div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Refresh Trigger */}
+                <button
+                  type="button"
+                  onClick={refreshSlate}
+                  disabled={isRefreshing}
+                  className={`${ACTION_CLASS} inline-flex h-7 items-center rounded-md border border-[var(--border)] bg-zinc-900 px-2.5 text-[11px] font-medium text-[var(--text)] hover:bg-[var(--surface-2)] hover:border-zinc-700/80 disabled:opacity-50 disabled:cursor-wait`}
+                >
+                  {isRefreshing ? (
+                    <span className="flex items-center gap-1.5 text-[var(--warning)]">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--warning)]"></span>
+                      Syncing
+                    </span>
+                  ) : (
+                    <span>Sync slate</span>
+                  )}
+                </button>
+
+                {/* Live Pill Indicator */}
+                <div className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--success)]/20 bg-[var(--success)]/5 px-2.5 text-[10px] font-semibold text-[var(--success)] tracking-wider">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[var(--success)]"></span>
+                  </span>
+                  <span className="font-mono">LIVE • {data.dateEt}</span>
                 </div>
               </div>
-              <nav className="-mx-1 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-px px-px [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {TOP_NAV.map((item) => {
-                  const isActive =
-                    ('tab' in item && headerView === TAB_TO_VIEW[item.tab]) ||
-                    ('action' in item && headerView === 'method') ||
-                    ('href' in item && pathname === item.href);
-                  const className = `${ACTION_CLASS} inline-flex min-h-[38px] shrink-0 items-center rounded-full px-2.5 py-1.5 text-xs font-medium sm:min-h-10 sm:px-4 sm:py-2 sm:text-sm ${
-                    isActive
-                      ? 'bg-[var(--accent)] text-white'
-                      : 'text-[var(--text-2)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                  }`;
-
-                  if ('href' in item) {
-                    return (
-                      <Link key={item.label} href={item.href} className={className}>
-                        {item.label}
-                      </Link>
-                    );
-                  }
-
-                  return (
-                    <button
-                      key={item.label}
-                      type="button"
-                      onClick={() => ('action' in item ? openHelp() : activateTab(item.tab))}
-                      className={className}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </nav>
             </div>
           </div>
         </header>
@@ -3736,8 +3748,6 @@ export default function NewDashboard({
             </div>
           </section>
 
-          {tab === 'overview' ? (
-            <>
           <section ref={overviewRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="xl:col-span-7">
               {featured ? (
@@ -3761,25 +3771,107 @@ export default function NewDashboard({
                     <RecommendationBox view={featured} title="Best play" size="hero" className="hidden w-full sm:w-auto sm:min-w-[260px] md:block md:min-w-[290px]" />
                   </div>
 
-                  <div className="mt-3 grid grid-cols-3 gap-2 md:hidden">
-                    <CompactMetric label="Model gap" value={gapRead(featured.edge)} compact />
-                    <CompactMetric label="Signal" value={signalGradeValue(featured.signalGrade)} compact />
-                    <CompactMetric label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} compact />
+                  {/* Mobile Featured Pick Stats Grid (Explicit, side-by-side terminal dark layout) */}
+                  <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Live Line"
+                      value={featured.live != null ? n(featured.live) : 'Pending'}
+                      kind={featured.liveLineKind}
+                      note="Consensus live line"
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Fair Line"
+                      value={featured.fair != null ? n(featured.fair) : '-'}
+                      kind={featured.fairKind}
+                      note="Model baseline"
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Projection"
+                      value={featured.proj != null ? n(featured.proj) : '-'}
+                      kind={featured.projKind}
+                      note="Tonight projection"
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Model Edge"
+                      value={gapRead(featured.edge)}
+                      kind={featured.edgeKind}
+                      note={gapNote(featured)}
+                      valueClass={
+                        featured.edge == null || Math.abs(featured.edge) < 0.05
+                          ? 'text-zinc-400 font-mono'
+                          : featured.edge > 0
+                            ? 'text-[var(--success)] font-mono'
+                            : 'text-[var(--danger)] font-mono'
+                      }
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Confidence"
+                      value={featured.conf == null ? '-' : pct(featured.conf, 0)}
+                      kind={featured.confKind}
+                      note="Pick confidence"
+                      className="col-span-2"
+                    />
                   </div>
 
+                  {/* Desktop Featured Pick Stats Grid (Explicit, side-by-side terminal dark layout) */}
                   <div className="mt-4 hidden grid-cols-2 gap-2.5 sm:mt-5 sm:gap-3 md:grid xl:grid-cols-5">
                     <Stat
                       dense
-                      label="Line to play"
-                      value={featured.live == null ? (featured.fair == null ? '-' : n(featured.fair)) : n(featured.live)}
-                      kind={featured.live == null ? featured.fairKind : featured.liveLineKind}
-                      note={featured.live != null ? 'Current consensus number' : featured.fair != null ? 'Model fair line fallback' : 'Waiting for line'}
                       showKind={false}
+                      label="Live Line"
+                      value={featured.live != null ? n(featured.live) : 'Pending'}
+                      kind={featured.liveLineKind}
+                      note="Consensus live line"
                     />
-                    <Stat dense label="Projection" value={featured.proj == null ? '-' : n(featured.proj)} kind={featured.projKind} note="Tonight projection" showKind={false} />
-                    <Stat dense label="Model gap" value={gapRead(featured.edge)} kind={featured.edgeKind} note={gapNote(featured)} showKind={false} />
-                    <Stat dense label="Signal grade" value={signalGradeValue(featured.signalGrade)} kind={featured.signalGrade ? 'DERIVED' : 'PLACEHOLDER'} note={signalGradeNote(featured.signalGrade)} showKind={false} />
-                    <Stat dense label="Confidence" value={featured.conf == null ? '-' : pct(featured.conf, 0)} kind={featured.confKind} note="Pick confidence" showKind={false} />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Fair Line"
+                      value={featured.fair != null ? n(featured.fair) : '-'}
+                      kind={featured.fairKind}
+                      note="Model baseline"
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Projection"
+                      value={featured.proj != null ? n(featured.proj) : '-'}
+                      kind={featured.projKind}
+                      note="Tonight projection"
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Model Edge"
+                      value={gapRead(featured.edge)}
+                      kind={featured.edgeKind}
+                      note={gapNote(featured)}
+                      valueClass={
+                        featured.edge == null || Math.abs(featured.edge) < 0.05
+                          ? 'text-zinc-400 font-mono'
+                          : featured.edge > 0
+                            ? 'text-[var(--success)] font-mono'
+                            : 'text-[var(--danger)] font-mono'
+                      }
+                    />
+                    <Stat
+                      dense
+                      showKind={false}
+                      label="Confidence"
+                      value={featured.conf == null ? '-' : pct(featured.conf, 0)}
+                      kind={featured.confKind}
+                      note="Pick confidence"
+                    />
                   </div>
 
                   <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)] md:hidden">
@@ -3898,6 +3990,40 @@ export default function NewDashboard({
               note={boardPulseNote}
             />
           </div>
+
+          {/* Glassmorphic Sub-Tab Navigation Bar */}
+          <div className="mt-4 md:mt-6 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-1.5 backdrop-blur-md shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 px-1.5 py-0.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {TABS.map((item) => {
+                  const isActive = tab === item.id;
+                  return (
+                    <button
+                      key={`subtab:${item.id}`}
+                      type="button"
+                      onClick={() => activateTab(item.id)}
+                      className={`${ACTION_CLASS} flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                        isActive
+                          ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 shadow-[0_0_15px_rgba(34,211,238,0.12)]'
+                          : 'text-[var(--text-2)] border border-transparent hover:text-[var(--text)] hover:bg-zinc-800/30'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className={`hidden ml-1.5 text-[9px] opacity-60 font-mono sm:inline-block ${isActive ? 'text-[var(--accent)]' : 'text-zinc-500'}`}>
+                        [{item.hint}]
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="hidden text-[10px] font-mono text-[var(--text-2)] md:block uppercase tracking-wider">
+                workspace / {tab}
+              </div>
+            </div>
+          </div>
+
+          {tab === 'overview' ? (
+            <>
 
           <section className="mt-4 scroll-mt-28 outline-none md:mt-6 md:scroll-mt-32">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
@@ -4127,7 +4253,7 @@ export default function NewDashboard({
                               key={event.id}
                               type="button"
                               onClick={() => setResearch(event.playerId)}
-                              className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[color:rgba(216,204,186,0.58)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
+                              className={`${ACTION_CLASS} relative mb-0 w-full border-b border-[var(--border)] bg-transparent px-0 pb-3 pt-0 text-left last:border-b-0 last:pb-0 hover:bg-transparent md:pb-3.5`}
                             >
                               <span className="absolute -left-[25px] top-2.5 h-3 w-3 rounded-full border-2 border-[var(--surface)] bg-[var(--accent)]" />
                               <div className="grid gap-2 sm:grid-cols-[76px_minmax(0,1fr)] sm:gap-3">
@@ -4736,7 +4862,7 @@ export default function NewDashboard({
                           const projectionLean = rubbingProjectionLeanLabel(v, modelSide);
                           const displayConfidence = isHgbRow ? topPlayer200SampleLaneConfidencePct(v, data.dateEt, rubbingPickFilter) : v.conf;
                           return (
-                            <tr key={`${trackerRowKey(v)}:rubbing`} className="border-t border-[color:rgba(216,204,186,0.68)] transition hover:bg-[var(--surface-2)]">
+                            <tr key={`${trackerRowKey(v)}:rubbing`} className="border-t border-[var(--border)] transition hover:bg-[var(--surface-2)]">
                               <td className="px-4 py-4 align-top">
                                 <div className="flex items-start gap-3">
                                   <Badge label={`#${rowRank}`} kind="DERIVED" />
@@ -4873,7 +4999,7 @@ export default function NewDashboard({
                                 <div className="mt-1 text-xs leading-5 text-[var(--text-2)] sm:text-sm">{matchup(row)}</div>
                               </div>
                               {picked ? (
-                                <span className="inline-flex items-center rounded-full border border-[color:rgba(109,74,255,0.22)] bg-white/65 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+                                <span className="inline-flex items-center rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
                                   Selected
                                 </span>
                               ) : null}
@@ -5323,7 +5449,7 @@ export default function NewDashboard({
                         key={event.id}
                         type="button"
                         onClick={() => setResearch(event.playerId)}
-                        className={`${ACTION_CLASS} relative grid w-full gap-3 border-b border-[color:rgba(216,204,186,0.68)] px-0 py-4 text-left last:border-b-0 sm:grid-cols-[56px_18px_minmax(0,1fr)] sm:items-start sm:gap-4`}
+                        className={`${ACTION_CLASS} relative grid w-full gap-3 border-b border-[var(--border)] px-0 py-4 text-left last:border-b-0 sm:grid-cols-[56px_18px_minmax(0,1fr)] sm:items-start sm:gap-4`}
                       >
                         <div className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] sm:text-right">
                           {relativeTime(event.createdAt, now)}
@@ -5558,8 +5684,8 @@ export default function NewDashboard({
                                     setExpandedTrackerKey((current) => (current === rowKey ? null : rowKey));
                                   }
                                 }}
-                                className={`cursor-pointer border-t border-[color:rgba(216,204,186,0.68)] transition ${
-                                  rowExpanded ? 'bg-[color:rgba(109,74,255,0.06)]' : 'hover:bg-[var(--surface-2)]'
+                                className={`cursor-pointer border-t border-[var(--border)] transition ${
+                                  rowExpanded ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--surface-2)]'
                                 }`}
                               >
                                 <td className="px-4 py-4 align-top">
@@ -5596,7 +5722,7 @@ export default function NewDashboard({
                                 <td className="px-4 py-4 text-right align-top text-[var(--text-2)]">{rowExpanded ? '−' : '+'}</td>
                               </tr>
                               {rowExpanded ? (
-                                <tr className="border-t border-[color:rgba(216,204,186,0.38)] bg-[color:rgba(109,74,255,0.05)]">
+                                <tr className="border-t border-[var(--border)] bg-zinc-900/40">
                                   <td colSpan={9} className="px-4 py-4 sm:px-5">
                                     <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
                                       <div className="space-y-4">
