@@ -1,0 +1,26 @@
+# =============================================================================
+# Deep Learning Feature Engine Dependencies
+# Designed for CPU-only execution on 16GB RAM laptops (HP OmniBook class)
+# =============================================================================
+
+# --- Already installed (used by existing scripts) ---
+# numpy
+# scipy
+# scikit-learn
+# pandas
+
+# --- Core: NLP Context Engine (lightweight, <5MB total) ---
+beautifulsoup4>=4.12.0      # HTML parsing for news scraping
+feedparser>=6.0.0            # RSS feed parsing (standardized)
+requests>=2.31.0             # HTTP client with retries
+
+# --- Graph: Matchup Interaction Engine (<10MB) ---
+networkx>=3.2                # Graph construction and centrality metrics
+
+# --- Deep Learning: LSTM Momentum Engine (~200MB CPU-only) ---
+# Install torch CPU-only to avoid downloading CUDA binaries:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Or just: pip install torch (will auto-detect no GPU)
+
+# --- Optional: Enhanced NLP with sentence embeddings (~80MB model) ---
+# sentence-transformers>=2.2.0   # Uncomment for all-MiniLM-L6-v2 enhanced NLP

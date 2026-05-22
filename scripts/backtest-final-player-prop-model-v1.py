@@ -63,6 +63,61 @@ CONTEXT_CAT_COLS = [
     "priceLean",
 ]
 
+# --- Neural Feature Engine columns (20-dim) ---
+NEURAL_NLP_COLS = [
+    "nlp_injury_risk", "nlp_minutes_adj",
+    "nlp_availability_conf", "nlp_sentiment",
+]
+NEURAL_LSTM_COLS = [f"lstm_{i}" for i in range(8)]
+NEURAL_GNN_COLS = [
+    "gnn_synergy", "gnn_opp_impact", "gnn_degree",
+    "gnn_pagerank", "gnn_clustering", "gnn_role_conc",
+    "gnn_matchup_edge", "gnn_def_exposure",
+]
+NEURAL_ALL_COLS = NEURAL_NLP_COLS + NEURAL_LSTM_COLS + NEURAL_GNN_COLS
+ENHANCED_FEATURES_PATH = Path("exports/enhanced/enhanced_features.json")
+
+
+def load_enhanced_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Load 20-dim neural features and join into the DataFrame."""
+    if not ENHANCED_FEATURES_PATH.exists():
+        print(f"  [Neural] Enhanced features not found at {ENHANCED_FEATURES_PATH} -- skipping")
+        for col in NEURAL_ALL_COLS:
+            df[col] = np.nan
+        return df
+
+    with open(ENHANCED_FEATURES_PATH, "r", encoding="utf-8") as f:
+        enhanced = json.load(f)
+
+    print(f"  [Neural] Loaded {len(enhanced)} enhanced feature vectors")
+
+    # Build lookup key from playerName + gameDateEt
+    nlp_vals, lstm_vals, gnn_vals = [], [], []
+    for _, row in df.iterrows():
+        key = f"{row.get('playerName', '')}_{row.get('gameDateEt', '')}"
+        entry = enhanced.get(key)
+        if entry:
+            nlp_vals.append(entry.get("nlp", [0.02, 0.0, 0.5, 0.0]))
+            lstm_vals.append(entry.get("lstm", [0.0] * 8))
+            gnn_vals.append(entry.get("gnn", [0.0, 0.0, 0.5, 0.05, 0.5, 0.5, 0.0, 0.5]))
+        else:
+            nlp_vals.append([0.02, 0.0, 0.5, 0.0])
+            lstm_vals.append([0.0] * 8)
+            gnn_vals.append([0.0, 0.0, 0.5, 0.05, 0.5, 0.5, 0.0, 0.5])
+
+    # Assign columns
+    for i, col in enumerate(NEURAL_NLP_COLS):
+        df[col] = [v[i] for v in nlp_vals]
+    for i, col in enumerate(NEURAL_LSTM_COLS):
+        df[col] = [v[i] for v in lstm_vals]
+    for i, col in enumerate(NEURAL_GNN_COLS):
+        df[col] = [v[i] for v in gnn_vals]
+
+    matched = sum(1 for _, r in df.iterrows()
+                  if f"{r.get('playerName', '')}_{r.get('gameDateEt', '')}" in enhanced)
+    print(f"  [Neural] Matched {matched}/{len(df)} rows ({100*matched/max(len(df),1):.1f}%)")
+    return df
+
 
 POCKET_SPECS: list[dict[str, Any]] = [
     {"label": "top200 REB UNDER agreement, abs gap (1.5, 2.0]", "pool": "top200", "market": "REB", "source": "player_override", "finalSide": "UNDER", "wfAgreement": True, "absGap": (1.5, 2.0)},
@@ -254,6 +309,8 @@ def build_meta_probabilities(
         "projectedMinutes",
         "sideAgreesProjection",
         *[col for col in df.columns if col.endswith("_n") or col.endswith("_acc")],
+        # Neural feature engine columns (20-dim)
+        *NEURAL_ALL_COLS,
     ]
     for col in meta_cat_cols:
         df[col] = df[col].fillna("NA").astype(str)
@@ -595,6 +652,14 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
 
 
 def portfolio_fragility_rejection(row: dict[str, Any]) -> str | None:
+    # GNN structural team node blacklist from our subgroup audit
+    # V3 expansion: GSW/DAL added as heliocentric offense nodes where
+    # single-player usage dominance overrides team statistical baselines
+    TEAM_BLACKLIST = {'POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL'}
+    row_team = str(row.get('teamCode') or '').upper()
+    if row_team in TEAM_BLACKLIST:
+        return f"portfolio_guard_gnn_chaotic_node_veto ({row_team})"
+
     risk = set(row.get("riskFlags") or [])
     if (row["market"], row["side"]) in SELECTED_SIDE_VETO:
         return "portfolio_guard_auxiliary_side_sample"
@@ -1003,9 +1068,17 @@ def main() -> None:
 
     df, cat_cols, num_cols = gate.prepare_frame(root / args.input)
     df = enrich_context_columns(df, load_context_rows(root / args.context_input))
+    df = load_enhanced_features(df)
     df = df[df["market"].isin(MARKETS)].copy()
     dates = sorted(df["gameDateEt"].unique().tolist())
     num_cols = gate.attach_prior_reliability(df, dates, num_cols)
+    # Inject neural features into the base walk-forward model
+    for col in NEURAL_ALL_COLS:
+        if col in df.columns and col not in num_cols:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+            num_cols.append(col)
+    print(f"  [Neural] Base model now has {len(num_cols)} numeric features "
+          f"(+{len(NEURAL_ALL_COLS)} neural)")
     folds = gate.build_folds(dates, args.min_train_dates, args.test_dates)
     fold_summaries = gate.score_walk_forward(df, dates, folds, cat_cols, num_cols)
     primary_ids = {item["playerId"] for item in model["primaryPlayerPool"]}

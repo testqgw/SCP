@@ -1973,6 +1973,7 @@ export default function NewDashboard({
   const [rubbingPage, setRubbingPage] = useState(0);
   const [showResearchContext, setShowResearchContext] = useState(false);
   const [filter60, setFilter60] = useState(false);
+  const [showVetoed, setShowVetoed] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -2052,8 +2053,34 @@ export default function NewDashboard({
         : [...(finalModel?.selectedRows ?? []), ...(finalModel?.candidateRows ?? [])],
     [finalModel?.boardRows, finalModel?.candidateRows, finalModel?.selectedRows],
   );
+  const finalModelStats = useMemo(() => {
+    const GNN_CHAOTIC_NODE_BLACKLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
+    let rawPicks = (finalModel?.selectedRows ?? [])
+      .filter(isSelectableFinalModelRow)
+      .map((modelRow) => {
+        const row =
+          (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
+          boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
+          null;
+        const team = (modelRow.team || row?.teamCode || '').toUpperCase();
+        const isVetoed = GNN_CHAOTIC_NODE_BLACKLIST.has(team);
+        return { modelRow, row, isVetoed };
+      });
+
+    if (filter60) {
+      rawPicks = rawPicks.filter(({ modelRow }) => 
+        (modelRow.finalScore ?? 0) >= 0.74 && (modelRow.metaProbCorrect ?? 0) >= 0.63
+      );
+    }
+
+    const activeCount = rawPicks.filter(p => !p.isVetoed).length;
+    const vetoedCount = rawPicks.filter(p => p.isVetoed).length;
+    return { activeCount, vetoedCount, totalCount: rawPicks.length };
+  }, [allRowById, boardRows, finalModel?.selectedRows, filter60]);
+
   const finalModelPicks = useMemo(
     () => {
+      const GNN_CHAOTIC_NODE_BLACKLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
       let picks = (finalModel?.selectedRows ?? [])
         .filter(isSelectableFinalModelRow)
         .map((modelRow) => {
@@ -2061,9 +2088,12 @@ export default function NewDashboard({
             (modelRow.playerId ? allRowById.get(modelRow.playerId) : null) ??
             boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
             null;
+          const team = (modelRow.team || row?.teamCode || '').toUpperCase();
+          const isVetoed = GNN_CHAOTIC_NODE_BLACKLIST.has(team);
           return {
             modelRow,
             row,
+            isVetoed,
             view: row ? viewForFinalModelRow(row, modelRow) : null,
           };
         });
@@ -2072,9 +2102,12 @@ export default function NewDashboard({
           (modelRow.finalScore ?? 0) >= 0.74 && (modelRow.metaProbCorrect ?? 0) >= 0.63
         );
       }
+      if (!showVetoed) {
+        picks = picks.filter((pick) => !pick.isVetoed);
+      }
       return picks.sort((a, b) => (a.modelRow.selectedRank ?? 999) - (b.modelRow.selectedRank ?? 999));
     },
-    [allRowById, boardRows, finalModel?.selectedRows, filter60],
+    [allRowById, boardRows, finalModel?.selectedRows, filter60, showVetoed],
   );
   const finalModelViews = useMemo(
     () => finalModelPicks.map((pick) => pick.view).filter((view): view is View => view != null),
@@ -2974,12 +3007,12 @@ export default function NewDashboard({
       kind: featured ? 'LIVE' : 'PLACEHOLDER',
     },
     final: {
-      detail: finalModel?.summary.selectedCount
-        ? `${n(finalModel.summary.selectedCount, 0)} selected | ${pct(finalModel.summary.boardCoveragePct, 0)} coverage`
+      detail: finalModelStats.totalCount > 0
+        ? `${n(finalModelStats.activeCount, 0)} active edge plays${finalModelStats.vetoedCount > 0 ? ` (${n(finalModelStats.vetoedCount, 0)} vetoed)` : ''}`
         : finalModel?.artifactStatus === 'MISSING'
           ? 'No current Final V1 artifact'
           : 'Waiting for Final V1 picks',
-      kind: finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER',
+      kind: finalModelStats.totalCount > 0 ? 'LIVE' : 'PLACEHOLDER',
     },
     precision: {
       detail: precisionDashboard
@@ -3787,6 +3820,35 @@ export default function NewDashboard({
                   </button>
                 </div>
 
+                {/* Show Vetoed Nodes Toggle Card */}
+                <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
+                  showVetoed 
+                    ? 'border-red-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse-subtle' 
+                    : 'border-[var(--border)] bg-[var(--surface-2)]/60'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex h-2 w-2">
+                      {showVetoed && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                      )}
+                      <span className={`relative inline-flex h-2 w-2 rounded-full ${showVetoed ? 'bg-red-500' : 'bg-zinc-600'}`}></span>
+                    </div>
+                    <div>
+                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Show Vetoed Nodes</span>
+                      <span className="block text-[10px] text-[var(--text-2)]">Chaotic GNN Blacklist</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowVetoed(!showVetoed)}
+                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-red-500/50 ${showVetoed ? 'bg-red-500' : 'bg-zinc-700'}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showVetoed ? 'translate-x-4' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </div>
+
                 {/* Walk-forward stats card */}
                 {filter60 && (
                   <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 text-xs font-mono animate-fade-in">
@@ -4416,7 +4478,7 @@ export default function NewDashboard({
                 <Stat dense label="5-leg cards" value={pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUINT_RECORD}; ${FINAL_V1_DAILY_QUINT_DAYS} all-card days`} />
                 <Stat dense label="6-leg cards" value={pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SEXT_RECORD}; ${FINAL_V1_DAILY_SEXT_DAYS} all-card days`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
-                <Stat dense label="Selected today" value={n(finalModel?.summary.selectedCount ?? 0, 0)} kind={finalModel?.summary.selectedCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(FINAL_V1_AVG_PICKS_PER_SLATE, 2)} avg historical picks/slate`} />
+                <Stat dense label="Active selected" value={n(finalModelStats.activeCount, 0)} kind={finalModelStats.activeCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(finalModelStats.vetoedCount, 0)} vetoed chaotic team nodes`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
                 <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
                 <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
@@ -4540,7 +4602,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selectable picks</div>
                     <div className="mt-1 text-sm text-[var(--text-2)]">
                       {finalModelPicks.length
-                        ? `${n(finalModelPicks.length, 0)} Final V1 picks with live lines and ${FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.`
+                        ? `${n(finalModelStats.activeCount, 0)} active edge plays and ${n(finalModelStats.vetoedCount, 0)} vetoed plays on chaotic GNN nodes.`
                         : 'Waiting for current Final V1 picks with selectable live lines.'}
                     </div>
                   </div>
@@ -4554,18 +4616,30 @@ export default function NewDashboard({
                 </div>
                 {finalModelPicks.length ? (
                   <div className="grid gap-4 p-4 lg:grid-cols-2">
-                    {finalModelPicks.map(({ modelRow, row, view }) => (
+                    {finalModelPicks.map(({ modelRow, row, view, isVetoed }) => (
                       <button
                         key={`${modelRow.candidateId}:final-v1`}
                         type="button"
                         onClick={() => row && setResearch(row.playerId)}
-                        className={`rounded-3xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left sm:p-5 ${row ? CARD_BUTTON_CLASS : ''}`}
+                        className={`rounded-3xl border p-4 text-left sm:p-5 transition-all duration-300 ${
+                          row ? CARD_BUTTON_CLASS : ''
+                        } ${
+                          isVetoed 
+                            ? 'border-red-500/20 bg-zinc-950/20 opacity-60 grayscale-[30%] hover:opacity-85 shadow-[0_0_8px_rgba(239,68,68,0.05)]' 
+                            : 'border-[var(--border)] bg-[var(--surface-2)] shadow-[0_4px_20px_rgba(0,0,0,0.02)]'
+                        }`}
                       >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex flex-wrap gap-2">
                               <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
-                              <Pill label={`Tier ${modelRow.tier}`} tone={modelRow.tier === 'S' || modelRow.tier === 'A' ? 'cyan' : 'amber'} />
+                              {isVetoed ? (
+                                <span className="inline-flex items-center rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-500 animate-pulse-subtle">
+                                  GNN VETO: {row?.teamCode ?? modelRow.team ?? 'CHAOTIC NODE'}
+                                </span>
+                              ) : (
+                                <Pill label={`Tier ${modelRow.tier}`} tone={modelRow.tier === 'S' || modelRow.tier === 'A' ? 'cyan' : 'amber'} />
+                              )}
                               <Pill label={MARKET_LABELS[modelRow.market]} tone="amber" />
                             </div>
                             <div className="mt-3 text-xl font-semibold tracking-tight text-[var(--text)]">{modelRow.playerName}</div>
