@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-05-21,1,Marine Johannes,NY,New York Liberty,GS,Golden State Valkyries,PTS,UNDER,14.5,0.0,WIN,0.74083,0.89702,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-05-21,2,Gabby Williams,GS,Golden State Valkyries,NY,New York Liberty,PA,UNDER,19.5,18.0,WIN,0.70903,0.84941,bet365,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-21,3,Kayla Thornton,GS,Golden State Valkyries,NY,New York Liberty,PTS,UNDER,13.5,11.0,WIN,0.64965,0.71063,nan,https://www.sportsgrid.com/wnba/game/golden-state-valkyries-new-york-liberty-scores-odds-picks-props-may-21-2026/8c80eae7-076e-43ad-9620-553ec4e26eab
+2026-05-21,4,Sabrina Ionescu,NY,New York Liberty,GS,Golden State Valkyries,PA,UNDER,20.5,,NO_ACTION,0.6468,0.70379,fanduel,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-21,5,Courtney Williams,MIN,Minnesota Lynx,TOR,Toronto Tempo,AST,OVER,3.5,3.0,LOSS,0.64055,0.69635,fanduel,https://www.scoresandodds.com/wnba/props/assists
+2026-05-21,6,Jonquel Jones,NY,New York Liberty,GS,Golden State Valkyries,PR,UNDER,21.5,24.0,LOSS,0.64335,0.66219,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds

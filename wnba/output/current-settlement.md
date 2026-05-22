@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-21T17:37:35Z
-Slate: 2026-05-21
+Generated: 2026-05-22T17:23:42Z
+Slate: 2026-05-22
 Settled: 0 / 6
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Marine Johannes UNDER PTS 14.5 (actual pending)
-- PENDING: Gabby Williams UNDER PA 19.5 (actual pending)
-- PENDING: Kayla Thornton UNDER PTS 13.5 (actual pending)
-- PENDING: Sabrina Ionescu UNDER PA 20.5 (actual pending)
-- PENDING: Courtney Williams OVER AST 3.5 (actual pending)
-- PENDING: Jonquel Jones UNDER PR 21.5 (actual pending)
+- PENDING: Aaliyah Edwards UNDER PTS 20.5 (actual pending)
+- PENDING: Natisha Hiedeman UNDER REB 3.5 (actual pending)
+- PENDING: Allisha Gray UNDER THREES 2.5 (actual pending)
+- PENDING: Monique Billings UNDER REB 6.5 (actual pending)
+- PENDING: Angel Reese UNDER REB 13.5 (actual pending)
+- PENDING: Saniya Rivers UNDER PA 14.5 (actual pending)
