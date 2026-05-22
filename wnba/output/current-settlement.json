@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-22T17:23:42Z",
+  "generatedAt": "2026-05-22T20:53:18Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-05-22T17:23:42Z",
+  "cardGeneratedAt": "2026-05-22T20:53:17Z",
   "slateDate": "2026-05-22",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -47,8 +47,8 @@
       "line": 3.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.73384,
-      "final_score": 0.88884,
+      "model_probability": 0.73433,
+      "final_score": 0.88928,
       "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     },
@@ -103,7 +103,7 @@
       "settlement": "PENDING",
       "model_probability": 0.65901,
       "final_score": 0.75768,
-      "source_book": "bet365",
+      "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     },
     {
