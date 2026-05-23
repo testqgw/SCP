@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
@@ -201,7 +202,8 @@ const TOP_NAV: TopNavItem[] = [
   { label: 'Board', tab: 'overview' },
   { label: 'Research', tab: 'research' },
   { label: 'Scout Feed', tab: 'scout' },
-  { label: 'Methodology / Support', action: 'help' },
+  { label: 'WNBA', href: '/wnba' },
+  { label: 'Method', action: 'help' },
 ];
 
 const KIND_CLASS: Record<Kind, string> = {
@@ -3593,17 +3595,26 @@ export default function NewDashboard({
                       ('tab' in item && headerView === TAB_TO_VIEW[item.tab]) ||
                       ('action' in item && headerView === 'method') ||
                       ('href' in item && pathname === item.href);
+                    const navItemClass = `${ACTION_CLASS} px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide sm:px-3 sm:py-1.5 sm:text-xs transition-all ${
+                      isActive
+                        ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 shadow-[0_0_12px_rgba(34,211,238,0.06)]'
+                        : 'text-[var(--text-soft)] border border-transparent hover:text-[var(--text)] hover:bg-zinc-900/40'
+                    }`;
+
+                    if ('href' in item) {
+                      return (
+                        <Link key={item.label} href={item.href} className={navItemClass}>
+                          {item.label}
+                        </Link>
+                      );
+                    }
                     
                     return (
                       <button
                         key={item.label}
                         type="button"
                         onClick={() => ('action' in item ? openHelp() : 'tab' in item ? activateTab(item.tab) : undefined)}
-                        className={`${ACTION_CLASS} px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wide sm:px-3 sm:py-1.5 sm:text-xs transition-all ${
-                          isActive
-                            ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 shadow-[0_0_12px_rgba(34,211,238,0.06)]'
-                            : 'text-[var(--text-soft)] border border-transparent hover:text-[var(--text)] hover:bg-zinc-900/40'
-                        }`}
+                        className={navItemClass}
                       >
                         {item.label}
                       </button>
