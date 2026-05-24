@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-05-24,1,Satou Sabally,NY,New York Liberty,DAL,Dallas Wings,AST,UNDER,3.5,,PENDING,0.676,0.78744,hardrock,https://www.scoresandodds.com/wnba/props/assists
-2026-05-24,2,Zia Cooke,SEA,Seattle Storm,WSH,Washington Mystics,PTS,UNDER,14.5,,PENDING,0.6699,0.7846,bet365,https://www.scoresandodds.com/wnba/props/points
-2026-05-24,3,DeWanna Bonner,PHX,Phoenix Mercury,ATL,Atlanta Dream,THREES,UNDER,1.5,,PENDING,0.65953,0.7432,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-05-24,4,Shakira Austin,WSH,Washington Mystics,SEA,Seattle Storm,REB,UNDER,8.5,,PENDING,0.64831,0.74055,caesars,https://www.scoresandodds.com/wnba/props/rebounds
-2026-05-24,5,Natisha Hiedeman,SEA,Seattle Storm,WSH,Washington Mystics,PTS,UNDER,13.5,,PENDING,0.62952,0.66274,nan,https://www.sportsgrid.com/wnba/game/washington-mystics-seattle-storm-scores-odds-picks-props-may-24-2026/751de8a5-eaf3-4a25-97bc-95290884d60f
-2026-05-24,6,Sonia Citron,WSH,Washington Mystics,SEA,Seattle Storm,PR,UNDER,21.5,,PENDING,0.62366,0.61582,draftkings,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-05-24,1,Satou Sabally,NY,New York Liberty,DAL,Dallas Wings,PTS,OVER,9.5,,PENDING,0.74157,0.88371,draftkings,https://www.scoresandodds.com/wnba/props/points
+2026-05-24,2,Zia Cooke,SEA,Seattle Storm,WSH,Washington Mystics,PTS,UNDER,14.5,,PENDING,0.67107,0.78832,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-05-24,3,Shakira Austin,WSH,Washington Mystics,SEA,Seattle Storm,REB,UNDER,8.5,,PENDING,0.64831,0.74055,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-05-24,4,DeWanna Bonner,PHX,Phoenix Mercury,ATL,Atlanta Dream,THREES,UNDER,1.5,,PENDING,0.66056,0.70193,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-05-24,5,Natisha Hiedeman,SEA,Seattle Storm,WSH,Washington Mystics,PA,UNDER,18.5,,PENDING,0.62946,0.66071,bet365,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-24,6,Jade Melbourne,SEA,Seattle Storm,WSH,Washington Mystics,PA,UNDER,14.5,,PENDING,0.62747,0.64714,fanduel,https://www.scoresandodds.com/wnba/props/points-&-assists
