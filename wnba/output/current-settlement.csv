@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-05-24,1,Satou Sabally,NY,New York Liberty,DAL,Dallas Wings,PTS,OVER,9.5,,PENDING,0.74157,0.88371,draftkings,https://www.scoresandodds.com/wnba/props/points
-2026-05-24,2,Zia Cooke,SEA,Seattle Storm,WSH,Washington Mystics,PTS,UNDER,14.5,,PENDING,0.67107,0.78832,bet365,https://www.scoresandodds.com/wnba/props/points
-2026-05-24,3,Shakira Austin,WSH,Washington Mystics,SEA,Seattle Storm,REB,UNDER,8.5,,PENDING,0.64831,0.74055,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-05-24,4,DeWanna Bonner,PHX,Phoenix Mercury,ATL,Atlanta Dream,THREES,UNDER,1.5,,PENDING,0.66056,0.70193,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-05-24,5,Natisha Hiedeman,SEA,Seattle Storm,WSH,Washington Mystics,PA,UNDER,18.5,,PENDING,0.62946,0.66071,bet365,https://www.scoresandodds.com/wnba/props/points-&-assists
-2026-05-24,6,Jade Melbourne,SEA,Seattle Storm,WSH,Washington Mystics,PA,UNDER,14.5,,PENDING,0.62747,0.64714,fanduel,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-05-25,1,Carla Leite,POR,Portland Fire,NY,New York Liberty,PRA,UNDER,22.5,,PENDING,0.69474,0.8239,draftkings,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-05-25,2,Janelle Salaun,GS,Golden State Valkyries,CON,Connecticut Sun,THREES,UNDER,2.5,,PENDING,0.66484,0.79526,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-05-25,3,Gabby Williams,GS,Golden State Valkyries,CON,Connecticut Sun,PR,UNDER,17.5,,PENDING,0.66787,0.73169,nan,https://www.sportsgrid.com/wnba/game/connecticut-sun-golden-state-valkyries-scores-odds-picks-props-may-25-2026/2527f40c-45be-4770-a9a9-285aa9017edd
+2026-05-25,4,Breanna Stewart,NY,New York Liberty,POR,Portland Fire,PA,UNDER,24.5,,PENDING,0.69027,0.73102,nan,https://www.sportsgrid.com/wnba/game/portland-fire-new-york-liberty-scores-odds-picks-props-may-25-2026/1f797793-1078-4440-bed2-e185b14a41cd
+2026-05-25,5,Satou Sabally,NY,New York Liberty,POR,Portland Fire,PTS,OVER,13.5,,PENDING,0.63713,0.65183,hardrock,https://www.scoresandodds.com/wnba/props/points
+2026-05-25,6,Jonquel Jones,NY,New York Liberty,POR,Portland Fire,PR,UNDER,22.5,,PENDING,0.62217,0.60142,fanduel,https://www.scoresandodds.com/wnba/props/points-&-rebounds
