@@ -343,7 +343,10 @@ function main(): void {
         total: results.length,
         passed: results.length - failures.length,
         failed: failures.length,
-        results: results.map(({ output: _output, ...result }) => result),
+        results: results.map(({ output: omittedOutput, ...result }) => {
+          void omittedOutput;
+          return result;
+        }),
       },
       null,
       2,

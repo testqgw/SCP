@@ -14,7 +14,7 @@ from typing import Any
 
 
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-18-soft-context-rerank-v5"
+MODEL_VERSION = "2026-05-25-team-stability-v6"
 REQUIRED_RESULT_COLUMNS = {"playerName", "pts", "reb", "ast", "threes"}
 MARKET_FORMULAS = {
     "PTS": ("pts",),

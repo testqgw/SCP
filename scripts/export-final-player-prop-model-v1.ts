@@ -317,13 +317,14 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-18-soft-context-rerank-v5" as const;
+const MODEL_VERSION = "2026-05-25-team-stability-v6" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
 const SELECTED_SIDE_VETO = new Set(["RA:UNDER", "THREES:OVER"]);
+const TEAM_STABILITY_WATCHLIST = new Set(["POR", "HOU", "CHI", "PHX", "DET", "GSW", "DAL"]);
 const THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX = 1;
 
 const PORTFOLIO_LIMITS = {
@@ -914,6 +915,9 @@ function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
 function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], finalSide: Side): string[] {
   const flags: string[] = [];
   const context = contextLayer(row, finalSide);
+  if (TEAM_STABILITY_WATCHLIST.has((row.teamCode ?? "").toUpperCase())) {
+    flags.push("team_stability_watchlist");
+  }
   if ((row.projectedMinutes ?? 99) < 22) flags.push("low_projected_minutes");
   if (finite(row.line) == null) flags.push("missing_live_line");
   const sportsbookCount = row.sportsbookCount ?? 0;
@@ -1206,6 +1210,9 @@ function isCountingOver(candidate: Candidate): boolean {
 }
 
 function portfolioFragilityRejection(candidate: Candidate): string | null {
+  if (candidate.risk_flags.includes("team_stability_watchlist")) {
+    return "portfolio_guard_team_stability_watchlist";
+  }
   if (SELECTED_SIDE_VETO.has(`${candidate.market}:${candidate.side}`)) {
     return "portfolio_guard_auxiliary_side_sample";
   }
@@ -1511,7 +1518,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-18 soft-context rerank calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus soft score reranking for A-tier blowout OVERs and minutes-supported UNDERs, plus explicit guards for thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
+    "This is a correlation-aware meta-selector with the 2026-05-25 team-stability calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus soft score reranking for A-tier blowout OVERs and minutes-supported UNDERs, plus explicit guards for unstable team-context nodes, thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");

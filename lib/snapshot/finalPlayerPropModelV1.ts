@@ -121,6 +121,13 @@ function missingArtifact(dateEt: string): SnapshotFinalModelData {
   };
 }
 
+function invalidArtifact(dateEt: string, warning: string): SnapshotFinalModelData {
+  return {
+    ...missingArtifact(dateEt),
+    warnings: [warning],
+  };
+}
+
 function normalizeRow(input: unknown): SnapshotFinalModelBoardRow | null {
   if (!input || typeof input !== "object") return null;
   const row = input as Record<string, unknown>;
@@ -209,6 +216,13 @@ export async function loadFinalPlayerPropModelV1(dateEt: string): Promise<Snapsh
     payload = JSON.parse(await readFile(artifactPath, "utf8")) as Record<string, unknown>;
   } catch {
     return missingArtifact(dateEt);
+  }
+
+  if (!Array.isArray(payload.boardRows)) {
+    return invalidArtifact(
+      dateEt,
+      `Final V1 artifact for ${dateEt} is not a Final V1 live-card artifact because it does not include boardRows.`,
+    );
   }
 
   const boardRows = Array.isArray(payload.boardRows)

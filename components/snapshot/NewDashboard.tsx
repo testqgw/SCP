@@ -102,13 +102,21 @@ const TOP_PLAYER_200_PREMIUM_90_MARKET_SET = new Set<SnapshotMarket>(
 const FINAL_V1_LONG_CARD_MARKET_SET = new Set<SnapshotMarket>(['PTS', 'REB', 'PRA', 'PA', 'PR', 'RA']);
 
 const MARKETS: SnapshotMarket[] = ['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA'];
-const FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT = 88.86;
-const FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT = 90.37;
-const FINAL_V1_QUALIFIED_90_BOARD_RECORD = '68630-7313';
-const FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT = 66.74;
-const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 95.74;
-const FINAL_V1_SELECTED_RECORD = '921-41';
-const FINAL_V1_SELECTED_VOLUME = 962;
+const FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT = 53.69;
+const FINAL_V1_FULL_BOARD_RECORD = '36,439-31,434';
+const FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT = 56.60;
+const FINAL_V1_QUALIFIED_90_BOARD_RECORD = '6,770-5,192';
+const FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT = 17.62;
+const FINAL_V1_SCORE_90_BOARD_ACCURACY_PCT = 73.55;
+const FINAL_V1_SCORE_90_BOARD_RECORD = '698-251';
+const FINAL_V1_SCORE_90_BOARD_COVERAGE_PCT = 1.40;
+const FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT = 68.49;
+const FINAL_V1_CANDIDATE_POOL_RECORD = '1,504-692';
+const FINAL_V1_SELECTED_WF_ACCURACY_PCT = 79.15;
+const FINAL_V1_SELECTED_LAST30_ACCURACY_PCT = 81.25;
+const FINAL_V1_SELECTED_LAST14_ACCURACY_PCT = 90.00;
+const FINAL_V1_SELECTED_RECORD = '186-49';
+const FINAL_V1_SELECTED_VOLUME = 235;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 91.53;
 const FINAL_V1_DAILY_SINGLE_RECORD = '15324-1418';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 100;
@@ -2794,10 +2802,10 @@ export default function NewDashboard({
   const finalModelArtifactLoaded = finalModel?.artifactStatus === 'LOADED';
   const boardModeProofItems = [
     { label: 'Selected WF', value: pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2) },
-    { label: '90+ board', value: pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2) },
-    { label: '1L cards', value: pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2) },
-    { label: '2L cards', value: pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2) },
-    { label: '3L cards', value: pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2) },
+    { label: 'Last 30', value: pct(FINAL_V1_SELECTED_LAST30_ACCURACY_PCT, 2) },
+    { label: 'Last 14', value: pct(FINAL_V1_SELECTED_LAST14_ACCURACY_PCT, 2) },
+    { label: 'Score 90+', value: pct(FINAL_V1_SCORE_90_BOARD_ACCURACY_PCT, 2) },
+    { label: 'Candidate pool', value: pct(FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT, 2) },
     { label: 'Coverage', value: pct(finalModel?.summary.boardCoveragePct ?? 0, 0) },
   ];
   const boardModeStatusDetail = finalModelArtifactLoaded
@@ -4504,8 +4512,12 @@ export default function NewDashboard({
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
                 <Stat dense label="Research gate" value="61.11%" kind="LIVE" note="1,172W - 746L, 1,918 plays (True WF)" className="border-cyan-500/30 bg-cyan-950/5 shadow-[0_0_12px_rgba(6,182,212,0.1)]" valueClass="text-cyan-400 font-bold" />
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
-                <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
-                <Stat dense label="90+ board" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
+                <Stat dense label="Last 30 selected" value={pct(FINAL_V1_SELECTED_LAST30_ACCURACY_PCT, 2)} kind="MODEL" note="Recent historical replay window" />
+                <Stat dense label="Last 14 selected" value={pct(FINAL_V1_SELECTED_LAST14_ACCURACY_PCT, 2)} kind="MODEL" note="Recent historical replay window" />
+                <Stat dense label="Score 90+ board" value={pct(FINAL_V1_SCORE_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SCORE_90_BOARD_RECORD}; ${pct(FINAL_V1_SCORE_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
+                <Stat dense label="Qualified 90+" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
+                <Stat dense label="Candidate pool" value={pct(FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_CANDIDATE_POOL_RECORD}; historical replay`} />
+                <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_FULL_BOARD_RECORD}; all replay rows`} />
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
@@ -4574,7 +4586,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  The 90+ target is now supported by the qualified board slice at {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)}, player-tab singles at {pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)}, 2L at {pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)}, 3L at {pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)}, 4L at {pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)}, 5L at {pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)}, and 6L at {pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)}. Today&apos;s card builder only uses live/selectable rows with {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books; the historical lanes are replay slices, not locked-forward proof.
+                  The strongest current replay slice is the score-90+ board at {pct(FINAL_V1_SCORE_90_BOARD_ACCURACY_PCT, 2)} on {pct(FINAL_V1_SCORE_90_BOARD_COVERAGE_PCT, 2)} coverage; the broader qualified-90 board is {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} and selected picks are {pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)}. Today&apos;s card builder only uses live/selectable rows with {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books; all of these model-quality lanes are historical replay slices, not locked-forward proof.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (

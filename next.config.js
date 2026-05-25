@@ -21,6 +21,7 @@ const nextConfig = {
         "./exports/live-pra-raw-feature-live.json",
         "./exports/projection-backtest-allplayers-with-rows-live.json",
         "./exports/projection-backtest-allplayers-with-rows-2025-10-23-to-2026-03-09.json",
+        "./exports/final-player-prop-model-v1/**",
       ],
     },
   },

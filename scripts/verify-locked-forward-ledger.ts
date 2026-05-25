@@ -88,7 +88,8 @@ async function readLedger(ledgerPath: string): Promise<LedgerRecord[]> {
 }
 
 function expectedRecordHash(record: LedgerRecord): string {
-  const { record_hash: _recordHash, ...payload } = record;
+  const { record_hash: omittedRecordHash, ...payload } = record;
+  void omittedRecordHash;
   return sha256(canonicalJson(payload));
 }
 

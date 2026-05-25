@@ -178,7 +178,7 @@ function parseArgs(): Args {
   let allowAfterTipoff = false;
   let allowMissingGameTime = false;
   let maxPicks = 6;
-  let minScore = 0.72;
+  let minScore = 0.75;
 
   for (let index = 0; index < raw.length; index += 1) {
     const token = raw[index];

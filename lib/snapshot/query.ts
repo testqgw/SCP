@@ -78,6 +78,7 @@ import {
   UNIVERSAL_SYSTEM_SUMMARY,
   UNIVERSAL_SYSTEM_SUMMARY_VERSION,
 } from "@/lib/snapshot/universalSystemSummary";
+import { loadFinalPlayerPropModelV1 } from "@/lib/snapshot/finalPlayerPropModelV1";
 import {
   SNAPSHOT_MARKETS,
   buildPlayerPersonalModels,
@@ -425,7 +426,10 @@ function preferBundledSnapshotBoardViewFallbackWhenBroken(
     return data;
   }
 
-  return fallback;
+  return {
+    ...fallback,
+    finalModel: fallback.finalModel ?? data.finalModel ?? null,
+  };
 }
 
 function recoverStartedSlatePrecisionCard(
@@ -4157,11 +4161,14 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
     const lineupMap = buildLineupSignalMap(parseLineupSnapshot(lineupSetting?.value ?? null, dateEt));
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
+      const finalModel = await loadFinalPlayerPropModelV1(dateEt);
+      const dataWithPrecision = await withSnapshotPrecisionDashboard(
+        toBoardSnapshotData(persistedBoard.data, lineupMap),
+        { dateEt },
+      );
       return preferBundledSnapshotBoardViewFallbackWhenBroken(
         dateEt,
-        toSnapshotBoardViewData(
-          await withSnapshotPrecisionDashboard(toBoardSnapshotData(persistedBoard.data, lineupMap), { dateEt }),
-        ),
+        toSnapshotBoardViewData({ ...dataWithPrecision, finalModel }),
       );
     }
     return preferBundledSnapshotBoardViewFallbackWhenBroken(
@@ -4191,6 +4198,7 @@ export async function getSnapshotBoardViewData(dateEt: string, bustCache = false
 export async function getSnapshotBoardData(dateEt: string, bustCache = false): Promise<SnapshotBoardData> {
   const isTodayEt = dateEt === getSnapshotBoardDateString();
   const nowMs = Date.now();
+  const finalModel = await loadFinalPlayerPropModelV1(dateEt);
   const [games, latestGameWrite, latestDataWrite, lineupSetting, refreshSetting] = await Promise.all([
     prisma.game.findMany({
       where: { gameDateEt: dateEt },
@@ -4265,7 +4273,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     !isUnderfilledPrecisionBoard(dateEt, cached.data) &&
     hasPersistedBoardFeedData(cached.data)
   ) {
-    return toBoardSnapshotData(cached.data, lineupMap);
+    return {
+      ...toBoardSnapshotData(cached.data, lineupMap),
+      finalModel,
+    };
   }
 
   const persistedBoardSetting = await prisma.systemSetting.findUnique({
@@ -4284,6 +4295,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     const normalizedPersistedBoard = {
       ...toBoardSnapshotData(persistedBoard.data, lineupMap),
       universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
+      finalModel,
     };
     snapshotBoardCache.set(cacheKey, {
       data: normalizedPersistedBoard,
@@ -4302,6 +4314,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       precisionCard: [],
       precisionCardSummary: null,
       precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
+      finalModel,
       universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
       boardFeed: {
         label: "Board feed",
@@ -6433,6 +6446,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
     precisionCard: displayedPrecisionCard,
     precisionCardSummary,
     precisionSystem: PRECISION_80_SYSTEM_SUMMARY,
+    finalModel,
     universalSystem: UNIVERSAL_SYSTEM_SUMMARY,
   };
   const boardFeed = buildSnapshotBoardFeed({

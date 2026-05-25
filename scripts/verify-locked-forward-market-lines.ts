@@ -119,7 +119,8 @@ async function readJsonl<T>(inputPath: string): Promise<T[]> {
 }
 
 function expectedLineHash(record: MarketLineRecord): string {
-  const { line_hash: _lineHash, ...payload } = record;
+  const { line_hash: omittedLineHash, ...payload } = record;
+  void omittedLineHash;
   return sha256(canonicalJson(payload));
 }
 

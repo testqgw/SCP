@@ -5,7 +5,7 @@ This is now a new model, not a rename of the old champion lane.
 ```text
 Model ID: final-player-prop-model-v1
 Model name: Final Correlation-Aware Player Prop Model V1
-Version: 2026-05-18-soft-context-rerank-v5
+Version: 2026-05-25-team-stability-v6
 Role: full-board player prop model with a slate-safe top-pick portfolio
 ```
 
@@ -23,7 +23,7 @@ The old backtest champion becomes the precision core. The final model now scores
 | Correlation layer | Precision Parlay v1 rules | Top-pick portfolio construction and exposure caps |
 | Game-context layer | Lineup, availability, minutes, team form, synergy, stake-level context | Current-slate awareness, role-floor risk, and hard-risk guardrails |
 | Soft context rerank layer | Blowout-spread and minutes-lift context | Nudges candidate order before the portfolio fills without forcing extra picks |
-| Portfolio-fragility / context-trap layer | Thin-gap, side-pocket, counter-projection, low-total, and volatility guards | Rejects historically fragile top-pick shapes before the portfolio fills |
+| Portfolio-fragility / context-trap layer | Team-stability watchlist, thin-gap, side-pocket, counter-projection, low-total, and volatility guards | Rejects historically fragile top-pick shapes before the portfolio fills |
 | Proof layer | locked-forward ledgers | Model-specific lock, market-line, settlement, report, and audit-summary lifecycle |
 
 ## Claim Boundary
@@ -68,34 +68,36 @@ Alias:
 npm run projection:final-player-prop-v1:walk-forward
 ```
 
-Latest replay:
+Latest reviewed replay:
 
 ```text
-Input: exports/live-quality-full-season-router-v9-details.json
-Range: 2025-10-30 through 2026-04-23
-Full-board rows scored: 113,791
+Input: exports/projection-backtest-allplayers-with-rows-live.json
+Context input: exports/projection-backtest-allplayers-with-rows-live-team-context.json
+Range: 2025-10-30 through 2026-03-02
+Full-board rows scored: 67,873
 Full-board coverage: 100.00%
-Full-board accuracy: 88.86%
-Candidate-pool accuracy: 89.60%
-Selected-pick accuracy: 95.74%
-Selected record: 921-41
-Average selected picks per slate: 5.83
-Selected lift vs full board: +6.88 points
-Context layer: attached without reducing selected-pick replay accuracy; score-90 board is 90.75%; role-floor risk penalizes high-minute stable-starter UNDERs, the soft rerank slightly downgrades A-tier OVERs in blowout-spread context and slightly boosts minutes-supported UNDERs, and the portfolio-fragility/context-trap layer rejects thin counter-projection PTS UNDERs, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting UNDER traps, and volatile REB OVER rows.
+Full-board accuracy: 53.69% (36,439-31,434)
+90+ qualified-board accuracy: 56.60% (6,770-5,192; 17.62% board coverage)
+90+ score-floor-board accuracy: 73.55% (698-251; 1.40% board coverage)
+Candidate-pool accuracy: 68.49% (1,504-692)
+Selected-pick accuracy: 79.15% (186-49)
+Average selected picks per slate: 2.03
+Selected lift vs full board: +25.46 points
+Context layer: team-stability watchlist plus bounded game-context scoring, soft rerank, selectable-line requirements, and portfolio-fragility/context-trap vetoes.
 ```
 
 Recent selected-pick windows:
 
 ```text
-Last 30 active dates: 94.64%
-Last 14 active dates: 94.44%
+Last 30 active dates: 81.25%
+Last 14 active dates: 90.00%
 ```
 
-The full-board recent windows match the V9 anchor:
+The full-board recent windows:
 
 ```text
-Last 30 active dates: 90.73%
-Last 14 active dates: 91.68%
+Last 30 active dates: 52.78%
+Last 14 active dates: 52.57%
 ```
 
 Outputs:
@@ -163,6 +165,7 @@ max 2 per game
 max 2 per market
 max 1 combo market
 max 1 same-team counting over
+reject team-stability watchlist rows before selected portfolio fill
 reject selected PR/PA portfolio rows
 reject RA UNDER / THREES OVER auxiliary side pockets
 reject thin counter-projection PTS UNDERs at <= 1.0 projected-stat gap

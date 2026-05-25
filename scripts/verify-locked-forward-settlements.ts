@@ -121,7 +121,8 @@ function stripBom(text: string): string {
 }
 
 function expectedSettlementHash(record: SettlementRecord): string {
-  const { settlement_hash: _settlementHash, ...payload } = record;
+  const { settlement_hash: omittedSettlementHash, ...payload } = record;
+  void omittedSettlementHash;
   return sha256(canonicalJson(payload));
 }
 
