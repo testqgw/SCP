@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-05-25T17:20:17Z",
+  "generatedAt": "2026-05-25T20:47:57Z",
   "targetDate": "2026-05-25",
   "source": "sportsgrid-fanduel+scoresandodds",
   "boardPath": "data/current/expanded_board_2026-05-25.csv",
-  "archivedSlate": "2026-05-24",
+  "archivedSlate": null,
   "selectedCount": 6,
-  "totalBoardRows": 50,
+  "totalBoardRows": 42,
   "priorSettlement": {
     "trackedPicks": 6,
-    "settledPicks": 6,
-    "pendingPicks": 0,
+    "settledPicks": 0,
+    "pendingPicks": 6,
     "noActionPicks": 0,
-    "wins": 5,
-    "losses": 1,
+    "wins": 0,
+    "losses": 0,
     "pushes": 0,
-    "accuracyPct": 83.33
+    "accuracyPct": null
   },
   "currentSettlement": {
     "trackedPicks": 6,
