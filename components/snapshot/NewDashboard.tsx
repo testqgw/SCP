@@ -85,6 +85,9 @@ const RUBBING_PAGE_SIZE = 24;
 const RUBBING_DEFAULT_PICK_FILTER: RubbingPickFilter = 'sample200Premium';
 const RUBBING_115_MIN_LIVE_BOOKS = 3;
 const FINAL_V1_MIN_SELECTABLE_BOOKS = 3;
+const FINAL_V1_RESEARCH_GATE_MIN_SCORE = 0.74;
+const FINAL_V1_RESEARCH_GATE_MIN_META = 0.63;
+const FINAL_V1_TEAM_RISK_WATCHLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
@@ -1655,6 +1658,17 @@ function isSelectableFinalModelRow(row: SnapshotFinalModelBoardRow) {
   return row.line != null && (row.sportsbookCount ?? 0) >= FINAL_V1_MIN_SELECTABLE_BOOKS;
 }
 
+function isFinalModelTeamRiskWatch(team: string | null | undefined) {
+  return FINAL_V1_TEAM_RISK_WATCHLIST.has((team ?? '').toUpperCase());
+}
+
+function passesFinalModelResearchGate(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.finalScore ?? 0) >= FINAL_V1_RESEARCH_GATE_MIN_SCORE &&
+    (row.metaProbCorrect ?? 0) >= FINAL_V1_RESEARCH_GATE_MIN_META
+  );
+}
+
 function isSelectablePlayerTabPick(pick: PlayerTabComboPick) {
   return pick.modelRow ? isSelectableFinalModelRow(pick.modelRow) : isSelectableLiveView(pick.view);
 }
@@ -2055,7 +2069,6 @@ export default function NewDashboard({
     [finalModel?.boardRows, finalModel?.candidateRows, finalModel?.selectedRows],
   );
   const finalModelStats = useMemo(() => {
-    const GNN_CHAOTIC_NODE_BLACKLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
     let rawPicks = (finalModel?.selectedRows ?? [])
       .filter(isSelectableFinalModelRow)
       .map((modelRow) => {
@@ -2064,14 +2077,12 @@ export default function NewDashboard({
           boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
           null;
         const team = (modelRow.team || row?.teamCode || '').toUpperCase();
-        const isVetoed = GNN_CHAOTIC_NODE_BLACKLIST.has(team);
+        const isVetoed = isFinalModelTeamRiskWatch(team);
         return { modelRow, row, isVetoed };
       });
 
     if (filter60) {
-      rawPicks = rawPicks.filter(({ modelRow }) => 
-        (modelRow.finalScore ?? 0) >= 0.74 && (modelRow.metaProbCorrect ?? 0) >= 0.63
-      );
+      rawPicks = rawPicks.filter(({ modelRow }) => passesFinalModelResearchGate(modelRow));
     }
 
     const activeCount = rawPicks.filter(p => !p.isVetoed).length;
@@ -2081,7 +2092,6 @@ export default function NewDashboard({
 
   const finalModelPicks = useMemo(
     () => {
-      const GNN_CHAOTIC_NODE_BLACKLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
       let picks = (finalModel?.selectedRows ?? [])
         .filter(isSelectableFinalModelRow)
         .map((modelRow) => {
@@ -2090,7 +2100,7 @@ export default function NewDashboard({
             boardRows.find((candidate) => candidate.playerName.toLowerCase() === modelRow.playerName.toLowerCase()) ??
             null;
           const team = (modelRow.team || row?.teamCode || '').toUpperCase();
-          const isVetoed = GNN_CHAOTIC_NODE_BLACKLIST.has(team);
+          const isVetoed = isFinalModelTeamRiskWatch(team);
           return {
             modelRow,
             row,
@@ -2099,9 +2109,7 @@ export default function NewDashboard({
           };
         });
       if (filter60) {
-        picks = picks.filter(({ modelRow }) => 
-          (modelRow.finalScore ?? 0) >= 0.74 && (modelRow.metaProbCorrect ?? 0) >= 0.63
-        );
+        picks = picks.filter(({ modelRow }) => passesFinalModelResearchGate(modelRow));
       }
       if (!showVetoed) {
         picks = picks.filter((pick) => !pick.isVetoed);
@@ -2388,9 +2396,7 @@ export default function NewDashboard({
       const bestByPlayer = new Map<string, PlayerTabComboPick & { modelRow: SnapshotFinalModelBoardRow }>();
       let rowsToProcess = finalModelBoardRows;
       if (filter60) {
-        rowsToProcess = finalModelBoardRows.filter(row => 
-          (row.finalScore ?? 0) >= 0.74 && (row.metaProbCorrect ?? 0) >= 0.63
-        );
+        rowsToProcess = finalModelBoardRows.filter(passesFinalModelResearchGate);
       }
       rowsToProcess.forEach((modelRow) => {
         if (!isSelectableFinalModelRow(modelRow)) return;
@@ -2785,7 +2791,18 @@ export default function NewDashboard({
       ? `${recommendationHeadline(featured)} is leading the Final V1 board across ${n(liveCount, 0)} live lines and ${n(data.matchups.length, 0)} games.`
       : `${n(liveCount, 0)} live lines are active across ${n(data.matchups.length, 0)} games right now.`);
   const boardModeLabel = 'Final V1';
-  const boardModeDetail = `Selected WF ${pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} | 90+ board ${pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} | 1L ${pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} | 2L ${pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} | 3L ${pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} | 4L ${pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} | 5L ${pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} | 6L ${pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} | Coverage ${pct(finalModel?.summary.boardCoveragePct ?? 0, 0)}`;
+  const finalModelArtifactLoaded = finalModel?.artifactStatus === 'LOADED';
+  const boardModeProofItems = [
+    { label: 'Selected WF', value: pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2) },
+    { label: '90+ board', value: pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2) },
+    { label: '1L cards', value: pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2) },
+    { label: '2L cards', value: pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2) },
+    { label: '3L cards', value: pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2) },
+    { label: 'Coverage', value: pct(finalModel?.summary.boardCoveragePct ?? 0, 0) },
+  ];
+  const boardModeStatusDetail = finalModelArtifactLoaded
+    ? `${finalModel.modelName} ${finalModel.modelVersion ?? ''} generated ${ts(finalModel.generatedAt)} for ${finalModel.slateDate}.`
+    : 'Current Final V1 artifact is not loaded, so the first screen uses the live board fallback until the next model publish lands.';
   const boardModeCountLabel = finalModel?.summary.totalBoardRows
     ? `${n(finalModel.summary.totalBoardRows, 0)} Final V1 board rows`
     : `${n(allViews.length, 0)} board rows awaiting Final V1 artifact`;
@@ -3009,7 +3026,7 @@ export default function NewDashboard({
     },
     final: {
       detail: finalModelStats.totalCount > 0
-        ? `${n(finalModelStats.activeCount, 0)} active edge plays${finalModelStats.vetoedCount > 0 ? ` (${n(finalModelStats.vetoedCount, 0)} vetoed)` : ''}`
+        ? `${n(finalModelStats.activeCount, 0)} active edge plays${finalModelStats.vetoedCount > 0 ? ` (${n(finalModelStats.vetoedCount, 0)} risk-watch)` : ''}`
         : finalModel?.artifactStatus === 'MISSING'
           ? 'No current Final V1 artifact'
           : 'Waiting for Final V1 picks',
@@ -3794,14 +3811,24 @@ export default function NewDashboard({
 
           <section className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board accuracy</div>
-                <div className="mt-1 text-sm font-semibold text-[var(--text)]">{boardModeLabel}</div>
-                <div className="mt-1 text-sm text-[var(--text-2)]">{boardModeDetail}</div>
-                <div className="mt-1 text-xs text-[var(--muted)]">{boardModeCountLabel}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Model status</div>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <div className="text-sm font-semibold text-[var(--text)]">{boardModeLabel}</div>
+                  <Pill label={finalModelArtifactLoaded ? 'Current artifact loaded' : 'Live fallback'} tone={finalModelArtifactLoaded ? 'cyan' : 'amber'} />
+                </div>
+                <div className="mt-2 text-sm leading-6 text-[var(--text-2)]">{boardModeStatusDetail}</div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {boardModeProofItems.map((item) => (
+                    <div key={item.label} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
+                      <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</div>
+                      <div className="mt-1 text-sm font-semibold text-[var(--text)]">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 text-xs text-[var(--muted)]">{boardModeCountLabel}</div>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                {/* 60% Broad Board Toggle Card */}
+              <div className="grid w-full gap-2 sm:grid-cols-2 md:w-auto">
                 <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
                   filter60 
                     ? 'border-cyan-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse-subtle' 
@@ -3815,8 +3842,8 @@ export default function NewDashboard({
                       <span className={`relative inline-flex h-2 w-2 rounded-full ${filter60 ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
                     </div>
                     <div>
-                      <span className="block text-xs font-mono font-bold text-[var(--text)]">60% Broad Board</span>
-                      <span className="block text-[10px] text-[var(--text-2)]">Calibrated Edge Filter</span>
+                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Research gate</span>
+                      <span className="block text-[10px] text-[var(--text-2)]">Score and meta filter</span>
                     </div>
                   </div>
                   <button
@@ -3830,7 +3857,6 @@ export default function NewDashboard({
                   </button>
                 </div>
 
-                {/* Show Vetoed Nodes Toggle Card */}
                 <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
                   showVetoed 
                     ? 'border-red-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse-subtle' 
@@ -3844,8 +3870,8 @@ export default function NewDashboard({
                       <span className={`relative inline-flex h-2 w-2 rounded-full ${showVetoed ? 'bg-red-500' : 'bg-zinc-600'}`}></span>
                     </div>
                     <div>
-                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Show Vetoed Nodes</span>
-                      <span className="block text-[10px] text-[var(--text-2)]">Chaotic GNN Blacklist</span>
+                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Show risk watch</span>
+                      <span className="block text-[10px] text-[var(--text-2)]">Team-stability flags</span>
                     </div>
                   </div>
                   <button
@@ -3859,9 +3885,8 @@ export default function NewDashboard({
                   </button>
                 </div>
 
-                {/* Walk-forward stats card */}
                 {filter60 && (
-                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 text-xs font-mono animate-fade-in">
+                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 text-xs font-mono animate-fade-in sm:col-span-2">
                     <div className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">Walk-Forward Audit</div>
                     <div className="mt-0.5 text-[var(--text)]">
                       <span className="font-bold text-cyan-400">61.11% Win Rate</span> (1,172W - 746L)
@@ -4477,7 +4502,7 @@ export default function NewDashboard({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-6">
-                <Stat dense label="60% Broad Board" value="61.11%" kind="LIVE" note="1,172W - 746L, 1,918 plays (True WF)" className="border-cyan-500/30 bg-cyan-950/5 shadow-[0_0_12px_rgba(6,182,212,0.1)]" valueClass="text-cyan-400 font-bold" />
+                <Stat dense label="Research gate" value="61.11%" kind="LIVE" note="1,172W - 746L, 1,918 plays (True WF)" className="border-cyan-500/30 bg-cyan-950/5 shadow-[0_0_12px_rgba(6,182,212,0.1)]" valueClass="text-cyan-400 font-bold" />
                 <Stat dense label="Selected WF" value={pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_SELECTED_RECORD} on ${n(FINAL_V1_SELECTED_VOLUME, 0)} picks`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note="Historical full-board walk-forward" />
                 <Stat dense label="90+ board" value={pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_QUALIFIED_90_BOARD_RECORD}; ${pct(FINAL_V1_QUALIFIED_90_BOARD_COVERAGE_PCT, 2)} coverage`} />
@@ -4488,7 +4513,7 @@ export default function NewDashboard({
                 <Stat dense label="5-leg cards" value={pct(FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUINT_RECORD}; ${FINAL_V1_DAILY_QUINT_DAYS} all-card days`} />
                 <Stat dense label="6-leg cards" value={pct(FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SEXT_RECORD}; ${FINAL_V1_DAILY_SEXT_DAYS} all-card days`} />
                 <Stat dense label="Coverage" value={pct(finalModel?.summary.boardCoveragePct ?? 0, 0)} kind={finalModel?.summary.boardCoveragePct ? 'MODEL' : 'PLACEHOLDER'} note={`${n(finalModel?.summary.totalBoardRows ?? 0, 0)} board rows`} />
-                <Stat dense label="Active selected" value={n(finalModelStats.activeCount, 0)} kind={finalModelStats.activeCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(finalModelStats.vetoedCount, 0)} vetoed chaotic team nodes`} />
+                <Stat dense label="Active selected" value={n(finalModelStats.activeCount, 0)} kind={finalModelStats.activeCount ? 'LIVE' : 'PLACEHOLDER'} note={`${n(finalModelStats.vetoedCount, 0)} risk-watch plays hidden by default`} />
                 <Stat dense label="Candidates" value={n(finalModel?.summary.candidateCount ?? 0, 0)} kind={finalModel?.summary.candidateCount ? 'DERIVED' : 'PLACEHOLDER'} note="Final V1 candidate pool" />
                 <Stat dense label="Avg prior" value={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? '-' : pct(finalModel.summary.averageEstimatedAccuracyPriorPct, 2)} kind={finalModel?.summary.averageEstimatedAccuracyPriorPct == null ? 'PLACEHOLDER' : 'MODEL'} note="Component prior, not live proof" />
                 <Stat dense label="Avg score" value={finalModel?.summary.averageFinalScore == null ? '-' : n(finalModel.summary.averageFinalScore, 4)} kind={finalModel?.summary.averageFinalScore == null ? 'PLACEHOLDER' : 'MODEL'} note="Correlation-adjusted score" />
@@ -4612,7 +4637,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selectable picks</div>
                     <div className="mt-1 text-sm text-[var(--text-2)]">
                       {finalModelPicks.length
-                        ? `${n(finalModelStats.activeCount, 0)} active edge plays and ${n(finalModelStats.vetoedCount, 0)} vetoed plays on chaotic GNN nodes.`
+                        ? `${n(finalModelStats.activeCount, 0)} active edge plays and ${n(finalModelStats.vetoedCount, 0)} risk-watch plays hidden by default.`
                         : 'Waiting for current Final V1 picks with selectable live lines.'}
                     </div>
                   </div>
@@ -4645,7 +4670,7 @@ export default function NewDashboard({
                               <Badge label={`#${modelRow.selectedRank ?? '-'}`} kind="DERIVED" />
                               {isVetoed ? (
                                 <span className="inline-flex items-center rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-500 animate-pulse-subtle">
-                                  GNN VETO: {row?.teamCode ?? modelRow.team ?? 'CHAOTIC NODE'}
+                                  Risk watch: {row?.teamCode ?? modelRow.team ?? 'team'}
                                 </span>
                               ) : (
                                 <Pill label={`Tier ${modelRow.tier}`} tone={modelRow.tier === 'S' || modelRow.tier === 'A' ? 'cyan' : 'amber'} />
