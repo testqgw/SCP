@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-26T18:09:51Z",
+  "generatedAt": "2026-05-26T21:05:58Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-05-26T18:09:51Z",
+  "cardGeneratedAt": "2026-05-26T21:05:58Z",
   "slateDate": "2026-05-26",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {

@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-05-26T18:09:51Z",
+  "generatedAt": "2026-05-26T21:05:58Z",
   "targetDate": "2026-05-26",
   "source": "expanded",
   "boardPath": "data/current/expanded_board_2026-05-26.csv",
-  "archivedSlate": "2026-05-25",
+  "archivedSlate": null,
   "selectedCount": 0,
   "totalBoardRows": 0,
   "priorSettlement": {
-    "trackedPicks": 6,
-    "settledPicks": 5,
+    "trackedPicks": 0,
+    "settledPicks": 0,
     "pendingPicks": 0,
-    "noActionPicks": 1,
-    "wins": 3,
-    "losses": 2,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 0,
     "pushes": 0,
-    "accuracyPct": 60.0
+    "accuracyPct": null
   },
   "currentSettlement": {
     "trackedPicks": 0,
