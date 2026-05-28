@@ -1,19 +1,38 @@
 {
-  "generatedAt": "2026-05-28T18:22:58Z",
+  "generatedAt": "2026-05-28T21:26:48Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-05-28T18:22:58Z",
+  "cardGeneratedAt": "2026-05-28T21:26:48Z",
   "slateDate": "2026-05-28",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 0,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 0,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
     "accuracyPct": null
   },
-  "rows": []
+  "rows": [
+    {
+      "slate_date": "2026-05-28",
+      "selected_rank": 1,
+      "player": "Janelle Salaun",
+      "team": "GS",
+      "team_name": "Golden State Valkyries",
+      "opponent": "IND",
+      "opponent_name": "Indiana Fever",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.69045,
+      "final_score": 0.87294,
+      "source_book": "hardrock",
+      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
+    }
+  ]
 }
