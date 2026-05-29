@@ -1,2 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-05-28,1,Janelle Salaun,GS,Golden State Valkyries,IND,Indiana Fever,THREES,UNDER,2.5,,PENDING,0.69045,0.87294,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-05-29,1,Ariel Atkins,LA,Los Angeles Sparks,WSH,Washington Mystics,AST,UNDER,4.5,,PENDING,0.72162,0.90393,draftkings,https://www.scoresandodds.com/wnba/props/assists
+2026-05-29,2,Kahleah Copper,PHX,Phoenix Mercury,NY,New York Liberty,THREES,UNDER,2.5,,PENDING,0.75484,0.89548,nan,https://www.sportsgrid.com/wnba/game/phoenix-mercury-new-york-liberty-scores-odds-picks-props-may-29-2026/d89be707-72cc-4942-85b5-e5aa6c61ff74
+2026-05-29,3,Carla Leite,POR,Portland Fire,ATL,Atlanta Dream,AST,UNDER,4.5,,PENDING,0.68171,0.83236,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-05-29,4,Kiki Iriafen,WSH,Washington Mystics,LA,Los Angeles Sparks,REB,UNDER,10.5,,PENDING,0.66555,0.8029,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-05-29,5,Courtney Williams,MIN,Minnesota Lynx,CHI,Chicago Sky,AST,OVER,3.5,,PENDING,0.64885,0.76168,draftkings,https://www.scoresandodds.com/wnba/props/assists
+2026-05-29,6,Sonia Citron,WSH,Washington Mystics,LA,Los Angeles Sparks,PRA,UNDER,23.5,,PENDING,0.65913,0.74448,draftkings,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
