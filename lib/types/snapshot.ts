@@ -201,10 +201,13 @@ export type SnapshotFinalModelBoardRow = {
   wfConfidence: number | null;
   metaProbCorrect: number | null;
   projectedMinutes: number | null;
+  projectedMinutesFloor: number | null;
+  projectedMinutesCeiling: number | null;
   minutesVolatility: number | null;
   starterRateLast10: number | null;
   lineupStatus: string | null;
   availabilityStatus: string | null;
+  availabilityPercentPlay: number | null;
   rotationRank: number | null;
   minutesTrend: number | null;
   dataCompletenessScore: number | null;

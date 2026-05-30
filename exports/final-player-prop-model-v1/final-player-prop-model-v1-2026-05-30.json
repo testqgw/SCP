@@ -1,0 +1,149 @@
+{
+  "generatedAt": "2026-05-30T20:43:13.115Z",
+  "modelId": "final-player-prop-model-v1",
+  "modelName": "Final Correlation-Aware Player Prop Model V1",
+  "modelVersion": "2026-05-30-context-trap-v8",
+  "mode": "PREVIEW",
+  "slateDate": "2026-05-30",
+  "currentDateEt": "2026-05-30",
+  "claimBoundary": "This is a projection-calibrated, context-aware, portfolio-guarded final-model candidate engine, not a forward-proven betting model. It keeps full-board coverage, but selected picks now require a live line and 3+ books; locked-forward rows, market lines, settlements, and audit PASS are still required before live-edge claims.",
+  "sourceArtifacts": {
+    "scoresInput": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\top-player-200-sample-current-slate-scores.json",
+    "scoresInputSha256": "4c5bf0706e79962c46958e17ed9d88ae5021c1ed24acc14ff23df98a8bf71202",
+    "modelInput": "C:\\Users\\quinc\\Desktop\\Sports Betting Snapshot\\compliance-reminder-saas\\exports\\top-player-200-sample-prop-model-results.json",
+    "modelInputSha256": "f36e7b67a97db231e58155b07bb282ae0987b11b835347c6d52860e263a3ec19",
+    "precisionInput": null,
+    "precisionInputSha256": null,
+    "v9Input": null,
+    "v9InputSha256": null
+  },
+  "componentEvidence": [
+    {
+      "id": "top200_premium_90",
+      "role": "candidate_source",
+      "label": "holdout_stable_premium_90_six_per_day",
+      "accuracyPct": 93.15,
+      "playerDays": 1065,
+      "last30AccuracyPct": 94.86,
+      "last14AccuracyPct": 93.44,
+      "rule": "holdout-stable 90 premium lane: union of 27 high-precision top200/tail200plus pockets; deduped to one highest-confidence market per player per slate. Pocket discovery used the first 110 walk-forward dates, then required the last 55 dates to hold the 90% line before inclusion."
+    },
+    {
+      "id": "top200_premium_pts_over",
+      "role": "candidate_source",
+      "label": "all_min200_premium_pts_over_agreement_sweet_spot",
+      "accuracyPct": 91,
+      "playerDays": 100,
+      "last30AccuracyPct": 94.87,
+      "last14AccuracyPct": 100,
+      "rule": "all 200+ sample-qualified 90 premium lane: one PTS market per player, player_override OVER, HGB side OVER, projection side OVER, abs projection gap >= 0.5 and < 1.25, projected minutes >= 20 and < 24, HGB confidence >= 0.780 and < 0.850"
+    },
+    {
+      "id": "top200_accuracy_first",
+      "role": "candidate_source",
+      "label": "top200_sample_count",
+      "accuracyPct": 86.32,
+      "playerDays": 212,
+      "last30AccuracyPct": 92.59,
+      "last14AccuracyPct": 95.24,
+      "rule": "top200_sample_count: one highest wfConfidence market per player, wfConfidence >= 0.890"
+    },
+    {
+      "id": "top200_meta_reliability",
+      "role": "candidate_source",
+      "label": "top200_meta_reliability_expanded",
+      "accuracyPct": 83.11,
+      "playerDays": 4215,
+      "last30AccuracyPct": 84.44,
+      "last14AccuracyPct": 81.97,
+      "rule": "top200 meta reliability gate: one highest metaProbCorrect market per player, metaProbCorrect >= 0.825 and wfConfidence >= 0.750"
+    },
+    {
+      "id": "top200_coverage_frontier",
+      "role": "candidate_source",
+      "label": "all_min200_coverage_frontier_projection_disagreement",
+      "accuracyPct": 82.73,
+      "playerDays": 1922,
+      "last30AccuracyPct": 82.64,
+      "last14AccuracyPct": 82.4,
+      "rule": "all 200+ sample-qualified coverage frontier: one largest-gap PTS/REB/AST market per player, player_override side must disagree with projection side, abs projection gap >= 1.0, projected minutes >= 24"
+    },
+    {
+      "id": "top200_recent_form_fade",
+      "role": "candidate_source",
+      "label": "top200_recent_form_projection_fade_under",
+      "accuracyPct": 82.68,
+      "playerDays": 739,
+      "last30AccuracyPct": 85.82,
+      "last14AccuracyPct": 85.45,
+      "rule": "top200 recent-form projection fade: one largest-gap PTS/REB/AST market per player, player_override side UNDER, projection side OVER, abs projection gap >= 1.0, projected minutes >= 28"
+    },
+    {
+      "id": "top200_primary",
+      "role": "candidate_source",
+      "label": "top200_sample_count",
+      "accuracyPct": 82.31,
+      "playerDays": 2431,
+      "last30AccuracyPct": 80.26,
+      "last14AccuracyPct": 81.74,
+      "rule": "top200_sample_count: one highest wfConfidence market per player, wfConfidence >= 0.840"
+    },
+    {
+      "id": "precision_parlay_v1",
+      "role": "portfolio_advisor",
+      "label": "Precision Parlay / snapshot-parlay-precision-v1",
+      "accuracyPct": null,
+      "playerDays": null,
+      "last30AccuracyPct": null,
+      "last14AccuracyPct": null,
+      "rule": "Use the parlay model's one-player, market-cap, same-game, same-team, and counting-over controls as the portfolio construction layer."
+    },
+    {
+      "id": "live_quality_router_v9",
+      "role": "quality_router",
+      "label": "Live Quality Full Season Router V9",
+      "accuracyPct": null,
+      "playerDays": null,
+      "last30AccuracyPct": null,
+      "last14AccuracyPct": null,
+      "rule": "Use V9 runtime final side and joint-feasibility ideas as a backend quality router, not as an unbounded pick source."
+    }
+  ],
+  "portfolioConfig": {
+    "maxPicks": 6,
+    "minScore": 0.825,
+    "maxPerPlayer": 1,
+    "maxPerTeam": 2,
+    "maxPerGame": 2,
+    "maxPerMarket": 2,
+    "maxSameTeamCountingOvers": 1,
+    "maxComboMarkets": 1,
+    "forceFill": false
+  },
+  "summary": {
+    "totalBoardRows": 0,
+    "scoredBoardRows": 0,
+    "boardCoveragePct": 0,
+    "candidateCount": 0,
+    "selectableCandidateCount": 0,
+    "projectionOnlyCount": 0,
+    "selectedCount": 0,
+    "selectedByTier": {},
+    "boardRowsByTier": {},
+    "boardRowsByAction": {},
+    "averageEstimatedAccuracyPriorPct": null,
+    "averageFinalScore": null,
+    "averageContextScore": null,
+    "averageContextAdjustment": null,
+    "correlationMultiplier": 1,
+    "warningCount": 2
+  },
+  "warnings": [
+    "Input score artifact has no firstGameTimeEt, so this card cannot be treated as pregame proof.",
+    "Estimated accuracy priors are component priors, not calibrated forward probabilities."
+  ],
+  "boardRows": [],
+  "selectedPicks": [],
+  "watchlist": [],
+  "rejectedTop": []
+}

@@ -154,7 +154,7 @@ def synergy_context(context: dict[str, Any], market: str) -> dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Score the current slate with the 200+ sample HGB prop model.")
-    parser.add_argument("--historical-input", default="exports/ultimate-live-quality-current-details.json")
+    parser.add_argument("--historical-input", default="exports/projection-backtest-allplayers-with-rows-live.json")
     parser.add_argument("--board-url", default="https://ultops.com/api/snapshot/board?refresh=1")
     parser.add_argument("--board-json", default=None, help="Optional local API response JSON instead of --board-url.")
     parser.add_argument("--out", default="exports/top-player-200-sample-current-slate-scores.json")
@@ -430,7 +430,21 @@ def main() -> None:
     board = load_board(args)
     current = current_rows_from_board(board)
     if current.empty:
-        raise RuntimeError("No current rows could be scored from the board payload.")
+        generated_at_utc = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        output = {
+            "generatedAt": generated_at_utc,
+            "generatedAtUtc": generated_at_utc,
+            "dateEt": board.get("dateEt"),
+            "firstGameTimeEt": None,
+            "scheduledGameTimesEt": [],
+            "source": args.board_json or args.board_url,
+            "metaExpandedLane": META_EXPANDED_LANE,
+            "warnings": ["No current rows could be scored from the board payload."],
+            "rows": [],
+        }
+        Path(args.out).write_text(json.dumps(output, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps({"out": args.out, "dateEt": board.get("dateEt"), "rows": 0, "warnings": output["warnings"]}, indent=2))
+        return
 
     for col in cat_cols:
         if col not in current.columns:

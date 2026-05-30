@@ -317,14 +317,14 @@ type FinalModelCard = {
 };
 
 const MODEL_ID = "final-player-prop-model-v1";
-const MODEL_VERSION = "2026-05-25-team-stability-v6" as const;
+const MODEL_VERSION = "2026-05-30-context-trap-v8" as const;
 const MIN_SELECTABLE_SPORTSBOOK_COUNT = 3;
 const COUNTING_OVER_MARKETS = new Set(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
 const STABLE_STARTER_UNDER_RISK_MARKETS = new Set(["PTS", "PRA", "PA", "PR", "RA"]);
 const COMBO_MARKETS = new Set(["PRA", "PA", "PR", "RA"]);
 const SELECTED_MARKET_VETO = new Set(["PR", "PA"]);
 const SELECTED_SIDE_VETO = new Set(["RA:UNDER", "THREES:OVER"]);
-const TEAM_STABILITY_WATCHLIST = new Set(["POR", "HOU", "CHI", "PHX", "DET", "GSW", "DAL"]);
+const TEAM_STABILITY_WATCHLIST = new Set(["POR", "HOU", "CHI", "PHX", "DET", "GSW", "DAL", "SAS", "NYK", "BKN", "DEN", "CLE", "ATL"]);
 const THIN_COUNTER_PROJECTION_PTS_UNDER_GAP_MAX = 1;
 
 const PORTFOLIO_LIMITS = {
@@ -374,7 +374,7 @@ function parseArgs(): Args {
   let v9Input = path.join("exports", "live-quality-full-season-router-v9-default-eval.json");
   let outDir = path.join("exports", MODEL_ID);
   let maxPicks = 6;
-  let minScore = 0.75;
+  let minScore = 0.825;
   let lockRequested = false;
 
   for (let index = 0; index < raw.length; index += 1) {
@@ -915,6 +915,7 @@ function contextLayer(row: CurrentSlateScore, finalSide: Side): ContextLayer {
 function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], finalSide: Side): string[] {
   const flags: string[] = [];
   const context = contextLayer(row, finalSide);
+  const tier = tierFor(components, row);
   if (TEAM_STABILITY_WATCHLIST.has((row.teamCode ?? "").toUpperCase())) {
     flags.push("team_stability_watchlist");
   }
@@ -938,6 +939,9 @@ function riskFlags(row: CurrentSlateScore, components: CandidateComponent[], fin
   }
   if (SELECTED_SIDE_VETO.has(`${row.market}:${finalSide}`)) {
     flags.push("auxiliary_side_sample_risk");
+  }
+  if (row.market === "PTS" && finalSide === "UNDER" && tier === "C") {
+    flags.push("pts_under_c_tier_risk");
   }
   if ((row.absLineGap ?? 0) < 0.5 && !components.some((item) => item.id === "top200_premium_90")) {
     flags.push("thin_projection_gap");
@@ -1215,6 +1219,12 @@ function portfolioFragilityRejection(candidate: Candidate): string | null {
   }
   if (SELECTED_SIDE_VETO.has(`${candidate.market}:${candidate.side}`)) {
     return "portfolio_guard_auxiliary_side_sample";
+  }
+  if (candidate.risk_flags.includes("projection_side_split")) {
+    return "portfolio_guard_projection_side_split";
+  }
+  if (candidate.risk_flags.includes("pts_under_c_tier_risk")) {
+    return "portfolio_guard_pts_under_c_tier";
   }
   if (candidate.risk_flags.includes("counter_projection_pts_under_thin_gap")) {
     return "portfolio_guard_counter_projection_pts_under_thin_gap";
@@ -1518,7 +1528,7 @@ function toMarkdown(card: FinalModelCard): string {
   lines.push("## Model Build");
   lines.push("");
   lines.push(
-    "This is a correlation-aware meta-selector with the 2026-05-25 team-stability calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus soft score reranking for A-tier blowout OVERs and minutes-supported UNDERs, plus explicit guards for unstable team-context nodes, thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
+    "This is a correlation-aware meta-selector with the 2026-05-30 context-trap v8 calibration and selectable-live-line gate. It uses the Top Player 200 premium pockets as the precision core, controlled Top Player expansion lanes for extra volume, V9 as the quality-router context, and a bounded game-context layer plus soft score reranking for A-tier blowout OVERs and minutes-supported UNDERs, plus explicit guards for unstable team-context nodes, projection-side splits, C-tier PTS unders, thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, volatile REB OVER rows, lineup status, availability, minutes stability, team form, teammate synergy, and high-stakes rotation risk.",
   );
   lines.push("");
   lines.push("## Claim Boundary");

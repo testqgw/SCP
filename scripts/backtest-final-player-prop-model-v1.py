@@ -21,7 +21,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MODEL_ID = "final-player-prop-model-v1"
-MODEL_VERSION = "2026-05-25-team-stability-v6"
+MODEL_VERSION = "2026-05-30-context-trap-v8"
 COUNTING_OVER_MARKETS = {"PTS", "AST", "PRA", "PA", "PR", "RA"}
 STABLE_STARTER_UNDER_RISK_MARKETS = {"PTS", "PRA", "PA", "PR", "RA"}
 COMBO_MARKETS = {"PRA", "PA", "PR", "RA"}
@@ -152,7 +152,7 @@ POCKET_SPECS: list[dict[str, Any]] = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Walk-forward backtest for Final Player Prop Model V1.")
-    parser.add_argument("--input", default="exports/live-quality-full-season-router-v9-details.json")
+    parser.add_argument("--input", default="exports/projection-backtest-allplayers-with-rows-live.json")
     parser.add_argument("--context-input", default="exports/projection-backtest-allplayers-with-rows-live-team-context.json")
     parser.add_argument("--model", default="exports/top-player-200-sample-prop-model-results.json")
     parser.add_argument("--precision", default="exports/precision-locked-pregame-results.json")
@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-train-dates", type=int, default=7)
     parser.add_argument("--test-dates", type=int, default=7)
     parser.add_argument("--max-picks", type=int, default=6)
-    parser.add_argument("--min-score", type=float, default=0.75)
+    parser.add_argument("--min-score", type=float, default=0.825)
     return parser.parse_args()
 
 
@@ -264,6 +264,12 @@ def enrich_context_columns(df: pd.DataFrame, context_rows: list[dict[str, Any]])
         if col not in df.columns:
             df[col] = "NA"
         df[col] = df[col].fillna("NA").astype(str)
+    if "projectedMinutes" not in df.columns:
+        df["projectedMinutes"] = np.nan
+    df["projectedMinutes"] = pd.to_numeric(df["projectedMinutes"], errors="coerce")
+    if "expectedMinutes" in df.columns:
+        df["expectedMinutes"] = pd.to_numeric(df["expectedMinutes"], errors="coerce")
+        df["projectedMinutes"] = df["projectedMinutes"].combine_first(df["expectedMinutes"])
     return df
 
 
@@ -626,6 +632,7 @@ def action_for(tier: str, components: list[str], base_score: float) -> str:
 def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
     flags = []
     context = context_layer(row)
+    tier = tier_for(components, row)
     if clean_number(row.projectedMinutes, 99) < 22:
         flags.append("low_projected_minutes")
     if row.finalSource == "baseline" and "top200_premium_90" not in components:
@@ -641,6 +648,8 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
         flags.append("counter_projection_pts_under_thin_gap")
     if (row.market, row.finalSide) in SELECTED_SIDE_VETO:
         flags.append("auxiliary_side_sample_risk")
+    if row.market == "PTS" and row.finalSide == "UNDER" and tier == "C":
+        flags.append("pts_under_c_tier_risk")
     if clean_number(row.absLineGap, 0) < 0.5 and "top200_premium_90" not in components:
         flags.append("thin_projection_gap")
     if "low_total_supports_counting_under" in context["contextNotes"]:
@@ -652,7 +661,7 @@ def risk_flags(row: pd.Series, components: list[str]) -> list[str]:
 
 
 def portfolio_fragility_rejection(row: dict[str, Any]) -> str | None:
-    TEAM_STABILITY_WATCHLIST = {'POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL'}
+    TEAM_STABILITY_WATCHLIST = {'POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL', 'SAS', 'NYK', 'BKN', 'DEN', 'CLE', 'ATL'}
     row_team = str(row.get('teamCode') or '').upper()
     if row_team in TEAM_STABILITY_WATCHLIST:
         return f"portfolio_guard_team_stability_watchlist ({row_team})"
@@ -660,6 +669,10 @@ def portfolio_fragility_rejection(row: dict[str, Any]) -> str | None:
     risk = set(row.get("riskFlags") or [])
     if (row["market"], row["side"]) in SELECTED_SIDE_VETO:
         return "portfolio_guard_auxiliary_side_sample"
+    if "projection_side_split" in risk:
+        return "portfolio_guard_projection_side_split"
+    if "pts_under_c_tier_risk" in risk:
+        return "portfolio_guard_pts_under_c_tier"
     if "counter_projection_pts_under_thin_gap" in risk:
         return "portfolio_guard_counter_projection_pts_under_thin_gap"
     if "thin_projection_gap" in risk:
@@ -1043,8 +1056,8 @@ def markdown_report(output: dict[str, Any]) -> str:
             "## Claim Boundary",
             "",
             "- This is the first dedicated replay for the final selector as written.",
-            "- The 2026-05-25 team-stability rerank keeps the tier-first selector, then adds bounded game-context scoring, a small A-tier blowout-OVER downgrade, a small minutes-lift UNDER bump, plus explicit guards for unstable team-context nodes, thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, and volatile REB OVER rows.",
-            "- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, fragility vetoes, and a selected score floor of 0.75.",
+            "- The 2026-05-30 context-trap v8 rerank keeps the tier-first selector, then adds projected-minutes fallback, bounded game-context scoring, a small A-tier blowout-OVER downgrade, a small minutes-lift UNDER bump, plus explicit guards for unstable team-context nodes, projection-side splits, C-tier PTS unders, thin counter-projection PTS unders, tiny auxiliary side pockets, ultra-thin non-premium projection gaps, low-total counting-under traps, and volatile REB OVER rows.",
+            f"- The portfolio guard remains intact: full-board coverage, selected PR/PA veto, one combo-market cap, selectable live-line requirements in production, fragility vetoes, and a selected score floor of {output['config']['minScore']:.3f}.",
             "- The full-board side comes from the V9 details artifact; the selector features are recomputed walk-forward by date.",
             "- This is still historical replay, not locked-forward proof.",
             "- ROI and CLV require the market-line and settlement ledgers.",
