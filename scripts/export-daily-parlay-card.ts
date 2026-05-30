@@ -174,7 +174,7 @@ function toMarkdown(
   scheduleSync: Awaited<ReturnType<typeof ensureNbaScheduleGamesForDate>>,
 ): string {
   const lines: string[] = [];
-  lines.push("# Daily Precision Parlay Card");
+  lines.push("# Daily Final V1 Parlay Card");
   lines.push("");
   lines.push(`Generated: ${card.generatedAt}`);
   lines.push(`Date ET: ${card.dateEt}`);
@@ -194,7 +194,7 @@ function toMarkdown(
   lines.push(`- Expected value per 1u at default odds: ${n(card.summary.expectedValuePerUnit, 4)}u`);
   lines.push("");
   if (history) {
-    lines.push("## Locked History Baseline");
+    lines.push("## Legacy Locked History Baseline");
     lines.push("");
     lines.push(`- Range: ${history.range.from ?? "-"} through ${history.range.to ?? "-"} (${history.range.days} slates)`);
     lines.push(`- Individual leg accuracy: ${pctAlready(history.legAccuracyPct)}`);

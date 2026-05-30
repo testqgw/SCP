@@ -1,5 +1,6 @@
 import type {
   SnapshotBoardData,
+  SnapshotFinalModelBoardRow,
   SnapshotMarket,
   SnapshotModelSide,
   SnapshotPrecisionCardEntry,
@@ -9,7 +10,7 @@ import type {
 } from "@/lib/types/snapshot";
 import { clamp, round } from "@/lib/utils";
 
-export const SNAPSHOT_PARLAY_MODEL_VERSION = "snapshot-parlay-precision-v1";
+export const SNAPSHOT_PARLAY_MODEL_VERSION = "snapshot-parlay-final-v1-v2";
 
 type Side = Extract<SnapshotModelSide, "OVER" | "UNDER">;
 type Status = "READY" | "UNDERFILLED" | "NO_SLATE";
@@ -148,21 +149,22 @@ type Candidate = Omit<SnapshotParlayLeg, "rank"> & {
 
 const PARLAY_MARKETS: SnapshotMarket[] = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 const COUNTING_OVER_MARKETS = new Set<SnapshotMarket>(["PTS", "AST", "PRA", "PA", "PR", "RA"]);
+const FINAL_MODEL_PARLAY_ACTIONS = new Set(["SELECTED", "CANDIDATE"]);
 
 export const DEFAULT_SNAPSHOT_PARLAY_CONFIG: SnapshotParlayModelConfig = {
   targetLegs: 6,
   minLegs: 6,
   maxLegs: 6,
   minSportsbookCount: 3,
-  minLegProbability: 0.58,
-  extraLegMinProbability: 0.68,
+  minLegProbability: 0.62,
+  extraLegMinProbability: 0.7,
   maxPerPlayer: 1,
-  maxPerGame: 3,
+  maxPerGame: 2,
   maxPerTeam: 2,
   maxPerMarket: 2,
   maxSameTeamCountingOvers: 1,
-  minPrimaryLegProbability: 0.66,
-  minPrimarySelectionScore: 0.58,
+  minPrimaryLegProbability: 0.68,
+  minPrimarySelectionScore: 0.62,
   defaultAmericanOdds: -110,
   seedPromotedCard: true,
 };
@@ -301,6 +303,38 @@ function estimateLegProbability(signal: SnapshotPrecisionPickSignal): number {
   return round(clamp(weighted - samplePenalty - familyPenalty, 0.5, 0.93), 4);
 }
 
+function estimateFinalModelLegProbability(row: SnapshotFinalModelBoardRow): number {
+  const pieces: Array<{ value: number; weight: number }> = [];
+  const prior = probabilityFromPercent(row.estimatedAccuracyPriorPct);
+  if (prior != null) pieces.push({ value: prior, weight: 0.38 });
+  if (row.metaProbCorrect != null && Number.isFinite(row.metaProbCorrect)) {
+    pieces.push({
+      value: clamp(row.metaProbCorrect > 1 ? row.metaProbCorrect / 100 : row.metaProbCorrect, 0.45, 0.95),
+      weight: 0.18,
+    });
+  }
+  if (row.wfConfidence != null && Number.isFinite(row.wfConfidence)) {
+    pieces.push({ value: clamp(row.wfConfidence, 0.45, 0.95), weight: 0.16 });
+  }
+  if (row.finalScore != null && Number.isFinite(row.finalScore)) {
+    pieces.push({ value: clamp(row.finalScore, 0.45, 0.95), weight: 0.22 });
+  }
+  const tierPrior = row.tier === "S" ? 0.9 : row.tier === "A" ? 0.86 : row.tier === "B" ? 0.82 : row.tier === "C" ? 0.76 : 0.62;
+  pieces.push({ value: tierPrior, weight: 0.06 });
+
+  const totalWeight = pieces.reduce((sum, piece) => sum + piece.weight, 0);
+  const weighted = pieces.reduce((sum, piece) => sum + piece.value * piece.weight, 0) / totalWeight;
+  const riskFlags = new Set([...row.riskFlags, ...row.contextFlags]);
+  const riskPenalty =
+    (riskFlags.has("low_projected_minutes") ? 0.018 : 0) +
+    (riskFlags.has("volatile_minutes") ? 0.018 : 0) +
+    (riskFlags.has("blowout_spread_risk") ? 0.012 : 0) +
+    (riskFlags.has("minutes_lift_against_side") ? 0.014 : 0) +
+    (row.modelAction === "CANDIDATE" ? 0.012 : 0);
+
+  return round(clamp(weighted - riskPenalty, 0.5, 0.93), 4);
+}
+
 function availabilityRiskFlags(row: SnapshotRow): string[] {
   const flags: string[] = [];
   const status = row.playerContext.availabilityStatus;
@@ -416,7 +450,126 @@ function buildCandidate(input: {
   };
 }
 
-function extractCandidates(data: SnapshotBoardData, config: SnapshotParlayModelConfig): Candidate[] {
+function buildFinalModelCandidate(input: {
+  modelRow: SnapshotFinalModelBoardRow;
+  row: SnapshotRow | null;
+  liveSignal: SnapshotPtsSignal | null;
+  config: SnapshotParlayModelConfig;
+}): Candidate | null {
+  const modelRow = input.modelRow;
+  const side = modelRow.side;
+  if (!isSide(side)) return null;
+  if (!FINAL_MODEL_PARLAY_ACTIONS.has(modelRow.modelAction)) return null;
+
+  const line = modelRow.line ?? input.liveSignal?.marketLine ?? null;
+  if (line == null || !Number.isFinite(line)) return null;
+
+  if (input.row && !isAvailabilityPlayable(input.row)) return null;
+
+  const projectedMinutes =
+    modelRow.projectedMinutes ??
+    input.row?.playerContext.projectedMinutes ??
+    input.row?.playerContext.minutesLast10Avg ??
+    null;
+  if (projectedMinutes != null && projectedMinutes < 18) return null;
+
+  const sportsbookCount = modelRow.sportsbookCount ?? input.liveSignal?.sportsbookCount ?? 0;
+  if (sportsbookCount < input.config.minSportsbookCount) return null;
+
+  const legProbability = estimateFinalModelLegProbability(modelRow);
+  if (legProbability < input.config.minLegProbability) return null;
+
+  const absGap = modelRow.absLineGap ?? Math.abs(input.liveSignal?.projectionGap ?? 0);
+  const baseRiskFlags = new Set([
+    ...modelRow.riskFlags,
+    ...modelRow.contextFlags,
+    ...(input.row ? availabilityRiskFlags(input.row) : []),
+  ]);
+  if (projectedMinutes != null && projectedMinutes < 22) baseRiskFlags.add("low_projected_minutes");
+  if ((modelRow.minutesVolatility ?? input.row?.playerContext.minutesVolatility ?? 0) > 7) {
+    baseRiskFlags.add("high_minutes_volatility");
+  }
+  if (sportsbookCount === input.config.minSportsbookCount) baseRiskFlags.add("minimum_book_depth");
+  baseRiskFlags.add(modelRow.modelAction === "SELECTED" ? "final_v1_selected" : "final_v1_candidate");
+
+  const selectionScore = clamp(modelRow.finalScore ?? legProbability, 0, 1);
+  const tierBonus = modelRow.tier === "S" ? 0.028 : modelRow.tier === "A" ? 0.018 : modelRow.tier === "B" ? 0.008 : 0;
+  const actionBonus = modelRow.modelAction === "SELECTED" ? 0.055 : 0;
+  const riskPenalty =
+    (baseRiskFlags.has("low_projected_minutes") ? 0.018 : 0) +
+    (baseRiskFlags.has("high_minutes_volatility") || baseRiskFlags.has("volatile_minutes") ? 0.014 : 0) +
+    (baseRiskFlags.has("blowout_spread_risk") ? 0.01 : 0);
+  const modelScore = round(
+    legProbability +
+      selectionScore * 0.24 +
+      Math.min(sportsbookCount, 8) * 0.004 +
+      Math.min(absGap ?? 0, 6) * 0.006 +
+      tierBonus +
+      actionBonus -
+      riskPenalty,
+    6,
+  );
+
+  return {
+    rank: 0,
+    playerId: modelRow.playerId ?? input.row?.playerId ?? modelRow.playerName,
+    playerName: modelRow.playerName,
+    teamCode: modelRow.team ?? input.row?.teamCode ?? "",
+    opponentCode: modelRow.opponent ?? input.row?.opponentCode ?? "",
+    matchupKey: modelRow.matchupKey ?? input.row?.matchupKey ?? `${modelRow.team ?? ""}@${modelRow.opponent ?? ""}`,
+    gameTimeEt: modelRow.gameTimeEt ?? input.row?.gameTimeEt ?? "",
+    market: modelRow.market,
+    side,
+    line,
+    projectedValue: modelRow.projectedValue ?? input.row?.projectedTonight[modelRow.market] ?? null,
+    projectionGap: modelRow.lineGap ?? input.liveSignal?.projectionGap ?? null,
+    confidence: modelRow.estimatedAccuracyPriorPct ?? input.liveSignal?.confidence ?? null,
+    sportsbookCount,
+    legProbability,
+    selectionScore: round(selectionScore, 6),
+    modelScore,
+    selectorFamily: "final_player_prop_model_v1",
+    selectorTier: modelRow.tier,
+    promotedRank: modelRow.modelAction === "SELECTED" ? modelRow.selectedRank : null,
+    reasons: [
+      ...modelRow.reasons,
+      ...modelRow.sourceComponents.map((component) => component.label),
+    ].filter(Boolean).slice(0, 6),
+    riskFlags: [...baseRiskFlags],
+  };
+}
+
+function extractFinalModelCandidates(data: SnapshotBoardData, config: SnapshotParlayModelConfig): Candidate[] {
+  const finalModel = data.finalModel;
+  if (!finalModel || finalModel.artifactStatus !== "LOADED") return [];
+
+  const rowByPlayerId = new Map(data.rows.map((row) => [row.playerId, row] as const));
+  const rowByName = new Map(data.rows.map((row) => [row.playerName.toLowerCase(), row] as const));
+  const finalRows = [
+    ...(finalModel.selectedRows ?? []),
+    ...(finalModel.candidateRows ?? []),
+  ];
+  const bestByPlayerMarket = new Map<string, Candidate>();
+
+  for (const modelRow of finalRows) {
+    const sourceRow =
+      (modelRow.playerId ? rowByPlayerId.get(modelRow.playerId) : null) ??
+      rowByName.get(modelRow.playerName.toLowerCase()) ??
+      null;
+    const liveSignal = sourceRow ? getRowMarketSignal(sourceRow, modelRow.market) : null;
+    const candidate = buildFinalModelCandidate({ modelRow, row: sourceRow, liveSignal, config });
+    if (!candidate) continue;
+    const key = precisionCardKey(candidate);
+    const existing = bestByPlayerMarket.get(key);
+    if (!existing || candidate.modelScore > existing.modelScore) {
+      bestByPlayerMarket.set(key, candidate);
+    }
+  }
+
+  return [...bestByPlayerMarket.values()].sort(compareCandidates);
+}
+
+function extractPrecisionCandidates(data: SnapshotBoardData, config: SnapshotParlayModelConfig): Candidate[] {
   const promotedEntryByKey = new Map(
     (data.precisionCard ?? []).map((entry) => [precisionCardKey(entry), entry] as const),
   );
@@ -440,6 +593,12 @@ function extractCandidates(data: SnapshotBoardData, config: SnapshotParlayModelC
   }
 
   return [...bestByPlayerMarket.values()].sort(compareCandidates);
+}
+
+function extractCandidates(data: SnapshotBoardData, config: SnapshotParlayModelConfig): Candidate[] {
+  const finalModelCandidates = extractFinalModelCandidates(data, config);
+  if (finalModelCandidates.length > 0) return finalModelCandidates;
+  return extractPrecisionCandidates(data, config);
 }
 
 function compareCandidates(left: Candidate, right: Candidate): number {
@@ -507,7 +666,8 @@ function canAddCandidate(
 
 function isFragileCandidate(candidate: Candidate, config: SnapshotParlayModelConfig): boolean {
   const hasLowMinutes = candidate.riskFlags.includes("low_projected_minutes");
-  const hasHighVolatility = candidate.riskFlags.includes("high_minutes_volatility");
+  const hasHighVolatility =
+    candidate.riskFlags.includes("high_minutes_volatility") || candidate.riskFlags.includes("volatile_minutes");
   const hasMinimumBookDepth = candidate.riskFlags.includes("minimum_book_depth");
   const thinRole = hasLowMinutes && hasHighVolatility;
   const thinMarket = hasMinimumBookDepth && (hasLowMinutes || hasHighVolatility);
@@ -550,27 +710,6 @@ function selectLegs(candidates: Candidate[], config: SnapshotParlayModelConfig):
 
   for (const candidate of candidates) {
     tryAdd(candidate, false);
-  }
-
-  if (selected.length < config.minLegs) {
-    for (const candidate of candidates) {
-      tryAdd(candidate, true);
-      if (selected.length >= config.minLegs) break;
-    }
-  }
-
-  if (selected.length < config.minLegs) {
-    for (const candidate of candidates) {
-      tryAdd(candidate, true, true);
-      if (selected.length >= config.minLegs) break;
-    }
-  }
-
-  if (selected.length < config.minLegs) {
-    for (const candidate of candidates) {
-      tryAdd(candidate, true, true, true);
-      if (selected.length >= config.minLegs) break;
-    }
   }
 
   return selected.map((leg, index) => ({ ...leg, rank: index + 1 }));
@@ -627,7 +766,9 @@ function buildWarnings(status: Status, legs: SnapshotParlayLeg[], config: Snapsh
     warnings.push("No NBA slate rows were available for this date.");
   }
   if (status === "UNDERFILLED") {
-    warnings.push(`Only ${legs.length} unique playable legs were available, below the ${config.minLegs}-leg minimum.`);
+    warnings.push(
+      `Only ${legs.length} unique playable legs cleared the Final V1 parlay gate, below the ${config.minLegs}-leg minimum.`,
+    );
   }
   const forcedFillLegs = legs.filter((leg) => leg.riskFlags.includes("forced_daily_six_fill"));
   if (forcedFillLegs.length > 0) {
@@ -685,11 +826,11 @@ export function buildSnapshotParlayCard(
     generatedAt: new Date().toISOString(),
     dateEt: data.dateEt,
     status,
-    label: status === "READY" ? "Precision Parlay Card" : "Precision Parlay Watchlist",
+    label: status === "READY" ? "Final V1 Parlay Card" : "Final V1 Parlay Watchlist",
     note:
       status === "READY"
-        ? `Selected ${legs.length} leg${legs.length === 1 ? "" : "s"} from the promoted precision board, force-filling the daily six only when portfolio caps would otherwise underfill.`
-        : "The model did not find enough unique playable legs to force a full parlay.",
+        ? `Selected ${legs.length} leg${legs.length === 1 ? "" : "s"} from the Final V1 selected/candidate board with player, game, team, market, and counting-over correlation caps.`
+        : "The model did not find enough unique Final V1 legs for a full parlay and intentionally refused to force-fill weaker picks.",
     warnings: buildWarnings(status, legs, config),
     config,
     summary: {
