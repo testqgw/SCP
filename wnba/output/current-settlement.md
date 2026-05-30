@@ -1,14 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-30T16:22:40Z
+Generated: 2026-05-30T20:33:15Z
 Slate: 2026-05-30
-Settled: 0 / 4
+Settled: 1 / 6
 No action: 0
-Accuracy: pending
+Accuracy: 100.0
 
 ## Rows
 
-- PENDING: Brittney Sykes UNDER PTS 19.5 (actual pending)
-- PENDING: Carla Leite UNDER AST 4.5 (actual pending)
-- PENDING: Ariel Atkins UNDER PA 16.5 (actual pending)
 - PENDING: Caitlin Clark UNDER RA 14.5 (actual pending)
+- WIN: Brittney Sykes UNDER THREES 1.5 (actual 0.0)
+- PENDING: Ariel Atkins UNDER THREES 1.5 (actual pending)
+- PENDING: Carla Leite UNDER PTS 15.5 (actual pending)
+- PENDING: Erica Wheeler UNDER AST 6.5 (actual pending)
+- PENDING: Bridget Carleton UNDER THREES 2.5 (actual pending)

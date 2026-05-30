@@ -1,16 +1,19 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-30T16:22:40Z
+Generated: 2026-05-30T20:33:15Z
 Slate: 2026-05-30
 
 ## Selected
 
-1. Brittney Sykes UNDER PTS 19.5 (Toronto Tempo vs Seattle Storm): p=69.7%, proj=14.90, edge +16.4%, score=0.857, source=nan
-2. Carla Leite UNDER AST 4.5 (Portland Fire vs Indiana Fever): p=68.9%, proj=3.36, edge +10.4%, score=0.829, source=caesars
-3. Ariel Atkins UNDER PA 16.5 (Los Angeles Sparks vs Connecticut Sun): p=73.8%, proj=11.45, edge +20.9%, score=0.823, source=nan
-4. Caitlin Clark UNDER RA 14.5 (Indiana Fever vs Portland Fire): p=67.5%, proj=12.31, edge +15.0%, score=0.766, source=bet365
+1. Caitlin Clark UNDER RA 14.5 (Indiana Fever vs Portland Fire): p=67.5%, proj=12.31, edge +15.1%, score=0.766, source=bet365
+2. Brittney Sykes UNDER THREES 1.5 (Toronto Tempo vs Seattle Storm): p=66.0%, proj=1.01, edge +6.9%, score=0.761, source=bet365
+3. Ariel Atkins UNDER THREES 1.5 (Los Angeles Sparks vs Connecticut Sun): p=67.3%, proj=0.90, edge +11.8%, score=0.752, source=nan
+4. Carla Leite UNDER PTS 15.5 (Portland Fire vs Indiana Fever): p=65.0%, proj=12.80, edge +14.2%, score=0.715, source=bet365
+5. Erica Wheeler UNDER AST 6.5 (Los Angeles Sparks vs Connecticut Sun): p=68.9%, proj=5.25, edge +18.4%, score=0.808, source=bet365
+6. Bridget Carleton UNDER THREES 2.5 (Portland Fire vs Indiana Fever): p=64.4%, proj=2.05, edge +4.8%, score=0.660, source=bet365
 
 ## Warnings
 
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Only 4 rows cleared the current gates for a 6-pick target.
+Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
+Expanded card is concentrated in one matchup; treat correlated results as higher variance.
