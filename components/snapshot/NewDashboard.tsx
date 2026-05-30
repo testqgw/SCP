@@ -120,15 +120,15 @@ const FINAL_V1_SELECTED_VOLUME = 62;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Current Final V1 player-tab pair replay';
-const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 41.44;
-const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 4.35;
-const FINAL_V1_DAILY_COMBO_DAYS = '5-115';
-const FINAL_V1_DAILY_COMBO_RECORD = '622-879';
-const FINAL_V1_DAILY_COMBO_LEGS = 3002;
-const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 4.42;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 26.1;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 13.05;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Final V1 PRA/PA/PR 0.84+ score 2-leg premium replay';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 87.5;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 85.71;
+const FINAL_V1_DAILY_COMBO_DAYS = '12-14';
+const FINAL_V1_DAILY_COMBO_RECORD = '14-2';
+const FINAL_V1_DAILY_COMBO_LEGS = 32;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 0.05;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 2.29;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 1.14;
 const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Current Final V1 player-tab triplet replay';
 const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 28.31;
 const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 4.35;
@@ -1714,9 +1714,8 @@ function compareFinalModelBoardRows(a: SnapshotFinalModelBoardRow, b: SnapshotFi
 
 function isFinalModelPremiumPairLeg(row: SnapshotFinalModelBoardRow) {
   return (
-    (row.tier === 'C' || row.tier === 'S') &&
-    row.market !== 'AST' &&
-    (row.finalScore ?? 0) >= 0.69
+    (row.market === 'PRA' || row.market === 'PA' || row.market === 'PR') &&
+    (row.finalScore ?? 0) >= 0.84
   );
 }
 
@@ -4586,7 +4585,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the old six-leg parlay replay was about 90% individual-leg accuracy, not a 90% full-card hit rate. The honest six-leg precision replay hit 19/39 full cards, while the current Final V1 player-tab card layers above show their own full-card rates and coverage.
+                  Important audit note: the 2-leg premium lane now clears 80% full-card accuracy, but it does that by getting narrow. The old six-leg parlay replay was about 90% individual-leg accuracy, not a 90% full-card hit rate.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (

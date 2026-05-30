@@ -125,7 +125,7 @@ function isSelectable(row) {
 }
 
 function isPairLeg(row) {
-  return (row.tier === "C" || row.tier === "S") && row.market !== "AST" && numberValue(row, "finalScore", 0) >= 0.69;
+  return ["PRA", "PA", "PR"].includes(row.market) && numberValue(row, "finalScore", 0) >= 0.84;
 }
 
 function isTripletLeg(row) {
