@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
 jobs:
   verify:
     runs-on: ubuntu-latest
