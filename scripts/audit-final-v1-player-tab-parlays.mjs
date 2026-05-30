@@ -120,12 +120,32 @@ function compareFinalModelMarketHighLegs(left, right) {
   );
 }
 
+function compareFinalModelPremiumPairLegs(left, right) {
+  const leftMeta = numberValue(left, "metaProbCorrect", 0);
+  const rightMeta = numberValue(right, "metaProbCorrect", 0);
+  const leftScore = numberValue(left, "finalScore", 0);
+  const rightScore = numberValue(right, "finalScore", 0);
+  const leftPrior = numberValue(left, "estimatedAccuracyPriorPct", 0);
+  const rightPrior = numberValue(right, "estimatedAccuracyPriorPct", 0);
+  return (
+    rightMeta - leftMeta ||
+    rightScore - leftScore ||
+    rightPrior - leftPrior ||
+    MARKETS.indexOf(left.market) - MARKETS.indexOf(right.market) ||
+    left.playerName.localeCompare(right.playerName)
+  );
+}
+
 function isSelectable(row) {
   return row.line !== "";
 }
 
 function isPairLeg(row) {
-  return ["PRA", "PA", "PR"].includes(row.market) && numberValue(row, "finalScore", 0) >= 0.84;
+  return (
+    ["THREES", "PTS", "PA", "PRA", "PR"].includes(row.market) &&
+    numberValue(row, "finalScore", 0) >= 0.69 &&
+    numberValue(row, "metaProbCorrect", 0) >= 0.6
+  );
 }
 
 function isTripletLeg(row) {
@@ -235,7 +255,7 @@ function main() {
     rows: rows.length,
     singles: auditSingles(rowsByDate, rows.length),
     cards: {
-      twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumTripletLegs),
+      twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),
       threeLeg: auditCards(rowsByDate, rows.length, 3, isTripletLeg, compareFinalModelPremiumTripletLegs),
       fourLeg: auditCards(rowsByDate, rows.length, 4, isLongOverLeg, compareFinalModelMarketHighLegs),
       fiveLeg: auditCards(rowsByDate, rows.length, 5, isLongOverLeg, compareFinalModelMarketHighLegs),

@@ -120,15 +120,15 @@ const FINAL_V1_SELECTED_VOLUME = 62;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Final V1 PRA/PA/PR 0.84+ score 2-leg premium replay';
-const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 87.5;
-const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 85.71;
-const FINAL_V1_DAILY_COMBO_DAYS = '12-14';
-const FINAL_V1_DAILY_COMBO_RECORD = '14-2';
-const FINAL_V1_DAILY_COMBO_LEGS = 32;
-const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 0.05;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 2.29;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 1.14;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Full-season Final V1 THREES/PTS/PA/PRA/PR 0.69+ score, 0.60+ meta 2-leg replay';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 45.77;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 0.86;
+const FINAL_V1_DAILY_COMBO_DAYS = '1-116';
+const FINAL_V1_DAILY_COMBO_RECORD = '855-1013';
+const FINAL_V1_DAILY_COMBO_LEGS = 3736;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 5.5;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 32.21;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 16.1;
 const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Current Final V1 player-tab triplet replay';
 const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 28.31;
 const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 4.35;
@@ -1714,8 +1714,9 @@ function compareFinalModelBoardRows(a: SnapshotFinalModelBoardRow, b: SnapshotFi
 
 function isFinalModelPremiumPairLeg(row: SnapshotFinalModelBoardRow) {
   return (
-    (row.market === 'PRA' || row.market === 'PA' || row.market === 'PR') &&
-    (row.finalScore ?? 0) >= 0.84
+    (row.market === 'THREES' || row.market === 'PTS' || row.market === 'PA' || row.market === 'PRA' || row.market === 'PR') &&
+    (row.finalScore ?? 0) >= 0.69 &&
+    (row.metaProbCorrect ?? 0) >= 0.60
   );
 }
 
@@ -1778,12 +1779,38 @@ function compareFinalModelMarketHighLegs(
   );
 }
 
+function compareFinalModelPremiumPairLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  const aMeta = a.modelRow.metaProbCorrect ?? 0;
+  const bMeta = b.modelRow.metaProbCorrect ?? 0;
+  const aScore = a.modelRow.finalScore ?? 0;
+  const bScore = b.modelRow.finalScore ?? 0;
+  const aPrior = a.modelRow.estimatedAccuracyPriorPct ?? 0;
+  const bPrior = b.modelRow.estimatedAccuracyPriorPct ?? 0;
+  return (
+    bMeta - aMeta ||
+    bScore - aScore ||
+    bPrior - aPrior ||
+    MARKETS.indexOf(a.modelRow.market) - MARKETS.indexOf(b.modelRow.market) ||
+    a.modelRow.playerName.localeCompare(b.modelRow.playerName)
+  );
+}
+
 function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
   return (
     b.view.score - a.view.score ||
     (b.view.conf ?? -1) - (a.view.conf ?? -1) ||
     a.row.playerName.localeCompare(b.row.playerName)
   );
+}
+
+function comparePlayerTabPairPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  if (a.modelRow && b.modelRow) {
+    return compareFinalModelPremiumPairLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
+  }
+  return comparePlayerTabFallbackPicks(a, b);
 }
 
 function comparePlayerTabPremiumPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
@@ -2443,7 +2470,7 @@ export default function NewDashboard({
     () =>
       playerTabComboPicks
         .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelPremiumPairLeg(pick.modelRow)))
-        .sort((a, b) => comparePlayerTabPremiumPicks(a, b)),
+        .sort((a, b) => comparePlayerTabPairPicks(a, b)),
     [playerTabComboPicks],
   );
   const playerTabPairLegs = useMemo(
@@ -4585,7 +4612,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the 2-leg premium lane now clears 80% full-card accuracy, but it does that by getting narrow. The old six-leg parlay replay was about 90% individual-leg accuracy, not a 90% full-card hit rate.
+                  Important audit note: the 2-leg lane is now season-qualified across all 116 replay dates, and it does not clear 80%. The old narrow 14-day replay was removed because it was not a full-season result.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
