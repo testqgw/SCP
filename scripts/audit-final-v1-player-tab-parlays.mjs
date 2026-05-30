@@ -136,6 +136,21 @@ function compareFinalModelPremiumPairLegs(left, right) {
   );
 }
 
+function curatedPairScore(row) {
+  return (
+    numberValue(row, "finalScore", 0) * 0.5 +
+    numberValue(row, "metaProbCorrect", 0) * 0.25 +
+    numberValue(row, "wfConfidence", 0) * 0.1 +
+    (numberValue(row, "estimatedAccuracyPriorPct", 0) / 100) * 0.1 +
+    numberValue(row, "contextScore", 0) * 0.002 -
+    numberValue(row, "correlationPenalty", 0) * 0.2
+  );
+}
+
+function compareFinalModelCuratedPairLegs(left, right) {
+  return curatedPairScore(right) - curatedPairScore(left) || compareFinalModelBoardRows(left, right);
+}
+
 function isSelectable(row) {
   return row.line !== "";
 }
@@ -146,6 +161,10 @@ function isPairLeg(row) {
     numberValue(row, "finalScore", 0) >= 0.69 &&
     numberValue(row, "metaProbCorrect", 0) >= 0.6
   );
+}
+
+function isCuratedPairLeg(row) {
+  return row.side === "OVER";
 }
 
 function isTripletLeg(row) {
@@ -239,6 +258,59 @@ function auditSingles(rowsByDate, allRowCount) {
   };
 }
 
+function gameKey(row) {
+  return row.gameKey || `${row.teamCode}:${row.opponentCode || ""}`;
+}
+
+function auditCuratedDailyPair(rowsByDate, allRowCount) {
+  let candidates = 0;
+  let legs = 0;
+  let legWins = 0;
+  let cards = 0;
+  let cardWins = 0;
+  let sameGameCards = 0;
+  let sameTeamCards = 0;
+  let sameMarketCards = 0;
+
+  for (const rows of rowsByDate.values()) {
+    const filtered = oneBestPerPlayer(rows).filter(isCuratedPairLeg).sort(compareFinalModelCuratedPairLegs);
+    candidates += filtered.length;
+    if (filtered.length < 2) continue;
+
+    const first = filtered[0];
+    const second = filtered.slice(1).find((row) => gameKey(row) !== gameKey(first)) ?? filtered[1];
+    if (!second) continue;
+
+    const card = [first, second];
+    const hit = card.every((row) => row.correct === "True");
+    cards += 1;
+    if (hit) cardWins += 1;
+    legs += 2;
+    legWins += card.filter((row) => row.correct === "True").length;
+    if (gameKey(first) === gameKey(second)) sameGameCards += 1;
+    if (first.teamCode === second.teamCode) sameTeamCards += 1;
+    if (first.market === second.market) sameMarketCards += 1;
+  }
+
+  return {
+    candidates,
+    legs,
+    legRecord: `${legWins}-${legs - legWins}`,
+    legAccuracyPct: pct(legWins, legs),
+    legCoveragePct: pct(legs, allRowCount),
+    cards,
+    cardRecord: `${cardWins}-${cards - cardWins}`,
+    cardAccuracyPct: pct(cardWins, cards),
+    allCardDays: `${cardWins}-${cards}`,
+    allCardDayPct: pct(cardWins, cards),
+    avgLegsPerDay: cards > 0 ? Math.round((legs / cards) * 100) / 100 : 0,
+    avgCardsPerDay: cards > 0 ? 1 : 0,
+    sameGameCards,
+    sameTeamCards,
+    sameMarketCards,
+  };
+}
+
 function main() {
   const args = parseArgs();
   const rows = parseCsv(readFileSync(args.input, "utf8"));
@@ -255,6 +327,7 @@ function main() {
     rows: rows.length,
     singles: auditSingles(rowsByDate, rows.length),
     cards: {
+      curatedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length),
       twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),
       threeLeg: auditCards(rowsByDate, rows.length, 3, isTripletLeg, compareFinalModelPremiumTripletLegs),
       fourLeg: auditCards(rowsByDate, rows.length, 4, isLongOverLeg, compareFinalModelMarketHighLegs),

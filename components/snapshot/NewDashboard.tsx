@@ -120,6 +120,15 @@ const FINAL_V1_SELECTED_VOLUME = 62;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
+const FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL = 'Curated full-season Final V1 2-leg card: top OVER legs by blended score, avoid same game when possible';
+const FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT = 68.97;
+const FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT = 68.97;
+const FINAL_V1_DAILY_CURATED_PAIR_DAYS = '80-116';
+const FINAL_V1_DAILY_CURATED_PAIR_RECORD = '80-36';
+const FINAL_V1_DAILY_CURATED_PAIR_LEGS = 232;
+const FINAL_V1_DAILY_CURATED_PAIR_LEG_COVERAGE_PCT = 0.34;
+const FINAL_V1_DAILY_CURATED_PAIR_AVG_LEGS = 2;
+const FINAL_V1_DAILY_CURATED_PAIR_AVG_COMBOS = 1;
 const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Full-season Final V1 THREES/PTS/PA/PRA/PR 0.69+ score, 0.60+ meta 2-leg replay';
 const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 45.77;
 const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 0.86;
@@ -487,6 +496,21 @@ function chunkPlayerTabComboCards(legs: PlayerTabComboPick[], size: number): Pla
     });
   }
   return cards;
+}
+
+function playerTabComboGameKey(pick: PlayerTabComboPick) {
+  return pick.modelRow?.matchupKey ?? pick.row.matchupKey ?? `${pick.row.teamCode}:${pick.row.opponentCode}`;
+}
+
+function buildCuratedPlayerTabPairCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
+  const first = candidates[0] ?? null;
+  if (!first) return [];
+  const firstGameKey = playerTabComboGameKey(first);
+  const second =
+    candidates.slice(1).find((candidate) => playerTabComboGameKey(candidate) !== firstGameKey) ??
+    candidates[1] ??
+    null;
+  return second ? [first, second] : [];
 }
 
 type PrecisionStateSummary = {
@@ -1779,6 +1803,10 @@ function compareFinalModelMarketHighLegs(
   );
 }
 
+function isFinalModelCuratedPairLeg(row: SnapshotFinalModelBoardRow) {
+  return row.side === 'OVER';
+}
+
 function compareFinalModelPremiumPairLegs(
   a: { modelRow: SnapshotFinalModelBoardRow },
   b: { modelRow: SnapshotFinalModelBoardRow },
@@ -1798,6 +1826,27 @@ function compareFinalModelPremiumPairLegs(
   );
 }
 
+function finalModelCuratedPairScore(row: SnapshotFinalModelBoardRow) {
+  return (
+    (row.finalScore ?? 0) * 0.5 +
+    (row.metaProbCorrect ?? 0) * 0.25 +
+    (row.wfConfidence ?? 0) * 0.1 +
+    ((row.estimatedAccuracyPriorPct ?? 0) / 100) * 0.1 +
+    (row.contextScore ?? 0) * 0.002 -
+    (row.correlationPenalty ?? 0) * 0.2
+  );
+}
+
+function compareFinalModelCuratedPairLegs(
+  a: { modelRow: SnapshotFinalModelBoardRow },
+  b: { modelRow: SnapshotFinalModelBoardRow },
+) {
+  return (
+    finalModelCuratedPairScore(b.modelRow) - finalModelCuratedPairScore(a.modelRow) ||
+    compareFinalModelBoardRows(a.modelRow, b.modelRow)
+  );
+}
+
 function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
   return (
     b.view.score - a.view.score ||
@@ -1809,6 +1858,13 @@ function comparePlayerTabFallbackPicks(a: PlayerTabComboPick, b: PlayerTabComboP
 function comparePlayerTabPairPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
   if (a.modelRow && b.modelRow) {
     return compareFinalModelPremiumPairLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
+  }
+  return comparePlayerTabFallbackPicks(a, b);
+}
+
+function comparePlayerTabCuratedPairPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  if (a.modelRow && b.modelRow) {
+    return compareFinalModelCuratedPairLegs({ modelRow: a.modelRow }, { modelRow: b.modelRow });
   }
   return comparePlayerTabFallbackPicks(a, b);
 }
@@ -2473,6 +2529,21 @@ export default function NewDashboard({
         .sort((a, b) => comparePlayerTabPairPicks(a, b)),
     [playerTabComboPicks],
   );
+  const playerTabCuratedPairCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter((pick) => isSelectablePlayerTabPick(pick) && (pick.modelRow == null || isFinalModelCuratedPairLeg(pick.modelRow)))
+        .sort((a, b) => comparePlayerTabCuratedPairPicks(a, b)),
+    [playerTabComboPicks],
+  );
+  const playerTabCuratedPairLegs = useMemo(
+    () => buildCuratedPlayerTabPairCard(playerTabCuratedPairCandidates),
+    [playerTabCuratedPairCandidates],
+  );
+  const playerTabCuratedPairCards = useMemo(
+    () => chunkPlayerTabComboCards(playerTabCuratedPairLegs, 2),
+    [playerTabCuratedPairLegs],
+  );
   const playerTabPairLegs = useMemo(
     () => playerTabPairCandidates.slice(0, Math.floor(playerTabPairCandidates.length / 2) * 2),
     [playerTabPairCandidates],
@@ -2529,8 +2600,24 @@ export default function NewDashboard({
   const playerTabComboLayers = useMemo(
     () => [
       {
+        id: '2L+',
+        label: '2-leg curated',
+        size: 2,
+        rule: FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL,
+        cardAccuracyPct: FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT,
+        allCardHitPct: FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT,
+        record: FINAL_V1_DAILY_CURATED_PAIR_RECORD,
+        days: FINAL_V1_DAILY_CURATED_PAIR_DAYS,
+        historicalLegs: FINAL_V1_DAILY_CURATED_PAIR_LEGS,
+        legCoveragePct: FINAL_V1_DAILY_CURATED_PAIR_LEG_COVERAGE_PCT,
+        avgLegs: FINAL_V1_DAILY_CURATED_PAIR_AVG_LEGS,
+        avgCards: FINAL_V1_DAILY_CURATED_PAIR_AVG_COMBOS,
+        legs: playerTabCuratedPairLegs,
+        cards: playerTabCuratedPairCards,
+      },
+      {
         id: '2L',
-        label: '2-leg',
+        label: '2-leg all cards',
         size: 2,
         rule: FINAL_V1_DAILY_COMBO_RULE_LABEL,
         cardAccuracyPct: FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT,
@@ -2610,6 +2697,8 @@ export default function NewDashboard({
       },
     ],
     [
+      playerTabCuratedPairCards,
+      playerTabCuratedPairLegs,
       playerTabPairCards,
       playerTabPairLegs,
       playerTabQuadCards,
@@ -4545,6 +4634,7 @@ export default function NewDashboard({
                 <Stat dense label="Candidate pool" value={pct(FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_CANDIDATE_POOL_RECORD}; historical replay`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_FULL_BOARD_RECORD}; all replay rows`} />
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
+                <Stat dense label="Curated 2-leg" value={pct(FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_CURATED_PAIR_RECORD}; one card/day`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
                 <Stat dense label="4-leg cards" value={pct(FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUAD_RECORD}; ${FINAL_V1_DAILY_QUAD_DAYS} all-card days`} />
@@ -4612,7 +4702,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the 2-leg lane is now season-qualified across all 116 replay dates, and it does not clear 80%. The old narrow 14-day replay was removed because it was not a full-season result.
+                  Important audit note: the improved curated 2-leg selector is season-qualified at 80-36, but it is one card per day. The all-eligible 2-leg pool remains season-qualified too and still does not clear 80%, so do not treat every possible combo as a premium card.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
