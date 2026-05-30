@@ -129,6 +129,7 @@
     "projection:final-player-prop:v1:walk-forward": "python scripts/backtest-final-player-prop-model-v1.py",
     "projection:final-player-prop:v1:audit-backtest": "python scripts/audit-final-player-prop-model-v1-backtest.py",
     "projection:final-player-prop:v1:audit-date-shift-explain": "python scripts/explain-final-player-prop-model-v1-date-shift.py",
+    "projection:final-player-prop:v1:audit-parlays": "node scripts/audit-final-v1-player-tab-parlays.mjs",
     "projection:final-player-prop:v1:market-proof": "python scripts/grade-final-player-prop-model-v1-market-proof.py",
     "projection:final-player-prop:v1:third-party-asof-replay": "python scripts/audit-final-player-prop-model-v1-third-party-asof-replay.py",
     "projection:final-player-prop:v1:optimize-daily-pairs": "python scripts/optimize-final-player-prop-v1-daily-pairs.py",

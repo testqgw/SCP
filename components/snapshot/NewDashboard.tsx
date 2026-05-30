@@ -117,54 +117,54 @@ const FINAL_V1_SELECTED_LAST30_ACCURACY_PCT = 87.50;
 const FINAL_V1_SELECTED_LAST14_ACCURACY_PCT = 100.00;
 const FINAL_V1_SELECTED_RECORD = '56-6';
 const FINAL_V1_SELECTED_VOLUME = 62;
-const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 91.53;
-const FINAL_V1_DAILY_SINGLE_RECORD = '15324-1418';
-const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 100;
-const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Player-tab C/S non-AST score-floor pairs';
-const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 92.26;
-const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 42.33;
-const FINAL_V1_DAILY_COMBO_DAYS = '69-163';
-const FINAL_V1_DAILY_COMBO_RECORD = '1944-163';
-const FINAL_V1_DAILY_COMBO_LEGS = 4214;
-const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 25.17;
-const FINAL_V1_DAILY_COMBO_AVG_LEGS = 25.85;
-const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 12.93;
-const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Player-tab C-tier non-AST score-floor triplets';
-const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 90.03;
-const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 51.55;
-const FINAL_V1_DAILY_TRIPLET_DAYS = '83-161';
-const FINAL_V1_DAILY_TRIPLET_RECORD = '1057-117';
-const FINAL_V1_DAILY_TRIPLET_LEGS = 3522;
-const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 21.04;
-const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 21.88;
-const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 7.29;
-const FINAL_V1_DAILY_QUAD_RULE_LABEL = 'Player-tab C/S OVER long+REB quartets';
-const FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT = 91.20;
-const FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT = 86.90;
-const FINAL_V1_DAILY_QUAD_DAYS = '73-84';
-const FINAL_V1_DAILY_QUAD_RECORD = '114-11';
-const FINAL_V1_DAILY_QUAD_LEGS = 500;
-const FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT = 2.99;
-const FINAL_V1_DAILY_QUAD_AVG_LEGS = 5.95;
-const FINAL_V1_DAILY_QUAD_AVG_COMBOS = 1.49;
-const FINAL_V1_DAILY_QUINT_RULE_LABEL = 'Player-tab C/S OVER long+REB quintets';
-const FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT = 91.40;
-const FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT = 88.57;
-const FINAL_V1_DAILY_QUINT_DAYS = '62-70';
-const FINAL_V1_DAILY_QUINT_RECORD = '85-8';
-const FINAL_V1_DAILY_QUINT_LEGS = 465;
-const FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT = 2.78;
-const FINAL_V1_DAILY_QUINT_AVG_LEGS = 6.64;
-const FINAL_V1_DAILY_QUINT_AVG_COMBOS = 1.33;
-const FINAL_V1_DAILY_SEXT_RULE_LABEL = 'Player-tab C/S OVER long+REB sextets';
-const FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT = 90.77;
-const FINAL_V1_DAILY_SEXT_ALL_CARD_HIT_PCT = 89.09;
-const FINAL_V1_DAILY_SEXT_DAYS = '49-55';
-const FINAL_V1_DAILY_SEXT_RECORD = '59-6';
-const FINAL_V1_DAILY_SEXT_LEGS = 390;
-const FINAL_V1_DAILY_SEXT_LEG_COVERAGE_PCT = 2.33;
-const FINAL_V1_DAILY_SEXT_AVG_LEGS = 7.09;
-const FINAL_V1_DAILY_SEXT_AVG_COMBOS = 1.18;
+const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
+const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
+const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
+const FINAL_V1_DAILY_COMBO_RULE_LABEL = 'Current Final V1 player-tab pair replay';
+const FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT = 41.44;
+const FINAL_V1_DAILY_COMBO_ALL_CARD_HIT_PCT = 4.35;
+const FINAL_V1_DAILY_COMBO_DAYS = '5-115';
+const FINAL_V1_DAILY_COMBO_RECORD = '622-879';
+const FINAL_V1_DAILY_COMBO_LEGS = 3002;
+const FINAL_V1_DAILY_COMBO_LEG_COVERAGE_PCT = 4.42;
+const FINAL_V1_DAILY_COMBO_AVG_LEGS = 26.1;
+const FINAL_V1_DAILY_COMBO_AVG_COMBOS = 13.05;
+const FINAL_V1_DAILY_TRIPLET_RULE_LABEL = 'Current Final V1 player-tab triplet replay';
+const FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT = 28.31;
+const FINAL_V1_DAILY_TRIPLET_ALL_CARD_HIT_PCT = 4.35;
+const FINAL_V1_DAILY_TRIPLET_DAYS = '5-115';
+const FINAL_V1_DAILY_TRIPLET_RECORD = '278-704';
+const FINAL_V1_DAILY_TRIPLET_LEGS = 2946;
+const FINAL_V1_DAILY_TRIPLET_LEG_COVERAGE_PCT = 4.34;
+const FINAL_V1_DAILY_TRIPLET_AVG_LEGS = 25.62;
+const FINAL_V1_DAILY_TRIPLET_AVG_COMBOS = 8.54;
+const FINAL_V1_DAILY_QUAD_RULE_LABEL = 'Current Final V1 C/S OVER long-market quartet replay';
+const FINAL_V1_DAILY_QUAD_CARD_ACCURACY_PCT = 28.57;
+const FINAL_V1_DAILY_QUAD_ALL_CARD_HIT_PCT = 28.57;
+const FINAL_V1_DAILY_QUAD_DAYS = '2-7';
+const FINAL_V1_DAILY_QUAD_RECORD = '2-5';
+const FINAL_V1_DAILY_QUAD_LEGS = 28;
+const FINAL_V1_DAILY_QUAD_LEG_COVERAGE_PCT = 0.04;
+const FINAL_V1_DAILY_QUAD_AVG_LEGS = 4;
+const FINAL_V1_DAILY_QUAD_AVG_COMBOS = 1;
+const FINAL_V1_DAILY_QUINT_RULE_LABEL = 'Current Final V1 C/S OVER long-market quintet replay';
+const FINAL_V1_DAILY_QUINT_CARD_ACCURACY_PCT = 0;
+const FINAL_V1_DAILY_QUINT_ALL_CARD_HIT_PCT = 0;
+const FINAL_V1_DAILY_QUINT_DAYS = '0-3';
+const FINAL_V1_DAILY_QUINT_RECORD = '0-3';
+const FINAL_V1_DAILY_QUINT_LEGS = 15;
+const FINAL_V1_DAILY_QUINT_LEG_COVERAGE_PCT = 0.02;
+const FINAL_V1_DAILY_QUINT_AVG_LEGS = 5;
+const FINAL_V1_DAILY_QUINT_AVG_COMBOS = 1;
+const FINAL_V1_DAILY_SEXT_RULE_LABEL = 'Current Final V1 C/S OVER long-market six-leg replay';
+const FINAL_V1_DAILY_SEXT_CARD_ACCURACY_PCT = 0;
+const FINAL_V1_DAILY_SEXT_ALL_CARD_HIT_PCT = 0;
+const FINAL_V1_DAILY_SEXT_DAYS = '0-1';
+const FINAL_V1_DAILY_SEXT_RECORD = '0-1';
+const FINAL_V1_DAILY_SEXT_LEGS = 6;
+const FINAL_V1_DAILY_SEXT_LEG_COVERAGE_PCT = 0.01;
+const FINAL_V1_DAILY_SEXT_AVG_LEGS = 6;
+const FINAL_V1_DAILY_SEXT_AVG_COMBOS = 1;
 const MARKET_LABELS: Record<SnapshotMarket, string> = {
   PTS: 'PTS',
   REB: 'REB',
@@ -4536,13 +4536,13 @@ export default function NewDashboard({
               <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab coverage card layers</div>
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab card audit</div>
                     <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the broader player-tab board, picks one best market per player, then applies the improved 90+ ladder from singles through 6L. Longer cards use a stricter C/S OVER long-market plus REB lane, so coverage is intentionally narrow.
+                      Historical replay uses the current Final V1 board file, picks one best market per player, then chunks the same player-tab rules shown below. These are full-card hit rates, not individual-leg hit rates.
                     </p>
                   </div>
-                  <Pill label="Replay optimized" tone="amber" />
+                  <Pill label="Audited replay" tone="amber" />
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
                   {playerTabComboLayers.map((layer) => (
@@ -4586,7 +4586,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  The strongest current replay slice is the score-90+ board at {pct(FINAL_V1_SCORE_90_BOARD_ACCURACY_PCT, 2)} on {pct(FINAL_V1_SCORE_90_BOARD_COVERAGE_PCT, 2)} coverage; the broader qualified-90 board is {pct(FINAL_V1_QUALIFIED_90_BOARD_ACCURACY_PCT, 2)} and selected picks are {pct(FINAL_V1_SELECTED_WF_ACCURACY_PCT, 2)}. Today&apos;s card builder only uses live/selectable rows with {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books; all of these model-quality lanes are historical replay slices, not locked-forward proof.
+                  Important audit note: the old six-leg parlay replay was about 90% individual-leg accuracy, not a 90% full-card hit rate. The honest six-leg precision replay hit 19/39 full cards, while the current Final V1 player-tab card layers above show their own full-card rates and coverage.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
