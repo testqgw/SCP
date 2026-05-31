@@ -167,6 +167,14 @@ function isCuratedPairLeg(row) {
   return row.side === "OVER";
 }
 
+function isQualifiedPairCandidate(row) {
+  return ["PRA", "PA", "PR"].includes(row.market) && row.side === "OVER";
+}
+
+function isQualifiedPairCard(card) {
+  return card.every((row) => numberValue(row, "finalScore", 0) >= 0.78);
+}
+
 function isTripletLeg(row) {
   return row.tier === "C" && row.market !== "AST" && numberValue(row, "finalScore", 0) >= 0.69;
 }
@@ -262,7 +270,7 @@ function gameKey(row) {
   return row.gameKey || `${row.teamCode}:${row.opponentCode || ""}`;
 }
 
-function auditCuratedDailyPair(rowsByDate, allRowCount) {
+function auditCuratedDailyPair(rowsByDate, allRowCount, predicate = isCuratedPairLeg, cardPredicate = () => true) {
   let candidates = 0;
   let legs = 0;
   let legWins = 0;
@@ -273,7 +281,7 @@ function auditCuratedDailyPair(rowsByDate, allRowCount) {
   let sameMarketCards = 0;
 
   for (const rows of rowsByDate.values()) {
-    const filtered = oneBestPerPlayer(rows).filter(isCuratedPairLeg).sort(compareFinalModelCuratedPairLegs);
+    const filtered = oneBestPerPlayer(rows).filter(predicate).sort(compareFinalModelCuratedPairLegs);
     candidates += filtered.length;
     if (filtered.length < 2) continue;
 
@@ -282,6 +290,7 @@ function auditCuratedDailyPair(rowsByDate, allRowCount) {
     if (!second) continue;
 
     const card = [first, second];
+    if (!cardPredicate(card)) continue;
     const hit = card.every((row) => row.correct === "True");
     cards += 1;
     if (hit) cardWins += 1;
@@ -327,6 +336,7 @@ function main() {
     rows: rows.length,
     singles: auditSingles(rowsByDate, rows.length),
     cards: {
+      qualifiedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length, isQualifiedPairCandidate, isQualifiedPairCard),
       curatedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length),
       twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),
       threeLeg: auditCards(rowsByDate, rows.length, 3, isTripletLeg, compareFinalModelPremiumTripletLegs),

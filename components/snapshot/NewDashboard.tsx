@@ -120,6 +120,15 @@ const FINAL_V1_SELECTED_VOLUME = 62;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_RULE_LABEL = 'Qualified full-season Final V1 2-leg card: PRA/PA/PR OVER pair, avoid same game, both selected legs 0.78+ score';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT = 80.7;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT = 80.7;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS = '46-57';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD = '46-11';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_LEGS = 114;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_LEG_COVERAGE_PCT = 0.17;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_LEGS = 2;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_COMBOS = 1;
 const FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL = 'Curated full-season Final V1 2-leg card: top OVER legs by blended score, avoid same game when possible';
 const FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT = 68.97;
 const FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT = 68.97;
@@ -1807,6 +1816,14 @@ function isFinalModelCuratedPairLeg(row: SnapshotFinalModelBoardRow) {
   return row.side === 'OVER';
 }
 
+function isFinalModelQualifiedPairCandidate(row: SnapshotFinalModelBoardRow) {
+  return (row.market === 'PRA' || row.market === 'PA' || row.market === 'PR') && row.side === 'OVER';
+}
+
+function isFinalModelQualifiedPairCard(legs: PlayerTabComboPick[]) {
+  return legs.length === 2 && legs.every((leg) => (leg.modelRow?.finalScore ?? 0) >= 0.78);
+}
+
 function compareFinalModelPremiumPairLegs(
   a: { modelRow: SnapshotFinalModelBoardRow },
   b: { modelRow: SnapshotFinalModelBoardRow },
@@ -2536,6 +2553,24 @@ export default function NewDashboard({
         .sort((a, b) => comparePlayerTabCuratedPairPicks(a, b)),
     [playerTabComboPicks],
   );
+  const playerTabQualifiedPairCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter((pick) => isSelectablePlayerTabPick(pick) && pick.modelRow != null && isFinalModelQualifiedPairCandidate(pick.modelRow))
+        .sort((a, b) => comparePlayerTabCuratedPairPicks(a, b)),
+    [playerTabComboPicks],
+  );
+  const playerTabQualifiedPairLegs = useMemo(
+    () => {
+      const legs = buildCuratedPlayerTabPairCard(playerTabQualifiedPairCandidates);
+      return isFinalModelQualifiedPairCard(legs) ? legs : [];
+    },
+    [playerTabQualifiedPairCandidates],
+  );
+  const playerTabQualifiedPairCards = useMemo(
+    () => chunkPlayerTabComboCards(playerTabQualifiedPairLegs, 2),
+    [playerTabQualifiedPairLegs],
+  );
   const playerTabCuratedPairLegs = useMemo(
     () => buildCuratedPlayerTabPairCard(playerTabCuratedPairCandidates),
     [playerTabCuratedPairCandidates],
@@ -2599,6 +2634,22 @@ export default function NewDashboard({
   const playerTabSextCards = useMemo(() => chunkPlayerTabComboCards(playerTabSextLegs, 6), [playerTabSextLegs]);
   const playerTabComboLayers = useMemo(
     () => [
+      {
+        id: '2LQ',
+        label: '2-leg qualified',
+        size: 2,
+        rule: FINAL_V1_DAILY_QUALIFIED_PAIR_RULE_LABEL,
+        cardAccuracyPct: FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT,
+        allCardHitPct: FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT,
+        record: FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD,
+        days: FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS,
+        historicalLegs: FINAL_V1_DAILY_QUALIFIED_PAIR_LEGS,
+        legCoveragePct: FINAL_V1_DAILY_QUALIFIED_PAIR_LEG_COVERAGE_PCT,
+        avgLegs: FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_LEGS,
+        avgCards: FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_COMBOS,
+        legs: playerTabQualifiedPairLegs,
+        cards: playerTabQualifiedPairCards,
+      },
       {
         id: '2L+',
         label: '2-leg curated',
@@ -2701,6 +2752,8 @@ export default function NewDashboard({
       playerTabCuratedPairLegs,
       playerTabPairCards,
       playerTabPairLegs,
+      playerTabQualifiedPairCards,
+      playerTabQualifiedPairLegs,
       playerTabQuadCards,
       playerTabQuadLegs,
       playerTabQuintCards,
@@ -4634,6 +4687,7 @@ export default function NewDashboard({
                 <Stat dense label="Candidate pool" value={pct(FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_CANDIDATE_POOL_RECORD}; historical replay`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_FULL_BOARD_RECORD}; all replay rows`} />
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
+                <Stat dense label="Qualified 2-leg" value={pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD}; qualified cards`} />
                 <Stat dense label="Curated 2-leg" value={pct(FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_CURATED_PAIR_RECORD}; one card/day`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
@@ -4702,7 +4756,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the improved curated 2-leg selector is season-qualified at 80-36, but it is one card per day. The all-eligible 2-leg pool remains season-qualified too and still does not clear 80%, so do not treat every possible combo as a premium card.
+                  Important audit note: the qualified 2-leg lane clears 80% full-card accuracy across the full replay range, but it fires only when the selected PRA/PA/PR OVER pair has both legs at 0.78+ score. The daily curated and all-eligible 2-leg pools remain lower, so do not treat every possible combo as a premium card.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (

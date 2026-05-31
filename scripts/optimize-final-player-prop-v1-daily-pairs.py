@@ -181,6 +181,55 @@ def evaluate_rule(
     }
 
 
+def evaluate_qualified_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    card_wins = 0
+    leg_wins = 0
+    cards = 0
+    same_game = 0
+    same_team = 0
+    same_market = 0
+
+    for rows in rows_by_date.values():
+        pair = pick_daily_pair(
+            rows,
+            mode="blend",
+            markets={"PRA", "PA", "PR"},
+            sides={"OVER"},
+            min_score=0,
+            min_meta=0,
+            avoid="same_game",
+        )
+        if pair is None:
+            continue
+        first, second = pair
+        if min(first["finalScore"], second["finalScore"]) < 0.78:
+            continue
+        wins = int(first["correctBool"]) + int(second["correctBool"])
+        cards += 1
+        leg_wins += wins
+        card_wins += int(wins == 2)
+        same_game += int(game_key(first) == game_key(second))
+        same_team += int(first.get("teamCode") == second.get("teamCode"))
+        same_market += int(first.get("market") == second.get("market"))
+
+    legs = cards * 2
+    return {
+        "mode": "blend",
+        "markets": ["PA", "PR", "PRA"],
+        "sides": ["OVER"],
+        "avoid": "same_game",
+        "postPickGate": "both selected legs finalScore >= 0.78",
+        "cards": cards,
+        "cardRecord": f"{card_wins}-{cards - card_wins}",
+        "cardAccuracyPct": round(card_wins / cards * 100, 2) if cards else 0,
+        "legRecord": f"{leg_wins}-{legs - leg_wins}",
+        "legAccuracyPct": round(leg_wins / legs * 100, 2) if legs else 0,
+        "sameGameCards": same_game,
+        "sameTeamCards": same_team,
+        "sameMarketCards": same_market,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -227,6 +276,7 @@ def main() -> None:
                 "input": str(args.input),
                 "dates": len(rows_by_date),
                 "oneBestRows": sum(len(rows) for rows in rows_by_date.values()),
+                "qualifiedTarget": evaluate_qualified_target(rows_by_date),
                 "best": results[: args.top],
             },
             indent=2,
