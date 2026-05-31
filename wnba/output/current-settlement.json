@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-05-31T16:42:16Z",
+  "generatedAt": "2026-05-31T20:37:02Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-05-31T16:42:16Z",
+  "cardGeneratedAt": "2026-05-31T20:37:01Z",
   "slateDate": "2026-05-31",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -19,20 +19,20 @@
     {
       "slate_date": "2026-05-31",
       "selected_rank": 1,
-      "player": "Jackie Young",
+      "player": "Chelsea Gray",
       "team": "LV",
       "team_name": "Las Vegas Aces",
       "opponent": "GS",
       "opponent_name": "Golden State Valkyries",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 1.5,
+      "market": "AST",
+      "side": "OVER",
+      "line": 5.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.66145,
-      "final_score": 0.75152,
-      "source_book": "nan",
-      "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-golden-state-valkyries-scores-odds-picks-props-may-31-2026/96656180-35f8-4341-a2d3-43c53862a5f5"
+      "model_probability": 0.63477,
+      "final_score": 0.69392,
+      "source_book": "draftkings",
+      "source_url": "https://www.scoresandodds.com/wnba/props/assists"
     }
   ]
 }
