@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-05-30,1,Caitlin Clark,IND,Indiana Fever,POR,Portland Fire,RA,UNDER,14.5,8.0,WIN,0.67514,0.76552,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-05-30,2,Brittney Sykes,TOR,Toronto Tempo,SEA,Seattle Storm,THREES,UNDER,1.5,0.0,WIN,0.6603,0.76143,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-05-30,3,Ariel Atkins,LA,Los Angeles Sparks,CON,Connecticut Sun,THREES,UNDER,1.5,2.0,LOSS,0.67334,0.75196,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-connecticut-sun-scores-odds-picks-props-may-30-2026/4be74591-6468-402e-ad7e-1b9b660fb169
+2026-05-30,4,Carla Leite,POR,Portland Fire,IND,Indiana Fever,PTS,UNDER,15.5,18.0,LOSS,0.65,0.71494,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-05-30,5,Erica Wheeler,LA,Los Angeles Sparks,CON,Connecticut Sun,AST,UNDER,6.5,6.0,WIN,0.6891,0.80841,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-05-30,6,Bridget Carleton,POR,Portland Fire,IND,Indiana Fever,THREES,UNDER,2.5,2.0,WIN,0.64439,0.66041,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
