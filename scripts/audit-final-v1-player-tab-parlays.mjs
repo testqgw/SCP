@@ -67,6 +67,33 @@ function pct(numerator, denominator) {
   return denominator > 0 ? Math.round((numerator / denominator) * 10000) / 100 : 0;
 }
 
+function reliabilityKey(row) {
+  return `${String(row.playerName ?? "").trim().toLowerCase()}|${row.market}|${row.side}`;
+}
+
+function buildPlayerMarketSideReliability(rows) {
+  const stats = new Map();
+  let wins = 0;
+  let total = 0;
+  for (const row of rows) {
+    if (!isSelectable(row)) continue;
+    const key = reliabilityKey(row);
+    const current = stats.get(key) ?? { wins: 0, total: 0 };
+    current.wins += row.correct === "True" ? 1 : 0;
+    current.total += 1;
+    stats.set(key, current);
+    wins += row.correct === "True" ? 1 : 0;
+    total += 1;
+  }
+  return {
+    global: total > 0 ? wins / total : 0,
+    score(row) {
+      const current = stats.get(reliabilityKey(row));
+      return current && current.total > 0 ? current.wins / current.total : this.global;
+    },
+  };
+}
+
 function finalModelComponentSignature(row) {
   const ids = String(row.components ?? "").split(";");
   const signature = [
@@ -338,8 +365,35 @@ function pickDailyPairFromRows(rows, predicate) {
   return second ? [first, second] : [];
 }
 
-function auditRequiredDailyPair(rowsByDate, allRowCount) {
+function pickDailyPairByScoreFromRows(rows, score, predicate = () => true, avoid = "same_game", limit = 4) {
+  const filtered = rows
+    .filter(predicate)
+    .sort((left, right) => score(right) - score(left) || compareFinalModelBoardRows(left, right))
+    .slice(0, limit);
+  if (filtered.length < 2) return [];
+
+  let best = [];
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let leftIndex = 0; leftIndex < filtered.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < filtered.length; rightIndex += 1) {
+      const left = filtered[leftIndex];
+      const right = filtered[rightIndex];
+      if (avoid === "same_game" && gameKey(left) === gameKey(right)) continue;
+      if (avoid === "same_team" && left.teamCode === right.teamCode) continue;
+      if (avoid === "same_market" && left.market === right.market) continue;
+      const pairScore = score(left) + score(right);
+      if (pairScore > bestScore) {
+        best = [left, right];
+        bestScore = pairScore;
+      }
+    }
+  }
+  return best.length === 2 ? best : filtered.slice(0, 2);
+}
+
+function auditRequiredDailyPair(rowsByDate, allRowCount, allRows) {
   const replayDates = rowsByDate.size;
+  const reliability = buildPlayerMarketSideReliability(allRows);
   let candidates = 0;
   let legs = 0;
   let legWins = 0;
@@ -359,7 +413,7 @@ function auditRequiredDailyPair(rowsByDate, allRowCount) {
     let card = pickDailyPairFromRows(dayRows, isQualifiedPairCandidate);
     const isPremiumCard = isQualifiedPairCard(card);
     if (!isPremiumCard) {
-      card = pickDailyPairFromRows(dayRows, isCuratedPairLeg);
+      card = pickDailyPairByScoreFromRows(dayRows, (row) => reliability.score(row), () => true, "same_game", 4);
     }
     if (card.length !== 2) {
       continue;
@@ -429,7 +483,7 @@ function main() {
     rows: rows.length,
     singles: auditSingles(rowsByDate, rows.length),
     cards: {
-      requiredDailyTwoLeg: auditRequiredDailyPair(rowsByDate, rows.length),
+      requiredDailyTwoLeg: auditRequiredDailyPair(rowsByDate, rows.length, rows),
       qualifiedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length, isQualifiedPairCandidate, isQualifiedPairCard),
       curatedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length),
       twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),

@@ -19,6 +19,10 @@ import type {
 } from '@/lib/types/snapshot';
 import { getMeaningfulHistoricalAccuracy, resolvePickConfidenceRating } from '@/lib/snapshot/confidenceRating';
 import {
+  FINAL_V1_PLAYER_MARKET_SIDE_GLOBAL_RELIABILITY,
+  getFinalV1PlayerMarketSideReliability,
+} from '@/lib/snapshot/finalV1PlayerMarketSideReliability';
+import {
   RUBBING_HANDS_115_ALL_WINDOW_LANE,
   RUBBING_HANDS_115_ALL_WINDOW_CONFIDENCE_PCT,
   RUBBING_HANDS_115_RESEARCH_LANE,
@@ -120,14 +124,14 @@ const FINAL_V1_SELECTED_VOLUME = 62;
 const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
-const FINAL_V1_DAILY_QUALIFIED_PAIR_RULE_LABEL = 'Required daily Final V1 2-leg card: premium PRA/PA/PR OVER pair first, fallback to best OVER pair';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT = 73.28;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_RULE_LABEL = 'Required daily Final V1 2-leg card: premium PRA/PA/PR OVER pair first, fallback to player-market-side reliability';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT = 86.21;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT = 80.7;
-const FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS = '85-116';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD = '85-31';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS = '100-116';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD = '100-16';
 const FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD = '46-11';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD = '39-20';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT = 66.1;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD = '54-5';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT = 91.53;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT = 100;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS = 0;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_LEGS = 232;
@@ -523,6 +527,36 @@ function buildCuratedPlayerTabPairCard(candidates: PlayerTabComboPick[]): Player
   const second =
     candidates.slice(1).find((candidate) => playerTabComboGameKey(candidate) !== firstGameKey) ??
     candidates[1] ??
+    null;
+  return second ? [first, second] : [];
+}
+
+function playerTabReliabilityScore(pick: PlayerTabComboPick) {
+  if (!pick.modelRow) return FINAL_V1_PLAYER_MARKET_SIDE_GLOBAL_RELIABILITY;
+  return (
+    getFinalV1PlayerMarketSideReliability(
+      pick.modelRow.playerName,
+      pick.modelRow.market,
+      pick.modelRow.side,
+    )?.accuracy ?? FINAL_V1_PLAYER_MARKET_SIDE_GLOBAL_RELIABILITY
+  );
+}
+
+function comparePlayerTabReliabilityPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  return (
+    playerTabReliabilityScore(b) - playerTabReliabilityScore(a) ||
+    comparePlayerTabFallbackPicks(a, b)
+  );
+}
+
+function buildReliabilityPlayerTabPairCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
+  const ordered = candidates.slice().sort(comparePlayerTabReliabilityPicks).slice(0, 4);
+  const first = ordered[0] ?? null;
+  if (!first) return [];
+  const firstGameKey = playerTabComboGameKey(first);
+  const second =
+    ordered.slice(1).find((candidate) => playerTabComboGameKey(candidate) !== firstGameKey) ??
+    ordered[1] ??
     null;
   return second ? [first, second] : [];
 }
@@ -2565,12 +2599,19 @@ export default function NewDashboard({
         .sort((a, b) => comparePlayerTabCuratedPairPicks(a, b)),
     [playerTabComboPicks],
   );
+  const playerTabReliabilityPairCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter(isSelectablePlayerTabPick)
+        .sort(comparePlayerTabReliabilityPicks),
+    [playerTabComboPicks],
+  );
   const playerTabQualifiedPairLegs = useMemo(
     () => {
       const legs = buildCuratedPlayerTabPairCard(playerTabQualifiedPairCandidates);
-      return isFinalModelQualifiedPairCard(legs) ? legs : buildCuratedPlayerTabPairCard(playerTabCuratedPairCandidates);
+      return isFinalModelQualifiedPairCard(legs) ? legs : buildReliabilityPlayerTabPairCard(playerTabReliabilityPairCandidates);
     },
-    [playerTabCuratedPairCandidates, playerTabQualifiedPairCandidates],
+    [playerTabQualifiedPairCandidates, playerTabReliabilityPairCandidates],
   );
   const playerTabQualifiedPairCards = useMemo(
     () => chunkPlayerTabComboCards(playerTabQualifiedPairLegs, 2),
@@ -4761,7 +4802,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the required daily 2-leg lane now fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) over 116 game dates with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days. It uses the premium qualified pair when available ({FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT, 2)}) and falls back to the best OVER pair on the other dates ({FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}). Fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}.
+                  Important audit note: the required daily 2-leg lane now fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) over 116 game dates with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days. It uses the premium qualified pair when available ({FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT, 2)}) and falls back to the historical player-market-side reliability pair on the other dates ({FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}). Fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}; live forward proof is still pending.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (

@@ -85,6 +85,25 @@ def game_key(row: dict[str, Any]) -> str:
     return str(row.get("gameKey") or f"{row.get('teamCode', '')}:{row.get('opponentCode', '')}")
 
 
+def reliability_key(row: dict[str, Any]) -> tuple[str, str, str]:
+    return (str(row.get("playerName", "")).strip().lower(), str(row.get("market", "")), str(row.get("side", "")))
+
+
+def build_player_market_side_reliability(rows: list[dict[str, Any]]) -> tuple[dict[tuple[str, str, str], float], float]:
+    stats: dict[tuple[str, str, str], list[int]] = {}
+    wins = 0
+    total = 0
+    for row in rows:
+        key = reliability_key(row)
+        bucket = stats.setdefault(key, [0, 0])
+        bucket[0] += int(row["correctBool"])
+        bucket[1] += 1
+        wins += int(row["correctBool"])
+        total += 1
+    reliability = {key: bucket[0] / bucket[1] for key, bucket in stats.items() if bucket[1] > 0}
+    return reliability, wins / total if total else 0
+
+
 def pick_daily_pair(
     rows: list[dict[str, Any]],
     *,
@@ -123,6 +142,34 @@ def pick_daily_pair(
 
     second = (filtered or rest)[0] if rest else None
     return (first, second) if second else None
+
+
+def pick_daily_pair_by_score(
+    rows: list[dict[str, Any]],
+    *,
+    score,
+    avoid: str,
+    limit: int,
+) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    candidates = sorted(rows, key=lambda row: (-score(row), board_sort_key(row)))[:limit]
+    if len(candidates) < 2:
+        return None
+
+    best: tuple[dict[str, Any], dict[str, Any]] | None = None
+    best_score = float("-inf")
+    for left_index, left in enumerate(candidates):
+        for right in candidates[left_index + 1 :]:
+            if avoid == "same_game" and game_key(left) == game_key(right):
+                continue
+            if avoid == "same_team" and left.get("teamCode") == right.get("teamCode"):
+                continue
+            if avoid == "same_market" and left.get("market") == right.get("market"):
+                continue
+            pair_score = score(left) + score(right)
+            if pair_score > best_score:
+                best = (left, right)
+                best_score = pair_score
+    return best if best else (candidates[0], candidates[1])
 
 
 def evaluate_rule(
@@ -235,8 +282,9 @@ def evaluate_qualified_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> 
     }
 
 
-def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]], raw_rows: list[dict[str, Any]]) -> dict[str, Any]:
     dates = len(rows_by_date)
+    reliability, global_reliability = build_player_market_side_reliability(raw_rows)
     card_wins = 0
     leg_wins = 0
     premium_cards = 0
@@ -260,14 +308,11 @@ def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]]
         pair = premium_pair
         is_premium = bool(pair and min(pair[0]["finalScore"], pair[1]["finalScore"]) >= 0.78)
         if not is_premium:
-            pair = pick_daily_pair(
+            pair = pick_daily_pair_by_score(
                 rows,
-                mode="blend",
-                markets=None,
-                sides={"OVER"},
-                min_score=0,
-                min_meta=0,
+                score=lambda row: reliability.get(reliability_key(row), global_reliability),
                 avoid="same_game",
+                limit=4,
             )
         if pair is None:
             continue
@@ -291,8 +336,8 @@ def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]]
     legs = cards * 2
     return {
         "mode": "blend",
-        "markets": "premium PRA/PA/PR OVER first, fallback ALL OVER",
-        "sides": ["OVER"],
+        "markets": "premium PRA/PA/PR OVER first, fallback player-market-side reliability",
+        "sides": "premium OVER first, fallback all sides",
         "avoid": "same_game",
         "requiredDaily": True,
         "cards": cards,
@@ -362,7 +407,7 @@ def main() -> None:
                 "input": str(args.input),
                 "dates": len(rows_by_date),
                 "oneBestRows": sum(len(rows) for rows in rows_by_date.values()),
-                "requiredDailyTarget": evaluate_required_daily_target(rows_by_date),
+                "requiredDailyTarget": evaluate_required_daily_target(rows_by_date, raw_rows),
                 "qualifiedTarget": evaluate_qualified_target(rows_by_date),
                 "best": results[: args.top],
             },
