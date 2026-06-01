@@ -172,7 +172,7 @@ function isQualifiedPairCandidate(row) {
 }
 
 function isQualifiedPairCard(card) {
-  return card.every((row) => numberValue(row, "finalScore", 0) >= 0.78);
+  return card.length === 2 && card.every((row) => numberValue(row, "finalScore", 0) >= 0.78);
 }
 
 function isTripletLeg(row) {
@@ -330,6 +330,89 @@ function auditCuratedDailyPair(rowsByDate, allRowCount, predicate = isCuratedPai
   };
 }
 
+function pickDailyPairFromRows(rows, predicate) {
+  const filtered = rows.filter(predicate).sort(compareFinalModelCuratedPairLegs);
+  if (filtered.length < 2) return [];
+  const first = filtered[0];
+  const second = filtered.slice(1).find((row) => gameKey(row) !== gameKey(first)) ?? filtered[1] ?? null;
+  return second ? [first, second] : [];
+}
+
+function auditRequiredDailyPair(rowsByDate, allRowCount) {
+  const replayDates = rowsByDate.size;
+  let candidates = 0;
+  let legs = 0;
+  let legWins = 0;
+  let cards = 0;
+  let cardWins = 0;
+  let premiumCards = 0;
+  let premiumCardWins = 0;
+  let fallbackCards = 0;
+  let fallbackCardWins = 0;
+  let sameGameCards = 0;
+  let sameTeamCards = 0;
+  let sameMarketCards = 0;
+
+  for (const rows of rowsByDate.values()) {
+    const dayRows = oneBestPerPlayer(rows);
+    candidates += dayRows.filter(isCuratedPairLeg).length;
+    let card = pickDailyPairFromRows(dayRows, isQualifiedPairCandidate);
+    const isPremiumCard = isQualifiedPairCard(card);
+    if (!isPremiumCard) {
+      card = pickDailyPairFromRows(dayRows, isCuratedPairLeg);
+    }
+    if (card.length !== 2) {
+      continue;
+    }
+
+    const [first, second] = card;
+    const wins = card.filter((row) => row.correct === "True").length;
+    const hit = wins === 2;
+    cards += 1;
+    if (hit) cardWins += 1;
+    legs += 2;
+    legWins += wins;
+    if (isPremiumCard) {
+      premiumCards += 1;
+      if (hit) premiumCardWins += 1;
+    } else {
+      fallbackCards += 1;
+      if (hit) fallbackCardWins += 1;
+    }
+    if (gameKey(first) === gameKey(second)) sameGameCards += 1;
+    if (first.teamCode === second.teamCode) sameTeamCards += 1;
+    if (first.market === second.market) sameMarketCards += 1;
+  }
+
+  return {
+    candidates,
+    legs,
+    legRecord: `${legWins}-${legs - legWins}`,
+    legAccuracyPct: pct(legWins, legs),
+    legCoveragePct: pct(legs, allRowCount),
+    cards,
+    cardRecord: `${cardWins}-${cards - cardWins}`,
+    cardAccuracyPct: pct(cardWins, cards),
+    noCardDays: replayDates - cards,
+    seasonCardRecord: `${cardWins}-${replayDates - cardWins}`,
+    seasonCardAccuracyPct: pct(cardWins, replayDates),
+    fireRatePct: pct(cards, replayDates),
+    allCardDays: `${cardWins}-${cards}`,
+    allCardDayPct: pct(cardWins, cards),
+    avgLegsPerDay: cards > 0 ? Math.round((legs / cards) * 100) / 100 : 0,
+    avgCardsPerDay: cards > 0 ? 1 : 0,
+    premiumCards,
+    premiumCardRecord: `${premiumCardWins}-${premiumCards - premiumCardWins}`,
+    premiumCardAccuracyPct: pct(premiumCardWins, premiumCards),
+    fallbackCards,
+    fallbackCardRecord: `${fallbackCardWins}-${fallbackCards - fallbackCardWins}`,
+    fallbackCardAccuracyPct: pct(fallbackCardWins, fallbackCards),
+    sameGameCards,
+    sameTeamCards,
+    sameMarketCards,
+  };
+}
+
 function main() {
   const args = parseArgs();
   const rows = parseCsv(readFileSync(args.input, "utf8"));
@@ -346,6 +429,7 @@ function main() {
     rows: rows.length,
     singles: auditSingles(rowsByDate, rows.length),
     cards: {
+      requiredDailyTwoLeg: auditRequiredDailyPair(rowsByDate, rows.length),
       qualifiedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length, isQualifiedPairCandidate, isQualifiedPairCard),
       curatedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length),
       twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),

@@ -235,6 +235,87 @@ def evaluate_qualified_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> 
     }
 
 
+def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    dates = len(rows_by_date)
+    card_wins = 0
+    leg_wins = 0
+    premium_cards = 0
+    premium_card_wins = 0
+    fallback_cards = 0
+    fallback_card_wins = 0
+    same_game = 0
+    same_team = 0
+    same_market = 0
+
+    for rows in rows_by_date.values():
+        premium_pair = pick_daily_pair(
+            rows,
+            mode="blend",
+            markets={"PRA", "PA", "PR"},
+            sides={"OVER"},
+            min_score=0,
+            min_meta=0,
+            avoid="same_game",
+        )
+        pair = premium_pair
+        is_premium = bool(pair and min(pair[0]["finalScore"], pair[1]["finalScore"]) >= 0.78)
+        if not is_premium:
+            pair = pick_daily_pair(
+                rows,
+                mode="blend",
+                markets=None,
+                sides={"OVER"},
+                min_score=0,
+                min_meta=0,
+                avoid="same_game",
+            )
+        if pair is None:
+            continue
+
+        first, second = pair
+        wins = int(first["correctBool"]) + int(second["correctBool"])
+        card_hit = int(wins == 2)
+        leg_wins += wins
+        card_wins += card_hit
+        if is_premium:
+            premium_cards += 1
+            premium_card_wins += card_hit
+        else:
+            fallback_cards += 1
+            fallback_card_wins += card_hit
+        same_game += int(game_key(first) == game_key(second))
+        same_team += int(first.get("teamCode") == second.get("teamCode"))
+        same_market += int(first.get("market") == second.get("market"))
+
+    cards = premium_cards + fallback_cards
+    legs = cards * 2
+    return {
+        "mode": "blend",
+        "markets": "premium PRA/PA/PR OVER first, fallback ALL OVER",
+        "sides": ["OVER"],
+        "avoid": "same_game",
+        "requiredDaily": True,
+        "cards": cards,
+        "cardRecord": f"{card_wins}-{cards - card_wins}",
+        "cardAccuracyPct": round(card_wins / cards * 100, 2) if cards else 0,
+        "noCardDays": dates - cards,
+        "seasonCardRecord": f"{card_wins}-{dates - card_wins}",
+        "seasonCardAccuracyPct": round(card_wins / dates * 100, 2) if dates else 0,
+        "fireRatePct": round(cards / dates * 100, 2) if dates else 0,
+        "legRecord": f"{leg_wins}-{legs - leg_wins}",
+        "legAccuracyPct": round(leg_wins / legs * 100, 2) if legs else 0,
+        "premiumCards": premium_cards,
+        "premiumCardRecord": f"{premium_card_wins}-{premium_cards - premium_card_wins}",
+        "premiumCardAccuracyPct": round(premium_card_wins / premium_cards * 100, 2) if premium_cards else 0,
+        "fallbackCards": fallback_cards,
+        "fallbackCardRecord": f"{fallback_card_wins}-{fallback_cards - fallback_card_wins}",
+        "fallbackCardAccuracyPct": round(fallback_card_wins / fallback_cards * 100, 2) if fallback_cards else 0,
+        "sameGameCards": same_game,
+        "sameTeamCards": same_team,
+        "sameMarketCards": same_market,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -281,6 +362,7 @@ def main() -> None:
                 "input": str(args.input),
                 "dates": len(rows_by_date),
                 "oneBestRows": sum(len(rows) for rows in rows_by_date.values()),
+                "requiredDailyTarget": evaluate_required_daily_target(rows_by_date),
                 "qualifiedTarget": evaluate_qualified_target(rows_by_date),
                 "best": results[: args.top],
             },
