@@ -182,6 +182,7 @@ def evaluate_rule(
 
 
 def evaluate_qualified_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    dates = len(rows_by_date)
     card_wins = 0
     leg_wins = 0
     cards = 0
@@ -222,6 +223,10 @@ def evaluate_qualified_target(rows_by_date: dict[str, list[dict[str, Any]]]) -> 
         "cards": cards,
         "cardRecord": f"{card_wins}-{cards - card_wins}",
         "cardAccuracyPct": round(card_wins / cards * 100, 2) if cards else 0,
+        "noCardDays": dates - cards,
+        "seasonCardRecord": f"{card_wins}-{dates - card_wins}",
+        "seasonCardAccuracyPct": round(card_wins / dates * 100, 2) if dates else 0,
+        "fireRatePct": round(cards / dates * 100, 2) if dates else 0,
         "legRecord": f"{leg_wins}-{legs - leg_wins}",
         "legAccuracyPct": round(leg_wins / legs * 100, 2) if legs else 0,
         "sameGameCards": same_game,

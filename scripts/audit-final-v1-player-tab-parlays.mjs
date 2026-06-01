@@ -202,6 +202,7 @@ function oneBestPerPlayer(rows) {
 }
 
 function auditCards(rowsByDate, allRowCount, size, predicate, compare) {
+  const replayDates = rowsByDate.size;
   let candidates = 0;
   let legs = 0;
   let legWins = 0;
@@ -239,6 +240,10 @@ function auditCards(rowsByDate, allRowCount, size, predicate, compare) {
     cards,
     cardRecord: `${cardWins}-${cards - cardWins}`,
     cardAccuracyPct: pct(cardWins, cards),
+    noCardDays: replayDates - days,
+    seasonCardRecord: `${allCardDays}-${replayDates - allCardDays}`,
+    seasonCardAccuracyPct: pct(allCardDays, replayDates),
+    fireRatePct: pct(days, replayDates),
     allCardDays: `${allCardDays}-${days}`,
     allCardDayPct: pct(allCardDays, days),
     avgLegsPerDay: days > 0 ? Math.round((legs / days) * 100) / 100 : 0,
@@ -271,6 +276,7 @@ function gameKey(row) {
 }
 
 function auditCuratedDailyPair(rowsByDate, allRowCount, predicate = isCuratedPairLeg, cardPredicate = () => true) {
+  const replayDates = rowsByDate.size;
   let candidates = 0;
   let legs = 0;
   let legWins = 0;
@@ -310,6 +316,10 @@ function auditCuratedDailyPair(rowsByDate, allRowCount, predicate = isCuratedPai
     cards,
     cardRecord: `${cardWins}-${cards - cardWins}`,
     cardAccuracyPct: pct(cardWins, cards),
+    noCardDays: replayDates - cards,
+    seasonCardRecord: `${cardWins}-${replayDates - cardWins}`,
+    seasonCardAccuracyPct: pct(cardWins, replayDates),
+    fireRatePct: pct(cards, replayDates),
     allCardDays: `${cardWins}-${cards}`,
     allCardDayPct: pct(cardWins, cards),
     avgLegsPerDay: cards > 0 ? Math.round((legs / cards) * 100) / 100 : 0,

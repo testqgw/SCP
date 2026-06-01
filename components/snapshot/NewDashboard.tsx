@@ -121,10 +121,13 @@ const FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT = 58.23;
 const FINAL_V1_DAILY_SINGLE_RECORD = '7217-5177';
 const FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT = 18.26;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_RULE_LABEL = 'Qualified full-season Final V1 2-leg card: PRA/PA/PR OVER pair, avoid same game, both selected legs 0.78+ score';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT = 80.7;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT = 39.66;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT = 80.7;
-const FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS = '46-57';
-const FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD = '46-11';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_DAYS = '46-116';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD = '46-70';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD = '46-11';
+const FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT = 49.14;
+const FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS = 59;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_LEGS = 114;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_LEG_COVERAGE_PCT = 0.17;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_LEGS = 2;
@@ -4687,7 +4690,7 @@ export default function NewDashboard({
                 <Stat dense label="Candidate pool" value={pct(FINAL_V1_CANDIDATE_POOL_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_CANDIDATE_POOL_RECORD}; historical replay`} />
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_FULL_BOARD_RECORD}; all replay rows`} />
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
-                <Stat dense label="Qualified 2-leg" value={pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD}; qualified cards`} />
+                <Stat dense label="Qualified 2-leg" value={pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} incl. no-card dates; ${FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD} fired`} />
                 <Stat dense label="Curated 2-leg" value={pct(FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_CURATED_PAIR_RECORD}; one card/day`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
@@ -4738,7 +4741,7 @@ export default function NewDashboard({
                           <div className="mt-1 font-semibold text-[var(--text)]">{n(layer.avgCards, 2)}</div>
                         </div>
                         <div>
-                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">All-card</div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">{layer.id === '2LQ' ? 'Fired cards' : 'All-card'}</div>
                           <div className="mt-1 font-semibold text-[var(--text)]">{pct(layer.allCardHitPct, 2)}</div>
                         </div>
                       </div>
@@ -4756,13 +4759,13 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the qualified 2-leg lane clears 80% full-card accuracy across the full replay range, but it fires only when the selected PRA/PA/PR OVER pair has both legs at 0.78+ score. The daily curated and all-eligible 2-leg pools remain lower, so do not treat every possible combo as a premium card.
+                  Important audit note: the qualified 2-leg lane hit {FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT, 2)}) when it fired, but the full 116-date replay denominator is {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) because {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} dates had no qualified card. Fire rate was {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}. Do not treat every possible combo as a premium card.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
                     <details
                       key={layer.id}
-                      open={layer.id === '2L'}
+                      open={layer.id === '2LQ'}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3"
                     >
                       <summary className="cursor-pointer list-none">
