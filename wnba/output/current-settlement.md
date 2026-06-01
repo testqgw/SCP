@@ -1,11 +1,13 @@
 # WNBA Prop Settlement
 
-Generated: 2026-05-31T20:37:02Z
-Slate: 2026-05-31
-Settled: 0 / 1
+Generated: 2026-06-01T20:03:43Z
+Slate: 2026-06-01
+Settled: 0 / 3
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Chelsea Gray OVER AST 5.5 (actual pending)
+- PENDING: Arike Ogunbowale UNDER PTS 15.5 (actual pending)
+- PENDING: DeWanna Bonner OVER REB 3.5 (actual pending)
+- PENDING: Jovana Nogic OVER PTS 7.5 (actual pending)

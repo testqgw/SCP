@@ -1,12 +1,17 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-05-31T20:37:01Z
-Slate: 2026-05-31
+Generated: 2026-06-01T20:03:43Z
+Slate: 2026-06-01
 
 ## Selected
 
-1. Chelsea Gray OVER AST 5.5 (Las Vegas Aces vs Golden State Valkyries): p=63.5%, proj=6.35, edge +6.8%, score=0.694, source=draftkings
+1. Arike Ogunbowale UNDER PTS 15.5 (Dallas Wings vs Seattle Storm): p=64.9%, proj=10.41, edge +14.9%, score=0.729, source=nan
+2. DeWanna Bonner OVER REB 3.5 (Phoenix Mercury vs Minnesota Lynx): p=62.6%, proj=4.36, edge +5.8%, score=0.655, source=draftkings
+3. Jovana Nogic OVER PTS 7.5 (Phoenix Mercury vs Minnesota Lynx): p=64.1%, proj=10.24, edge +11.6%, score=0.636, source=caesars
 
 ## Warnings
 
-Only 1 rows cleared the current gates for a 6-pick target.
+Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
+Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
+Only 3 rows cleared the current gates for a 6-pick target.
+Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
