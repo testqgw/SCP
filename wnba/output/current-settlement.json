@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-01T20:03:43Z",
+  "generatedAt": "2026-06-01T22:23:21Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-01T20:03:43Z",
+  "cardGeneratedAt": "2026-06-01T22:23:21Z",
   "slateDate": "2026-06-01",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -29,8 +29,8 @@
       "line": 15.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.64908,
-      "final_score": 0.72875,
+      "model_probability": 0.64834,
+      "final_score": 0.72632,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-dallas-wings-scores-odds-picks-props-june-01-2026/bcbd969d-5eee-4acc-9cce-84c88637783d"
     },
@@ -48,7 +48,7 @@
       "actual": null,
       "settlement": "PENDING",
       "model_probability": 0.62557,
-      "final_score": 0.65536,
+      "final_score": 0.65995,
       "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     },
