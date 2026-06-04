@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-06-04T18:00:21Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-03T22:09:48Z",
+  "slateDate": "2026-06-03",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 2,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-03",
+      "selected_rank": 1,
+      "player": "Breanna Stewart",
+      "team": "NY",
+      "team_name": "New York Liberty",
+      "opponent": "TOR",
+      "opponent_name": "Toronto Tempo",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 19.5,
+      "actual": 19.0,
+      "settlement": "WIN",
+      "model_probability": 0.67143,
+      "final_score": 0.7868,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-new-york-liberty-scores-odds-picks-props-june-03-2026/27d7bc3b-661b-4cbc-b04f-d7fcad2f2b8b"
+    },
+    {
+      "slate_date": "2026-06-03",
+      "selected_rank": 2,
+      "player": "Alyssa Thomas",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "SEA",
+      "opponent_name": "Seattle Storm",
+      "market": "PR",
+      "side": "UNDER",
+      "line": 24.5,
+      "actual": 18.0,
+      "settlement": "WIN",
+      "model_probability": 0.65787,
+      "final_score": 0.75355,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/phoenix-mercury-seattle-storm-scores-odds-picks-props-june-03-2026/7a22a7ed-3dac-42f4-94eb-acf1d8488ccb"
+    }
+  ]
+}

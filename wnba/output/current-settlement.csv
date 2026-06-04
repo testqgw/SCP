@@ -1,3 +1,4 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-03,1,Breanna Stewart,NY,New York Liberty,TOR,Toronto Tempo,PTS,UNDER,19.5,,PENDING,0.67143,0.7868,nan,https://www.sportsgrid.com/wnba/game/toronto-tempo-new-york-liberty-scores-odds-picks-props-june-03-2026/27d7bc3b-661b-4cbc-b04f-d7fcad2f2b8b
-2026-06-03,2,Alyssa Thomas,PHX,Phoenix Mercury,SEA,Seattle Storm,PR,UNDER,24.5,,PENDING,0.65787,0.75355,nan,https://www.sportsgrid.com/wnba/game/phoenix-mercury-seattle-storm-scores-odds-picks-props-june-03-2026/7a22a7ed-3dac-42f4-94eb-acf1d8488ccb
+2026-06-04,1,Janelle Salaun,GS,Golden State Valkyries,MIN,Minnesota Lynx,THREES,OVER,1.5,,PENDING,0.68388,0.85214,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-04,2,Caitlin Clark,IND,Indiana Fever,ATL,Atlanta Dream,PR,UNDER,24.5,,PENDING,0.70001,0.82318,nan,https://www.sportsgrid.com/wnba/game/atlanta-dream-indiana-fever-scores-odds-picks-props-june-04-2026/27bfc033-4dec-42cd-bc6a-d77fafc72b46
+2026-06-04,3,Rhyne Howard,ATL,Atlanta Dream,IND,Indiana Fever,AST,UNDER,4.5,,PENDING,0.63615,0.63518,draftkings,https://www.scoresandodds.com/wnba/props/assists
