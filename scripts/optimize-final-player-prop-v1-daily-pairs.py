@@ -172,6 +172,18 @@ def pick_daily_pair_by_score(
     return best if best else (candidates[0], candidates[1])
 
 
+def pick_daily_triplet_by_score(
+    rows: list[dict[str, Any]],
+    *,
+    score,
+    limit: int,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None:
+    candidates = sorted(rows, key=lambda row: (-score(row), board_sort_key(row)))[:limit]
+    if len(candidates) < 3:
+        return None
+    return (candidates[0], candidates[1], candidates[2])
+
+
 def evaluate_rule(
     rows_by_date: dict[str, list[dict[str, Any]]],
     *,
@@ -361,6 +373,57 @@ def evaluate_required_daily_target(rows_by_date: dict[str, list[dict[str, Any]]]
     }
 
 
+def evaluate_required_daily_triplet_target(
+    rows_by_date: dict[str, list[dict[str, Any]]],
+    raw_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    dates = len(rows_by_date)
+    reliability, global_reliability = build_player_market_side_reliability(raw_rows)
+    card_wins = 0
+    leg_wins = 0
+    same_game = 0
+    same_team = 0
+    same_market = 0
+    cards = 0
+
+    def score(row: dict[str, Any]) -> float:
+        return reliability.get(reliability_key(row), global_reliability) * 0.8 + parlay_score(row, "blend") * 0.2
+
+    for rows in rows_by_date.values():
+        triplet = pick_daily_triplet_by_score(rows, score=score, limit=3)
+        if triplet is None:
+            continue
+
+        wins = sum(int(row["correctBool"]) for row in triplet)
+        card_hit = int(wins == 3)
+        cards += 1
+        leg_wins += wins
+        card_wins += card_hit
+        same_game += int(len({game_key(row) for row in triplet}) < 3)
+        same_team += int(len({row.get("teamCode") for row in triplet}) < 3)
+        same_market += int(len({row.get("market") for row in triplet}) < 3)
+
+    legs = cards * 3
+    return {
+        "mode": "player-market-side reliability * 0.8 + blended model score * 0.2",
+        "markets": "ALL",
+        "sides": "ALL",
+        "requiredDaily": True,
+        "cards": cards,
+        "cardRecord": f"{card_wins}-{cards - card_wins}",
+        "cardAccuracyPct": round(card_wins / cards * 100, 2) if cards else 0,
+        "noCardDays": dates - cards,
+        "seasonCardRecord": f"{card_wins}-{dates - card_wins}",
+        "seasonCardAccuracyPct": round(card_wins / dates * 100, 2) if dates else 0,
+        "fireRatePct": round(cards / dates * 100, 2) if dates else 0,
+        "legRecord": f"{leg_wins}-{legs - leg_wins}",
+        "legAccuracyPct": round(leg_wins / legs * 100, 2) if legs else 0,
+        "sameGameCards": same_game,
+        "sameTeamCards": same_team,
+        "sameMarketCards": same_market,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -408,6 +471,7 @@ def main() -> None:
                 "dates": len(rows_by_date),
                 "oneBestRows": sum(len(rows) for rows in rows_by_date.values()),
                 "requiredDailyTarget": evaluate_required_daily_target(rows_by_date, raw_rows),
+                "requiredDailyThreeLegTarget": evaluate_required_daily_triplet_target(rows_by_date, raw_rows),
                 "qualifiedTarget": evaluate_qualified_target(rows_by_date),
                 "best": results[: args.top],
             },

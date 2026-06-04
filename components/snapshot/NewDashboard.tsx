@@ -138,6 +138,18 @@ const FINAL_V1_DAILY_QUALIFIED_PAIR_LEGS = 232;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_LEG_COVERAGE_PCT = 0.34;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_LEGS = 2;
 const FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_COMBOS = 1;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_RULE_LABEL = 'Required daily Final V1 3-leg card: top player-market-side reliability plus model blend';
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT = 83.62;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_ALL_CARD_HIT_PCT = 83.62;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_DAYS = '97-116';
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD = '97-19';
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT = 100;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS = 0;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_LEGS = 348;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_LEG_COVERAGE_PCT = 0.51;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_LEGS = 3;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_COMBOS = 1;
+const FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS = 50;
 const FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL = 'Curated full-season Final V1 2-leg card: top OVER legs by blended score, avoid same game when possible';
 const FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT = 68.97;
 const FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT = 68.97;
@@ -549,6 +561,18 @@ function comparePlayerTabReliabilityPicks(a: PlayerTabComboPick, b: PlayerTabCom
   );
 }
 
+function playerTabReliabilityBlendScore(pick: PlayerTabComboPick) {
+  const modelBlend = pick.modelRow ? finalModelCuratedPairScore(pick.modelRow) : pick.view.score;
+  return playerTabReliabilityScore(pick) * 0.8 + modelBlend * 0.2;
+}
+
+function comparePlayerTabReliabilityBlendPicks(a: PlayerTabComboPick, b: PlayerTabComboPick) {
+  return (
+    playerTabReliabilityBlendScore(b) - playerTabReliabilityBlendScore(a) ||
+    comparePlayerTabFallbackPicks(a, b)
+  );
+}
+
 function buildReliabilityPlayerTabPairCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
   const ordered = candidates.slice().sort(comparePlayerTabReliabilityPicks).slice(0, 4);
   const first = ordered[0] ?? null;
@@ -559,6 +583,10 @@ function buildReliabilityPlayerTabPairCard(candidates: PlayerTabComboPick[]): Pl
     ordered[1] ??
     null;
   return second ? [first, second] : [];
+}
+
+function buildReliabilityPlayerTabTripletCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
+  return candidates.slice().sort(comparePlayerTabReliabilityBlendPicks).slice(0, 3);
 }
 
 type PrecisionStateSummary = {
@@ -2606,6 +2634,13 @@ export default function NewDashboard({
         .sort(comparePlayerTabReliabilityPicks),
     [playerTabComboPicks],
   );
+  const playerTabReliabilityTripletCandidates = useMemo(
+    () =>
+      playerTabComboPicks
+        .filter(isSelectablePlayerTabPick)
+        .sort(comparePlayerTabReliabilityBlendPicks),
+    [playerTabComboPicks],
+  );
   const playerTabQualifiedPairLegs = useMemo(
     () => {
       const legs = buildCuratedPlayerTabPairCard(playerTabQualifiedPairCandidates);
@@ -2630,6 +2665,14 @@ export default function NewDashboard({
     [playerTabPairCandidates],
   );
   const playerTabPairCards = useMemo(() => chunkPlayerTabComboCards(playerTabPairLegs, 2), [playerTabPairLegs]);
+  const playerTabRequiredTripletLegs = useMemo(
+    () => buildReliabilityPlayerTabTripletCard(playerTabReliabilityTripletCandidates),
+    [playerTabReliabilityTripletCandidates],
+  );
+  const playerTabRequiredTripletCards = useMemo(
+    () => chunkPlayerTabComboCards(playerTabRequiredTripletLegs, 3),
+    [playerTabRequiredTripletLegs],
+  );
   const playerTabTripletCandidates = useMemo(
     () =>
       playerTabComboPicks
@@ -2695,6 +2738,22 @@ export default function NewDashboard({
         avgCards: FINAL_V1_DAILY_QUALIFIED_PAIR_AVG_COMBOS,
         legs: playerTabQualifiedPairLegs,
         cards: playerTabQualifiedPairCards,
+      },
+      {
+        id: '3LD',
+        label: '3-leg daily',
+        size: 3,
+        rule: FINAL_V1_DAILY_REQUIRED_TRIPLET_RULE_LABEL,
+        cardAccuracyPct: FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT,
+        allCardHitPct: FINAL_V1_DAILY_REQUIRED_TRIPLET_ALL_CARD_HIT_PCT,
+        record: FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD,
+        days: FINAL_V1_DAILY_REQUIRED_TRIPLET_DAYS,
+        historicalLegs: FINAL_V1_DAILY_REQUIRED_TRIPLET_LEGS,
+        legCoveragePct: FINAL_V1_DAILY_REQUIRED_TRIPLET_LEG_COVERAGE_PCT,
+        avgLegs: FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_LEGS,
+        avgCards: FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_COMBOS,
+        legs: playerTabRequiredTripletLegs,
+        cards: playerTabRequiredTripletCards,
       },
       {
         id: '2L+',
@@ -2804,6 +2863,8 @@ export default function NewDashboard({
       playerTabQuadLegs,
       playerTabQuintCards,
       playerTabQuintLegs,
+      playerTabRequiredTripletCards,
+      playerTabRequiredTripletLegs,
       playerTabSextCards,
       playerTabSextLegs,
       playerTabTripletCards,
@@ -4734,6 +4795,7 @@ export default function NewDashboard({
                 <Stat dense label="Full-board WF" value={pct(FINAL_V1_FULL_BOARD_WF_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_FULL_BOARD_RECORD}; all replay rows`} />
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
                 <Stat dense label="Daily 2-leg" value={pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD}; ${n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days`} />
+                <Stat dense label="Daily 3-leg" value={pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD}; ${n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days`} />
                 <Stat dense label="Curated 2-leg" value={pct(FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_CURATED_PAIR_RECORD}; one card/day`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
@@ -4755,7 +4817,7 @@ export default function NewDashboard({
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab card audit</div>
                     <h3 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)]">One best prop per player, then build cards</h3>
                     <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-2)]">
-                      Historical replay uses the current Final V1 board file, picks one best market per player, then chunks the same player-tab rules shown below. These are full-card hit rates, not individual-leg hit rates.
+                      Historical replay uses the current Final V1 board file, picks one best market per player, then builds the daily and bulk player-tab card rules shown below. These are full-card hit rates, not individual-leg hit rates.
                     </p>
                   </div>
                   <Pill label="Audited replay" tone="amber" />
@@ -4784,7 +4846,7 @@ export default function NewDashboard({
                           <div className="mt-1 font-semibold text-[var(--text)]">{n(layer.avgCards, 2)}</div>
                         </div>
                         <div>
-                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">{layer.id === '2LD' ? 'Premium cards' : 'All-card'}</div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">{layer.id === '2LD' ? 'Premium cards' : layer.id === '3LD' ? 'Daily hit' : 'All-card'}</div>
                           <div className="mt-1 font-semibold text-[var(--text)]">{pct(layer.allCardHitPct, 2)}</div>
                         </div>
                       </div>
@@ -4802,13 +4864,13 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the required daily 2-leg lane now fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) over 116 game dates with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days. It uses the premium qualified pair when available ({FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_ALL_CARD_HIT_PCT, 2)}) and falls back to the historical player-market-side reliability pair on the other dates ({FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}). Fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}; live forward proof is still pending.
+                  Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days. It uses the premium pair when available ({FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}) and the reliability fallback otherwise ({FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), with a {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)} fire rate. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days and a {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate. Both use historical player-market-side reliability, and the 3-leg lane includes {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} replay cards with more than one leg from the same game. Live forward proof is still pending.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
                     <details
                       key={layer.id}
-                      open={layer.id === '2LD'}
+                      open={layer.id === '2LD' || layer.id === '3LD'}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3"
                     >
                       <summary className="cursor-pointer list-none">
