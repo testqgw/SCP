@@ -92,6 +92,8 @@ const FINAL_V1_MIN_SELECTABLE_BOOKS = 3;
 const FINAL_V1_RESEARCH_GATE_MIN_SCORE = 0.74;
 const FINAL_V1_RESEARCH_GATE_MIN_META = 0.63;
 const FINAL_V1_TEAM_RISK_WATCHLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
+const FINAL_V1_PARLAY_MIN_LIVE_BOOKS = 5;
+const FINAL_V1_DK_FD_STANDARD_MARKET_SET = new Set<SnapshotMarket>(['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA']);
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
@@ -150,6 +152,18 @@ const FINAL_V1_DAILY_REQUIRED_TRIPLET_LEG_COVERAGE_PCT = 0.51;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_LEGS = 3;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_COMBOS = 1;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS = 50;
+const FINAL_V1_DAILY_REQUIRED_QUAD_RULE_LABEL = 'Required daily Final V1 4-leg card: top reliability/model blend, live-gated to standard DK/FD markets';
+const FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT = 70.69;
+const FINAL_V1_DAILY_REQUIRED_QUAD_ALL_CARD_HIT_PCT = 70.69;
+const FINAL_V1_DAILY_REQUIRED_QUAD_DAYS = '82-116';
+const FINAL_V1_DAILY_REQUIRED_QUAD_RECORD = '82-34';
+const FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT = 100;
+const FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS = 0;
+const FINAL_V1_DAILY_REQUIRED_QUAD_LEGS = 464;
+const FINAL_V1_DAILY_REQUIRED_QUAD_LEG_COVERAGE_PCT = 0.68;
+const FINAL_V1_DAILY_REQUIRED_QUAD_AVG_LEGS = 4;
+const FINAL_V1_DAILY_REQUIRED_QUAD_AVG_COMBOS = 1;
+const FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS = 70;
 const FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL = 'Curated full-season Final V1 2-leg card: top OVER legs by blended score, avoid same game when possible';
 const FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT = 68.97;
 const FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT = 68.97;
@@ -587,6 +601,10 @@ function buildReliabilityPlayerTabPairCard(candidates: PlayerTabComboPick[]): Pl
 
 function buildReliabilityPlayerTabTripletCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
   return candidates.slice().sort(comparePlayerTabReliabilityBlendPicks).slice(0, 3);
+}
+
+function buildReliabilityPlayerTabQuadCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
+  return candidates.slice().sort(comparePlayerTabReliabilityBlendPicks).slice(0, 4);
 }
 
 type PrecisionStateSummary = {
@@ -1781,6 +1799,15 @@ function isSelectablePlayerTabPick(pick: PlayerTabComboPick) {
   return pick.modelRow ? isSelectableFinalModelRow(pick.modelRow) : isSelectableLiveView(pick.view);
 }
 
+function isBookPlayableParlayPick(pick: PlayerTabComboPick) {
+  return (
+    pick.modelRow != null &&
+    pick.modelRow.line != null &&
+    (pick.modelRow.sportsbookCount ?? 0) >= FINAL_V1_PARLAY_MIN_LIVE_BOOKS &&
+    FINAL_V1_DK_FD_STANDARD_MARKET_SET.has(pick.modelRow.market)
+  );
+}
+
 function finalModelComponentSignature(row: SnapshotFinalModelBoardRow) {
   const ids = row.sourceComponents.map((component) => component.id).join(';');
   const signature = [
@@ -2623,21 +2650,21 @@ export default function NewDashboard({
   const playerTabQualifiedPairCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter((pick) => isSelectablePlayerTabPick(pick) && pick.modelRow != null && isFinalModelQualifiedPairCandidate(pick.modelRow))
+        .filter((pick) => isBookPlayableParlayPick(pick) && pick.modelRow != null && isFinalModelQualifiedPairCandidate(pick.modelRow))
         .sort((a, b) => comparePlayerTabCuratedPairPicks(a, b)),
     [playerTabComboPicks],
   );
   const playerTabReliabilityPairCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter(isSelectablePlayerTabPick)
+        .filter(isBookPlayableParlayPick)
         .sort(comparePlayerTabReliabilityPicks),
     [playerTabComboPicks],
   );
   const playerTabReliabilityTripletCandidates = useMemo(
     () =>
       playerTabComboPicks
-        .filter(isSelectablePlayerTabPick)
+        .filter(isBookPlayableParlayPick)
         .sort(comparePlayerTabReliabilityBlendPicks),
     [playerTabComboPicks],
   );
@@ -2672,6 +2699,14 @@ export default function NewDashboard({
   const playerTabRequiredTripletCards = useMemo(
     () => chunkPlayerTabComboCards(playerTabRequiredTripletLegs, 3),
     [playerTabRequiredTripletLegs],
+  );
+  const playerTabRequiredQuadLegs = useMemo(
+    () => buildReliabilityPlayerTabQuadCard(playerTabReliabilityTripletCandidates),
+    [playerTabReliabilityTripletCandidates],
+  );
+  const playerTabRequiredQuadCards = useMemo(
+    () => chunkPlayerTabComboCards(playerTabRequiredQuadLegs, 4),
+    [playerTabRequiredQuadLegs],
   );
   const playerTabTripletCandidates = useMemo(
     () =>
@@ -2754,6 +2789,22 @@ export default function NewDashboard({
         avgCards: FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_COMBOS,
         legs: playerTabRequiredTripletLegs,
         cards: playerTabRequiredTripletCards,
+      },
+      {
+        id: '4LD',
+        label: '4-leg daily',
+        size: 4,
+        rule: FINAL_V1_DAILY_REQUIRED_QUAD_RULE_LABEL,
+        cardAccuracyPct: FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT,
+        allCardHitPct: FINAL_V1_DAILY_REQUIRED_QUAD_ALL_CARD_HIT_PCT,
+        record: FINAL_V1_DAILY_REQUIRED_QUAD_RECORD,
+        days: FINAL_V1_DAILY_REQUIRED_QUAD_DAYS,
+        historicalLegs: FINAL_V1_DAILY_REQUIRED_QUAD_LEGS,
+        legCoveragePct: FINAL_V1_DAILY_REQUIRED_QUAD_LEG_COVERAGE_PCT,
+        avgLegs: FINAL_V1_DAILY_REQUIRED_QUAD_AVG_LEGS,
+        avgCards: FINAL_V1_DAILY_REQUIRED_QUAD_AVG_COMBOS,
+        legs: playerTabRequiredQuadLegs,
+        cards: playerTabRequiredQuadCards,
       },
       {
         id: '2L+',
@@ -2863,6 +2914,8 @@ export default function NewDashboard({
       playerTabQuadLegs,
       playerTabQuintCards,
       playerTabQuintLegs,
+      playerTabRequiredQuadCards,
+      playerTabRequiredQuadLegs,
       playerTabRequiredTripletCards,
       playerTabRequiredTripletLegs,
       playerTabSextCards,
@@ -4796,6 +4849,7 @@ export default function NewDashboard({
                 <Stat dense label="1-leg player tab" value={pct(FINAL_V1_DAILY_SINGLE_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_SINGLE_RECORD}; ${pct(FINAL_V1_DAILY_SINGLE_LEG_COVERAGE_PCT, 0)} player-tab coverage`} />
                 <Stat dense label="Daily 2-leg" value={pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD}; ${n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days`} />
                 <Stat dense label="Daily 3-leg" value={pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD}; ${n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days`} />
+                <Stat dense label="Daily 4-leg" value={pct(FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_REQUIRED_QUAD_RECORD}; ${n(FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS, 0)} no-card days`} />
                 <Stat dense label="Curated 2-leg" value={pct(FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_CURATED_PAIR_RECORD}; one card/day`} />
                 <Stat dense label="2-leg cards" value={pct(FINAL_V1_DAILY_COMBO_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_COMBO_RECORD}; ${FINAL_V1_DAILY_COMBO_DAYS} all-card days`} />
                 <Stat dense label="3-leg cards" value={pct(FINAL_V1_DAILY_TRIPLET_CARD_ACCURACY_PCT, 2)} kind="MODEL" note={`${FINAL_V1_DAILY_TRIPLET_RECORD}; ${FINAL_V1_DAILY_TRIPLET_DAYS} all-card days`} />
@@ -4846,7 +4900,7 @@ export default function NewDashboard({
                           <div className="mt-1 font-semibold text-[var(--text)]">{n(layer.avgCards, 2)}</div>
                         </div>
                         <div>
-                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">{layer.id === '2LD' ? 'Premium cards' : layer.id === '3LD' ? 'Daily hit' : 'All-card'}</div>
+                          <div className="uppercase tracking-[0.14em] text-[var(--muted)]">{layer.id === '2LD' ? 'Premium cards' : layer.id === '3LD' || layer.id === '4LD' ? 'Daily hit' : 'All-card'}</div>
                           <div className="mt-1 font-semibold text-[var(--text)]">{pct(layer.allCardHitPct, 2)}</div>
                         </div>
                       </div>
@@ -4864,13 +4918,13 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days. It uses the premium pair when available ({FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}) and the reliability fallback otherwise ({FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD}, {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), with a {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)} fire rate. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days and a {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate. Both use historical player-market-side reliability, and the 3-leg lane includes {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} replay cards with more than one leg from the same game. Live forward proof is still pending.
+                  Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days; premium pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, fallback pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), and fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days, {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate, and {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} same-game-overlap replay cards. The required daily 4-leg lane is {FINAL_V1_DAILY_REQUIRED_QUAD_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS, 0)} no-card days and {pct(FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT, 2)} fire rate. Live daily parlay cards are additionally gated to standard DraftKings/FanDuel-style player-prop markets and {n(FINAL_V1_PARLAY_MIN_LIVE_BOOKS, 0)}+ live books, but exact DK/FD book names are not stored in SnapshotBoardData yet. The 4-leg replay includes {n(FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS, 0)} cards with more than one leg from the same game. Live forward proof is still pending.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (
                     <details
                       key={layer.id}
-                      open={layer.id === '2LD' || layer.id === '3LD'}
+                      open={layer.id === '2LD' || layer.id === '3LD' || layer.id === '4LD'}
                       className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3"
                     >
                       <summary className="cursor-pointer list-none">
@@ -4913,7 +4967,7 @@ export default function NewDashboard({
                         </div>
                       ) : (
                         <div className="mt-4 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-2)]">
-                          Waiting for {layer.size} selectable player-tab picks with live lines and {FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.
+                          Waiting for {layer.size} selectable player-tab picks with live lines and {layer.id.endsWith('LD') ? FINAL_V1_PARLAY_MIN_LIVE_BOOKS : FINAL_V1_MIN_SELECTABLE_BOOKS}+ books.
                         </div>
                       )}
                     </details>

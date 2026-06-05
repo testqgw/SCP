@@ -399,6 +399,14 @@ function pickDailyTripletByScoreFromRows(rows, score, predicate = () => true, li
   return filtered.length >= 3 ? filtered.slice(0, 3) : [];
 }
 
+function pickDailyQuadByScoreFromRows(rows, score, predicate = () => true, limit = 4) {
+  const filtered = rows
+    .filter(predicate)
+    .sort((left, right) => score(right) - score(left) || compareFinalModelBoardRows(left, right))
+    .slice(0, limit);
+  return filtered.length >= 4 ? filtered.slice(0, 4) : [];
+}
+
 function auditRequiredDailyPair(rowsByDate, allRowCount, allRows) {
   const replayDates = rowsByDate.size;
   const reliability = buildPlayerMarketSideReliability(allRows);
@@ -534,6 +542,65 @@ function auditRequiredDailyTriplet(rowsByDate, allRowCount, allRows) {
   };
 }
 
+function auditRequiredDailyQuad(rowsByDate, allRowCount, allRows) {
+  const replayDates = rowsByDate.size;
+  const reliability = buildPlayerMarketSideReliability(allRows);
+  let candidates = 0;
+  let legs = 0;
+  let legWins = 0;
+  let cards = 0;
+  let cardWins = 0;
+  let sameGameCards = 0;
+  let sameTeamCards = 0;
+  let sameMarketCards = 0;
+
+  for (const rows of rowsByDate.values()) {
+    const dayRows = oneBestPerPlayer(rows);
+    candidates += dayRows.length;
+    const card = pickDailyQuadByScoreFromRows(
+      dayRows,
+      (row) => reliability.score(row) * 0.8 + curatedPairScore(row) * 0.2,
+      () => true,
+      4,
+    );
+    if (card.length !== 4) {
+      continue;
+    }
+
+    const wins = card.filter((row) => row.correct === "True").length;
+    const hit = wins === 4;
+    cards += 1;
+    if (hit) cardWins += 1;
+    legs += 4;
+    legWins += wins;
+    if (new Set(card.map(gameKey)).size < 4) sameGameCards += 1;
+    if (new Set(card.map((row) => row.teamCode)).size < 4) sameTeamCards += 1;
+    if (new Set(card.map((row) => row.market)).size < 4) sameMarketCards += 1;
+  }
+
+  return {
+    candidates,
+    legs,
+    legRecord: `${legWins}-${legs - legWins}`,
+    legAccuracyPct: pct(legWins, legs),
+    legCoveragePct: pct(legs, allRowCount),
+    cards,
+    cardRecord: `${cardWins}-${cards - cardWins}`,
+    cardAccuracyPct: pct(cardWins, cards),
+    noCardDays: replayDates - cards,
+    seasonCardRecord: `${cardWins}-${replayDates - cardWins}`,
+    seasonCardAccuracyPct: pct(cardWins, replayDates),
+    fireRatePct: pct(cards, replayDates),
+    allCardDays: `${cardWins}-${cards}`,
+    allCardDayPct: pct(cardWins, cards),
+    avgLegsPerDay: cards > 0 ? Math.round((legs / cards) * 100) / 100 : 0,
+    avgCardsPerDay: cards > 0 ? 1 : 0,
+    sameGameCards,
+    sameTeamCards,
+    sameMarketCards,
+  };
+}
+
 function main() {
   const args = parseArgs();
   const rows = parseCsv(readFileSync(args.input, "utf8"));
@@ -552,6 +619,7 @@ function main() {
     cards: {
       requiredDailyTwoLeg: auditRequiredDailyPair(rowsByDate, rows.length, rows),
       requiredDailyThreeLeg: auditRequiredDailyTriplet(rowsByDate, rows.length, rows),
+      requiredDailyFourLeg: auditRequiredDailyQuad(rowsByDate, rows.length, rows),
       qualifiedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length, isQualifiedPairCandidate, isQualifiedPairCard),
       curatedTwoLeg: auditCuratedDailyPair(rowsByDate, rows.length),
       twoLeg: auditCards(rowsByDate, rows.length, 2, isPairLeg, compareFinalModelPremiumPairLegs),
