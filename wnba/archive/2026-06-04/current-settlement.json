@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-06-05T17:27:07Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-04T21:07:54Z",
+  "slateDate": "2026-06-04",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-04",
+      "selected_rank": 1,
+      "player": "Caitlin Clark",
+      "team": "IND",
+      "team_name": "Indiana Fever",
+      "opponent": "ATL",
+      "opponent_name": "Atlanta Dream",
+      "market": "PA",
+      "side": "UNDER",
+      "line": 27.5,
+      "actual": 25.0,
+      "settlement": "WIN",
+      "model_probability": 0.66726,
+      "final_score": 0.73121,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/atlanta-dream-indiana-fever-scores-odds-picks-props-june-04-2026/27bfc033-4dec-42cd-bc6a-d77fafc72b46"
+    }
+  ]
+}
