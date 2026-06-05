@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-05,1,Monique Akoa Makani,PHX,Phoenix Mercury,POR,Portland Fire,AST,UNDER,4.5,,PENDING,0.70995,0.88174,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-06-05,2,Natasha Mack,PHX,Phoenix Mercury,POR,Portland Fire,PRA,UNDER,22.5,,PENDING,0.70872,0.85984,bet365,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-06-05,1,Monique Akoa Makani,PHX,Phoenix Mercury,POR,Portland Fire,AST,UNDER,4.5,,PENDING,0.69832,0.86762,fanduel,https://www.scoresandodds.com/wnba/props/assists
+2026-06-05,2,Natasha Mack,PHX,Phoenix Mercury,POR,Portland Fire,PRA,UNDER,22.5,,PENDING,0.70018,0.8522,bet365,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
 2026-06-05,3,Brittney Griner,CON,Connecticut Sun,CHI,Chicago Sky,REB,UNDER,5.5,,PENDING,0.69843,0.8295,nan,https://www.sportsgrid.com/wnba/game/connecticut-sun-chicago-sky-scores-odds-picks-props-june-05-2026/cb60a0ff-8ae5-4ac0-9ad5-1820180eee8d
-2026-06-05,4,Paige Bueckers,DAL,Dallas Wings,LA,Los Angeles Sparks,RA,OVER,8.5,,PENDING,0.6512,0.7505,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
-2026-06-05,5,Nneka Ogwumike,LA,Los Angeles Sparks,DAL,Dallas Wings,REB,OVER,6.5,,PENDING,0.63746,0.7302,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-06-05,6,Kelsey Plum,LA,Los Angeles Sparks,DAL,Dallas Wings,PR,OVER,21.5,,PENDING,0.63895,0.71414,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-05,4,Bridget Carleton,POR,Portland Fire,PHX,Phoenix Mercury,THREES,UNDER,2.5,,PENDING,0.66148,0.73764,fanduel,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-05,5,Kelsey Plum,LA,Los Angeles Sparks,DAL,Dallas Wings,PR,OVER,21.5,,PENDING,0.63934,0.71541,draftkings,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-05,6,Azura Stevens,CHI,Chicago Sky,CON,Connecticut Sun,REB,OVER,3.5,,PENDING,0.63316,0.67786,caesars,https://www.scoresandodds.com/wnba/props/rebounds
