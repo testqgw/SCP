@@ -94,6 +94,9 @@ const FINAL_V1_RESEARCH_GATE_MIN_META = 0.63;
 const FINAL_V1_TEAM_RISK_WATCHLIST = new Set(['POR', 'HOU', 'CHI', 'PHX', 'DET', 'GSW', 'DAL']);
 const FINAL_V1_PARLAY_MIN_LIVE_BOOKS = 5;
 const FINAL_V1_DK_FD_STANDARD_MARKET_SET = new Set<SnapshotMarket>(['PTS', 'REB', 'AST', 'THREES', 'PRA', 'PA', 'PR', 'RA']);
+const FINAL_V1_DAILY_REQUIRED_QUAD_MIN_LEG_RELIABILITY = 0.6842105263;
+const FINAL_V1_DAILY_REQUIRED_QUAD_MIN_AVG_RELIABILITY = 0.7628869969;
+const FINAL_V1_DAILY_REQUIRED_QUAD_MIN_AVG_ABS_LINE_GAP = 0.85;
 const RUBBING_115_ALL_WINDOW_REPLAY_LANE = RUBBING_HANDS_115_ALL_WINDOW_LANE ?? RUBBING_HANDS_115_WALK_FORWARD_LANE;
 const RUBBING_115_RESEARCH_MARKET_SET = new Set<SnapshotMarket>(RUBBING_HANDS_115_RESEARCH_MARKETS as SnapshotMarket[]);
 const TOP_PLAYER_200_RECENT_FORM_MARKET_SET = new Set<SnapshotMarket>(
@@ -152,18 +155,18 @@ const FINAL_V1_DAILY_REQUIRED_TRIPLET_LEG_COVERAGE_PCT = 0.51;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_LEGS = 3;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_AVG_COMBOS = 1;
 const FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS = 50;
-const FINAL_V1_DAILY_REQUIRED_QUAD_RULE_LABEL = 'Required daily Final V1 4-leg card: top reliability/model blend, live-gated to standard DK/FD markets';
-const FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT = 70.69;
-const FINAL_V1_DAILY_REQUIRED_QUAD_ALL_CARD_HIT_PCT = 70.69;
-const FINAL_V1_DAILY_REQUIRED_QUAD_DAYS = '82-116';
-const FINAL_V1_DAILY_REQUIRED_QUAD_RECORD = '82-34';
-const FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT = 100;
-const FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS = 0;
-const FINAL_V1_DAILY_REQUIRED_QUAD_LEGS = 464;
-const FINAL_V1_DAILY_REQUIRED_QUAD_LEG_COVERAGE_PCT = 0.68;
+const FINAL_V1_DAILY_REQUIRED_QUAD_RULE_LABEL = 'Strict Final V1 4-leg 80 card: top reliability/model blend, then require 4-card reliability + line-gap gate';
+const FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT = 80.21;
+const FINAL_V1_DAILY_REQUIRED_QUAD_ALL_CARD_HIT_PCT = 80.21;
+const FINAL_V1_DAILY_REQUIRED_QUAD_DAYS = '77-96';
+const FINAL_V1_DAILY_REQUIRED_QUAD_RECORD = '77-19';
+const FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT = 82.76;
+const FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS = 20;
+const FINAL_V1_DAILY_REQUIRED_QUAD_LEGS = 384;
+const FINAL_V1_DAILY_REQUIRED_QUAD_LEG_COVERAGE_PCT = 0.57;
 const FINAL_V1_DAILY_REQUIRED_QUAD_AVG_LEGS = 4;
 const FINAL_V1_DAILY_REQUIRED_QUAD_AVG_COMBOS = 1;
-const FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS = 70;
+const FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS = 51;
 const FINAL_V1_DAILY_CURATED_PAIR_RULE_LABEL = 'Curated full-season Final V1 2-leg card: top OVER legs by blended score, avoid same game when possible';
 const FINAL_V1_DAILY_CURATED_PAIR_CARD_ACCURACY_PCT = 68.97;
 const FINAL_V1_DAILY_CURATED_PAIR_ALL_CARD_HIT_PCT = 68.97;
@@ -605,6 +608,31 @@ function buildReliabilityPlayerTabTripletCard(candidates: PlayerTabComboPick[]):
 
 function buildReliabilityPlayerTabQuadCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
   return candidates.slice().sort(comparePlayerTabReliabilityBlendPicks).slice(0, 4);
+}
+
+function averagePlayerTabValues(values: number[]) {
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+}
+
+function playerTabAbsLineGap(pick: PlayerTabComboPick) {
+  const gap = pick.modelRow?.absLineGap ?? pick.modelRow?.lineGap ?? pick.view.edge ?? 0;
+  return Math.abs(gap);
+}
+
+function isStrictReliabilityPlayerTabQuadCard(card: PlayerTabComboPick[]) {
+  if (card.length !== 4) return false;
+  const reliabilities = card.map(playerTabReliabilityScore);
+  const gaps = card.map(playerTabAbsLineGap);
+  return (
+    Math.min(...reliabilities) >= FINAL_V1_DAILY_REQUIRED_QUAD_MIN_LEG_RELIABILITY &&
+    averagePlayerTabValues(reliabilities) >= FINAL_V1_DAILY_REQUIRED_QUAD_MIN_AVG_RELIABILITY &&
+    averagePlayerTabValues(gaps) >= FINAL_V1_DAILY_REQUIRED_QUAD_MIN_AVG_ABS_LINE_GAP
+  );
+}
+
+function buildStrictReliabilityPlayerTabQuadCard(candidates: PlayerTabComboPick[]): PlayerTabComboPick[] {
+  const card = buildReliabilityPlayerTabQuadCard(candidates);
+  return isStrictReliabilityPlayerTabQuadCard(card) ? card : [];
 }
 
 type PrecisionStateSummary = {
@@ -2701,7 +2729,7 @@ export default function NewDashboard({
     [playerTabRequiredTripletLegs],
   );
   const playerTabRequiredQuadLegs = useMemo(
-    () => buildReliabilityPlayerTabQuadCard(playerTabReliabilityTripletCandidates),
+    () => buildStrictReliabilityPlayerTabQuadCard(playerTabReliabilityTripletCandidates),
     [playerTabReliabilityTripletCandidates],
   );
   const playerTabRequiredQuadCards = useMemo(
@@ -4918,7 +4946,7 @@ export default function NewDashboard({
                   ))}
                 </div>
                 <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
-                  Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days; premium pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, fallback pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), and fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days, {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate, and {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} same-game-overlap replay cards. The required daily 4-leg lane is {FINAL_V1_DAILY_REQUIRED_QUAD_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS, 0)} no-card days and {pct(FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT, 2)} fire rate. Live daily parlay cards are additionally gated to standard DraftKings/FanDuel-style player-prop markets and {n(FINAL_V1_PARLAY_MIN_LIVE_BOOKS, 0)}+ live books, but exact DK/FD book names are not stored in SnapshotBoardData yet. The 4-leg replay includes {n(FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS, 0)} cards with more than one leg from the same game. Live forward proof is still pending.
+                  Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days; premium pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, fallback pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), and fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days, {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate, and {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} same-game-overlap replay cards. The 4-leg lane shown is the strict 80% gate: {FINAL_V1_DAILY_REQUIRED_QUAD_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT, 2)}) across {FINAL_V1_DAILY_REQUIRED_QUAD_DAYS} fired replay days, with {n(FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS, 0)} no-card days and {pct(FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT, 2)} fire rate. The all-116 broad 4-leg rule stayed at 82-34 (70.69%), so it is not presented as an 80% lane. Live daily parlay cards are additionally gated to standard DraftKings/FanDuel-style player-prop markets and {n(FINAL_V1_PARLAY_MIN_LIVE_BOOKS, 0)}+ live books, but exact DK/FD book names are not stored in SnapshotBoardData yet. The strict 4-leg replay includes {n(FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS, 0)} cards with more than one leg from the same game. Live forward proof is still pending.
                 </div>
                 <div className="mt-4 space-y-3">
                   {playerTabComboLayers.map((layer) => (

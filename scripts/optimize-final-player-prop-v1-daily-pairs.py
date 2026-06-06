@@ -12,6 +12,9 @@ from typing import Any
 DEFAULT_INPUT = Path("exports/final-player-prop-model-v1-walk-forward-board.csv")
 MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"]
 MARKET_ORDER = {market: index for index, market in enumerate(MARKETS)}
+REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY = 0.6842105263
+REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY = 0.7628869969
+REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP = 0.85
 
 
 def as_float(value: Any, fallback: float = 0.0) -> float:
@@ -452,9 +455,24 @@ def evaluate_required_daily_quad_target(
     def score(row: dict[str, Any]) -> float:
         return reliability.get(reliability_key(row), global_reliability) * 0.8 + parlay_score(row, "blend") * 0.2
 
+    def reliability_score(row: dict[str, Any]) -> float:
+        return reliability.get(reliability_key(row), global_reliability)
+
+    def passes_strict_gate(quad: tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]) -> bool:
+        reliability_scores = [reliability_score(row) for row in quad]
+        avg_reliability = sum(reliability_scores) / len(reliability_scores)
+        avg_gap = sum(as_float(row.get("absLineGap")) for row in quad) / len(quad)
+        return (
+            min(reliability_scores) >= REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY
+            and avg_reliability >= REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY
+            and avg_gap >= REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP
+        )
+
     for rows in rows_by_date.values():
         quad = pick_daily_quad_by_score(rows, score=score, limit=4)
         if quad is None:
+            continue
+        if not passes_strict_gate(quad):
             continue
 
         wins = sum(int(row["correctBool"]) for row in quad)
@@ -472,6 +490,11 @@ def evaluate_required_daily_quad_target(
         "markets": "ALL",
         "sides": "ALL",
         "requiredDaily": True,
+        "strictGate": {
+            "minLegReliability": REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY,
+            "minAvgReliability": REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY,
+            "minAvgAbsLineGap": REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP,
+        },
         "cards": cards,
         "cardRecord": f"{card_wins}-{cards - card_wins}",
         "cardAccuracyPct": round(card_wins / cards * 100, 2) if cards else 0,

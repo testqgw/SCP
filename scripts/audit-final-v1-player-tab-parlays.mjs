@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 const DEFAULT_INPUT = "exports/final-player-prop-model-v1-walk-forward-board.csv";
 const MARKETS = ["PTS", "REB", "AST", "THREES", "PRA", "PA", "PR", "RA"];
 const LONG_CARD_MARKETS = new Set(["PTS", "REB", "PRA", "PA", "PR", "RA"]);
+const REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY = 0.6842105263;
+const REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY = 0.7628869969;
+const REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP = 0.85;
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -407,6 +410,21 @@ function pickDailyQuadByScoreFromRows(rows, score, predicate = () => true, limit
   return filtered.length >= 4 ? filtered.slice(0, 4) : [];
 }
 
+function average(values) {
+  return values.length ? values.reduce((total, value) => total + value, 0) / values.length : 0;
+}
+
+function isStrictRequiredDailyQuadCard(card, reliability) {
+  if (card.length !== 4) return false;
+  const reliabilityScores = card.map((row) => reliability.score(row));
+  const avgGap = average(card.map((row) => numberValue(row, "absLineGap", 0)));
+  return (
+    Math.min(...reliabilityScores) >= REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY &&
+    average(reliabilityScores) >= REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY &&
+    avgGap >= REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP
+  );
+}
+
 function auditRequiredDailyPair(rowsByDate, allRowCount, allRows) {
   const replayDates = rowsByDate.size;
   const reliability = buildPlayerMarketSideReliability(allRows);
@@ -566,6 +584,9 @@ function auditRequiredDailyQuad(rowsByDate, allRowCount, allRows) {
     if (card.length !== 4) {
       continue;
     }
+    if (!isStrictRequiredDailyQuadCard(card, reliability)) {
+      continue;
+    }
 
     const wins = card.filter((row) => row.correct === "True").length;
     const hit = wins === 4;
@@ -580,6 +601,11 @@ function auditRequiredDailyQuad(rowsByDate, allRowCount, allRows) {
 
   return {
     candidates,
+    strictGate: {
+      minLegReliability: REQUIRED_DAILY_QUAD_MIN_LEG_RELIABILITY,
+      minAvgReliability: REQUIRED_DAILY_QUAD_MIN_AVG_RELIABILITY,
+      minAvgAbsLineGap: REQUIRED_DAILY_QUAD_MIN_AVG_ABS_LINE_GAP,
+    },
     legs,
     legRecord: `${legWins}-${legs - legWins}`,
     legAccuracyPct: pct(legWins, legs),
