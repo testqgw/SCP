@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-06,1,Breanna Stewart,NY,New York Liberty,IND,Indiana Fever,THREES,UNDER,1.5,0.0,WIN,0.7056,0.82228,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-06,2,Caitlin Clark,IND,Indiana Fever,NY,New York Liberty,PA,UNDER,27.5,19.0,WIN,0.6575,0.72068,nan,https://www.sportsgrid.com/wnba/game/indiana-fever-new-york-liberty-scores-odds-picks-props-june-06-2026/518f17a5-d3cd-4634-93b7-a48abf1c31d8
+2026-06-06,3,Jewell Loyd,LV,Las Vegas Aces,GS,Golden State Valkyries,THREES,OVER,1.5,1.0,LOSS,0.64209,0.72057,caesars,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-06,4,Allisha Gray,ATL,Atlanta Dream,WSH,Washington Mystics,PTS,UNDER,19.5,15.0,WIN,0.64429,0.68111,nan,https://www.sportsgrid.com/wnba/game/washington-mystics-atlanta-dream-scores-odds-picks-props-june-06-2026/09668cc6-c348-424a-bc21-8c43ade37586
+2026-06-06,5,Dominique Malonga,SEA,Seattle Storm,MIN,Minnesota Lynx,RA,OVER,6.5,2.0,LOSS,0.63877,0.67128,draftkings,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-06,6,Stefanie Dolson,SEA,Seattle Storm,MIN,Minnesota Lynx,PTS,UNDER,6.5,6.0,WIN,0.62741,0.66444,fanduel,https://www.scoresandodds.com/wnba/props/points

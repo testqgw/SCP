@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-06-06T20:39:04Z
-Slate: 2026-06-06
-Settled: 2 / 6
+Generated: 2026-06-07T16:49:06Z
+Slate: 2026-06-07
+Settled: 0 / 6
 No action: 0
-Accuracy: 50.0
+Accuracy: pending
 
 ## Rows
 
-- PENDING: Breanna Stewart UNDER THREES 1.5 (actual pending)
-- PENDING: Caitlin Clark UNDER PA 27.5 (actual pending)
-- PENDING: Jewell Loyd OVER THREES 1.5 (actual pending)
-- PENDING: Allisha Gray UNDER PTS 19.5 (actual pending)
-- LOSS: Dominique Malonga OVER RA 6.5 (actual 2.0)
-- WIN: Stefanie Dolson UNDER PTS 6.5 (actual 6.0)
+- PENDING: Azura Stevens OVER REB 3.5 (actual pending)
+- PENDING: Brittney Sykes UNDER PA 23.5 (actual pending)
+- PENDING: Bridget Carleton UNDER PA 16.5 (actual pending)
+- PENDING: Emily Engstler UNDER PTS 10.5 (actual pending)
+- PENDING: Erica Wheeler OVER THREES 0.5 (actual pending)
+- PENDING: Dearica Hamby UNDER PR 23.5 (actual pending)
