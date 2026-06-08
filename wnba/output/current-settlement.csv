@@ -1,7 +1,6 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-07,1,Azura Stevens,CHI,Chicago Sky,TOR,Toronto Tempo,REB,OVER,3.5,,PENDING,0.71189,0.89887,caesars,https://www.scoresandodds.com/wnba/props/rebounds
-2026-06-07,2,Brittney Sykes,TOR,Toronto Tempo,CHI,Chicago Sky,PA,UNDER,23.5,,PENDING,0.68827,0.79154,nan,https://www.sportsgrid.com/wnba/game/chicago-sky-toronto-tempo-scores-odds-picks-props-june-07-2026/9c140ad1-306f-44ba-9a09-bbf0fa0c4797
-2026-06-07,3,Bridget Carleton,POR,Portland Fire,LA,Los Angeles Sparks,PA,UNDER,16.5,,PENDING,0.66173,0.74937,draftkings,https://www.scoresandodds.com/wnba/props/points-&-assists
-2026-06-07,4,Emily Engstler,POR,Portland Fire,LA,Los Angeles Sparks,PTS,UNDER,10.5,,PENDING,0.63555,0.69514,caesars,https://www.scoresandodds.com/wnba/props/points
-2026-06-07,5,Erica Wheeler,LA,Los Angeles Sparks,POR,Portland Fire,THREES,OVER,0.5,,PENDING,0.65755,0.68583,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-07,6,Dearica Hamby,LA,Los Angeles Sparks,POR,Portland Fire,PR,UNDER,23.5,,PENDING,0.63426,0.65825,nan,https://www.sportsgrid.com/wnba/game/portland-fire-los-angeles-sparks-scores-odds-picks-props-june-07-2026/64538ae1-9626-4258-bbc3-dac3c032d318
+2026-06-08,1,Leila Lacan,CON,Connecticut Sun,NY,New York Liberty,THREES,UNDER,1.5,,PENDING,0.74617,0.90696,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-08,2,Georgia Amoore,WSH,Washington Mystics,IND,Indiana Fever,AST,UNDER,4.5,,PENDING,0.71491,0.88709,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-06-08,3,Jackie Young,LV,Las Vegas Aces,SEA,Seattle Storm,THREES,OVER,1.5,,PENDING,0.67292,0.81706,nan,https://www.sportsgrid.com/wnba/game/seattle-storm-las-vegas-aces-scores-odds-picks-props-june-08-2026/c903627d-c47c-4436-ad16-fe6e8a0911c5
+2026-06-08,4,Caitlin Clark,IND,Indiana Fever,WSH,Washington Mystics,PA,UNDER,27.5,,PENDING,0.68378,0.79726,nan,https://www.sportsgrid.com/wnba/game/indiana-fever-washington-mystics-scores-odds-picks-props-june-08-2026/935271fd-c77c-4c9b-96f7-50f8bc50c3d3
+2026-06-08,5,A'ja Wilson,LV,Las Vegas Aces,SEA,Seattle Storm,REB,OVER,9.5,,PENDING,0.63508,0.64097,nan,https://www.sportsgrid.com/wnba/game/seattle-storm-las-vegas-aces-scores-odds-picks-props-june-08-2026/c903627d-c47c-4436-ad16-fe6e8a0911c5
