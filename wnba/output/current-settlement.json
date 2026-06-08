@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-08T18:11:18Z",
+  "generatedAt": "2026-06-08T21:20:58Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-08T18:11:17Z",
+  "cardGeneratedAt": "2026-06-08T21:20:58Z",
   "slateDate": "2026-06-08",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 5,
+    "trackedPicks": 3,
     "settledPicks": 0,
-    "pendingPicks": 5,
+    "pendingPicks": 3,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -29,32 +29,14 @@
       "line": 1.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.74617,
-      "final_score": 0.90696,
-      "source_book": "draftkings",
+      "model_probability": 0.72545,
+      "final_score": 0.87676,
+      "source_book": "bet365",
       "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
     },
     {
       "slate_date": "2026-06-08",
       "selected_rank": 2,
-      "player": "Georgia Amoore",
-      "team": "WSH",
-      "team_name": "Washington Mystics",
-      "opponent": "IND",
-      "opponent_name": "Indiana Fever",
-      "market": "AST",
-      "side": "UNDER",
-      "line": 4.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.71491,
-      "final_score": 0.88709,
-      "source_book": "bet365",
-      "source_url": "https://www.scoresandodds.com/wnba/props/assists"
-    },
-    {
-      "slate_date": "2026-06-08",
-      "selected_rank": 3,
       "player": "Jackie Young",
       "team": "LV",
       "team_name": "Las Vegas Aces",
@@ -72,7 +54,7 @@
     },
     {
       "slate_date": "2026-06-08",
-      "selected_rank": 4,
+      "selected_rank": 3,
       "player": "Caitlin Clark",
       "team": "IND",
       "team_name": "Indiana Fever",
@@ -87,24 +69,6 @@
       "final_score": 0.79726,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/indiana-fever-washington-mystics-scores-odds-picks-props-june-08-2026/935271fd-c77c-4c9b-96f7-50f8bc50c3d3"
-    },
-    {
-      "slate_date": "2026-06-08",
-      "selected_rank": 5,
-      "player": "A'ja Wilson",
-      "team": "LV",
-      "team_name": "Las Vegas Aces",
-      "opponent": "SEA",
-      "opponent_name": "Seattle Storm",
-      "market": "REB",
-      "side": "OVER",
-      "line": 9.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.63508,
-      "final_score": 0.64097,
-      "source_book": "nan",
-      "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-las-vegas-aces-scores-odds-picks-props-june-08-2026/c903627d-c47c-4436-ad16-fe6e8a0911c5"
     }
   ]
 }
