@@ -1,6 +1,5 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
 2026-06-09,1,Azura Stevens,CHI,Chicago Sky,ATL,Atlanta Dream,THREES,UNDER,1.5,,PENDING,0.71902,0.87999,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-09,2,Allisha Gray,ATL,Atlanta Dream,CHI,Chicago Sky,PR,UNDER,23.5,,PENDING,0.68248,0.79204,nan,https://www.sportsgrid.com/wnba/game/atlanta-dream-chicago-sky-scores-odds-picks-props-june-09-2026/27e6b1a6-08ad-46a1-ad3d-01a9628081c5
-2026-06-09,3,Rhyne Howard,ATL,Atlanta Dream,CHI,Chicago Sky,THREES,OVER,2.5,,PENDING,0.64044,0.74229,caesars,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-09,4,Courtney Williams,MIN,Minnesota Lynx,DAL,Dallas Wings,AST,OVER,3.5,,PENDING,0.62716,0.70332,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-06-09,5,Skylar Diggins,CHI,Chicago Sky,ATL,Atlanta Dream,REB,UNDER,3.5,,PENDING,0.62338,0.59777,caesars,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-09,2,Rhyne Howard,ATL,Atlanta Dream,CHI,Chicago Sky,THREES,OVER,2.5,,PENDING,0.64044,0.74229,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-09,3,Allisha Gray,ATL,Atlanta Dream,CHI,Chicago Sky,PR,UNDER,22.5,,PENDING,0.64344,0.67562,nan,https://www.sportsgrid.com/wnba/game/atlanta-dream-chicago-sky-scores-odds-picks-props-june-09-2026/27e6b1a6-08ad-46a1-ad3d-01a9628081c5
+2026-06-09,4,Natasha Howard,MIN,Minnesota Lynx,DAL,Dallas Wings,RA,UNDER,10.5,,PENDING,0.6272,0.64143,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
