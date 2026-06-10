@@ -1,14 +1,13 @@
 # WNBA Prop Settlement
 
-Generated: 2026-06-09T21:18:32Z
-Slate: 2026-06-09
-Settled: 0 / 4
+Generated: 2026-06-10T18:13:31Z
+Slate: 2026-06-10
+Settled: 0 / 3
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Azura Stevens UNDER THREES 1.5 (actual pending)
-- PENDING: Rhyne Howard OVER THREES 2.5 (actual pending)
-- PENDING: Allisha Gray UNDER PR 22.5 (actual pending)
-- PENDING: Natasha Howard UNDER RA 10.5 (actual pending)
+- PENDING: Brittney Sykes UNDER THREES 1.5 (actual pending)
+- PENDING: Aaliyah Edwards UNDER PTS 11.5 (actual pending)
+- PENDING: Natisha Hiedeman OVER THREES 1.5 (actual pending)
