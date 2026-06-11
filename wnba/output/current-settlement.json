@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-11T18:31:26Z",
+  "generatedAt": "2026-06-11T21:34:19Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-11T18:31:25Z",
+  "cardGeneratedAt": "2026-06-11T21:34:19Z",
   "slateDate": "2026-06-11",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -42,13 +42,13 @@
       "team_name": "Portland Fire",
       "opponent": "LV",
       "opponent_name": "Las Vegas Aces",
-      "market": "PTS",
+      "market": "THREES",
       "side": "UNDER",
-      "line": 13.5,
+      "line": 2.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.71216,
-      "final_score": 0.87761,
+      "model_probability": 0.77854,
+      "final_score": 0.90388,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-portland-fire-scores-odds-picks-props-june-11-2026/debf0807-e496-4f8e-baa0-f84e5c8005f9"
     },
@@ -65,8 +65,8 @@
       "line": 27.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.67937,
-      "final_score": 0.77539,
+      "model_probability": 0.6801,
+      "final_score": 0.77774,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-indiana-fever-scores-odds-picks-props-june-11-2026/e8da6db9-cf93-4de5-9fd6-70749248b6cf"
     },
@@ -120,7 +120,7 @@
       "actual": null,
       "settlement": "PENDING",
       "model_probability": 0.62258,
-      "final_score": 0.67182,
+      "final_score": 0.6738,
       "source_book": "bet365",
       "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
     }
