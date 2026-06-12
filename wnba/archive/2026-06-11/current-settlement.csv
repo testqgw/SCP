@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-11,1,Kahleah Copper,PHX,Phoenix Mercury,DAL,Dallas Wings,RA,UNDER,11.5,5.0,WIN,0.92595,0.99154,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-11,2,Bridget Carleton,POR,Portland Fire,LV,Las Vegas Aces,THREES,UNDER,2.5,3.0,LOSS,0.77854,0.90388,nan,https://www.sportsgrid.com/wnba/game/las-vegas-aces-portland-fire-scores-odds-picks-props-june-11-2026/debf0807-e496-4f8e-baa0-f84e5c8005f9
+2026-06-11,3,Caitlin Clark,IND,Indiana Fever,CHI,Chicago Sky,PA,UNDER,27.5,42.0,LOSS,0.6801,0.77774,nan,https://www.sportsgrid.com/wnba/game/chicago-sky-indiana-fever-scores-odds-picks-props-june-11-2026/e8da6db9-cf93-4de5-9fd6-70749248b6cf
+2026-06-11,4,Emily Engstler,POR,Portland Fire,LV,Las Vegas Aces,PTS,UNDER,10.5,7.0,WIN,0.64418,0.71844,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-06-11,5,Azura Stevens,CHI,Chicago Sky,IND,Indiana Fever,REB,OVER,5.5,9.0,WIN,0.63635,0.706,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-11,6,Marine Johannes,NY,New York Liberty,ATL,Atlanta Dream,THREES,UNDER,2.5,2.0,WIN,0.62258,0.6738,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
