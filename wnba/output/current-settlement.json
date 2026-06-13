@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-13T16:54:23Z",
+  "generatedAt": "2026-06-13T20:45:01Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-13T16:54:23Z",
+  "cardGeneratedAt": "2026-06-13T20:45:01Z",
   "slateDate": "2026-06-13",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -73,18 +73,18 @@
     {
       "slate_date": "2026-06-13",
       "selected_rank": 4,
-      "player": "Alyssa Thomas",
+      "player": "Kahleah Copper",
       "team": "PHX",
       "team_name": "Phoenix Mercury",
       "opponent": "LA",
       "opponent_name": "Los Angeles Sparks",
       "market": "PTS",
       "side": "UNDER",
-      "line": 16.5,
+      "line": 18.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.63831,
-      "final_score": 0.71081,
+      "model_probability": 0.64952,
+      "final_score": 0.72108,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/los-angeles-sparks-phoenix-mercury-scores-odds-picks-props-june-13-2026/fca62ff9-8e73-4962-83f4-ec97a9eb60fa"
     },
