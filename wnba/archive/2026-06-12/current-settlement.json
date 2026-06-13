@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-06-13T16:54:09Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-12T21:12:09Z",
+  "slateDate": "2026-06-12",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-12",
+      "selected_rank": 1,
+      "player": "Shakira Austin",
+      "team": "WSH",
+      "team_name": "Washington Mystics",
+      "opponent": "TOR",
+      "opponent_name": "Toronto Tempo",
+      "market": "PR",
+      "side": "UNDER",
+      "line": 25.5,
+      "actual": 23.0,
+      "settlement": "WIN",
+      "model_probability": 0.67384,
+      "final_score": 0.79381,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/points-&-rebounds"
+    }
+  ]
+}
