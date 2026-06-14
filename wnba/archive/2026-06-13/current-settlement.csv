@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-13,1,Chelsea Gray,LV,Las Vegas Aces,MIN,Minnesota Lynx,THREES,OVER,1.5,6.0,WIN,0.72544,0.97089,nan,https://www.sportsgrid.com/wnba/game/minnesota-lynx-las-vegas-aces-scores-odds-picks-props-june-13-2026/e75b0563-7124-47c3-ac10-10f525369f09
+2026-06-13,2,Emily Engstler,POR,Portland Fire,DAL,Dallas Wings,THREES,UNDER,1.5,0.0,WIN,0.70371,0.89172,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-13,3,Natasha Mack,PHX,Phoenix Mercury,LA,Los Angeles Sparks,REB,UNDER,8.5,12.0,LOSS,0.66145,0.78814,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-phoenix-mercury-scores-odds-picks-props-june-13-2026/fca62ff9-8e73-4962-83f4-ec97a9eb60fa
+2026-06-13,4,Kahleah Copper,PHX,Phoenix Mercury,LA,Los Angeles Sparks,PTS,UNDER,18.5,41.0,LOSS,0.64952,0.72108,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-phoenix-mercury-scores-odds-picks-props-june-13-2026/fca62ff9-8e73-4962-83f4-ec97a9eb60fa
+2026-06-13,5,Courtney Williams,MIN,Minnesota Lynx,LV,Las Vegas Aces,THREES,UNDER,1.5,1.0,WIN,0.63157,0.69647,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-13,6,Bridget Carleton,POR,Portland Fire,DAL,Dallas Wings,PR,UNDER,16.5,24.0,LOSS,0.65315,0.68655,nan,https://www.sportsgrid.com/wnba/game/dallas-wings-portland-fire-scores-odds-picks-props-june-13-2026/504b7b5c-3af2-4ec0-9417-f5fa7fe3a03a
