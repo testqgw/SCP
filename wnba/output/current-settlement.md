@@ -1,11 +1,10 @@
 # WNBA Prop Settlement
 
-Generated: 2026-06-14T16:52:24Z
+Generated: 2026-06-14T20:44:17Z
 Slate: 2026-06-14
-Settled: 0 / 1
+Settled: 0 / 0
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Shakira Austin UNDER PA 18.5 (actual pending)
