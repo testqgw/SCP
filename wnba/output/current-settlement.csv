@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
 2026-06-17,1,Azura Stevens,CHI,Chicago Sky,NY,New York Liberty,THREES,UNDER,1.5,,PENDING,0.79245,0.88649,nan,https://www.sportsgrid.com/wnba/game/new-york-liberty-chicago-sky-scores-odds-picks-props-june-17-2026/70ea3900-71df-481a-906e-c1d6a5b80ccc
-2026-06-17,2,Megan Gustafson,POR,Portland Fire,SEA,Seattle Storm,THREES,UNDER,1.5,,PENDING,0.70643,0.88591,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-17,3,Aneesah Morrow,CON,Connecticut Sun,WSH,Washington Mystics,THREES,UNDER,1.5,,PENDING,0.70438,0.866,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-17,4,A'ja Wilson,LV,Las Vegas Aces,PHX,Phoenix Mercury,THREES,UNDER,1.5,,PENDING,0.69407,0.81668,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-17,5,Sabrina Ionescu,NY,New York Liberty,CHI,Chicago Sky,PTS,UNDER,14.5,,PENDING,0.68249,0.78002,nan,https://www.sportsgrid.com/wnba/game/new-york-liberty-chicago-sky-scores-odds-picks-props-june-17-2026/70ea3900-71df-481a-906e-c1d6a5b80ccc
-2026-06-17,6,Pauline Astier,NY,New York Liberty,CHI,Chicago Sky,RA,OVER,5.5,,PENDING,0.66608,0.74433,fanduel,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-17,2,Diamond Miller,CON,Connecticut Sun,WSH,Washington Mystics,THREES,UNDER,1.5,,PENDING,0.71535,0.88303,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-17,3,Megan Gustafson,POR,Portland Fire,SEA,Seattle Storm,THREES,UNDER,1.5,,PENDING,0.70643,0.84466,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-17,4,Aneesah Morrow,CON,Connecticut Sun,WSH,Washington Mystics,THREES,UNDER,1.5,,PENDING,0.68498,0.81335,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-17,5,Kiah Stokes,GS,Golden State Valkyries,DAL,Dallas Wings,PTS,UNDER,4.5,,PENDING,0.64015,0.69801,bet365,https://www.scoresandodds.com/wnba/props/points
+2026-06-17,6,Elizabeth Williams,CHI,Chicago Sky,NY,New York Liberty,REB,UNDER,5.5,,PENDING,0.64461,0.6944,bet365,https://www.scoresandodds.com/wnba/props/rebounds
