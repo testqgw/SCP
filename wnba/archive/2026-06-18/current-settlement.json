@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-06-19T16:19:29Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-18T16:35:50Z",
+  "slateDate": "2026-06-18",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-18",
+      "selected_rank": 1,
+      "player": "Jordin Canada",
+      "team": "ATL",
+      "team_name": "Atlanta Dream",
+      "opponent": "IND",
+      "opponent_name": "Indiana Fever",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 12.5,
+      "actual": 18.0,
+      "settlement": "LOSS",
+      "model_probability": 0.67996,
+      "final_score": 0.82567,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/points"
+    }
+  ]
+}
