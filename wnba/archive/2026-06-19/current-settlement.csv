@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-19,1,Marina Mabrey,TOR,Toronto Tempo,CON,Connecticut Sun,PTS,UNDER,20.5,37.0,LOSS,0.69244,0.86096,nan,https://www.sportsgrid.com/wnba/game/toronto-tempo-connecticut-sun-scores-odds-picks-props-june-19-2026/0cd78d24-0ee7-42e8-91bf-ecc9865d4808
+2026-06-19,2,Julie Allemand,TOR,Toronto Tempo,CON,Connecticut Sun,PR,UNDER,11.5,4.0,WIN,0.69185,0.79473,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-19,3,Sabrina Ionescu,NY,New York Liberty,WSH,Washington Mystics,PTS,UNDER,14.5,9.0,WIN,0.6816,0.76823,nan,https://www.sportsgrid.com/wnba/game/washington-mystics-new-york-liberty-scores-odds-picks-props-june-19-2026/a779afc0-379d-4422-b973-cf5b13954264
+2026-06-19,4,Courtney Williams,MIN,Minnesota Lynx,GS,Golden State Valkyries,REB,UNDER,5.5,12.0,LOSS,0.656,0.75827,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-19,5,Georgia Amoore,WSH,Washington Mystics,NY,New York Liberty,PRA,UNDER,12.5,18.0,LOSS,0.65596,0.70474,fanduel,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-06-19,6,Olivia Miles,MIN,Minnesota Lynx,GS,Golden State Valkyries,RA,UNDER,11.5,9.0,WIN,0.63944,0.69572,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists

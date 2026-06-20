@@ -1,16 +1,14 @@
 # WNBA Prop Settlement
 
-Generated: 2026-06-19T20:06:00Z
-Slate: 2026-06-19
-Settled: 0 / 6
+Generated: 2026-06-20T19:58:35Z
+Slate: 2026-06-20
+Settled: 0 / 4
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Marina Mabrey UNDER PTS 20.5 (actual pending)
-- PENDING: Julie Allemand UNDER PR 11.5 (actual pending)
-- PENDING: Sabrina Ionescu UNDER PTS 14.5 (actual pending)
-- PENDING: Courtney Williams UNDER REB 5.5 (actual pending)
-- PENDING: Georgia Amoore UNDER PRA 12.5 (actual pending)
-- PENDING: Olivia Miles UNDER RA 11.5 (actual pending)
+- PENDING: Azura Stevens UNDER THREES 1.5 (actual pending)
+- PENDING: Arike Ogunbowale OVER THREES 1.5 (actual pending)
+- PENDING: Monique Akoa Makani UNDER RA 6.5 (actual pending)
+- PENDING: Natasha Mack UNDER PTS 9.5 (actual pending)
