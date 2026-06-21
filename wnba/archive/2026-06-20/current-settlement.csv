@@ -1,0 +1,5 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-20,1,Azura Stevens,CHI,Chicago Sky,DAL,Dallas Wings,THREES,UNDER,1.5,1.0,WIN,0.77622,0.75724,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-20,2,Arike Ogunbowale,DAL,Dallas Wings,CHI,Chicago Sky,THREES,OVER,1.5,3.0,WIN,0.64743,0.75476,fanduel,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-20,3,Monique Akoa Makani,PHX,Phoenix Mercury,SEA,Seattle Storm,RA,UNDER,6.5,,NO_ACTION,0.64495,0.6953,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-20,4,Natasha Mack,PHX,Phoenix Mercury,SEA,Seattle Storm,PTS,UNDER,9.5,10.0,LOSS,0.62054,0.67798,bet365,https://www.scoresandodds.com/wnba/props/points
