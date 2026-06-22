@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-22T17:05:47Z",
+  "generatedAt": "2026-06-22T20:21:32Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-22T17:05:47Z",
+  "cardGeneratedAt": "2026-06-22T20:21:32Z",
   "slateDate": "2026-06-22",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -49,7 +49,7 @@
       "settlement": "PENDING",
       "model_probability": 0.63342,
       "final_score": 0.62826,
-      "source_book": "caesars",
+      "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
     }
   ]

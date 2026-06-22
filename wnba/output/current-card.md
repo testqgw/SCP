@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-06-22T17:05:47Z
+Generated: 2026-06-22T20:21:32Z
 Slate: 2026-06-22
 
 ## Selected
 
 1. Marina Mabrey OVER THREES 2.5 (Toronto Tempo vs Atlanta Dream): p=68.0%, proj=3.71, edge +8.7%, score=0.836, source=nan
-2. Isabelle Harrison UNDER PRA 20.5 (Toronto Tempo vs Atlanta Dream): p=63.3%, proj=17.75, edge +11.3%, score=0.628, source=caesars
+2. Isabelle Harrison UNDER PRA 20.5 (Toronto Tempo vs Atlanta Dream): p=63.3%, proj=17.75, edge +12.6%, score=0.628, source=draftkings
 
 ## Warnings
 
