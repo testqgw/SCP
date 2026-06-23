@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-06-23T16:17:48Z
-Slate: 2026-06-23
+Generated: 2026-06-22T20:21:32Z
+Slate: 2026-06-22
 
 ## Selected
 
-1. Sabrina Ionescu UNDER PTS 12.5 (New York Liberty vs Las Vegas Aces): p=65.4%, proj=9.06, edge +13.0%, score=0.699, source=nan
-2. Pauline Astier OVER PTS 6.5 (New York Liberty vs Las Vegas Aces): p=63.0%, proj=9.06, edge +10.9%, score=0.671, source=fanduel
+1. Marina Mabrey OVER THREES 2.5 (Toronto Tempo vs Atlanta Dream): p=68.0%, proj=3.71, edge +8.7%, score=0.836, source=nan
+2. Isabelle Harrison UNDER PRA 20.5 (Toronto Tempo vs Atlanta Dream): p=63.3%, proj=17.75, edge +12.6%, score=0.628, source=draftkings
 
 ## Warnings
 

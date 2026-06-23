@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-06-23T16:17:42Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-22T20:21:32Z",
+  "slateDate": "2026-06-22",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 50.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-22",
+      "selected_rank": 1,
+      "player": "Marina Mabrey",
+      "team": "TOR",
+      "team_name": "Toronto Tempo",
+      "opponent": "ATL",
+      "opponent_name": "Atlanta Dream",
+      "market": "THREES",
+      "side": "OVER",
+      "line": 2.5,
+      "actual": 3.0,
+      "settlement": "WIN",
+      "model_probability": 0.68006,
+      "final_score": 0.83619,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-atlanta-dream-scores-odds-picks-props-june-22-2026/4601e3c4-6a4b-4292-92ff-452e5d955615"
+    },
+    {
+      "slate_date": "2026-06-22",
+      "selected_rank": 2,
+      "player": "Isabelle Harrison",
+      "team": "TOR",
+      "team_name": "Toronto Tempo",
+      "opponent": "ATL",
+      "opponent_name": "Atlanta Dream",
+      "market": "PRA",
+      "side": "UNDER",
+      "line": 20.5,
+      "actual": 33.0,
+      "settlement": "LOSS",
+      "model_probability": 0.63342,
+      "final_score": 0.62826,
+      "source_book": "draftkings",
+      "source_url": "https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+    }
+  ]
+}
