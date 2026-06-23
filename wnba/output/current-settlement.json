@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-06-23T16:17:48Z",
+  "generatedAt": "2026-06-23T20:06:06Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-23T16:17:48Z",
+  "cardGeneratedAt": "2026-06-23T20:06:06Z",
   "slateDate": "2026-06-23",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 2,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -33,24 +33,6 @@
       "final_score": 0.69926,
       "source_book": "nan",
       "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-las-vegas-aces-scores-odds-picks-props-june-23-2026/baa40937-289b-4c12-bbe5-452d9f345a46"
-    },
-    {
-      "slate_date": "2026-06-23",
-      "selected_rank": 2,
-      "player": "Pauline Astier",
-      "team": "NY",
-      "team_name": "New York Liberty",
-      "opponent": "LV",
-      "opponent_name": "Las Vegas Aces",
-      "market": "PTS",
-      "side": "OVER",
-      "line": 6.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.63043,
-      "final_score": 0.671,
-      "source_book": "fanduel",
-      "source_url": "https://www.scoresandodds.com/wnba/props/points"
     }
   ]
 }

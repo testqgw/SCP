@@ -1,16 +1,14 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-06-23T16:17:48Z
+Generated: 2026-06-23T20:06:06Z
 Slate: 2026-06-23
 
 ## Selected
 
-1. Sabrina Ionescu UNDER PTS 12.5 (New York Liberty vs Las Vegas Aces): p=65.4%, proj=9.06, edge +13.0%, score=0.699, source=nan
-2. Pauline Astier OVER PTS 6.5 (New York Liberty vs Las Vegas Aces): p=63.0%, proj=9.06, edge +10.9%, score=0.671, source=fanduel
+1. Sabrina Ionescu UNDER PTS 12.5 (New York Liberty vs Las Vegas Aces): p=65.4%, proj=9.06, edge +9.2%, score=0.699, source=nan
 
 ## Warnings
 
 Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Only 2 rows cleared the current gates for a 6-pick target.
-Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
+Only 1 rows cleared the current gates for a 6-pick target.
