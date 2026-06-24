@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-06-24T16:08:07Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-05-16-roster-slate-gate-v10",
+  "cardGeneratedAt": "2026-06-23T20:06:06Z",
+  "slateDate": "2026-06-23",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-06-23",
+      "selected_rank": 1,
+      "player": "Sabrina Ionescu",
+      "team": "NY",
+      "team_name": "New York Liberty",
+      "opponent": "LV",
+      "opponent_name": "Las Vegas Aces",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 12.5,
+      "actual": 16.0,
+      "settlement": "LOSS",
+      "model_probability": 0.65353,
+      "final_score": 0.69926,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-las-vegas-aces-scores-odds-picks-props-june-23-2026/baa40937-289b-4c12-bbe5-452d9f345a46"
+    }
+  ]
+}
