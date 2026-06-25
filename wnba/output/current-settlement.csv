@@ -1,7 +1,5 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-25,1,Sabrina Ionescu,NY,New York Liberty,SEA,Seattle Storm,PA,UNDER,21.5,,PENDING,0.73378,0.88953,hardrock,https://www.scoresandodds.com/wnba/props/points-&-assists
-2026-06-25,2,Dearica Hamby,LA,Los Angeles Sparks,TOR,Toronto Tempo,PTS,UNDER,16.5,,PENDING,0.69113,0.86242,caesars,https://www.scoresandodds.com/wnba/props/points
-2026-06-25,3,Isabelle Harrison,TOR,Toronto Tempo,LA,Los Angeles Sparks,PR,UNDER,21.5,,PENDING,0.70162,0.77702,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-toronto-tempo-scores-odds-picks-props-june-25-2026/1c5e73be-a738-4c31-a730-48641d40dbae
-2026-06-25,4,Julie Allemand,TOR,Toronto Tempo,LA,Los Angeles Sparks,AST,UNDER,5.5,,PENDING,0.66502,0.75661,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-06-25,5,Jessica Shepard,DAL,Dallas Wings,LV,Las Vegas Aces,REB,UNDER,11.5,,PENDING,0.65126,0.73939,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-06-25,6,NaLyssa Smith,LV,Las Vegas Aces,DAL,Dallas Wings,RA,UNDER,7.5,,PENDING,0.6543,0.73348,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-25,1,Sabrina Ionescu,NY,New York Liberty,SEA,Seattle Storm,PTS,UNDER,17.5,,PENDING,0.78682,0.91438,nan,https://www.sportsgrid.com/wnba/game/new-york-liberty-seattle-storm-scores-odds-picks-props-june-25-2026/960b0c02-31fe-49ec-8a5f-bdabf264ba37
+2026-06-25,2,Isabelle Harrison,TOR,Toronto Tempo,LA,Los Angeles Sparks,PR,UNDER,21.5,,PENDING,0.70162,0.77702,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-toronto-tempo-scores-odds-picks-props-june-25-2026/1c5e73be-a738-4c31-a730-48641d40dbae
+2026-06-25,3,Satou Sabally,NY,New York Liberty,SEA,Seattle Storm,PRA,UNDER,21.5,,PENDING,0.65718,0.7585,draftkings,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-06-25,4,NaLyssa Smith,LV,Las Vegas Aces,DAL,Dallas Wings,RA,UNDER,7.5,,PENDING,0.65534,0.73682,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
