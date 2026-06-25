@@ -1,0 +1,6 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-24,1,Megan Gustafson,POR,Portland Fire,CHI,Chicago Sky,PTS,UNDER,14.5,17.0,LOSS,0.71035,0.90337,draftkings,https://www.scoresandodds.com/wnba/props/points
+2026-06-24,2,Rhyne Howard,ATL,Atlanta Dream,GS,Golden State Valkyries,THREES,OVER,2.5,1.0,LOSS,0.66476,0.80778,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-24,3,Skylar Diggins,CHI,Chicago Sky,POR,Portland Fire,PA,UNDER,20.5,21.0,LOSS,0.6592,0.73404,nan,https://www.sportsgrid.com/wnba/game/portland-fire-chicago-sky-scores-odds-picks-props-june-24-2026/a34d98fd-b030-4637-ad98-04c4e2da23e1
+2026-06-24,4,Sarah Ashlee Barker,POR,Portland Fire,CHI,Chicago Sky,PA,UNDER,14.5,15.0,LOSS,0.64761,0.70211,draftkings,https://www.scoresandodds.com/wnba/props/points-&-assists
+2026-06-24,5,Veronica Burton,GS,Golden State Valkyries,ATL,Atlanta Dream,PTS,UNDER,11.5,8.0,WIN,0.62084,0.63271,nan,https://www.sportsgrid.com/wnba/game/atlanta-dream-golden-state-valkyries-scores-odds-picks-props-june-24-2026/88e93c22-7796-4e0f-afd4-34bea69b1d8e
