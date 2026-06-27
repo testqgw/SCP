@@ -1,5 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-25,1,Sabrina Ionescu,NY,New York Liberty,SEA,Seattle Storm,PTS,UNDER,17.5,,PENDING,0.78682,0.91438,nan,https://www.sportsgrid.com/wnba/game/new-york-liberty-seattle-storm-scores-odds-picks-props-june-25-2026/960b0c02-31fe-49ec-8a5f-bdabf264ba37
-2026-06-25,2,Isabelle Harrison,TOR,Toronto Tempo,LA,Los Angeles Sparks,PR,UNDER,21.5,,PENDING,0.70162,0.77702,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-toronto-tempo-scores-odds-picks-props-june-25-2026/1c5e73be-a738-4c31-a730-48641d40dbae
-2026-06-25,3,Satou Sabally,NY,New York Liberty,SEA,Seattle Storm,PRA,UNDER,21.5,,PENDING,0.65718,0.7585,draftkings,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
-2026-06-25,4,NaLyssa Smith,LV,Las Vegas Aces,DAL,Dallas Wings,RA,UNDER,7.5,,PENDING,0.65534,0.73682,bet365,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-06-27,1,Nyara Sabally,TOR,Toronto Tempo,PHX,Phoenix Mercury,THREES,UNDER,1.5,,PENDING,0.82019,0.96918,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-27,2,Julie Allemand,TOR,Toronto Tempo,PHX,Phoenix Mercury,PR,UNDER,26.5,,PENDING,0.94106,0.96385,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-27,3,Lexie Hull,IND,Indiana Fever,LA,Los Angeles Sparks,PR,UNDER,13.5,,PENDING,0.69681,0.8138,hardrock,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-27,4,Erica Wheeler,LA,Los Angeles Sparks,IND,Indiana Fever,PA,UNDER,16.5,,PENDING,0.69057,0.80414,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-indiana-fever-scores-odds-picks-props-june-27-2026/772d1874-21e6-4440-a54e-8582f61d5851
+2026-06-27,5,DeWanna Bonner,PHX,Phoenix Mercury,TOR,Toronto Tempo,REB,UNDER,6.5,,PENDING,0.65971,0.74344,caesars,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-27,6,Marina Mabrey,TOR,Toronto Tempo,PHX,Phoenix Mercury,THREES,OVER,3.5,,PENDING,0.62783,0.72037,nan,https://www.sportsgrid.com/wnba/game/phoenix-mercury-toronto-tempo-scores-odds-picks-props-june-27-2026/ee66bc23-4382-483a-b497-c64274b4266a
