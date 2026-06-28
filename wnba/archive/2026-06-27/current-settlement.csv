@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-06-27,1,Julie Allemand,TOR,Toronto Tempo,PHX,Phoenix Mercury,PR,UNDER,26.5,18.0,WIN,0.94106,0.96385,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-06-27,2,Valeriane Ayayi,PHX,Phoenix Mercury,TOR,Toronto Tempo,AST,UNDER,4.5,2.0,WIN,0.80651,0.93332,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-06-27,3,DeWanna Bonner,PHX,Phoenix Mercury,TOR,Toronto Tempo,PRA,UNDER,22.5,27.0,LOSS,0.71957,0.82627,bet365,"https://www.scoresandodds.com/wnba/props/points,-rebounds,-&-assists"
+2026-06-27,4,Erica Wheeler,LA,Los Angeles Sparks,IND,Indiana Fever,PA,UNDER,16.5,7.0,WIN,0.69057,0.80414,nan,https://www.sportsgrid.com/wnba/game/los-angeles-sparks-indiana-fever-scores-odds-picks-props-june-27-2026/772d1874-21e6-4440-a54e-8582f61d5851
+2026-06-27,5,Lexie Hull,IND,Indiana Fever,LA,Los Angeles Sparks,REB,UNDER,4.5,7.0,LOSS,0.67377,0.79082,hardrock,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-27,6,Marina Mabrey,TOR,Toronto Tempo,PHX,Phoenix Mercury,AST,UNDER,4.5,,NO_ACTION,0.64957,0.7345,draftkings,https://www.scoresandodds.com/wnba/props/assists

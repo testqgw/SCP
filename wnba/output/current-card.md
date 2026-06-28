@@ -1,16 +1,16 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-06-27T19:54:46Z
-Slate: 2026-06-27
+Generated: 2026-06-28T15:50:06Z
+Slate: 2026-06-28
 
 ## Selected
 
-1. Julie Allemand UNDER PR 26.5 (Toronto Tempo vs Phoenix Mercury): p=94.1%, proj=10.52, edge +44.1%, score=0.964, source=bet365
-2. Valeriane Ayayi UNDER AST 4.5 (Phoenix Mercury vs Toronto Tempo): p=80.7%, proj=1.90, edge +19.3%, score=0.933, source=bet365
-3. DeWanna Bonner UNDER PRA 22.5 (Phoenix Mercury vs Toronto Tempo): p=72.0%, proj=17.80, edge +21.4%, score=0.826, source=bet365
-4. Erica Wheeler UNDER PA 16.5 (Los Angeles Sparks vs Indiana Fever): p=69.1%, proj=12.56, edge +12.2%, score=0.804, source=nan
-5. Lexie Hull UNDER REB 4.5 (Indiana Fever vs Los Angeles Sparks): p=67.4%, proj=3.10, edge +12.2%, score=0.791, source=hardrock
-6. Marina Mabrey UNDER AST 4.5 (Toronto Tempo vs Phoenix Mercury): p=65.0%, proj=3.69, edge +7.8%, score=0.735, source=draftkings
+1. Shakira Austin UNDER PTS 13.5 (Washington Mystics vs Portland Fire): p=67.3%, proj=9.80, edge +13.8%, score=0.795, source=nan
+2. Veronica Burton UNDER AST 5.5 (Golden State Valkyries vs New York Liberty): p=67.0%, proj=3.71, edge +14.1%, score=0.771, source=nan
+3. Kayla McBride OVER THREES 1.5 (Minnesota Lynx vs Dallas Wings): p=64.8%, proj=2.35, edge +6.2%, score=0.763, source=bet365
+4. Natasha Howard OVER REB 6.5 (Minnesota Lynx vs Dallas Wings): p=64.7%, proj=8.27, edge +7.8%, score=0.762, source=bet365
+5. Courtney Williams UNDER PA 20.5 (Minnesota Lynx vs Dallas Wings): p=67.3%, proj=16.90, edge +11.1%, score=0.755, source=nan
+6. Janelle Salaun OVER THREES 1.5 (Golden State Valkyries vs New York Liberty): p=65.6%, proj=2.01, edge +8.1%, score=0.723, source=caesars
 
 ## Warnings
 
