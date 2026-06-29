@@ -64,6 +64,13 @@ def relative_paths(paths: dict[str, str]) -> dict[str, str]:
     return clean_paths
 
 
+def display_cache_path(path: Path) -> str:
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return path.name
+
+
 def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str]:
     player_key = str(row.get("player_id") or row.get("player") or "").strip().lower()
     return (
@@ -199,13 +206,25 @@ def archive_existing_card(target_date: str) -> str | None:
     return slate_date
 
 
-def refresh_logs(args: argparse.Namespace) -> None:
+def refresh_logs(args: argparse.Namespace) -> list[str]:
     if args.skip_fetch:
-        return
-    rows = fetch_player_game_logs(args.seasons, include_unfinal=False, sleep_seconds=args.fetch_sleep)
+        return []
+    try:
+        rows = fetch_player_game_logs(args.seasons, include_unfinal=False, sleep_seconds=args.fetch_sleep)
+    except Exception as error:
+        if LOGS_PATH.exists():
+            return [
+                f"ESPN log refresh failed; reused existing logs at {display_cache_path(LOGS_PATH)}: {error}"
+            ]
+        raise
     if not rows:
+        if LOGS_PATH.exists():
+            return [
+                f"ESPN log refresh returned zero rows; reused existing logs at {display_cache_path(LOGS_PATH)}"
+            ]
         raise RuntimeError("ESPN log refresh returned zero rows.")
     write_logs_csv(rows, LOGS_PATH)
+    return []
 
 
 def settle_existing_card(archived_slate: str | None) -> dict | None:
@@ -417,7 +436,9 @@ def main() -> int:
     args = parse_args()
     target_date = args.date or today_et()
     archived_slate = archive_existing_card(target_date)
-    refresh_logs(args)
+    refresh_warnings = refresh_logs(args)
+    for warning in refresh_warnings:
+        print(f"Warning: {warning}")
     prior_settlement = settle_existing_card(archived_slate)
     card, source, board_path = generate_current_card(target_date, args)
     paths = write_card(card, CURRENT_OUTPUT_PREFIX)
@@ -432,6 +453,7 @@ def main() -> int:
         "archivedSlate": archived_slate,
         "selectedCount": card["summary"]["selectedCount"],
         "totalBoardRows": card["summary"]["totalBoardRows"],
+        "refreshWarnings": refresh_warnings,
         "priorSettlement": prior_settlement["summary"] if prior_settlement else None,
         "currentSettlement": current_settlement["summary"],
         "cardPaths": relative_paths(paths),
