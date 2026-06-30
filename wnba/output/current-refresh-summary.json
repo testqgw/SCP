@@ -1,14 +1,12 @@
 {
-  "generatedAt": "2026-06-30T16:13:05Z",
+  "generatedAt": "2026-06-30T19:19:25Z",
   "targetDate": "2026-06-30",
   "source": "scoresandodds",
-  "boardPath": "data/current/expanded_board_2026-06-30.csv",
-  "archivedSlate": "2026-06-28",
+  "boardPath": "data\\current\\expanded_board_2026-06-30.csv",
+  "archivedSlate": null,
   "selectedCount": 6,
-  "totalBoardRows": 55,
-  "refreshWarnings": [
-    "ESPN log refresh failed; reused existing logs at data/raw/wnba_player_game_logs.csv: Could not fetch JSON from https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/summary?event=401620321: HTTP Error 504: Gateway Time-out"
-  ],
+  "totalBoardRows": 56,
+  "refreshWarnings": [],
   "priorSettlement": {
     "trackedPicks": 6,
     "settledPicks": 0,
@@ -30,13 +28,13 @@
     "accuracyPct": null
   },
   "cardPaths": {
-    "json": "output/current-card.json",
-    "csv": "output/current-card.csv",
-    "md": "output/current-card.md"
+    "json": "output\\current-card.json",
+    "csv": "output\\current-card.csv",
+    "md": "output\\current-card.md"
   },
   "settlementPaths": {
-    "json": "output/current-settlement.json",
-    "csv": "output/current-settlement.csv",
-    "md": "output/current-settlement.md"
+    "json": "output\\current-settlement.json",
+    "csv": "output\\current-settlement.csv",
+    "md": "output\\current-settlement.md"
   }
 }

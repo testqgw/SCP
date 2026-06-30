@@ -1,16 +1,16 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-06-30T16:13:05Z
+Generated: 2026-06-30T19:19:25Z
 Slate: 2026-06-30
 
 ## Selected
 
-1. NaLyssa Smith UNDER PR 19.5 (Las Vegas Aces vs New York Liberty): p=67.3%, proj=14.88, edge +18.3%, score=0.807, source=bet365
-2. Chelsea Gray UNDER PR 18.5 (Las Vegas Aces vs New York Liberty): p=66.9%, proj=15.34, edge +17.3%, score=0.767, source=draftkings
-3. Jewell Loyd UNDER AST 2.5 (Las Vegas Aces vs New York Liberty): p=68.8%, proj=1.60, edge +3.0%, score=0.705, source=draftkings
-4. Sabrina Ionescu UNDER THREES 2.5 (New York Liberty vs Las Vegas Aces): p=74.7%, proj=1.55, edge +13.2%, score=0.846, source=bet365
-5. Leonie Fiebich OVER THREES 1.5 (New York Liberty vs Las Vegas Aces): p=64.5%, proj=2.15, edge +10.0%, score=0.688, source=bet365
-6. Jackie Young UNDER REB 5.5 (Las Vegas Aces vs New York Liberty): p=60.6%, proj=4.91, edge +6.4%, score=0.604, source=bet365
+1. NaLyssa Smith UNDER PR 19.5 (Las Vegas Aces vs New York Liberty): p=69.8%, proj=14.07, edge +20.5%, score=0.882, source=bet365
+2. Jewell Loyd UNDER AST 2.5 (Las Vegas Aces vs New York Liberty): p=70.7%, proj=1.44, edge +10.4%, score=0.874, source=bet365
+3. Sabrina Ionescu UNDER THREES 2.5 (New York Liberty vs Las Vegas Aces): p=72.3%, proj=1.74, edge +10.8%, score=0.822, source=bet365
+4. Jonquel Jones OVER THREES 1.5 (New York Liberty vs Las Vegas Aces): p=61.6%, proj=2.05, edge +7.5%, score=0.604, source=bet365
+5. Breanna Stewart UNDER REB 8.5 (New York Liberty vs Las Vegas Aces): p=57.6%, proj=7.45, edge +4.9%, score=0.523, source=bet365
+6. Pauline Astier UNDER PTS 8.5 (New York Liberty vs Las Vegas Aces): p=56.1%, proj=7.36, edge +9.1%, score=0.477, source=caesars
 
 ## Warnings
 
