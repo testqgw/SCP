@@ -56,6 +56,9 @@ PORTFOLIO_LIMITS = {
     "expanded_min_score": 0.58,
     "expanded_min_probability": 0.62,
     "expanded_min_price_edge": 0.04,
+    "allow_forced_six_pick_fill": False,
+    "forced_fill_min_score": 0.0,
+    "forced_fill_min_probability": 0.52,
     "volatile_short_rest_min_score": 0.82,
 }
 
@@ -733,8 +736,43 @@ def _is_expanded_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> 
     return True
 
 
+def _is_forced_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    if not limits.get("allow_forced_six_pick_fill"):
+        return False
+    if row["final_score"] < float(limits.get("forced_fill_min_score", 0.0)):
+        return False
+    if row["model_probability"] < float(limits.get("forced_fill_min_probability", 0.52)):
+        row["rejection_reason"] = "below_forced_fill_probability"
+        return False
+    hard_flags = {
+        "injury_or_status_note",
+        "unresolved_player",
+        "not_current_source_snapshot",
+        "unknown_team_context",
+        "team_resolution_mismatch",
+        "team_source_game_mismatch",
+    }
+    if hard_flags & set(row.get("risk_flags") or []):
+        return False
+    if not _passes_book_gate(row, limits):
+        return False
+    return True
+
+
 def _candidate_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
     return (float(row["final_score"]), float(row["model_probability"]), float(row["abs_line_gap"]))
+
+
+def _dedupe_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        candidate_id = str(row.get("candidate_id") or id(row))
+        if candidate_id in seen:
+            continue
+        seen.add(candidate_id)
+        deduped.append(row)
+    return deduped
 
 
 def _mark_candidate_rows(rows: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> None:
@@ -754,6 +792,7 @@ def _try_select_row(
     market_counts: Counter[str],
     same_team_counting_overs: Counter[tuple[str, str]],
     combo_count: int,
+    relax_correlation_limits: bool = False,
 ) -> tuple[bool, int]:
     rejection = None
     player_key = row["player_id"] or str(row["player"]).lower()
@@ -765,12 +804,13 @@ def _try_select_row(
         rejection = "max_per_team"
     elif game_counts[row["matchup_key"]] >= int(limits["max_per_game"]):
         rejection = "max_per_game"
-    elif market_counts[row["market"]] >= int(limits["max_per_market"]):
+    elif not relax_correlation_limits and market_counts[row["market"]] >= int(limits["max_per_market"]):
         rejection = "max_per_market"
-    elif row["market"] in COMBO_MARKETS and combo_count >= int(limits["max_combo_markets"]):
+    elif not relax_correlation_limits and row["market"] in COMBO_MARKETS and combo_count >= int(limits["max_combo_markets"]):
         rejection = "max_combo_markets"
     elif (
-        row["side"] == "OVER"
+        not relax_correlation_limits
+        and row["side"] == "OVER"
         and row["market"] in COUNTING_OVER_MARKETS
         and same_team_counting_overs[(row["matchup_key"], row["team"])] >= int(limits["max_same_team_counting_overs"])
     ):
@@ -795,9 +835,11 @@ def _try_select_row(
 def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
     standard_candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
     expanded_candidates = [row for row in rows if row not in standard_candidates and _is_expanded_fill_candidate(row, limits)]
+    forced_fill_candidates = [row for row in rows if _is_forced_fill_candidate(row, limits)]
     standard_candidates.sort(key=_candidate_sort_key, reverse=True)
     expanded_candidates.sort(key=_candidate_sort_key, reverse=True)
-    candidates = standard_candidates + expanded_candidates
+    forced_fill_candidates.sort(key=_candidate_sort_key, reverse=True)
+    candidates = _dedupe_candidates(standard_candidates + expanded_candidates + forced_fill_candidates)
     player_counts: Counter[str] = Counter()
     team_counts: Counter[str] = Counter()
     game_counts: Counter[str] = Counter()
@@ -843,6 +885,28 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
             )
             if picked:
                 row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["expanded_card_fill"]))
+            selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
+    if selected < target:
+        for row in forced_fill_candidates:
+            if selected >= target:
+                row["rejection_reason"] = "portfolio_full"
+                continue
+            if row["model_action"] == "SELECTED":
+                continue
+            picked, combo_count = _try_select_row(
+                row,
+                limits,
+                selected,
+                player_counts,
+                team_counts,
+                game_counts,
+                market_counts,
+                same_team_counting_overs,
+                combo_count,
+                relax_correlation_limits=True,
+            )
+            if picked:
+                row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["forced_six_pick_fill"]))
             selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
     selected_rows = [row for row in rows if row["model_action"] == "SELECTED"]
     selected_player_counts = Counter(row["player_id"] or str(row["player"]).lower() for row in selected_rows)
@@ -906,6 +970,8 @@ def score_board(
         warnings.append(f"Only {len(selected_rows)} rows cleared the current gates for a {target_picks}-pick target.")
     if selected_rows and any("expanded_card_fill" in row["risk_flags"] for row in selected_rows):
         warnings.append("Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.")
+    if selected_rows and any("forced_six_pick_fill" in row["risk_flags"] for row in selected_rows):
+        warnings.append("Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.")
     if selected_rows and any("same_player_correlation" in row["risk_flags"] for row in selected_rows):
         warnings.append("Expanded card includes multiple props on the same player because the available slate board is concentrated.")
     if selected_rows and any("same_game_concentration" in row["risk_flags"] for row in selected_rows):

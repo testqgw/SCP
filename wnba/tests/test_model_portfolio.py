@@ -45,6 +45,58 @@ def test_portfolio_selects_one_pick_per_player() -> None:
     assert rows[1]["rejection_reason"] == "max_per_player"
 
 
+def test_forced_fill_reaches_six_from_playable_current_rows_when_enabled() -> None:
+    rows = [_row(str(index), f"Player {index}", str(index), "PTS", 0.32) for index in range(6)]
+    for row in rows:
+        row["tier"] = "D"
+        row["model_probability"] = 0.54
+        row["price_edge"] = -0.02
+        row["fair_probability"] = 0.50
+        row["side"] = "UNDER"
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+            "forced_fill_min_score": 0.0,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row for row in rows if row["model_action"] == "SELECTED"]
+    assert len(selected) == 6
+    assert all("forced_six_pick_fill" in row["risk_flags"] for row in selected)
+
+
+def test_forced_fill_blocks_unresolved_or_unknown_context_rows() -> None:
+    rows = [_row(str(index), f"Player {index}", str(index), "PTS", 0.50) for index in range(6)]
+    for row in rows:
+        row["tier"] = "D"
+        row["model_probability"] = 0.58
+        row["side"] = "UNDER"
+        row["risk_flags"] = ["unknown_team_context"]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    assert [row for row in rows if row["model_action"] == "SELECTED"] == []
+
+
 def test_empty_card_is_safe_for_no_slate_output() -> None:
     card = empty_card("2026-05-16", mode="NO_SLATE", warnings=["No ESPN WNBA games found."])
 
