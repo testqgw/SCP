@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
 2026-06-30,1,NaLyssa Smith,LV,Las Vegas Aces,NY,New York Liberty,PR,UNDER,19.5,,PENDING,0.69835,0.88206,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
 2026-06-30,2,Jewell Loyd,LV,Las Vegas Aces,NY,New York Liberty,AST,UNDER,2.5,,PENDING,0.70748,0.8742,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-06-30,3,Sabrina Ionescu,NY,New York Liberty,LV,Las Vegas Aces,THREES,UNDER,2.5,,PENDING,0.72312,0.82193,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-30,4,Jonquel Jones,NY,New York Liberty,LV,Las Vegas Aces,THREES,OVER,1.5,,PENDING,0.61585,0.60418,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-30,5,Breanna Stewart,NY,New York Liberty,LV,Las Vegas Aces,REB,UNDER,8.5,,PENDING,0.57611,0.52307,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-06-30,6,Pauline Astier,NY,New York Liberty,LV,Las Vegas Aces,PTS,UNDER,8.5,,PENDING,0.56114,0.4766,caesars,https://www.scoresandodds.com/wnba/props/points
+2026-06-30,3,Jonquel Jones,NY,New York Liberty,LV,Las Vegas Aces,THREES,OVER,1.5,,PENDING,0.61585,0.60418,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-06-30,4,Breanna Stewart,NY,New York Liberty,LV,Las Vegas Aces,REB,UNDER,8.5,,PENDING,0.57611,0.52307,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-06-30,5,Pauline Astier,NY,New York Liberty,LV,Las Vegas Aces,PTS,UNDER,8.5,,PENDING,0.56114,0.4766,draftkings,https://www.scoresandodds.com/wnba/props/points
+2026-06-30,6,Jackie Young,LV,Las Vegas Aces,NY,New York Liberty,REB,UNDER,5.5,,PENDING,0.59157,0.46119,bet365,https://www.scoresandodds.com/wnba/props/rebounds

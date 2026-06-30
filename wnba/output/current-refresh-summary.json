@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-06-30T19:19:25Z",
+  "generatedAt": "2026-06-30T20:04:38Z",
   "targetDate": "2026-06-30",
   "source": "scoresandodds",
-  "boardPath": "data\\current\\expanded_board_2026-06-30.csv",
+  "boardPath": "data/current/expanded_board_2026-06-30.csv",
   "archivedSlate": null,
   "selectedCount": 6,
-  "totalBoardRows": 56,
+  "totalBoardRows": 57,
   "refreshWarnings": [],
   "priorSettlement": {
     "trackedPicks": 6,
@@ -28,13 +28,13 @@
     "accuracyPct": null
   },
   "cardPaths": {
-    "json": "output\\current-card.json",
-    "csv": "output\\current-card.csv",
-    "md": "output\\current-card.md"
+    "json": "output/current-card.json",
+    "csv": "output/current-card.csv",
+    "md": "output/current-card.md"
   },
   "settlementPaths": {
-    "json": "output\\current-settlement.json",
-    "csv": "output\\current-settlement.csv",
-    "md": "output\\current-settlement.md"
+    "json": "output/current-settlement.json",
+    "csv": "output/current-settlement.csv",
+    "md": "output/current-settlement.md"
   }
 }

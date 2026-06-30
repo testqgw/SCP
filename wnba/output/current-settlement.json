@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-06-30T19:19:25Z",
+  "generatedAt": "2026-06-30T20:04:38Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-06-30T19:19:25Z",
+  "cardGeneratedAt": "2026-06-30T20:04:38Z",
   "slateDate": "2026-06-30",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -55,24 +55,6 @@
     {
       "slate_date": "2026-06-30",
       "selected_rank": 3,
-      "player": "Sabrina Ionescu",
-      "team": "NY",
-      "team_name": "New York Liberty",
-      "opponent": "LV",
-      "opponent_name": "Las Vegas Aces",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 2.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.72312,
-      "final_score": 0.82193,
-      "source_book": "bet365",
-      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
-    },
-    {
-      "slate_date": "2026-06-30",
-      "selected_rank": 4,
       "player": "Jonquel Jones",
       "team": "NY",
       "team_name": "New York Liberty",
@@ -90,7 +72,7 @@
     },
     {
       "slate_date": "2026-06-30",
-      "selected_rank": 5,
+      "selected_rank": 4,
       "player": "Breanna Stewart",
       "team": "NY",
       "team_name": "New York Liberty",
@@ -108,7 +90,7 @@
     },
     {
       "slate_date": "2026-06-30",
-      "selected_rank": 6,
+      "selected_rank": 5,
       "player": "Pauline Astier",
       "team": "NY",
       "team_name": "New York Liberty",
@@ -121,8 +103,26 @@
       "settlement": "PENDING",
       "model_probability": 0.56114,
       "final_score": 0.4766,
-      "source_book": "caesars",
+      "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/points"
+    },
+    {
+      "slate_date": "2026-06-30",
+      "selected_rank": 6,
+      "player": "Jackie Young",
+      "team": "LV",
+      "team_name": "Las Vegas Aces",
+      "opponent": "NY",
+      "opponent_name": "New York Liberty",
+      "market": "REB",
+      "side": "UNDER",
+      "line": 5.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.59157,
+      "final_score": 0.46119,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     }
   ]
 }
