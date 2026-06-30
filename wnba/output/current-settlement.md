@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-06-28T19:53:29Z
-Slate: 2026-06-28
+Generated: 2026-06-30T16:13:05Z
+Slate: 2026-06-30
 Settled: 0 / 6
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Veronica Burton UNDER AST 5.5 (actual pending)
-- PENDING: Kayla McBride OVER THREES 1.5 (actual pending)
-- PENDING: Natasha Howard OVER REB 6.5 (actual pending)
-- PENDING: Nia Coffey OVER AST 1.5 (actual pending)
-- PENDING: Kamilla Cardoso OVER PTS 12.5 (actual pending)
-- PENDING: Janelle Salaun OVER THREES 1.5 (actual pending)
+- PENDING: NaLyssa Smith UNDER PR 19.5 (actual pending)
+- PENDING: Chelsea Gray UNDER PR 18.5 (actual pending)
+- PENDING: Jewell Loyd UNDER AST 2.5 (actual pending)
+- PENDING: Sabrina Ionescu UNDER THREES 2.5 (actual pending)
+- PENDING: Leonie Fiebich OVER THREES 1.5 (actual pending)
+- PENDING: Jackie Young UNDER REB 5.5 (actual pending)
