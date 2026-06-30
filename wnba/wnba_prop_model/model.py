@@ -763,6 +763,21 @@ def _candidate_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
     return (float(row["final_score"]), float(row["model_probability"]), float(row["abs_line_gap"]))
 
 
+def _forced_fill_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
+    stability_penalty = 0.0
+    if row["market"] == "THREES":
+        stability_penalty += 0.06
+    if row["market"] in COMBO_MARKETS:
+        stability_penalty += 0.03
+    if "volatile_minutes" in row.get("risk_flags", []):
+        stability_penalty += 0.03
+    return (
+        float(row["final_score"]) - stability_penalty,
+        float(row["model_probability"]),
+        float(row["abs_line_gap"]),
+    )
+
+
 def _dedupe_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deduped: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -838,7 +853,7 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
     forced_fill_candidates = [row for row in rows if _is_forced_fill_candidate(row, limits)]
     standard_candidates.sort(key=_candidate_sort_key, reverse=True)
     expanded_candidates.sort(key=_candidate_sort_key, reverse=True)
-    forced_fill_candidates.sort(key=_candidate_sort_key, reverse=True)
+    forced_fill_candidates.sort(key=_forced_fill_sort_key, reverse=True)
     candidates = _dedupe_candidates(standard_candidates + expanded_candidates + forced_fill_candidates)
     player_counts: Counter[str] = Counter()
     team_counts: Counter[str] = Counter()

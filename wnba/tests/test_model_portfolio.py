@@ -97,6 +97,40 @@ def test_forced_fill_blocks_unresolved_or_unknown_context_rows() -> None:
     assert [row for row in rows if row["model_action"] == "SELECTED"] == []
 
 
+def test_forced_fill_prefers_sturdier_market_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    volatile_fill = _row("volatile", "Volatile Fill", "volatile", "THREES", 0.61)
+    sturdy_fill = _row("sturdy", "Sturdy Fill", "sturdy", "PTS", 0.59)
+    rows = standard_rows + [volatile_fill, sturdy_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    for row in [volatile_fill, sturdy_fill]:
+        row["tier"] = "D"
+        row["model_probability"] = 0.56
+        row["fair_probability"] = 0.50
+        row["price_edge"] = -0.01
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Sturdy Fill" in selected_players
+    assert "Volatile Fill" not in selected_players
+
+
 def test_empty_card_is_safe_for_no_slate_output() -> None:
     card = empty_card("2026-05-16", mode="NO_SLATE", warnings=["No ESPN WNBA games found."])
 
