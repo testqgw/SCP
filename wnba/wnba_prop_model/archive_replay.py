@@ -1265,6 +1265,7 @@ def audit_archive_ml_replacement_opportunities(
     max_alternatives: int = 8,
 ) -> dict[str, Any]:
     daily_rows: list[dict[str, Any]] = []
+    rescue_rows: list[dict[str, Any]] = []
     for index in range(len(prediction_cards)):
         if index < min_profile_training_cards:
             continue
@@ -1307,14 +1308,14 @@ def audit_archive_ml_replacement_opportunities(
         wins = sum(row.get("settlement") == "WIN" for row in selected)
         losses = sum(row.get("settlement") == "LOSS" for row in selected)
         settled = wins + losses
-        if selected_count < target_picks or settled != selected_count or losses != 1 or wins != target_picks - 1:
+        if selected_count < target_picks or settled != selected_count or losses not in {1, 2}:
             continue
         probability_by_id = {
             str(row.get("candidate_id") or id(row)): probability
             for row, probability in zip(data["candidateRows"], probabilities)
         }
         selected_ids = {str(row.get("candidate_id") or id(row)) for row in selected}
-        losing_leg = next(row for row in selected if row.get("settlement") == "LOSS")
+        losing_legs = [row for row in selected if row.get("settlement") == "LOSS"]
         alternatives = [
             row
             for row in data["candidateRows"]
@@ -1328,29 +1329,33 @@ def audit_archive_ml_replacement_opportunities(
             ),
             reverse=True,
         )
-        daily_rows.append(
-            {
-                "slateDate": data["slateDate"],
-                "cardPath": data["cardPath"],
-                "selectedProfileName": selected_profile["profileName"],
-                "selectedCount": selected_count,
-                "wins": wins,
-                "losses": losses,
-                "losingLeg": _audit_leg_summary(
-                    losing_leg,
-                    probability_by_id.get(str(losing_leg.get("candidate_id") or id(losing_leg))),
-                ),
-                "selectedRows": [
-                    _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
-                    for row in selected
-                ],
-                "winningAlternatives": [
-                    _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
-                    for row in alternatives[:max_alternatives]
-                ],
-            }
-        )
+        audit_row = {
+            "slateDate": data["slateDate"],
+            "cardPath": data["cardPath"],
+            "selectedProfileName": selected_profile["profileName"],
+            "selectedCount": selected_count,
+            "wins": wins,
+            "losses": losses,
+            "losingLegs": [
+                _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                for row in losing_legs
+            ],
+            "selectedRows": [
+                _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                for row in selected
+            ],
+            "winningAlternatives": [
+                _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                for row in alternatives[:max_alternatives]
+            ],
+            "hasEnoughWinningAlternatives": len(alternatives) >= losses,
+        }
+        rescue_rows.append(audit_row)
+        if losses == 1:
+            daily_rows.append({**audit_row, "losingLeg": audit_row["losingLegs"][0]})
     one_loss_with_alternatives = sum(1 for row in daily_rows if row["winningAlternatives"])
+    two_loss_rows = [row for row in rescue_rows if row["losses"] == 2]
+    two_loss_with_enough_alternatives = sum(1 for row in two_loss_rows if row["hasEnoughWinningAlternatives"])
     return {
         "generatedAt": utc_now(),
         "modelId": MODEL_ID,
@@ -1361,9 +1366,15 @@ def audit_archive_ml_replacement_opportunities(
             "targetPicks": target_picks,
             "oneLossCards": len(daily_rows),
             "oneLossCardsWithWinningAlternatives": one_loss_with_alternatives,
+            "twoLossCards": len(two_loss_rows),
+            "twoLossCardsWithEnoughWinningAlternatives": two_loss_with_enough_alternatives,
             "maxPotentialAdditionalParlayWins": one_loss_with_alternatives,
+            "maxPotentialAdditionalParlayWinsIncludingTwoLoss": (
+                one_loss_with_alternatives + two_loss_with_enough_alternatives
+            ),
         },
         "dailyRows": daily_rows,
+        "rescueRows": rescue_rows,
     }
 
 
