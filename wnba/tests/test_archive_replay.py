@@ -11,6 +11,7 @@ from wnba_prop_model.archive_replay import (
     default_archive_profiles,
     replay_archived_cards,
     sweep_archive_profiles,
+    walk_forward_archive_profiles,
 )
 from wnba_prop_model.model import PORTFOLIO_LIMITS
 
@@ -150,6 +151,44 @@ def test_archive_profile_sweep_ranks_better_six_pick_profile_first(tmp_path: Pat
     assert sweep["profiles"][1]["summary"]["sixPickParlayAccuracyPct"] == 0.0
 
 
+def test_walk_forward_archive_profiles_choose_profile_from_prior_cards(tmp_path: Path) -> None:
+    profiles = [
+        {"name": "loose", "limits": {"forced_fill_min_probability": 0.50}},
+        {"name": "strict", "limits": {"forced_fill_min_probability": 0.55}},
+    ]
+    for slate_date in ["2026-06-29", "2026-06-30"]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        standard_rows = [
+            _row(f"{slate_date}-standard-{index}", f"Player {index}", str(index), "AST", "UNDER", 0.80)
+            for index in range(5)
+        ]
+        loose_forced_loss = _row(f"{slate_date}-loose-loss", "Player 5", "5", "REB", "UNDER", 0.61)
+        strict_forced_win = _row(f"{slate_date}-strict-win", "Player 6", "6", "REB", "UNDER", 0.58)
+        for row in [loose_forced_loss, strict_forced_win]:
+            row["tier"] = "D"
+        loose_forced_loss["model_probability"] = 0.52
+        strict_forced_win["model_probability"] = 0.56
+        card = _card(standard_rows + [loose_forced_loss, strict_forced_win])
+        card["slateDate"] = slate_date
+        (archive_dir / "current-card.json").write_text(json.dumps(card), encoding="utf-8")
+    logs = _logs()
+    logs.loc[logs["player_id"] == "5", "REB"] = 10.0
+
+    walk_forward = walk_forward_archive_profiles(
+        tmp_path / "archive",
+        logs,
+        profiles=profiles,
+        min_training_cards=1,
+    )
+
+    assert walk_forward["summary"]["cardsEvaluated"] == 1
+    assert walk_forward["summary"]["sixPickParlayAccuracyPct"] == 100.0
+    assert walk_forward["dailyRows"][0]["selectedProfileName"] == "strict"
+    assert walk_forward["dailyRows"][0]["sixPickParlayHit"] is True
+    assert {row["selectedProfileName"] for row in walk_forward["selectedRows"]} == {"strict"}
+
+
 def test_archive_sweep_rank_prioritizes_parlay_accuracy_after_coverage() -> None:
     higher_accuracy = {
         "summary": {
@@ -231,6 +270,8 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
             "--daily-six-pick",
             "--sweep-out",
             "output/archive-sweep.json",
+            "--walk-forward-out",
+            "output/archive-walk-forward.json",
             "--out",
             "output/archive-replay.json",
         ],
@@ -243,4 +284,5 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     assert args.include_current is True
     assert args.daily_six_pick is True
     assert args.sweep_out == "output/archive-sweep.json"
+    assert args.walk_forward_out == "output/archive-walk-forward.json"
     assert args.out == "output/archive-replay.json"

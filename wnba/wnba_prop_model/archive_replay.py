@@ -112,17 +112,47 @@ def _card_paths(archive_root: str | Path, current_card: str | Path | None = None
     return paths
 
 
-def replay_archived_cards(
-    archive_root: str | Path,
+def _archive_summary(
+    daily_rows: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
+    target_picks: int,
+    *,
+    cards_key: str = "cardsReplayed",
+    cards_value: int | None = None,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    settled_rows = [row for row in selected_rows if row["settlement"] in {"WIN", "LOSS"}]
+    wins = sum(row["settlement"] == "WIN" for row in settled_rows)
+    six_pick_settled = [row for row in daily_rows if row["sixPickSettled"]]
+    six_pick_wins = sum(row["sixPickParlayHit"] for row in six_pick_settled)
+    summary = {
+        cards_key: len(daily_rows) if cards_value is None else cards_value,
+        "targetPicks": target_picks,
+        "sixPickCoveredDates": sum(row["sixPickCovered"] for row in daily_rows),
+        "sixPickSettledDates": len(six_pick_settled),
+        "sixPickParlayWins": six_pick_wins,
+        "sixPickParlayAccuracyPct": round(100.0 * six_pick_wins / len(six_pick_settled), 2)
+        if six_pick_settled
+        else None,
+        "settledLegs": len(settled_rows),
+        "legWins": wins,
+        "legAccuracyPct": round(100.0 * wins / len(settled_rows), 2) if settled_rows else None,
+    }
+    if extra:
+        summary.update(extra)
+    return summary
+
+
+def _replay_card_paths(
+    card_paths: list[Path],
     logs: pd.DataFrame,
     *,
-    current_card: str | Path | None = None,
     limits: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     daily_rows: list[dict[str, Any]] = []
     selected_rows: list[dict[str, Any]] = []
     target_picks = int((limits or {}).get("target_picks") or (limits or {}).get("max_picks") or 6)
-    for card_path in _card_paths(archive_root, current_card):
+    for card_path in card_paths:
         card = json.loads(card_path.read_text(encoding="utf-8"))
         if not card.get("boardRows"):
             continue
@@ -167,31 +197,25 @@ def replay_archived_cards(
                 }
             )
 
-    settled_rows = [row for row in selected_rows if row["settlement"] in {"WIN", "LOSS"}]
-    wins = sum(row["settlement"] == "WIN" for row in settled_rows)
-    six_pick_settled = [row for row in daily_rows if row["sixPickSettled"]]
-    six_pick_wins = sum(row["sixPickParlayHit"] for row in six_pick_settled)
     return {
         "generatedAt": utc_now(),
         "modelId": MODEL_ID,
         "modelVersion": MODEL_VERSION,
         "claimBoundary": CLAIM_BOUNDARY,
-        "summary": {
-            "cardsReplayed": len(daily_rows),
-            "targetPicks": target_picks,
-            "sixPickCoveredDates": sum(row["sixPickCovered"] for row in daily_rows),
-            "sixPickSettledDates": len(six_pick_settled),
-            "sixPickParlayWins": six_pick_wins,
-            "sixPickParlayAccuracyPct": round(100.0 * six_pick_wins / len(six_pick_settled), 2)
-            if six_pick_settled
-            else None,
-            "settledLegs": len(settled_rows),
-            "legWins": wins,
-            "legAccuracyPct": round(100.0 * wins / len(settled_rows), 2) if settled_rows else None,
-        },
+        "summary": _archive_summary(daily_rows, selected_rows, target_picks),
         "dailyRows": daily_rows,
         "selectedRows": selected_rows,
     }
+
+
+def replay_archived_cards(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return _replay_card_paths(_card_paths(archive_root, current_card), logs, limits=limits)
 
 
 def _sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float, float, float]:
@@ -208,18 +232,17 @@ def _sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float
     )
 
 
-def sweep_archive_profiles(
-    archive_root: str | Path,
+def _sweep_archive_profile_paths(
+    card_paths: list[Path],
     logs: pd.DataFrame,
     *,
     profiles: list[dict[str, Any]] | None = None,
-    current_card: str | Path | None = None,
 ) -> dict[str, Any]:
     profile_results: list[dict[str, Any]] = []
     for index, profile in enumerate(profiles or default_archive_profiles()):
         name = str(profile.get("name") or f"profile_{index + 1}")
         limits = dict(profile.get("limits") or {})
-        report = replay_archived_cards(archive_root, logs, current_card=current_card, limits=limits)
+        report = _replay_card_paths(card_paths, logs, limits=limits)
         profile_results.append(
             {
                 "profileName": name,
@@ -235,6 +258,98 @@ def sweep_archive_profiles(
         "claimBoundary": CLAIM_BOUNDARY,
         "profileCount": len(profile_results),
         "profiles": profile_results,
+    }
+
+
+def sweep_archive_profiles(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+) -> dict[str, Any]:
+    return _sweep_archive_profile_paths(
+        _card_paths(archive_root, current_card),
+        logs,
+        profiles=profiles,
+    )
+
+
+def walk_forward_archive_profiles(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+    min_training_cards: int = 1,
+) -> dict[str, Any]:
+    card_paths = _card_paths(archive_root, current_card)
+    profile_grid = profiles or default_archive_profiles()
+    daily_rows: list[dict[str, Any]] = []
+    selected_rows: list[dict[str, Any]] = []
+    target_limits = dict((profile_grid[0].get("limits") if profile_grid else {}) or {})
+    target_picks = int(target_limits.get("target_picks") or target_limits.get("max_picks") or 6)
+    profile_cache: list[dict[str, Any]] = []
+    for profile_index, profile in enumerate(profile_grid):
+        limits = dict(profile.get("limits") or {})
+        profile_cache.append(
+            {
+                "profileIndex": profile_index,
+                "profileName": str(profile.get("name") or f"profile_{profile_index + 1}"),
+                "limits": limits,
+                "targetPicks": int(limits.get("target_picks") or limits.get("max_picks") or 6),
+                "reports": [_replay_card_paths([card_path], logs, limits=limits) for card_path in card_paths],
+            }
+        )
+
+    for index in range(max(0, min_training_cards), len(card_paths)):
+        if index < min_training_cards:
+            continue
+        profile_results: list[dict[str, Any]] = []
+        for profile in profile_cache:
+            training_reports = profile["reports"][:index]
+            training_daily = [row for report in training_reports for row in report["dailyRows"]]
+            training_selected = [row for report in training_reports for row in report["selectedRows"]]
+            profile_results.append(
+                {
+                    "profileIndex": profile["profileIndex"],
+                    "profileName": profile["profileName"],
+                    "limits": profile["limits"],
+                    "summary": _archive_summary(training_daily, training_selected, profile["targetPicks"]),
+                }
+            )
+        profile_results.sort(key=_sweep_sort_key, reverse=True)
+        if not profile_results:
+            continue
+        selected_profile = profile_results[0]
+        profile_name = str(selected_profile["profileName"])
+        report = profile_cache[selected_profile["profileIndex"]]["reports"][index]
+        for row in report["dailyRows"]:
+            daily_rows.append(
+                {
+                    **row,
+                    "trainingCards": index,
+                    "selectedProfileName": profile_name,
+                    "trainingSummary": selected_profile["summary"],
+                }
+            )
+        for row in report["selectedRows"]:
+            selected_rows.append({**row, "selectedProfileName": profile_name})
+
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "summary": _archive_summary(
+            daily_rows,
+            selected_rows,
+            target_picks,
+            cards_key="cardsEvaluated",
+            extra={"minTrainingCards": min_training_cards},
+        ),
+        "dailyRows": daily_rows,
+        "selectedRows": selected_rows,
     }
 
 

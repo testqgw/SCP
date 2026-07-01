@@ -6,7 +6,14 @@ import os
 from pathlib import Path
 
 from . import data_scoresandodds, data_theoddsapi
-from .archive_replay import daily_six_pick_limits, default_archive_profiles, replay_archived_cards, sweep_archive_profiles, write_replay_report
+from .archive_replay import (
+    daily_six_pick_limits,
+    default_archive_profiles,
+    replay_archived_cards,
+    sweep_archive_profiles,
+    walk_forward_archive_profiles,
+    write_replay_report,
+)
 from .data_sportsgrid import fetch_props, props_to_board_rows, write_board_csv
 from .data_espn import fetch_player_game_logs, write_logs_csv
 from .model import backtest_historical_lines, load_board, load_logs, score_board, write_card
@@ -92,6 +99,7 @@ def parse_args() -> argparse.Namespace:
     archive_replay.add_argument("--min-score", type=float, default=0.68)
     archive_replay.add_argument("--out", default="output/wnba-archive-replay.json")
     archive_replay.add_argument("--sweep-out", default=None)
+    archive_replay.add_argument("--walk-forward-out", default=None)
     archive_replay.add_argument("--include-preseason", action="store_true")
     return parser.parse_args()
 
@@ -265,6 +273,22 @@ def cmd_archive_replay(args: argparse.Namespace) -> int:
                 f"leg accuracy: {best_summary['legAccuracyPct']})"
             )
         print(f"Sweep JSON: {sweep_out}")
+    if args.walk_forward_out:
+        walk_forward = walk_forward_archive_profiles(
+            args.archive_root,
+            logs,
+            profiles=default_archive_profiles(max_picks=args.max_picks, min_score=args.min_score),
+            current_card=args.current_card if args.include_current else None,
+        )
+        walk_forward_out = write_replay_report(walk_forward, args.walk_forward_out)
+        walk_summary = walk_forward["summary"]
+        print(
+            f"Walk-forward profile replay: evaluated {walk_summary['cardsEvaluated']} cards; "
+            f"six-pick settled dates: {walk_summary['sixPickSettledDates']}; "
+            f"parlay accuracy: {walk_summary['sixPickParlayAccuracyPct']}; "
+            f"leg accuracy: {walk_summary['legAccuracyPct']}"
+        )
+        print(f"Walk-forward JSON: {walk_forward_out}")
     return 0
 
 
