@@ -101,18 +101,25 @@ def default_archive_ml_limit_profiles(max_picks: int = 6, min_score: float = 0.6
     profiles: list[dict[str, Any]] = []
     for max_per_market in [2, 3, 4, 5, 6]:
         for max_combo_markets in [1, 2, 3, 4]:
-            profiles.append(
-                {
-                    "name": f"market{max_per_market}_combo{max_combo_markets}",
-                    "limits": {
-                        "max_picks": max_picks,
-                        "target_picks": max_picks,
-                        "min_score": min_score,
-                        "max_per_market": max_per_market,
-                        "max_combo_markets": max_combo_markets,
-                    },
+            for same_player_fill in [False, True]:
+                limits = {
+                    "max_picks": max_picks,
+                    "target_picks": max_picks,
+                    "min_score": min_score,
+                    "max_per_market": max_per_market,
+                    "max_combo_markets": max_combo_markets,
                 }
-            )
+                if same_player_fill:
+                    limits["allow_same_player_coverage_fill"] = True
+                profiles.append(
+                    {
+                        "name": (
+                            f"market{max_per_market}_combo{max_combo_markets}"
+                            f"{'_sameplayerfill' if same_player_fill else ''}"
+                        ),
+                        "limits": limits,
+                    }
+                )
     return profiles
 
 
@@ -555,10 +562,35 @@ def _select_ml_ranked_rows(
                 selected += 1
         if selected >= target:
             break
-    return sorted(
-        [row for row in rows if row["model_action"] == "SELECTED"],
-        key=lambda row: row.get("selected_rank") or 999,
-    )
+    if selected < target and active_limits.get("allow_same_player_coverage_fill"):
+        same_player_fill_limits = {**active_limits, "max_per_player": max(target, int(active_limits["max_per_player"]))}
+        for row in rows:
+            if selected >= target:
+                break
+            if row["model_action"] == "SELECTED":
+                continue
+            picked, combo_count = _try_select_row(
+                row,
+                same_player_fill_limits,
+                selected,
+                player_counts,
+                team_counts,
+                game_counts,
+                market_counts,
+                same_team_counting_overs,
+                combo_count,
+                relax_correlation_limits=True,
+            )
+            if picked:
+                selected += 1
+                row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["same_player_coverage_fill"]))
+    selected_rows = [row for row in rows if row["model_action"] == "SELECTED"]
+    selected_player_counts = Counter(row.get("player_id") or str(row.get("player") or "").lower() for row in selected_rows)
+    for row in selected_rows:
+        player_key = row.get("player_id") or str(row.get("player") or "").lower()
+        if selected_player_counts[player_key] > 1:
+            row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["same_player_correlation"]))
+    return sorted(selected_rows, key=lambda row: row.get("selected_rank") or 999)
 
 
 def _selected_ml_rows_for_report(
@@ -737,8 +769,9 @@ def walk_forward_archive_ml_ranker(
     )
 
 
-def _ml_sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float, float, float]:
+def _ml_sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float, float, float, float]:
     summary = profile_result["summary"]
+    limits = profile_result.get("limits") or {}
     cards_evaluated = max(1, int(summary["cardsEvaluated"]))
     coverage_rate = float(summary["sixPickCoveredDates"]) / cards_evaluated
     settled_rate = float(summary["sixPickSettledDates"]) / cards_evaluated
@@ -748,6 +781,7 @@ def _ml_sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, fl
         float(summary["sixPickSettledDates"]),
         float(summary["legAccuracyPct"] or 0.0),
         settled_rate,
+        1.0 if limits.get("allow_same_player_coverage_fill") else 0.0,
     )
 
 

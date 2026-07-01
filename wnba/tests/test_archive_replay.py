@@ -6,6 +6,7 @@ import pandas as pd
 
 from wnba_prop_model.cli import parse_args
 from wnba_prop_model.archive_replay import (
+    _ml_sweep_sort_key,
     _sweep_sort_key,
     daily_six_pick_limits,
     default_archive_profiles,
@@ -171,6 +172,47 @@ def _market_learning_card(slate_date: str) -> dict:
     return card
 
 
+def _same_player_fill_logs(dates: list[str]) -> pd.DataFrame:
+    rows = []
+    for slate_date in dates:
+        for index in range(4):
+            rows.append(
+                {
+                    "game_date": pd.Timestamp(slate_date),
+                    "player_id": str(index),
+                    "player_key": f"player {index}",
+                    "team_abbr": "IND",
+                    "opponent_abbr": "WSH",
+                    "PTS": 10.0,
+                    "REB": 2.0,
+                    "AST": 3.0,
+                    "THREES": 0.0,
+                    "PRA": 15.0,
+                    "PA": 13.0,
+                    "PR": 12.0,
+                    "RA": 5.0,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def _same_player_fill_card(slate_date: str) -> dict:
+    rows = []
+    for index in range(4):
+        ast = _row(f"{slate_date}-ast-{index}", f"Player {index}", str(index), "AST", "UNDER", 0.88)
+        ast["slate_date"] = slate_date
+        ast["line"] = 1.5
+        rows.append(ast)
+    for index in range(4):
+        reb = _row(f"{slate_date}-reb-{index}", f"Player {index}", str(index), "REB", "UNDER", 0.70)
+        reb["slate_date"] = slate_date
+        reb["line"] = 5.5
+        rows.append(reb)
+    card = _card(rows)
+    card["slateDate"] = slate_date
+    return card
+
+
 def test_archive_replay_reselects_with_current_selector_and_settles(tmp_path: Path) -> None:
     archive_dir = tmp_path / "archive" / "2026-06-30"
     archive_dir.mkdir(parents=True)
@@ -286,6 +328,37 @@ def test_walk_forward_archive_ml_ranker_learns_from_prior_candidate_rows(tmp_pat
     assert all(row["learnedHitProbability"] > 0.5 for row in walk_forward["selectedRows"])
 
 
+def test_walk_forward_archive_ml_ranker_can_fill_same_player_coverage(tmp_path: Path) -> None:
+    for slate_date in ["2026-06-29", "2026-06-30"]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_same_player_fill_card(slate_date)),
+            encoding="utf-8",
+        )
+    logs = _same_player_fill_logs(["2026-06-29", "2026-06-30"])
+
+    no_fill = walk_forward_archive_ml_ranker(
+        tmp_path / "archive",
+        logs,
+        min_training_cards=1,
+        min_training_rows=8,
+    )
+    with_fill = walk_forward_archive_ml_ranker(
+        tmp_path / "archive",
+        logs,
+        limits={**daily_six_pick_limits(), "allow_same_player_coverage_fill": True},
+        min_training_cards=1,
+        min_training_rows=8,
+    )
+
+    assert no_fill["summary"]["sixPickCoveredDates"] == 0
+    assert with_fill["summary"]["sixPickCoveredDates"] == 1
+    assert with_fill["dailyRows"][0]["selectedCount"] == 6
+    assert any("same_player_coverage_fill" in row["risk_flags"] for row in with_fill["selectedRows"])
+    assert any("same_player_correlation" in row["risk_flags"] for row in with_fill["selectedRows"])
+
+
 def test_sweep_archive_ml_ranker_limits_ranks_constraint_profiles_from_cached_predictions(tmp_path: Path) -> None:
     training_dates = ["2026-06-28", "2026-06-29"]
     eval_date = "2026-06-30"
@@ -389,6 +462,31 @@ def test_archive_sweep_rank_prioritizes_sample_count_after_parlay_accuracy() -> 
     }
 
     assert _sweep_sort_key(larger_sample) > _sweep_sort_key(higher_leg_accuracy)
+
+
+def test_ml_sweep_rank_prefers_same_player_fill_when_metrics_tie() -> None:
+    no_fill = {
+        "limits": {"max_per_market": 3},
+        "summary": {
+            "cardsEvaluated": 2,
+            "sixPickCoveredDates": 2,
+            "sixPickSettledDates": 2,
+            "sixPickParlayAccuracyPct": 50.0,
+            "legAccuracyPct": 66.0,
+        },
+    }
+    same_player_fill = {
+        "limits": {"max_per_market": 3, "allow_same_player_coverage_fill": True},
+        "summary": {
+            "cardsEvaluated": 2,
+            "sixPickCoveredDates": 2,
+            "sixPickSettledDates": 2,
+            "sixPickParlayAccuracyPct": 50.0,
+            "legAccuracyPct": 66.0,
+        },
+    }
+
+    assert _ml_sweep_sort_key(same_player_fill) > _ml_sweep_sort_key(no_fill)
 
 
 def test_daily_six_pick_limits_match_expanded_site_forced_fill() -> None:
