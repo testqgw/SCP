@@ -830,6 +830,87 @@ def test_audit_archive_ml_replacement_opportunities_reports_candidate_oracle_cei
     ]
 
 
+def test_audit_archive_ml_replacement_opportunities_reports_oracle_miss_deltas() -> None:
+    prior_rows = [
+        {**_row("prior-win-1", "Prior Win 1", "1", "PTS", "UNDER", 0.90), "settlement": "WIN", "hit_label": 1},
+        {**_row("prior-win-2", "Prior Win 2", "2", "REB", "UNDER", 0.89), "settlement": "WIN", "hit_label": 1},
+        {**_row("prior-loss", "Prior Loss", "3", "AST", "UNDER", 0.50), "settlement": "LOSS", "hit_label": 0},
+    ]
+    current_rows = [
+        {**_row("selected-win", "Selected Win", "4", "PTS", "UNDER", 0.95), "settlement": "WIN", "hit_label": 1},
+        {
+            **_row("selected-loss-1", "Selected Loss 1", "5", "REB", "UNDER", 0.94),
+            "settlement": "LOSS",
+            "hit_label": 0,
+            "risk_flags": ["volatile_minutes"],
+        },
+        {
+            **_row("selected-loss-2", "Selected Loss 2", "6", "AST", "UNDER", 0.93),
+            "settlement": "LOSS",
+            "hit_label": 0,
+            "risk_flags": ["source_projection_near_line"],
+        },
+        {**_row("oracle-win-1", "Oracle Win 1", "7", "PTS", "UNDER", 0.80), "settlement": "WIN", "hit_label": 1},
+        {**_row("oracle-win-2", "Oracle Win 2", "8", "REB", "UNDER", 0.79), "settlement": "WIN", "hit_label": 1},
+    ]
+    for row in prior_rows:
+        row["slate_date"] = "2026-06-29"
+        row["learnedHitProbability"] = row["final_score"]
+    for row in current_rows:
+        row["slate_date"] = "2026-06-30"
+        row["learnedHitProbability"] = row["final_score"]
+    prediction_cards = [
+        {
+            "cardPath": "archive/2026-06-29/current-card.json",
+            "slateDate": "2026-06-29",
+            "portfolioConfig": {},
+            "candidateRows": prior_rows,
+            "trainingCards": 1,
+            "trainingRows": 20,
+        },
+        {
+            "cardPath": "archive/2026-06-30/current-card.json",
+            "slateDate": "2026-06-30",
+            "portfolioConfig": {},
+            "candidateRows": current_rows,
+            "trainingCards": 2,
+            "trainingRows": 30,
+        },
+    ]
+
+    audit = audit_archive_ml_replacement_opportunities(
+        prediction_cards,
+        profiles=[
+            {
+                "name": "three_pick",
+                "limits": {
+                    **daily_six_pick_limits(max_picks=3),
+                    "target_picks": 3,
+                    "max_per_market": 3,
+                },
+            }
+        ],
+        target_picks=3,
+        min_profile_training_cards=1,
+    )
+
+    assert audit["summary"]["oracleMissCards"] == 1
+    delta = audit["oracleMissRows"][0]
+    assert delta["slateDate"] == "2026-06-30"
+    assert [row["candidate_id"] for row in delta["selectedLosingLegs"]] == [
+        "selected-loss-1",
+        "selected-loss-2",
+    ]
+    assert [row["candidate_id"] for row in delta["missedOracleRows"]] == [
+        "oracle-win-1",
+        "oracle-win-2",
+    ]
+    assert delta["selectedLossBuckets"]["market"]["REB"] == 1
+    assert delta["selectedLossBuckets"]["riskFlag"]["volatile_minutes"] == 1
+    assert delta["missedOracleBuckets"]["market"]["PTS"] == 1
+    assert delta["missedOracleBuckets"]["side"]["UNDER"] == 2
+
+
 def test_rerank_current_card_with_archive_ml_uses_prior_archive_rows(tmp_path: Path) -> None:
     for slate_date in ["2026-06-28", "2026-06-29"]:
         archive_dir = tmp_path / "archive" / slate_date

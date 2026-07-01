@@ -761,6 +761,17 @@ def _audit_leg_summary(row: dict[str, Any], adjusted_probability: float | None =
     return summary
 
 
+def _audit_bucket_counts(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    buckets = {
+        "market": Counter(str(row.get("market") or "") for row in rows),
+        "side": Counter(str(row.get("side") or "") for row in rows),
+        "tier": Counter(str(row.get("tier") or "") for row in rows),
+        "sourceBook": Counter(str(row.get("source_book") or "") for row in rows),
+        "riskFlag": Counter(flag for row in rows for flag in (row.get("risk_flags") or [])),
+    }
+    return {name: dict(counter) for name, counter in buckets.items()}
+
+
 def _candidate_key(row: dict[str, Any]) -> str:
     return str(row.get("candidate_id") or id(row))
 
@@ -1267,6 +1278,7 @@ def audit_archive_ml_replacement_opportunities(
     daily_rows: list[dict[str, Any]] = []
     rescue_rows: list[dict[str, Any]] = []
     oracle_rows: list[dict[str, Any]] = []
+    oracle_miss_rows: list[dict[str, Any]] = []
     for index in range(len(prediction_cards)):
         if index < min_profile_training_cards:
             continue
@@ -1336,6 +1348,29 @@ def audit_archive_ml_replacement_opportunities(
                     ],
                 }
             )
+            if candidate_oracle_hit and losses > 0:
+                selected_ids_for_oracle = {_candidate_key(row) for row in selected}
+                missed_oracle_rows = [row for row in oracle_selected if _candidate_key(row) not in selected_ids_for_oracle]
+                selected_losing_rows = [row for row in selected if row.get("settlement") == "LOSS"]
+                oracle_miss_rows.append(
+                    {
+                        "slateDate": data["slateDate"],
+                        "cardPath": data["cardPath"],
+                        "selectedProfileName": selected_profile["profileName"],
+                        "selectedWins": wins,
+                        "selectedLosses": losses,
+                        "selectedLosingLegs": [
+                            _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                            for row in selected_losing_rows
+                        ],
+                        "missedOracleRows": [
+                            _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                            for row in missed_oracle_rows
+                        ],
+                        "selectedLossBuckets": _audit_bucket_counts(selected_losing_rows),
+                        "missedOracleBuckets": _audit_bucket_counts(missed_oracle_rows),
+                    }
+                )
         if selected_count < target_picks or settled != selected_count or losses not in {1, 2}:
             continue
         selected_ids = {str(row.get("candidate_id") or id(row)) for row in selected}
@@ -1405,10 +1440,12 @@ def audit_archive_ml_replacement_opportunities(
                 if candidate_oracle_settled_cards
                 else 0.0
             ),
+            "oracleMissCards": len(oracle_miss_rows),
         },
         "dailyRows": daily_rows,
         "rescueRows": rescue_rows,
         "oracleRows": oracle_rows,
+        "oracleMissRows": oracle_miss_rows,
     }
 
 
