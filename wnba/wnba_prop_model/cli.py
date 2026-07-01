@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 from . import data_scoresandodds, data_theoddsapi
-from .archive_replay import daily_six_pick_limits, replay_archived_cards, write_replay_report
+from .archive_replay import daily_six_pick_limits, default_archive_profiles, replay_archived_cards, sweep_archive_profiles, write_replay_report
 from .data_sportsgrid import fetch_props, props_to_board_rows, write_board_csv
 from .data_espn import fetch_player_game_logs, write_logs_csv
 from .model import backtest_historical_lines, load_board, load_logs, score_board, write_card
@@ -91,6 +91,7 @@ def parse_args() -> argparse.Namespace:
     archive_replay.add_argument("--max-picks", type=int, default=6)
     archive_replay.add_argument("--min-score", type=float, default=0.68)
     archive_replay.add_argument("--out", default="output/wnba-archive-replay.json")
+    archive_replay.add_argument("--sweep-out", default=None)
     archive_replay.add_argument("--include-preseason", action="store_true")
     return parser.parse_args()
 
@@ -247,6 +248,23 @@ def cmd_archive_replay(args: argparse.Namespace) -> int:
         f"leg accuracy: {summary['legAccuracyPct']}"
     )
     print(f"JSON: {out}")
+    if args.sweep_out:
+        sweep = sweep_archive_profiles(
+            args.archive_root,
+            logs,
+            profiles=default_archive_profiles(max_picks=args.max_picks, min_score=args.min_score),
+            current_card=args.current_card if args.include_current else None,
+        )
+        sweep_out = write_replay_report(sweep, args.sweep_out)
+        best = sweep["profiles"][0] if sweep["profiles"] else None
+        if best:
+            best_summary = best["summary"]
+            print(
+                f"Best sweep profile: {best['profileName']} "
+                f"(parlay accuracy: {best_summary['sixPickParlayAccuracyPct']}; "
+                f"leg accuracy: {best_summary['legAccuracyPct']})"
+            )
+        print(f"Sweep JSON: {sweep_out}")
     return 0
 
 

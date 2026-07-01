@@ -344,6 +344,38 @@ def test_standard_selection_prefers_stable_market_over_pra_under_when_scores_are
     assert "PRA Under" not in selected_players
 
 
+def test_standard_pra_under_penalty_can_be_disabled() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    pra_under = _row("pra-under", "PRA Under", "pra-under", "PRA", 0.72)
+    stable = _row("stable", "Stable", "stable", "REB", 0.69)
+    rows = standard_rows + [pra_under, stable]
+    pra_under["tier"] = "B"
+    pra_under["side"] = "UNDER"
+    stable["tier"] = "B"
+    for row in rows:
+        row["model_probability"] = 0.64
+        row["fair_probability"] = 0.55
+        row["price_edge"] = 0.04
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "standard_pra_under_penalty": 0.0,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "PRA Under" in selected_players
+    assert "Stable" not in selected_players
+
+
 def test_standard_selection_prefers_stable_minutes_when_scores_are_close() -> None:
     standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
     volatile = _row("volatile", "Volatile", "volatile", "REB", 0.72)

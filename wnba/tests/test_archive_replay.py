@@ -5,7 +5,13 @@ from pathlib import Path
 import pandas as pd
 
 from wnba_prop_model.cli import parse_args
-from wnba_prop_model.archive_replay import daily_six_pick_limits, replay_archived_cards
+from wnba_prop_model.archive_replay import (
+    _sweep_sort_key,
+    daily_six_pick_limits,
+    default_archive_profiles,
+    replay_archived_cards,
+    sweep_archive_profiles,
+)
 from wnba_prop_model.model import PORTFOLIO_LIMITS
 
 
@@ -116,6 +122,80 @@ def test_archive_replay_reselects_with_current_selector_and_settles(tmp_path: Pa
     assert stable_row["risk_flags"] == ["forced_six_pick_fill", "same_game_concentration"]
 
 
+def test_archive_profile_sweep_ranks_better_six_pick_profile_first(tmp_path: Path) -> None:
+    archive_dir = tmp_path / "archive" / "2026-06-30"
+    archive_dir.mkdir(parents=True)
+    standard_rows = [_row(f"standard-{index}", f"Player {index}", str(index), "AST", "UNDER", 0.80) for index in range(5)]
+    loose_forced_loss = _row("loose-loss", "Player 5", "5", "REB", "UNDER", 0.61)
+    strict_forced_win = _row("strict-win", "Player 6", "6", "REB", "UNDER", 0.58)
+    for row in [loose_forced_loss, strict_forced_win]:
+        row["tier"] = "D"
+    loose_forced_loss["model_probability"] = 0.52
+    strict_forced_win["model_probability"] = 0.56
+    (archive_dir / "current-card.json").write_text(
+        json.dumps(_card(standard_rows + [loose_forced_loss, strict_forced_win])),
+        encoding="utf-8",
+    )
+    logs = _logs()
+    logs.loc[logs["player_id"] == "5", "REB"] = 10.0
+    profiles = [
+        {"name": "loose", "limits": {"forced_fill_min_probability": 0.50}},
+        {"name": "strict", "limits": {"forced_fill_min_probability": 0.55}},
+    ]
+
+    sweep = sweep_archive_profiles(tmp_path / "archive", logs, profiles=profiles)
+
+    assert [row["profileName"] for row in sweep["profiles"]] == ["strict", "loose"]
+    assert sweep["profiles"][0]["summary"]["sixPickParlayAccuracyPct"] == 100.0
+    assert sweep["profiles"][1]["summary"]["sixPickParlayAccuracyPct"] == 0.0
+
+
+def test_archive_sweep_rank_prioritizes_parlay_accuracy_after_coverage() -> None:
+    higher_accuracy = {
+        "summary": {
+            "cardsReplayed": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 8,
+            "sixPickParlayAccuracyPct": 25.0,
+            "legAccuracyPct": 64.0,
+        }
+    }
+    larger_sample = {
+        "summary": {
+            "cardsReplayed": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 9,
+            "sixPickParlayAccuracyPct": 20.0,
+            "legAccuracyPct": 66.0,
+        }
+    }
+
+    assert _sweep_sort_key(higher_accuracy) > _sweep_sort_key(larger_sample)
+
+
+def test_archive_sweep_rank_prioritizes_sample_count_after_parlay_accuracy() -> None:
+    larger_sample = {
+        "summary": {
+            "cardsReplayed": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 9,
+            "sixPickParlayAccuracyPct": 20.0,
+            "legAccuracyPct": 64.0,
+        }
+    }
+    higher_leg_accuracy = {
+        "summary": {
+            "cardsReplayed": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 8,
+            "sixPickParlayAccuracyPct": 20.0,
+            "legAccuracyPct": 66.0,
+        }
+    }
+
+    assert _sweep_sort_key(larger_sample) > _sweep_sort_key(higher_leg_accuracy)
+
+
 def test_daily_six_pick_limits_match_expanded_site_forced_fill() -> None:
     limits = daily_six_pick_limits(max_picks=6, min_score=0.68)
 
@@ -128,6 +208,17 @@ def test_daily_six_pick_limits_match_expanded_site_forced_fill() -> None:
     assert limits["forced_fill_min_probability"] == 0.50
 
 
+def test_default_archive_profiles_include_selector_penalty_variants() -> None:
+    profiles = default_archive_profiles(max_picks=6, min_score=0.68)
+    penalty_pairs = {
+        (profile["limits"].get("standard_pra_under_penalty"), profile["limits"].get("standard_volatile_penalty"))
+        for profile in profiles
+    }
+
+    assert (0.0, 0.0) in penalty_pairs
+    assert (0.04, 0.04) in penalty_pairs
+
+
 def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     monkeypatch.setattr(
         "sys.argv",
@@ -138,6 +229,8 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
             "archive",
             "--include-current",
             "--daily-six-pick",
+            "--sweep-out",
+            "output/archive-sweep.json",
             "--out",
             "output/archive-replay.json",
         ],
@@ -149,4 +242,5 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     assert args.archive_root == "archive"
     assert args.include_current is True
     assert args.daily_six_pick is True
+    assert args.sweep_out == "output/archive-sweep.json"
     assert args.out == "output/archive-replay.json"

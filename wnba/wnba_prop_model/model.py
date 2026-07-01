@@ -60,6 +60,8 @@ PORTFOLIO_LIMITS = {
     "forced_fill_min_score": 0.0,
     "forced_fill_min_probability": 0.52,
     "volatile_short_rest_min_score": 0.82,
+    "standard_pra_under_penalty": 0.04,
+    "standard_volatile_penalty": 0.04,
 }
 
 MARKET_CONFIG = {
@@ -759,12 +761,12 @@ def _is_forced_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bo
     return True
 
 
-def _candidate_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
+def _candidate_sort_key(row: dict[str, Any], limits: dict[str, Any]) -> tuple[float, float, float]:
     stability_penalty = 0.0
     if row["market"] == "PRA" and row["side"] == "UNDER":
-        stability_penalty += 0.04
+        stability_penalty += float(limits.get("standard_pra_under_penalty", 0.04))
     if "volatile_minutes" in row.get("risk_flags", []):
-        stability_penalty += 0.04
+        stability_penalty += float(limits.get("standard_volatile_penalty", 0.04))
     return (float(row["final_score"]) - stability_penalty, float(row["model_probability"]), float(row["abs_line_gap"]))
 
 
@@ -866,8 +868,8 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
     standard_candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
     expanded_candidates = [row for row in rows if row not in standard_candidates and _is_expanded_fill_candidate(row, limits)]
     forced_fill_candidates = [row for row in rows if _is_forced_fill_candidate(row, limits)]
-    standard_candidates.sort(key=_candidate_sort_key, reverse=True)
-    expanded_candidates.sort(key=_candidate_sort_key, reverse=True)
+    standard_candidates.sort(key=lambda row: _candidate_sort_key(row, limits), reverse=True)
+    expanded_candidates.sort(key=lambda row: _candidate_sort_key(row, limits), reverse=True)
     forced_fill_candidates.sort(key=_forced_fill_sort_key, reverse=True)
     candidates = _dedupe_candidates(standard_candidates + expanded_candidates + forced_fill_candidates)
     player_counts: Counter[str] = Counter()

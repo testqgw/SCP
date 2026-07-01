@@ -39,6 +39,37 @@ def daily_six_pick_limits(max_picks: int = 6, min_score: float = 0.68) -> dict[s
     }
 
 
+def default_archive_profiles(max_picks: int = 6, min_score: float = 0.68) -> list[dict[str, Any]]:
+    profiles: list[dict[str, Any]] = []
+    for forced_probability in [0.50, 0.54]:
+        for expanded_probability in [0.62, 0.64]:
+            for max_combo_markets in [3, 4]:
+                for pra_under_penalty in [0.0, 0.04]:
+                    for volatile_penalty in [0.0, 0.04]:
+                        limits = daily_six_pick_limits(max_picks=max_picks, min_score=min_score)
+                        limits.update(
+                            {
+                                "forced_fill_min_probability": forced_probability,
+                                "expanded_min_probability": expanded_probability,
+                                "max_combo_markets": max_combo_markets,
+                                "standard_pra_under_penalty": pra_under_penalty,
+                                "standard_volatile_penalty": volatile_penalty,
+                            }
+                        )
+                        profiles.append(
+                            {
+                                "name": (
+                                    f"forced_p{forced_probability:.2f}_"
+                                    f"expanded_p{expanded_probability:.2f}_"
+                                    f"combo{max_combo_markets}_"
+                                    f"pra{pra_under_penalty:.2f}_vol{volatile_penalty:.2f}"
+                                ),
+                                "limits": limits,
+                            }
+                        )
+    return profiles
+
+
 def _reset_replay_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     reset_rows = deepcopy(rows)
     for row in reset_rows:
@@ -160,6 +191,50 @@ def replay_archived_cards(
         },
         "dailyRows": daily_rows,
         "selectedRows": selected_rows,
+    }
+
+
+def _sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float, float, float]:
+    summary = profile_result["summary"]
+    cards_replayed = max(1, int(summary["cardsReplayed"]))
+    coverage_rate = float(summary["sixPickCoveredDates"]) / cards_replayed
+    settled_rate = float(summary["sixPickSettledDates"]) / cards_replayed
+    return (
+        coverage_rate,
+        float(summary["sixPickParlayAccuracyPct"] or 0.0),
+        float(summary["sixPickSettledDates"]),
+        float(summary["legAccuracyPct"] or 0.0),
+        settled_rate,
+    )
+
+
+def sweep_archive_profiles(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+) -> dict[str, Any]:
+    profile_results: list[dict[str, Any]] = []
+    for index, profile in enumerate(profiles or default_archive_profiles()):
+        name = str(profile.get("name") or f"profile_{index + 1}")
+        limits = dict(profile.get("limits") or {})
+        report = replay_archived_cards(archive_root, logs, current_card=current_card, limits=limits)
+        profile_results.append(
+            {
+                "profileName": name,
+                "limits": limits,
+                "summary": report["summary"],
+            }
+        )
+    profile_results.sort(key=_sweep_sort_key, reverse=True)
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "profileCount": len(profile_results),
+        "profiles": profile_results,
     }
 
 
