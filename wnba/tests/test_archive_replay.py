@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 
+import wnba_prop_model.archive_replay as archive_replay
 from wnba_prop_model.cli import parse_args
 from wnba_prop_model.archive_replay import (
     _ml_sweep_sort_key,
@@ -845,6 +846,44 @@ def test_walk_forward_archive_ml_limit_profiles_choose_profile_from_prior_predic
     assert walk_forward["dailyRows"][0]["selectedProfileName"] == "cap_market3"
     assert walk_forward["dailyRows"][0]["profileTrainingCards"] == 1
     assert {row["selectedProfileName"] for row in walk_forward["selectedRows"]} == {"cap_market3"}
+
+
+def test_walk_forward_archive_ml_limit_profiles_reuses_profile_reports(tmp_path: Path, monkeypatch) -> None:
+    training_dates = ["2026-06-25", "2026-06-26"]
+    eval_dates = ["2026-06-27", "2026-06-28", "2026-06-29", "2026-06-30"]
+    for slate_date in [*training_dates, *eval_dates]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+    profiles = [
+        {"name": "loose_market6", "limits": {"max_per_market": 6}},
+        {"name": "cap_market3", "limits": {"max_per_market": 3}},
+    ]
+    calls = 0
+    original_report = archive_replay._ml_report_from_prediction_cards
+
+    def counting_report(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original_report(*args, **kwargs)
+
+    monkeypatch.setattr(archive_replay, "_ml_report_from_prediction_cards", counting_report)
+
+    walk_forward = walk_forward_archive_ml_limit_profiles(
+        tmp_path / "archive",
+        _market_flip_logs(training_dates, eval_dates),
+        profiles=profiles,
+        min_training_cards=2,
+        min_training_rows=24,
+        min_profile_training_cards=1,
+    )
+
+    assert walk_forward["summary"]["cardsEvaluated"] == 3
+    assert {row["selectedProfileName"] for row in walk_forward["selectedRows"]} == {"cap_market3"}
+    assert calls <= len(profiles) + walk_forward["summary"]["cardsEvaluated"]
 
 
 def test_archive_sweep_rank_prioritizes_parlay_accuracy_after_coverage() -> None:

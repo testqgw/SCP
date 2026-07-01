@@ -1011,6 +1011,25 @@ def _ml_report_from_prediction_cards(
     }
 
 
+def _ml_report_prefix_summary(
+    report: dict[str, Any],
+    *,
+    count: int,
+    target_picks: int,
+    summary_extra: dict[str, Any],
+) -> dict[str, Any]:
+    daily_rows = report["dailyRows"][:count]
+    slate_dates = {row.get("slateDate") for row in daily_rows}
+    selected_rows = [row for row in report["selectedRows"] if row.get("slate_date") in slate_dates]
+    return _archive_summary(
+        daily_rows,
+        selected_rows,
+        target_picks,
+        cards_key="cardsEvaluated",
+        extra=summary_extra,
+    )
+
+
 def walk_forward_archive_ml_ranker(
     archive_root: str | Path,
     logs: pd.DataFrame,
@@ -1147,32 +1166,49 @@ def walk_forward_archive_ml_limit_profiles(
     daily_rows: list[dict[str, Any]] = []
     selected_rows: list[dict[str, Any]] = []
     profile_skipped_cards = 0
+    summary_extra = {
+        "cardsSkipped": skipped_cards,
+        "minTrainingCards": min_training_cards,
+        "minTrainingRows": min_training_rows,
+        "predictionCardsBuilt": len(prediction_cards),
+        "rankerModel": "random_forest_candidate_ranker",
+    }
+    profile_reports: list[dict[str, Any]] = []
+    for profile_index, profile in enumerate(profile_grid):
+        profile_limits = dict(profile.get("limits") or {})
+        report = _ml_report_from_prediction_cards(
+            prediction_cards,
+            limits=profile_limits,
+            target_picks=target_picks,
+            summary_extra=summary_extra,
+        )
+        profile_reports.append(
+            {
+                "profileIndex": profile_index,
+                "profileName": str(profile.get("name") or f"profile_{profile_index + 1}"),
+                "limits": profile_limits,
+                "report": report,
+            }
+        )
 
     for index in range(len(prediction_cards)):
         if index < min_profile_training_cards:
             profile_skipped_cards += 1
             continue
         profile_results: list[dict[str, Any]] = []
-        for profile_index, profile in enumerate(profile_grid):
-            profile_limits = dict(profile.get("limits") or {})
-            report = _ml_report_from_prediction_cards(
-                prediction_cards[:index],
-                limits=profile_limits,
-                target_picks=target_picks,
-                summary_extra={
-                    "cardsSkipped": skipped_cards,
-                    "minTrainingCards": min_training_cards,
-                    "minTrainingRows": min_training_rows,
-                    "predictionCardsBuilt": len(prediction_cards),
-                    "rankerModel": "random_forest_candidate_ranker",
-                },
-            )
+        for profile_report in profile_reports:
+            report = profile_report["report"]
             profile_results.append(
                 {
-                    "profileIndex": profile_index,
-                    "profileName": str(profile.get("name") or f"profile_{profile_index + 1}"),
-                    "limits": profile_limits,
-                    "summary": report["summary"],
+                    "profileIndex": profile_report["profileIndex"],
+                    "profileName": profile_report["profileName"],
+                    "limits": profile_report["limits"],
+                    "summary": _ml_report_prefix_summary(
+                        report,
+                        count=index,
+                        target_picks=target_picks,
+                        summary_extra=summary_extra,
+                    ),
                 }
             )
         profile_results.sort(key=_ml_sweep_sort_key, reverse=True)
@@ -1181,30 +1217,20 @@ def walk_forward_archive_ml_limit_profiles(
             continue
         selected_profile = profile_results[0]
         selected_profile_name = str(selected_profile["profileName"])
-        current_report = _ml_report_from_prediction_cards(
-            [prediction_cards[index]],
-            limits=dict(selected_profile.get("limits") or {}),
-            target_picks=target_picks,
-            prior_context_cards=prediction_cards[:index],
-            summary_extra={
-                "cardsSkipped": skipped_cards,
-                "minTrainingCards": min_training_cards,
-                "minTrainingRows": min_training_rows,
-                "predictionCardsBuilt": len(prediction_cards),
-                "rankerModel": "random_forest_candidate_ranker",
-            },
+        selected_report = profile_reports[int(selected_profile["profileIndex"])]["report"]
+        current_daily = selected_report["dailyRows"][index]
+        current_slate_date = current_daily.get("slateDate")
+        daily_rows.append(
+            {
+                **current_daily,
+                "selectedProfileName": selected_profile_name,
+                "profileTrainingCards": index,
+                "profileTrainingSummary": selected_profile["summary"],
+            }
         )
-        for row in current_report["dailyRows"]:
-            daily_rows.append(
-                {
-                    **row,
-                    "selectedProfileName": selected_profile_name,
-                    "profileTrainingCards": index,
-                    "profileTrainingSummary": selected_profile["summary"],
-                }
-            )
-        for row in current_report["selectedRows"]:
-            selected_rows.append({**row, "selectedProfileName": selected_profile_name})
+        for row in selected_report["selectedRows"]:
+            if row.get("slate_date") == current_slate_date:
+                selected_rows.append({**row, "selectedProfileName": selected_profile_name})
 
     return {
         "generatedAt": utc_now(),
