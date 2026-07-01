@@ -7,8 +7,10 @@ import pandas as pd
 from wnba_prop_model.cli import parse_args
 from wnba_prop_model.archive_replay import (
     _ml_sweep_sort_key,
+    _ml_report_from_prediction_cards,
     _sweep_sort_key,
     daily_six_pick_limits,
+    default_archive_ml_limit_profiles,
     default_archive_profiles,
     replay_archived_cards,
     rerank_current_card_with_archive_ml,
@@ -327,6 +329,147 @@ def test_walk_forward_archive_ml_ranker_learns_from_prior_candidate_rows(tmp_pat
     assert walk_forward["summary"]["sixPickParlayAccuracyPct"] == 100.0
     assert {row["market"] for row in walk_forward["selectedRows"]} == {"PTS", "REB"}
     assert all(row["learnedHitProbability"] > 0.5 for row in walk_forward["selectedRows"])
+
+
+def test_ml_report_uses_prior_only_weak_bucket_guard() -> None:
+    prior_rows = [
+        {**_row("prior-la-1", "Prior LA 1", "1", "PTS", "UNDER", 0.95), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("prior-la-2", "Prior LA 2", "2", "REB", "UNDER", 0.94), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("prior-ind-1", "Prior IND 1", "3", "PTS", "UNDER", 0.50), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+        {**_row("prior-ind-2", "Prior IND 2", "4", "REB", "UNDER", 0.49), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+    ]
+    current_rows = [
+        {**_row("current-la-1", "Current LA 1", "5", "PTS", "UNDER", 0.95), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("current-la-2", "Current LA 2", "6", "REB", "UNDER", 0.94), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("current-ind-1", "Current IND 1", "7", "PTS", "UNDER", 0.70), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+        {**_row("current-ind-2", "Current IND 2", "8", "REB", "UNDER", 0.69), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+    ]
+    for row in [*prior_rows, *current_rows]:
+        row["matchup_key"] = f"{row['team']}-WSH"
+        row["learnedHitProbability"] = row["final_score"]
+    for row in prior_rows:
+        row["slate_date"] = "2026-06-29"
+    for row in current_rows:
+        row["slate_date"] = "2026-06-30"
+    prediction_cards = [
+        {
+            "cardPath": "archive/2026-06-29/current-card.json",
+            "slateDate": "2026-06-29",
+            "portfolioConfig": {},
+            "candidateRows": prior_rows,
+            "trainingCards": 1,
+            "trainingRows": 20,
+        },
+        {
+            "cardPath": "archive/2026-06-30/current-card.json",
+            "slateDate": "2026-06-30",
+            "portfolioConfig": {},
+            "candidateRows": current_rows,
+            "trainingCards": 2,
+            "trainingRows": 30,
+        },
+    ]
+
+    report = _ml_report_from_prediction_cards(
+        prediction_cards,
+        limits={
+            **daily_six_pick_limits(max_picks=2),
+            "target_picks": 2,
+            "max_per_team": 2,
+            "max_per_game": 2,
+            "max_per_market": 2,
+            "weak_bucket_guard": {
+                "source": "selected",
+                "fields": ["team"],
+                "min_count": 2,
+                "hit_rate_floor": 0.5,
+                "penalty": 0.0,
+            },
+        },
+        target_picks=2,
+    )
+
+    current_selected = [row for row in report["selectedRows"] if row["slate_date"] == "2026-06-30"]
+    assert [row["team"] for row in current_selected] == ["IND", "IND"]
+    assert report["summary"]["sixPickParlayWins"] == 1
+
+
+def test_ml_report_applies_weak_bucket_guard_from_prior_context() -> None:
+    prior_rows = [
+        {**_row("prior-la-1", "Prior LA 1", "1", "PTS", "UNDER", 0.95), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("prior-la-2", "Prior LA 2", "2", "REB", "UNDER", 0.94), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+    ]
+    current_rows = [
+        {**_row("current-la-1", "Current LA 1", "5", "PTS", "UNDER", 0.95), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("current-la-2", "Current LA 2", "6", "REB", "UNDER", 0.94), "team": "LA", "hit_label": 0, "settlement": "LOSS"},
+        {**_row("current-ind-1", "Current IND 1", "7", "PTS", "UNDER", 0.70), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+        {**_row("current-ind-2", "Current IND 2", "8", "REB", "UNDER", 0.69), "team": "IND", "hit_label": 1, "settlement": "WIN"},
+    ]
+    for row in [*prior_rows, *current_rows]:
+        row["matchup_key"] = f"{row['team']}-WSH"
+        row["learnedHitProbability"] = row["final_score"]
+    for row in prior_rows:
+        row["slate_date"] = "2026-06-29"
+    for row in current_rows:
+        row["slate_date"] = "2026-06-30"
+    prior_card = {
+        "cardPath": "archive/2026-06-29/current-card.json",
+        "slateDate": "2026-06-29",
+        "portfolioConfig": {},
+        "candidateRows": prior_rows,
+        "trainingCards": 1,
+        "trainingRows": 20,
+    }
+    current_card = {
+        "cardPath": "archive/2026-06-30/current-card.json",
+        "slateDate": "2026-06-30",
+        "portfolioConfig": {},
+        "candidateRows": current_rows,
+        "trainingCards": 2,
+        "trainingRows": 30,
+    }
+
+    report = _ml_report_from_prediction_cards(
+        [current_card],
+        limits={
+            **daily_six_pick_limits(max_picks=2),
+            "target_picks": 2,
+            "max_per_team": 2,
+            "max_per_game": 2,
+            "max_per_market": 2,
+            "weak_bucket_guard": {
+                "source": "selected",
+                "fields": ["team"],
+                "min_count": 2,
+                "hit_rate_floor": 0.5,
+                "penalty": 0.0,
+            },
+        },
+        target_picks=2,
+        prior_context_cards=[prior_card],
+    )
+
+    assert [row["team"] for row in report["selectedRows"]] == ["IND", "IND"]
+
+
+def test_default_archive_ml_limit_profiles_include_team_opp_guard() -> None:
+    profiles = default_archive_ml_limit_profiles(max_picks=6)
+
+    guarded = [
+        profile
+        for profile in profiles
+        if profile["name"] == "market3_combo1_teamopp_guard_sameplayerfill"
+    ]
+
+    assert len(guarded) == 1
+    guard = guarded[0]["limits"]["weak_bucket_guard"]
+    assert guard == {
+        "source": "selected",
+        "fields": ["team", "opponent"],
+        "min_count": 10,
+        "hit_rate_floor": 0.55,
+        "penalty": 0.0,
+    }
 
 
 def test_rerank_current_card_with_archive_ml_uses_prior_archive_rows(tmp_path: Path) -> None:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -120,6 +120,26 @@ def default_archive_ml_limit_profiles(max_picks: int = 6, min_score: float = 0.6
                         "limits": limits,
                     }
                 )
+    profiles.append(
+        {
+            "name": "market3_combo1_teamopp_guard_sameplayerfill",
+            "limits": {
+                "max_picks": max_picks,
+                "target_picks": max_picks,
+                "min_score": min_score,
+                "max_per_market": 3,
+                "max_combo_markets": 1,
+                "allow_same_player_coverage_fill": True,
+                "weak_bucket_guard": {
+                    "source": "selected",
+                    "fields": ["team", "opponent"],
+                    "min_count": 10,
+                    "hit_rate_floor": 0.55,
+                    "penalty": 0.0,
+                },
+            },
+        }
+    )
     return profiles
 
 
@@ -603,6 +623,77 @@ def _select_ml_ranked_rows(
     return sorted(selected_rows, key=lambda row: row.get("selected_rank") or 999)
 
 
+def _weak_bucket_keys(row: dict[str, Any], config: dict[str, Any]) -> list[tuple[str, str]]:
+    keys: list[tuple[str, str]] = []
+    for field in config.get("fields") or []:
+        if field == "market_side":
+            value = f"{row.get('market')}|{row.get('side')}"
+        else:
+            value = row.get(field)
+        if value is not None:
+            keys.append((str(field), str(value)))
+    return keys
+
+
+def _row_hit_label(row: dict[str, Any]) -> int | None:
+    label = row.get("hit_label")
+    if label in {0, 1}:
+        return int(label)
+    if row.get("settlement") == "WIN":
+        return 1
+    if row.get("settlement") == "LOSS":
+        return 0
+    return None
+
+
+def _weak_bucket_stats_from_prior_cards(
+    prior_cards: list[dict[str, Any]],
+    limits: dict[str, Any],
+    config: dict[str, Any],
+) -> dict[tuple[str, str], tuple[int, int]]:
+    stats: defaultdict[tuple[str, str], list[int]] = defaultdict(lambda: [0, 0])
+    source = str(config.get("source") or "selected")
+    base_limits = {key: value for key, value in limits.items() if key != "weak_bucket_guard"}
+    for data in prior_cards:
+        if source == "candidates":
+            rows = data["candidateRows"]
+        else:
+            probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in data["candidateRows"]]
+            rows = _select_ml_ranked_rows(
+                data["candidateRows"],
+                probabilities,
+                {**(data.get("portfolioConfig") or {}), **base_limits},
+            )
+        for row in rows:
+            label = _row_hit_label(row)
+            if label is None:
+                continue
+            for key in _weak_bucket_keys(row, config):
+                stats[key][0] += 1
+                stats[key][1] += label
+    return {key: (value[0], value[1]) for key, value in stats.items()}
+
+
+def _apply_weak_bucket_guard(
+    rows: list[dict[str, Any]],
+    probabilities: list[float],
+    stats: dict[tuple[str, str], tuple[int, int]],
+    config: dict[str, Any],
+) -> list[float]:
+    min_count = int(config.get("min_count") or 0)
+    hit_rate_floor = float(config.get("hit_rate_floor") or 0.0)
+    penalty = float(config.get("penalty", 1.0))
+    adjusted: list[float] = []
+    for row, probability in zip(rows, probabilities):
+        multiplier = 1.0
+        for key in _weak_bucket_keys(row, config):
+            count, wins = stats.get(key, (0, 0))
+            if count >= min_count and count > 0 and wins / count <= hit_rate_floor:
+                multiplier *= penalty
+        adjusted.append(float(probability) * multiplier)
+    return adjusted
+
+
 def _selected_ml_rows_for_report(
     selected_rows: list[dict[str, Any]],
     card_path: str,
@@ -689,13 +780,28 @@ def _ml_report_from_prediction_cards(
     limits: dict[str, Any] | None = None,
     target_picks: int = 6,
     summary_extra: dict[str, Any] | None = None,
+    prior_context_cards: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     daily_rows: list[dict[str, Any]] = []
     selected_rows: list[dict[str, Any]] = []
-    for data in prediction_cards:
+    context_cards = prior_context_cards or []
+    for index, data in enumerate(prediction_cards):
         selection_limits = {**(data.get("portfolioConfig") or {}), **(limits or {})}
         candidate_rows = data["candidateRows"]
         probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in candidate_rows]
+        weak_bucket_config = selection_limits.get("weak_bucket_guard")
+        if weak_bucket_config:
+            weak_bucket_stats = _weak_bucket_stats_from_prior_cards(
+                [*context_cards, *prediction_cards[:index]],
+                selection_limits,
+                weak_bucket_config,
+            )
+            probabilities = _apply_weak_bucket_guard(
+                candidate_rows,
+                probabilities,
+                weak_bucket_stats,
+                weak_bucket_config,
+            )
         selected = _select_ml_ranked_rows(candidate_rows, probabilities, selection_limits)
         selected_count = len(selected)
         wins = sum(row.get("settlement") == "WIN" for row in selected)
@@ -918,6 +1024,7 @@ def walk_forward_archive_ml_limit_profiles(
             [prediction_cards[index]],
             limits=dict(selected_profile.get("limits") or {}),
             target_picks=target_picks,
+            prior_context_cards=prediction_cards[:index],
             summary_extra={
                 "cardsSkipped": skipped_cards,
                 "minTrainingCards": min_training_cards,
@@ -1086,17 +1193,32 @@ def rerank_current_card_with_archive_ml(
     selected_profile_name = str(best_profile.get("profileName") or "archive_ml")
     profile_limits = dict(best_profile.get("limits") or {})
     probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in current_prediction["candidateRows"]]
+    selection_limits = {**current_prediction["portfolioConfig"], **profile_limits}
+    weak_bucket_config = selection_limits.get("weak_bucket_guard")
+    if weak_bucket_config:
+        weak_bucket_stats = _weak_bucket_stats_from_prior_cards(
+            prediction_cards,
+            selection_limits,
+            weak_bucket_config,
+        )
+        probabilities = _apply_weak_bucket_guard(
+            current_prediction["candidateRows"],
+            probabilities,
+            weak_bucket_stats,
+            weak_bucket_config,
+        )
     selected = _select_ml_ranked_rows(
         current_prediction["candidateRows"],
         probabilities,
-        {**current_prediction["portfolioConfig"], **profile_limits},
+        selection_limits,
     )
     if len(selected) < target_picks:
         profile_limits = {**profile_limits, "allow_same_player_coverage_fill": True}
+        selection_limits = {**current_prediction["portfolioConfig"], **profile_limits}
         selected = _select_ml_ranked_rows(
             current_prediction["candidateRows"],
             probabilities,
-            {**current_prediction["portfolioConfig"], **profile_limits},
+            selection_limits,
         )
         selected_profile_name = f"{selected_profile_name}_auto_sameplayerfill"
         warnings.append("Archive ML rerank auto-filled to preserve six-pick coverage.")
