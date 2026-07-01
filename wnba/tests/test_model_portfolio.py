@@ -131,6 +131,82 @@ def test_forced_fill_prefers_sturdier_market_when_scores_are_close() -> None:
     assert "Volatile Fill" not in selected_players
 
 
+def test_forced_fill_prefers_clean_projection_over_near_line_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    near_line_fill = _row("near-line", "Near Line Fill", "near-line", "PTS", 0.61)
+    clean_fill = _row("clean", "Clean Fill", "clean", "REB", 0.58)
+    rows = standard_rows + [near_line_fill, clean_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    near_line_fill["tier"] = "D"
+    near_line_fill["model_probability"] = 0.56
+    near_line_fill["fair_probability"] = 0.50
+    near_line_fill["price_edge"] = -0.01
+    near_line_fill["risk_flags"] = ["source_projection_near_line"]
+    clean_fill["tier"] = "D"
+    clean_fill["model_probability"] = 0.56
+    clean_fill["fair_probability"] = 0.50
+    clean_fill["price_edge"] = -0.01
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Clean Fill" in selected_players
+    assert "Near Line Fill" not in selected_players
+
+
+def test_forced_fill_prefers_clean_projection_over_disagreement_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    disagreement_fill = _row("disagreement", "Disagreement Fill", "disagreement", "PTS", 0.63)
+    clean_fill = _row("clean", "Clean Fill", "clean", "REB", 0.58)
+    rows = standard_rows + [disagreement_fill, clean_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    disagreement_fill["tier"] = "D"
+    disagreement_fill["model_probability"] = 0.56
+    disagreement_fill["fair_probability"] = 0.50
+    disagreement_fill["price_edge"] = -0.01
+    disagreement_fill["risk_flags"] = ["source_projection_disagreement"]
+    clean_fill["tier"] = "D"
+    clean_fill["model_probability"] = 0.56
+    clean_fill["fair_probability"] = 0.50
+    clean_fill["price_edge"] = -0.01
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Clean Fill" in selected_players
+    assert "Disagreement Fill" not in selected_players
+
+
 def test_empty_card_is_safe_for_no_slate_output() -> None:
     card = empty_card("2026-05-16", mode="NO_SLATE", warnings=["No ESPN WNBA games found."])
 
