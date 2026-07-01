@@ -8,9 +8,12 @@ from pathlib import Path
 from . import data_scoresandodds, data_theoddsapi
 from .archive_replay import (
     daily_six_pick_limits,
+    default_archive_ml_limit_profiles,
     default_archive_profiles,
     replay_archived_cards,
+    sweep_archive_ml_ranker_limits,
     sweep_archive_profiles,
+    walk_forward_archive_ml_limit_profiles,
     walk_forward_archive_ml_ranker,
     walk_forward_archive_profiles,
     write_replay_report,
@@ -102,6 +105,8 @@ def parse_args() -> argparse.Namespace:
     archive_replay.add_argument("--sweep-out", default=None)
     archive_replay.add_argument("--walk-forward-out", default=None)
     archive_replay.add_argument("--ml-ranker-out", default=None)
+    archive_replay.add_argument("--ml-sweep-out", default=None)
+    archive_replay.add_argument("--ml-limit-walk-forward-out", default=None)
     archive_replay.add_argument("--ml-min-training-cards", type=int, default=5)
     archive_replay.add_argument("--ml-min-training-rows", type=int, default=80)
     archive_replay.add_argument("--include-preseason", action="store_true")
@@ -311,6 +316,45 @@ def cmd_archive_replay(args: argparse.Namespace) -> int:
             f"leg accuracy: {ml_summary['legAccuracyPct']}"
         )
         print(f"ML ranker JSON: {ml_ranker_out}")
+    if args.ml_sweep_out:
+        ml_sweep = sweep_archive_ml_ranker_limits(
+            args.archive_root,
+            logs,
+            profiles=default_archive_ml_limit_profiles(max_picks=args.max_picks, min_score=args.min_score),
+            current_card=args.current_card if args.include_current else None,
+            limits=daily_six_pick_limits(max_picks=args.max_picks, min_score=args.min_score),
+            min_training_cards=args.ml_min_training_cards,
+            min_training_rows=args.ml_min_training_rows,
+        )
+        ml_sweep_out = write_replay_report(ml_sweep, args.ml_sweep_out)
+        best = ml_sweep["profiles"][0] if ml_sweep["profiles"] else None
+        if best:
+            best_summary = best["summary"]
+            print(
+                f"Best ML limit profile: {best['profileName']} "
+                f"(parlay accuracy: {best_summary['sixPickParlayAccuracyPct']}; "
+                f"leg accuracy: {best_summary['legAccuracyPct']})"
+            )
+        print(f"ML sweep JSON: {ml_sweep_out}")
+    if args.ml_limit_walk_forward_out:
+        ml_limit_walk_forward = walk_forward_archive_ml_limit_profiles(
+            args.archive_root,
+            logs,
+            profiles=default_archive_ml_limit_profiles(max_picks=args.max_picks, min_score=args.min_score),
+            current_card=args.current_card if args.include_current else None,
+            limits=daily_six_pick_limits(max_picks=args.max_picks, min_score=args.min_score),
+            min_training_cards=args.ml_min_training_cards,
+            min_training_rows=args.ml_min_training_rows,
+        )
+        ml_limit_walk_forward_out = write_replay_report(ml_limit_walk_forward, args.ml_limit_walk_forward_out)
+        limit_summary = ml_limit_walk_forward["summary"]
+        print(
+            f"Walk-forward ML limit profile: evaluated {limit_summary['cardsEvaluated']} cards; "
+            f"six-pick settled dates: {limit_summary['sixPickSettledDates']}; "
+            f"parlay accuracy: {limit_summary['sixPickParlayAccuracyPct']}; "
+            f"leg accuracy: {limit_summary['legAccuracyPct']}"
+        )
+        print(f"ML limit walk-forward JSON: {ml_limit_walk_forward_out}")
     return 0
 
 

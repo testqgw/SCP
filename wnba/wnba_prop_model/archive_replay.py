@@ -97,6 +97,25 @@ def default_archive_profiles(max_picks: int = 6, min_score: float = 0.68) -> lis
     return profiles
 
 
+def default_archive_ml_limit_profiles(max_picks: int = 6, min_score: float = 0.68) -> list[dict[str, Any]]:
+    profiles: list[dict[str, Any]] = []
+    for max_per_market in [2, 3, 4, 5, 6]:
+        for max_combo_markets in [1, 2, 3, 4]:
+            profiles.append(
+                {
+                    "name": f"market{max_per_market}_combo{max_combo_markets}",
+                    "limits": {
+                        "max_picks": max_picks,
+                        "target_picks": max_picks,
+                        "min_score": min_score,
+                        "max_per_market": max_per_market,
+                        "max_combo_markets": max_combo_markets,
+                    },
+                }
+            )
+    return profiles
+
+
 def _reset_replay_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     reset_rows = deepcopy(rows)
     for row in reset_rows:
@@ -577,26 +596,14 @@ def _selected_ml_rows_for_report(
     return report_rows
 
 
-def walk_forward_archive_ml_ranker(
-    archive_root: str | Path,
-    logs: pd.DataFrame,
+def _build_ml_prediction_cards(
+    card_data: list[dict[str, Any]],
     *,
-    current_card: str | Path | None = None,
-    limits: dict[str, Any] | None = None,
-    min_training_cards: int = 5,
-    min_training_rows: int = 80,
-) -> dict[str, Any]:
-    replay_limits = limits or daily_six_pick_limits()
-    card_data = [
-        data
-        for path in _card_paths(archive_root, current_card)
-        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
-    ]
-    daily_rows: list[dict[str, Any]] = []
-    selected_rows: list[dict[str, Any]] = []
-    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    min_training_cards: int,
+    min_training_rows: int,
+) -> tuple[list[dict[str, Any]], int]:
+    prediction_cards: list[dict[str, Any]] = []
     skipped_cards = 0
-
     for index, data in enumerate(card_data):
         if index < min_training_cards:
             skipped_cards += 1
@@ -611,14 +618,43 @@ def walk_forward_archive_ml_ranker(
         if len(training_rows) < min_training_rows or len(set(labels)) < 2:
             skipped_cards += 1
             continue
-        candidate_rows = data["candidateRows"]
+        candidate_rows = deepcopy(data["candidateRows"])
         if not candidate_rows:
             skipped_cards += 1
             continue
         ranker = _build_archive_ml_ranker(len(training_rows))
         ranker.fit(_ml_feature_frame(training_rows), labels)
         probabilities = _predict_win_probabilities(ranker, candidate_rows)
-        selected = _select_ml_ranked_rows(candidate_rows, probabilities, data["portfolioConfig"])
+        for rank, (row, probability) in enumerate(zip(candidate_rows, probabilities), start=1):
+            row["ml_candidate_rank"] = rank
+            row["learnedHitProbability"] = round(probability, 5)
+        prediction_cards.append(
+            {
+                "cardPath": data["cardPath"],
+                "slateDate": data["slateDate"],
+                "portfolioConfig": data["portfolioConfig"],
+                "candidateRows": candidate_rows,
+                "trainingCards": index,
+                "trainingRows": len(training_rows),
+            }
+        )
+    return prediction_cards, skipped_cards
+
+
+def _ml_report_from_prediction_cards(
+    prediction_cards: list[dict[str, Any]],
+    *,
+    limits: dict[str, Any] | None = None,
+    target_picks: int = 6,
+    summary_extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    daily_rows: list[dict[str, Any]] = []
+    selected_rows: list[dict[str, Any]] = []
+    for data in prediction_cards:
+        selection_limits = {**(data.get("portfolioConfig") or {}), **(limits or {})}
+        candidate_rows = data["candidateRows"]
+        probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in candidate_rows]
+        selected = _select_ml_ranked_rows(candidate_rows, probabilities, selection_limits)
         selected_count = len(selected)
         wins = sum(row.get("settlement") == "WIN" for row in selected)
         losses = sum(row.get("settlement") == "LOSS" for row in selected)
@@ -643,8 +679,8 @@ def walk_forward_archive_ml_ranker(
                 "sixPickCovered": selected_count >= target_picks,
                 "sixPickSettled": settled_full_card,
                 "sixPickParlayHit": parlay_hit,
-                "trainingCards": index,
-                "trainingRows": len(training_rows),
+                "trainingCards": data["trainingCards"],
+                "trainingRows": data["trainingRows"],
                 "rankerModel": "random_forest_candidate_ranker",
             }
         )
@@ -660,10 +696,220 @@ def walk_forward_archive_ml_ranker(
             selected_rows,
             target_picks,
             cards_key="cardsEvaluated",
-            extra={
+            extra=summary_extra,
+        ),
+        "dailyRows": daily_rows,
+        "selectedRows": selected_rows,
+    }
+
+
+def walk_forward_archive_ml_ranker(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+) -> dict[str, Any]:
+    replay_limits = limits or daily_six_pick_limits()
+    card_data = [
+        data
+        for path in _card_paths(archive_root, current_card)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    prediction_cards, skipped_cards = _build_ml_prediction_cards(
+        card_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    return _ml_report_from_prediction_cards(
+        prediction_cards,
+        target_picks=target_picks,
+        summary_extra={
+            "cardsSkipped": skipped_cards,
+            "minTrainingCards": min_training_cards,
+            "minTrainingRows": min_training_rows,
+            "predictionCardsBuilt": len(prediction_cards),
+            "rankerModel": "random_forest_candidate_ranker",
+        },
+    )
+
+
+def _ml_sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, float, float, float]:
+    summary = profile_result["summary"]
+    cards_evaluated = max(1, int(summary["cardsEvaluated"]))
+    coverage_rate = float(summary["sixPickCoveredDates"]) / cards_evaluated
+    settled_rate = float(summary["sixPickSettledDates"]) / cards_evaluated
+    return (
+        coverage_rate,
+        float(summary["sixPickParlayAccuracyPct"] or 0.0),
+        float(summary["sixPickSettledDates"]),
+        float(summary["legAccuracyPct"] or 0.0),
+        settled_rate,
+    )
+
+
+def sweep_archive_ml_ranker_limits(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+) -> dict[str, Any]:
+    replay_limits = limits or daily_six_pick_limits()
+    card_data = [
+        data
+        for path in _card_paths(archive_root, current_card)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    prediction_cards, skipped_cards = _build_ml_prediction_cards(
+        card_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    profile_results: list[dict[str, Any]] = []
+    for index, profile in enumerate(profiles or default_archive_ml_limit_profiles(max_picks=target_picks)):
+        name = str(profile.get("name") or f"profile_{index + 1}")
+        profile_limits = dict(profile.get("limits") or {})
+        report = _ml_report_from_prediction_cards(
+            prediction_cards,
+            limits=profile_limits,
+            target_picks=target_picks,
+            summary_extra={
                 "cardsSkipped": skipped_cards,
                 "minTrainingCards": min_training_cards,
                 "minTrainingRows": min_training_rows,
+                "predictionCardsBuilt": len(prediction_cards),
+                "rankerModel": "random_forest_candidate_ranker",
+            },
+        )
+        profile_results.append(
+            {
+                "profileName": name,
+                "limits": profile_limits,
+                "summary": report["summary"],
+            }
+        )
+    profile_results.sort(key=_ml_sweep_sort_key, reverse=True)
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "profileCount": len(profile_results),
+        "predictionCardsBuilt": len(prediction_cards),
+        "cardsSkipped": skipped_cards,
+        "profiles": profile_results,
+    }
+
+
+def walk_forward_archive_ml_limit_profiles(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+    min_profile_training_cards: int = 1,
+) -> dict[str, Any]:
+    replay_limits = limits or daily_six_pick_limits()
+    card_data = [
+        data
+        for path in _card_paths(archive_root, current_card)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    prediction_cards, skipped_cards = _build_ml_prediction_cards(
+        card_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    profile_grid = profiles or default_archive_ml_limit_profiles(max_picks=target_picks)
+    daily_rows: list[dict[str, Any]] = []
+    selected_rows: list[dict[str, Any]] = []
+    profile_skipped_cards = 0
+
+    for index in range(len(prediction_cards)):
+        if index < min_profile_training_cards:
+            profile_skipped_cards += 1
+            continue
+        profile_results: list[dict[str, Any]] = []
+        for profile_index, profile in enumerate(profile_grid):
+            profile_limits = dict(profile.get("limits") or {})
+            report = _ml_report_from_prediction_cards(
+                prediction_cards[:index],
+                limits=profile_limits,
+                target_picks=target_picks,
+                summary_extra={
+                    "cardsSkipped": skipped_cards,
+                    "minTrainingCards": min_training_cards,
+                    "minTrainingRows": min_training_rows,
+                    "predictionCardsBuilt": len(prediction_cards),
+                    "rankerModel": "random_forest_candidate_ranker",
+                },
+            )
+            profile_results.append(
+                {
+                    "profileIndex": profile_index,
+                    "profileName": str(profile.get("name") or f"profile_{profile_index + 1}"),
+                    "limits": profile_limits,
+                    "summary": report["summary"],
+                }
+            )
+        profile_results.sort(key=_ml_sweep_sort_key, reverse=True)
+        if not profile_results:
+            profile_skipped_cards += 1
+            continue
+        selected_profile = profile_results[0]
+        selected_profile_name = str(selected_profile["profileName"])
+        current_report = _ml_report_from_prediction_cards(
+            [prediction_cards[index]],
+            limits=dict(selected_profile.get("limits") or {}),
+            target_picks=target_picks,
+            summary_extra={
+                "cardsSkipped": skipped_cards,
+                "minTrainingCards": min_training_cards,
+                "minTrainingRows": min_training_rows,
+                "predictionCardsBuilt": len(prediction_cards),
+                "rankerModel": "random_forest_candidate_ranker",
+            },
+        )
+        for row in current_report["dailyRows"]:
+            daily_rows.append(
+                {
+                    **row,
+                    "selectedProfileName": selected_profile_name,
+                    "profileTrainingCards": index,
+                    "profileTrainingSummary": selected_profile["summary"],
+                }
+            )
+        for row in current_report["selectedRows"]:
+            selected_rows.append({**row, "selectedProfileName": selected_profile_name})
+
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "summary": _archive_summary(
+            daily_rows,
+            selected_rows,
+            target_picks,
+            cards_key="cardsEvaluated",
+            extra={
+                "cardsSkipped": skipped_cards + profile_skipped_cards,
+                "predictionCardsBuilt": len(prediction_cards),
+                "minTrainingCards": min_training_cards,
+                "minTrainingRows": min_training_rows,
+                "minProfileTrainingCards": min_profile_training_cards,
                 "rankerModel": "random_forest_candidate_ranker",
             },
         ),

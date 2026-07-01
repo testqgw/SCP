@@ -10,7 +10,9 @@ from wnba_prop_model.archive_replay import (
     daily_six_pick_limits,
     default_archive_profiles,
     replay_archived_cards,
+    sweep_archive_ml_ranker_limits,
     sweep_archive_profiles,
+    walk_forward_archive_ml_limit_profiles,
     walk_forward_archive_profiles,
     walk_forward_archive_ml_ranker,
 )
@@ -111,6 +113,32 @@ def _market_learning_logs(dates: list[str]) -> pd.DataFrame:
                     "PTS": 10.0,
                     "REB": 2.0,
                     "AST": 3.0,
+                    "THREES": 0.0,
+                    "PRA": 15.0,
+                    "PA": 13.0,
+                    "PR": 12.0,
+                    "RA": 5.0,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def _market_flip_logs(training_dates: list[str], eval_dates: str | list[str]) -> pd.DataFrame:
+    rows = []
+    eval_date_set = {eval_dates} if isinstance(eval_dates, str) else set(eval_dates)
+    for slate_date in [*training_dates, *sorted(eval_date_set)]:
+        is_eval = slate_date in eval_date_set
+        for index in range(12):
+            rows.append(
+                {
+                    "game_date": pd.Timestamp(slate_date),
+                    "player_id": str(index),
+                    "player_key": f"player {index}",
+                    "team_abbr": "IND",
+                    "opponent_abbr": "WSH",
+                    "PTS": 10.0 if is_eval else 15.0,
+                    "REB": 2.0 if is_eval else 8.0,
+                    "AST": 3.0 if is_eval else 1.0,
                     "THREES": 0.0,
                     "PRA": 15.0,
                     "PA": 13.0,
@@ -258,6 +286,65 @@ def test_walk_forward_archive_ml_ranker_learns_from_prior_candidate_rows(tmp_pat
     assert all(row["learnedHitProbability"] > 0.5 for row in walk_forward["selectedRows"])
 
 
+def test_sweep_archive_ml_ranker_limits_ranks_constraint_profiles_from_cached_predictions(tmp_path: Path) -> None:
+    training_dates = ["2026-06-28", "2026-06-29"]
+    eval_date = "2026-06-30"
+    for slate_date in [*training_dates, eval_date]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+    profiles = [
+        {"name": "loose_market6", "limits": {"max_per_market": 6}},
+        {"name": "cap_market3", "limits": {"max_per_market": 3}},
+    ]
+
+    sweep = sweep_archive_ml_ranker_limits(
+        tmp_path / "archive",
+        _market_flip_logs(training_dates, eval_date),
+        profiles=profiles,
+        min_training_cards=2,
+        min_training_rows=24,
+    )
+
+    assert [profile["profileName"] for profile in sweep["profiles"]] == ["cap_market3", "loose_market6"]
+    assert sweep["profiles"][0]["summary"]["legAccuracyPct"] > sweep["profiles"][1]["summary"]["legAccuracyPct"]
+    assert sweep["profiles"][0]["summary"]["cardsEvaluated"] == 1
+    assert sweep["profiles"][0]["summary"]["predictionCardsBuilt"] == 1
+
+
+def test_walk_forward_archive_ml_limit_profiles_choose_profile_from_prior_prediction_cards(tmp_path: Path) -> None:
+    training_dates = ["2026-06-27", "2026-06-28"]
+    eval_dates = ["2026-06-29", "2026-06-30"]
+    for slate_date in [*training_dates, *eval_dates]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+    profiles = [
+        {"name": "loose_market6", "limits": {"max_per_market": 6}},
+        {"name": "cap_market3", "limits": {"max_per_market": 3}},
+    ]
+
+    walk_forward = walk_forward_archive_ml_limit_profiles(
+        tmp_path / "archive",
+        _market_flip_logs(training_dates, eval_dates),
+        profiles=profiles,
+        min_training_cards=2,
+        min_training_rows=24,
+        min_profile_training_cards=1,
+    )
+
+    assert walk_forward["summary"]["cardsEvaluated"] == 1
+    assert walk_forward["dailyRows"][0]["selectedProfileName"] == "cap_market3"
+    assert walk_forward["dailyRows"][0]["profileTrainingCards"] == 1
+    assert {row["selectedProfileName"] for row in walk_forward["selectedRows"]} == {"cap_market3"}
+
+
 def test_archive_sweep_rank_prioritizes_parlay_accuracy_after_coverage() -> None:
     higher_accuracy = {
         "summary": {
@@ -347,6 +434,10 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
             "5",
             "--ml-min-training-rows",
             "80",
+            "--ml-sweep-out",
+            "output/archive-ml-sweep.json",
+            "--ml-limit-walk-forward-out",
+            "output/archive-ml-limit-walk-forward.json",
             "--out",
             "output/archive-replay.json",
         ],
@@ -363,4 +454,6 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     assert args.ml_ranker_out == "output/archive-ml-ranker.json"
     assert args.ml_min_training_cards == 5
     assert args.ml_min_training_rows == 80
+    assert args.ml_sweep_out == "output/archive-ml-sweep.json"
+    assert args.ml_limit_walk_forward_out == "output/archive-ml-limit-walk-forward.json"
     assert args.out == "output/archive-replay.json"
