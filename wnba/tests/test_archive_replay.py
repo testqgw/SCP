@@ -9,6 +9,7 @@ from wnba_prop_model.archive_replay import (
     _ml_sweep_sort_key,
     _ml_report_from_prediction_cards,
     _sweep_sort_key,
+    audit_archive_ml_replacement_opportunities,
     daily_six_pick_limits,
     default_archive_ml_limit_profiles,
     default_archive_profiles,
@@ -472,6 +473,63 @@ def test_default_archive_ml_limit_profiles_include_team_opp_guard() -> None:
     }
 
 
+def test_audit_archive_ml_replacement_opportunities_reports_one_loss_alternates() -> None:
+    prior_rows = [
+        {**_row("prior-win-1", "Prior Win 1", "1", "PTS", "UNDER", 0.90), "settlement": "WIN", "hit_label": 1},
+        {**_row("prior-win-2", "Prior Win 2", "2", "REB", "UNDER", 0.89), "settlement": "WIN", "hit_label": 1},
+    ]
+    current_rows = [
+        {**_row("selected-win", "Selected Win", "3", "PTS", "UNDER", 0.95), "settlement": "WIN", "hit_label": 1},
+        {**_row("selected-loss", "Selected Loss", "4", "REB", "UNDER", 0.94), "settlement": "LOSS", "hit_label": 0},
+        {**_row("replacement-win", "Replacement Win", "5", "AST", "UNDER", 0.80), "settlement": "WIN", "hit_label": 1},
+    ]
+    for row in prior_rows:
+        row["slate_date"] = "2026-06-29"
+        row["learnedHitProbability"] = row["final_score"]
+    for row in current_rows:
+        row["slate_date"] = "2026-06-30"
+        row["learnedHitProbability"] = row["final_score"]
+    prediction_cards = [
+        {
+            "cardPath": "archive/2026-06-29/current-card.json",
+            "slateDate": "2026-06-29",
+            "portfolioConfig": {},
+            "candidateRows": prior_rows,
+            "trainingCards": 1,
+            "trainingRows": 20,
+        },
+        {
+            "cardPath": "archive/2026-06-30/current-card.json",
+            "slateDate": "2026-06-30",
+            "portfolioConfig": {},
+            "candidateRows": current_rows,
+            "trainingCards": 2,
+            "trainingRows": 30,
+        },
+    ]
+
+    audit = audit_archive_ml_replacement_opportunities(
+        prediction_cards,
+        profiles=[
+            {
+                "name": "two_pick",
+                "limits": {
+                    **daily_six_pick_limits(max_picks=2),
+                    "target_picks": 2,
+                    "max_per_market": 2,
+                },
+            }
+        ],
+        target_picks=2,
+        min_profile_training_cards=1,
+    )
+
+    assert audit["summary"]["oneLossCards"] == 1
+    assert audit["summary"]["oneLossCardsWithWinningAlternatives"] == 1
+    assert audit["dailyRows"][0]["losingLeg"]["candidate_id"] == "selected-loss"
+    assert audit["dailyRows"][0]["winningAlternatives"][0]["candidate_id"] == "replacement-win"
+
+
 def test_rerank_current_card_with_archive_ml_uses_prior_archive_rows(tmp_path: Path) -> None:
     for slate_date in ["2026-06-28", "2026-06-29"]:
         archive_dir = tmp_path / "archive" / slate_date
@@ -742,6 +800,8 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
             "output/archive-ml-sweep.json",
             "--ml-limit-walk-forward-out",
             "output/archive-ml-limit-walk-forward.json",
+            "--ml-replacement-audit-out",
+            "output/archive-ml-replacement-audit.json",
             "--out",
             "output/archive-replay.json",
         ],
@@ -760,4 +820,5 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     assert args.ml_min_training_rows == 80
     assert args.ml_sweep_out == "output/archive-ml-sweep.json"
     assert args.ml_limit_walk_forward_out == "output/archive-ml-limit-walk-forward.json"
+    assert args.ml_replacement_audit_out == "output/archive-ml-replacement-audit.json"
     assert args.out == "output/archive-replay.json"

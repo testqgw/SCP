@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import data_scoresandodds, data_theoddsapi
 from .archive_replay import (
+    audit_walk_forward_archive_ml_replacements,
     daily_six_pick_limits,
     default_archive_ml_limit_profiles,
     default_archive_profiles,
@@ -107,6 +108,7 @@ def parse_args() -> argparse.Namespace:
     archive_replay.add_argument("--ml-ranker-out", default=None)
     archive_replay.add_argument("--ml-sweep-out", default=None)
     archive_replay.add_argument("--ml-limit-walk-forward-out", default=None)
+    archive_replay.add_argument("--ml-replacement-audit-out", default=None)
     archive_replay.add_argument("--ml-min-training-cards", type=int, default=5)
     archive_replay.add_argument("--ml-min-training-rows", type=int, default=80)
     archive_replay.add_argument("--include-preseason", action="store_true")
@@ -355,6 +357,23 @@ def cmd_archive_replay(args: argparse.Namespace) -> int:
             f"leg accuracy: {limit_summary['legAccuracyPct']}"
         )
         print(f"ML limit walk-forward JSON: {ml_limit_walk_forward_out}")
+    if args.ml_replacement_audit_out:
+        replacement_audit = audit_walk_forward_archive_ml_replacements(
+            args.archive_root,
+            logs,
+            profiles=default_archive_ml_limit_profiles(max_picks=args.max_picks, min_score=args.min_score),
+            current_card=args.current_card if args.include_current else None,
+            limits=daily_six_pick_limits(max_picks=args.max_picks, min_score=args.min_score),
+            min_training_cards=args.ml_min_training_cards,
+            min_training_rows=args.ml_min_training_rows,
+        )
+        replacement_audit_out = write_replay_report(replacement_audit, args.ml_replacement_audit_out)
+        audit_summary = replacement_audit["summary"]
+        print(
+            f"ML replacement audit: one-loss cards {audit_summary['oneLossCards']}; "
+            f"with winning alternatives: {audit_summary['oneLossCardsWithWinningAlternatives']}"
+        )
+        print(f"ML replacement audit JSON: {replacement_audit_out}")
     return 0
 
 

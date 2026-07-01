@@ -694,6 +694,50 @@ def _apply_weak_bucket_guard(
     return adjusted
 
 
+def _ml_probabilities_for_prediction_card(
+    data: dict[str, Any],
+    selection_limits: dict[str, Any],
+    prior_context_cards: list[dict[str, Any]] | None = None,
+) -> list[float]:
+    probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in data["candidateRows"]]
+    weak_bucket_config = selection_limits.get("weak_bucket_guard")
+    if weak_bucket_config:
+        weak_bucket_stats = _weak_bucket_stats_from_prior_cards(
+            prior_context_cards or [],
+            selection_limits,
+            weak_bucket_config,
+        )
+        probabilities = _apply_weak_bucket_guard(
+            data["candidateRows"],
+            probabilities,
+            weak_bucket_stats,
+            weak_bucket_config,
+        )
+    return probabilities
+
+
+def _audit_leg_summary(row: dict[str, Any], adjusted_probability: float | None = None) -> dict[str, Any]:
+    summary = {
+        "candidate_id": row.get("candidate_id"),
+        "player": row.get("player"),
+        "team": row.get("team"),
+        "opponent": row.get("opponent"),
+        "market": row.get("market"),
+        "side": row.get("side"),
+        "line": row.get("line"),
+        "settlement": row.get("settlement"),
+        "learnedHitProbability": row.get("learnedHitProbability"),
+        "final_score": row.get("final_score"),
+        "model_probability": row.get("model_probability"),
+        "tier": row.get("tier"),
+        "source_book": row.get("source_book"),
+        "risk_flags": row.get("risk_flags") or [],
+    }
+    if adjusted_probability is not None:
+        summary["adjustedProbability"] = round(float(adjusted_probability), 5)
+    return summary
+
+
 def _selected_ml_rows_for_report(
     selected_rows: list[dict[str, Any]],
     card_path: str,
@@ -788,20 +832,11 @@ def _ml_report_from_prediction_cards(
     for index, data in enumerate(prediction_cards):
         selection_limits = {**(data.get("portfolioConfig") or {}), **(limits or {})}
         candidate_rows = data["candidateRows"]
-        probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in candidate_rows]
-        weak_bucket_config = selection_limits.get("weak_bucket_guard")
-        if weak_bucket_config:
-            weak_bucket_stats = _weak_bucket_stats_from_prior_cards(
-                [*context_cards, *prediction_cards[:index]],
-                selection_limits,
-                weak_bucket_config,
-            )
-            probabilities = _apply_weak_bucket_guard(
-                candidate_rows,
-                probabilities,
-                weak_bucket_stats,
-                weak_bucket_config,
-            )
+        probabilities = _ml_probabilities_for_prediction_card(
+            data,
+            selection_limits,
+            [*context_cards, *prediction_cards[:index]],
+        )
         selected = _select_ml_ranked_rows(candidate_rows, probabilities, selection_limits)
         selected_count = len(selected)
         wins = sum(row.get("settlement") == "WIN" for row in selected)
@@ -1069,6 +1104,152 @@ def walk_forward_archive_ml_limit_profiles(
     }
 
 
+def audit_archive_ml_replacement_opportunities(
+    prediction_cards: list[dict[str, Any]],
+    *,
+    profiles: list[dict[str, Any]],
+    target_picks: int = 6,
+    min_profile_training_cards: int = 1,
+    max_alternatives: int = 8,
+) -> dict[str, Any]:
+    daily_rows: list[dict[str, Any]] = []
+    for index in range(len(prediction_cards)):
+        if index < min_profile_training_cards:
+            continue
+        profile_results: list[dict[str, Any]] = []
+        for profile_index, profile in enumerate(profiles):
+            profile_limits = dict(profile.get("limits") or {})
+            report = _ml_report_from_prediction_cards(
+                prediction_cards[:index],
+                limits=profile_limits,
+                target_picks=target_picks,
+            )
+            profile_results.append(
+                {
+                    "profileIndex": profile_index,
+                    "profileName": str(profile.get("name") or f"profile_{profile_index + 1}"),
+                    "limits": profile_limits,
+                    "summary": report["summary"],
+                }
+            )
+        profile_results.sort(key=_ml_sweep_sort_key, reverse=True)
+        if not profile_results:
+            continue
+        selected_profile = profile_results[0]
+        profile_limits = dict(selected_profile.get("limits") or {})
+        data = prediction_cards[index]
+        selection_limits = {**(data.get("portfolioConfig") or {}), **profile_limits}
+        probabilities = _ml_probabilities_for_prediction_card(
+            data,
+            selection_limits,
+            prediction_cards[:index],
+        )
+        selected = _select_ml_ranked_rows(data["candidateRows"], probabilities, selection_limits)
+        selected_count = len(selected)
+        wins = sum(row.get("settlement") == "WIN" for row in selected)
+        losses = sum(row.get("settlement") == "LOSS" for row in selected)
+        settled = wins + losses
+        if selected_count < target_picks or settled != selected_count or losses != 1 or wins != target_picks - 1:
+            continue
+        probability_by_id = {
+            str(row.get("candidate_id") or id(row)): probability
+            for row, probability in zip(data["candidateRows"], probabilities)
+        }
+        selected_ids = {str(row.get("candidate_id") or id(row)) for row in selected}
+        losing_leg = next(row for row in selected if row.get("settlement") == "LOSS")
+        alternatives = [
+            row
+            for row in data["candidateRows"]
+            if str(row.get("candidate_id") or id(row)) not in selected_ids and row.get("settlement") == "WIN"
+        ]
+        alternatives.sort(
+            key=lambda row: (
+                float(probability_by_id.get(str(row.get("candidate_id") or id(row)), 0.0)),
+                float(row.get("final_score") or 0.0),
+                float(row.get("model_probability") or 0.0),
+            ),
+            reverse=True,
+        )
+        daily_rows.append(
+            {
+                "slateDate": data["slateDate"],
+                "cardPath": data["cardPath"],
+                "selectedProfileName": selected_profile["profileName"],
+                "selectedCount": selected_count,
+                "wins": wins,
+                "losses": losses,
+                "losingLeg": _audit_leg_summary(
+                    losing_leg,
+                    probability_by_id.get(str(losing_leg.get("candidate_id") or id(losing_leg))),
+                ),
+                "selectedRows": [
+                    _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                    for row in selected
+                ],
+                "winningAlternatives": [
+                    _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                    for row in alternatives[:max_alternatives]
+                ],
+            }
+        )
+    one_loss_with_alternatives = sum(1 for row in daily_rows if row["winningAlternatives"])
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "summary": {
+            "cardsEvaluated": max(0, len(prediction_cards) - min_profile_training_cards),
+            "targetPicks": target_picks,
+            "oneLossCards": len(daily_rows),
+            "oneLossCardsWithWinningAlternatives": one_loss_with_alternatives,
+            "maxPotentialAdditionalParlayWins": one_loss_with_alternatives,
+        },
+        "dailyRows": daily_rows,
+    }
+
+
+def audit_walk_forward_archive_ml_replacements(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    profiles: list[dict[str, Any]] | None = None,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+    min_profile_training_cards: int = 1,
+) -> dict[str, Any]:
+    replay_limits = limits or daily_six_pick_limits()
+    card_data = [
+        data
+        for path in _card_paths(archive_root, current_card)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    prediction_cards, skipped_cards = _build_ml_prediction_cards(
+        card_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    report = audit_archive_ml_replacement_opportunities(
+        prediction_cards,
+        profiles=profiles or default_archive_ml_limit_profiles(max_picks=target_picks),
+        target_picks=target_picks,
+        min_profile_training_cards=min_profile_training_cards,
+    )
+    report["summary"].update(
+        {
+            "cardsSkipped": skipped_cards,
+            "predictionCardsBuilt": len(prediction_cards),
+            "minTrainingCards": min_training_cards,
+            "minTrainingRows": min_training_rows,
+            "minProfileTrainingCards": min_profile_training_cards,
+        }
+    )
+    return report
+
+
 def _prior_archive_paths(archive_root: str | Path, slate_date: str | None) -> list[Path]:
     paths = _card_paths(archive_root)
     if not slate_date:
@@ -1192,21 +1373,12 @@ def rerank_current_card_with_archive_ml(
     best_profile = _best_ml_limit_profile_from_prediction_cards(prediction_cards, profile_grid, target_picks)
     selected_profile_name = str(best_profile.get("profileName") or "archive_ml")
     profile_limits = dict(best_profile.get("limits") or {})
-    probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in current_prediction["candidateRows"]]
     selection_limits = {**current_prediction["portfolioConfig"], **profile_limits}
-    weak_bucket_config = selection_limits.get("weak_bucket_guard")
-    if weak_bucket_config:
-        weak_bucket_stats = _weak_bucket_stats_from_prior_cards(
-            prediction_cards,
-            selection_limits,
-            weak_bucket_config,
-        )
-        probabilities = _apply_weak_bucket_guard(
-            current_prediction["candidateRows"],
-            probabilities,
-            weak_bucket_stats,
-            weak_bucket_config,
-        )
+    probabilities = _ml_probabilities_for_prediction_card(
+        current_prediction,
+        selection_limits,
+        prediction_cards,
+    )
     selected = _select_ml_ranked_rows(
         current_prediction["candidateRows"],
         probabilities,
