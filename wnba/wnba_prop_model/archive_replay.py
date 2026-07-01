@@ -137,6 +137,16 @@ def default_archive_ml_limit_profiles(max_picks: int = 6, min_score: float = 0.6
                     "hit_rate_floor": 0.55,
                     "penalty": 0.0,
                 },
+                "ml_replacement_rule": {
+                    "selected_tiers": ["D"],
+                    "selected_markets": ["REB"],
+                    "selected_side": "UNDER",
+                    "max_selected_final_score": 0.35,
+                    "replacement_side": "UNDER",
+                    "min_probability_gain": 0.02,
+                    "require_replacement_player_selected": True,
+                    "max_replacements": 1,
+                },
             },
         }
     )
@@ -738,6 +748,84 @@ def _audit_leg_summary(row: dict[str, Any], adjusted_probability: float | None =
     return summary
 
 
+def _candidate_key(row: dict[str, Any]) -> str:
+    return str(row.get("candidate_id") or id(row))
+
+
+def _player_key(row: dict[str, Any]) -> str:
+    return str(row.get("player_id") or row.get("player") or "").lower()
+
+
+def _apply_ml_replacement_rule(
+    candidate_rows: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
+    probabilities: list[float],
+    config: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    if not config:
+        return selected_rows
+    selected = deepcopy(selected_rows)
+    probability_by_id = {_candidate_key(row): probability for row, probability in zip(candidate_rows, probabilities)}
+    selected_ids = {_candidate_key(row) for row in selected}
+    selected_players = {_player_key(row) for row in selected}
+    unselected = [deepcopy(row) for row in candidate_rows if _candidate_key(row) not in selected_ids]
+    unselected.sort(
+        key=lambda row: (
+            float(probability_by_id.get(_candidate_key(row), 0.0)),
+            float(row.get("final_score") or 0.0),
+            float(row.get("model_probability") or 0.0),
+        ),
+        reverse=True,
+    )
+    selected_tiers = set(config.get("selected_tiers") or [])
+    selected_markets = set(config.get("selected_markets") or [])
+    selected_side = str(config.get("selected_side") or "").upper()
+    replacement_side = str(config.get("replacement_side") or "").upper()
+    max_selected_score = float(config.get("max_selected_final_score", 1.0))
+    min_probability_gain = float(config.get("min_probability_gain") or 0.0)
+    max_replacements = int(config.get("max_replacements") or 1)
+    replacements = 0
+    eligible_selected = [
+        (index, row)
+        for index, row in enumerate(selected)
+        if (not selected_tiers or row.get("tier") in selected_tiers)
+        and (not selected_markets or row.get("market") in selected_markets)
+        and (not selected_side or str(row.get("side") or "").upper() == selected_side)
+        and float(row.get("final_score") or 0.0) <= max_selected_score
+    ]
+    eligible_selected.sort(
+        key=lambda item: (
+            float(probability_by_id.get(_candidate_key(item[1]), 0.0)),
+            float(item[1].get("final_score") or 0.0),
+        )
+    )
+    for selected_index, selected_row in eligible_selected:
+        if replacements >= max_replacements:
+            break
+        selected_probability = float(probability_by_id.get(_candidate_key(selected_row), 0.0))
+        for replacement in unselected:
+            if _candidate_key(replacement) in selected_ids:
+                continue
+            if replacement.get("market") != selected_row.get("market"):
+                continue
+            if replacement_side and str(replacement.get("side") or "").upper() != replacement_side:
+                continue
+            if config.get("require_replacement_player_selected") and _player_key(replacement) not in selected_players:
+                continue
+            replacement_probability = float(probability_by_id.get(_candidate_key(replacement), 0.0))
+            if replacement_probability < selected_probability + min_probability_gain:
+                continue
+            replacement["model_action"] = "SELECTED"
+            replacement["selected_rank"] = selected_row.get("selected_rank")
+            replacement["risk_flags"] = sorted(set((replacement.get("risk_flags") or []) + ["ml_replacement_rule"]))
+            selected[selected_index] = replacement
+            selected_ids.discard(_candidate_key(selected_row))
+            selected_ids.add(_candidate_key(replacement))
+            replacements += 1
+            break
+    return sorted(selected, key=lambda row: row.get("selected_rank") or 999)
+
+
 def _selected_ml_rows_for_report(
     selected_rows: list[dict[str, Any]],
     card_path: str,
@@ -838,6 +926,12 @@ def _ml_report_from_prediction_cards(
             [*context_cards, *prediction_cards[:index]],
         )
         selected = _select_ml_ranked_rows(candidate_rows, probabilities, selection_limits)
+        selected = _apply_ml_replacement_rule(
+            candidate_rows,
+            selected,
+            probabilities,
+            selection_limits.get("ml_replacement_rule"),
+        )
         selected_count = len(selected)
         wins = sum(row.get("settlement") == "WIN" for row in selected)
         losses = sum(row.get("settlement") == "LOSS" for row in selected)
@@ -1146,6 +1240,12 @@ def audit_archive_ml_replacement_opportunities(
             prediction_cards[:index],
         )
         selected = _select_ml_ranked_rows(data["candidateRows"], probabilities, selection_limits)
+        selected = _apply_ml_replacement_rule(
+            data["candidateRows"],
+            selected,
+            probabilities,
+            selection_limits.get("ml_replacement_rule"),
+        )
         selected_count = len(selected)
         wins = sum(row.get("settlement") == "WIN" for row in selected)
         losses = sum(row.get("settlement") == "LOSS" for row in selected)
@@ -1385,6 +1485,12 @@ def rerank_current_card_with_archive_ml(
         probabilities,
         selection_limits,
     )
+    selected = _apply_ml_replacement_rule(
+        current_prediction["candidateRows"],
+        selected,
+        probabilities,
+        selection_limits.get("ml_replacement_rule"),
+    )
     if len(selected) < target_picks:
         profile_limits = {**profile_limits, "allow_same_player_coverage_fill": True}
         selection_limits = {**current_prediction["portfolioConfig"], **profile_limits}
@@ -1392,6 +1498,12 @@ def rerank_current_card_with_archive_ml(
             current_prediction["candidateRows"],
             probabilities,
             selection_limits,
+        )
+        selected = _apply_ml_replacement_rule(
+            current_prediction["candidateRows"],
+            selected,
+            probabilities,
+            selection_limits.get("ml_replacement_rule"),
         )
         selected_profile_name = f"{selected_profile_name}_auto_sameplayerfill"
         warnings.append("Archive ML rerank auto-filled to preserve six-pick coverage.")
