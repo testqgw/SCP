@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from . import data_scoresandodds, data_theoddsapi
+from .archive_replay import daily_six_pick_limits, replay_archived_cards, write_replay_report
 from .data_sportsgrid import fetch_props, props_to_board_rows, write_board_csv
 from .data_espn import fetch_player_game_logs, write_logs_csv
 from .model import backtest_historical_lines, load_board, load_logs, score_board, write_card
@@ -80,6 +81,17 @@ def parse_args() -> argparse.Namespace:
     audit = subparsers.add_parser("audit-data", help="Summarize local player log coverage")
     audit.add_argument("--logs", default="data/raw/wnba_player_game_logs.csv")
     audit.add_argument("--include-preseason", action="store_true")
+
+    archive_replay = subparsers.add_parser("archive-replay", help="Replay archived generated cards with the current selector")
+    archive_replay.add_argument("--logs", default="data/raw/wnba_player_game_logs.csv")
+    archive_replay.add_argument("--archive-root", default="archive")
+    archive_replay.add_argument("--current-card", default="output/current-card.json")
+    archive_replay.add_argument("--include-current", action="store_true")
+    archive_replay.add_argument("--daily-six-pick", action="store_true")
+    archive_replay.add_argument("--max-picks", type=int, default=6)
+    archive_replay.add_argument("--min-score", type=float, default=0.68)
+    archive_replay.add_argument("--out", default="output/wnba-archive-replay.json")
+    archive_replay.add_argument("--include-preseason", action="store_true")
     return parser.parse_args()
 
 
@@ -218,6 +230,26 @@ def cmd_audit(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_archive_replay(args: argparse.Namespace) -> int:
+    logs = load_logs(args.logs, include_preseason=args.include_preseason)
+    limits = daily_six_pick_limits(max_picks=args.max_picks, min_score=args.min_score) if args.daily_six_pick else None
+    report = replay_archived_cards(
+        args.archive_root,
+        logs,
+        current_card=args.current_card if args.include_current else None,
+        limits=limits,
+    )
+    out = write_replay_report(report, args.out)
+    summary = report["summary"]
+    print(
+        f"Replayed {summary['cardsReplayed']} cards; six-pick settled dates: "
+        f"{summary['sixPickSettledDates']}; parlay accuracy: {summary['sixPickParlayAccuracyPct']}; "
+        f"leg accuracy: {summary['legAccuracyPct']}"
+    )
+    print(f"JSON: {out}")
+    return 0
+
+
 def main() -> int:
     args = parse_args()
     if args.command == "fetch":
@@ -236,4 +268,6 @@ def main() -> int:
         return cmd_settle(args)
     if args.command == "audit-data":
         return cmd_audit(args)
+    if args.command == "archive-replay":
+        return cmd_archive_replay(args)
     raise RuntimeError(f"Unknown command {args.command}")

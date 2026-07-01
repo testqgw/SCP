@@ -42,7 +42,9 @@ def test_portfolio_selects_one_pick_per_player() -> None:
 
     selected = [row for row in rows if row["model_action"] == "SELECTED"]
     assert [row["player"] for row in selected] == ["Player A", "Player B"]
-    assert rows[1]["rejection_reason"] == "max_per_player"
+    rejected_player_a_rows = [row for row in rows if row["player"] == "Player A" and row["model_action"] != "SELECTED"]
+    assert len(rejected_player_a_rows) == 1
+    assert rejected_player_a_rows[0]["rejection_reason"] == "max_per_player"
 
 
 def test_forced_fill_reaches_six_from_playable_current_rows_when_enabled() -> None:
@@ -309,6 +311,68 @@ def test_forced_fill_prefers_stable_market_over_threes_over_when_scores_are_clos
     selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
     assert "Stable Fill" in selected_players
     assert "Threes Over Fill" not in selected_players
+
+
+def test_standard_selection_prefers_stable_market_over_pra_under_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    pra_under = _row("pra-under", "PRA Under", "pra-under", "PRA", 0.72)
+    stable = _row("stable", "Stable", "stable", "REB", 0.69)
+    rows = standard_rows + [pra_under, stable]
+    pra_under["tier"] = "B"
+    pra_under["side"] = "UNDER"
+    stable["tier"] = "B"
+    for row in rows:
+        row["model_probability"] = 0.64
+        row["fair_probability"] = 0.55
+        row["price_edge"] = 0.04
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Stable" in selected_players
+    assert "PRA Under" not in selected_players
+
+
+def test_standard_selection_prefers_stable_minutes_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    volatile = _row("volatile", "Volatile", "volatile", "REB", 0.72)
+    stable = _row("stable", "Stable", "stable", "REB", 0.69)
+    rows = standard_rows + [volatile, stable]
+    volatile["tier"] = "B"
+    volatile["risk_flags"] = ["volatile_minutes"]
+    stable["tier"] = "B"
+    for row in rows:
+        row["model_probability"] = 0.64
+        row["fair_probability"] = 0.55
+        row["price_edge"] = 0.04
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Stable" in selected_players
+    assert "Volatile" not in selected_players
 
 
 def test_empty_card_is_safe_for_no_slate_output() -> None:

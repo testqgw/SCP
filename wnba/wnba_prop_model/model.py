@@ -760,7 +760,12 @@ def _is_forced_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bo
 
 
 def _candidate_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
-    return (float(row["final_score"]), float(row["model_probability"]), float(row["abs_line_gap"]))
+    stability_penalty = 0.0
+    if row["market"] == "PRA" and row["side"] == "UNDER":
+        stability_penalty += 0.04
+    if "volatile_minutes" in row.get("risk_flags", []):
+        stability_penalty += 0.04
+    return (float(row["final_score"]) - stability_penalty, float(row["model_probability"]), float(row["abs_line_gap"]))
 
 
 def _forced_fill_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
