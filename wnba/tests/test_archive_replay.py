@@ -517,6 +517,83 @@ def test_ml_report_applies_low_score_same_market_replacement_rule() -> None:
     assert "ml_replacement_rule" in report["selectedRows"][1]["risk_flags"]
 
 
+def test_ml_report_applies_ordered_cross_market_replacement_rules() -> None:
+    current_rows = [
+        {
+            **_row("selected-pts", "Selected PTS", "1", "PTS", "UNDER", 0.91),
+            "settlement": "WIN",
+            "hit_label": 1,
+            "tier": "A",
+            "model_probability": 0.91,
+        },
+        {
+            **_row("selected-ast-loss", "Selected AST Loss", "2", "AST", "UNDER", 0.70),
+            "settlement": "LOSS",
+            "hit_label": 0,
+            "tier": "D",
+            "final_score": 0.30,
+            "model_probability": 0.70,
+        },
+        {
+            **_row("replacement-pr-win", "Replacement PR Win", "1", "PR", "UNDER", 0.75),
+            "settlement": "WIN",
+            "hit_label": 1,
+            "tier": "D",
+            "final_score": 0.40,
+            "model_probability": 0.75,
+        },
+    ]
+    for row in current_rows:
+        row["learnedHitProbability"] = row["model_probability"]
+    prediction_cards = [
+        {
+            "cardPath": "archive/2026-06-30/current-card.json",
+            "slateDate": "2026-06-30",
+            "portfolioConfig": {},
+            "candidateRows": current_rows,
+            "trainingCards": 2,
+            "trainingRows": 30,
+        }
+    ]
+
+    report = _ml_report_from_prediction_cards(
+        prediction_cards,
+        limits={
+            **daily_six_pick_limits(max_picks=2),
+            "target_picks": 2,
+            "max_per_market": 2,
+            "ml_replacement_rule": [
+                {
+                    "selected_tiers": ["D"],
+                    "selected_markets": ["REB"],
+                    "selected_side": "UNDER",
+                    "max_selected_final_score": 0.35,
+                    "replacement_side": "UNDER",
+                    "min_probability_gain": 0.02,
+                    "require_replacement_player_selected": True,
+                    "max_replacements": 1,
+                },
+                {
+                    "selected_tiers": ["C", "D"],
+                    "selected_markets": ["PTS", "REB", "AST", "THREES"],
+                    "selected_side": "UNDER",
+                    "max_selected_final_score": 0.35,
+                    "replacement_markets": ["PTS", "REB", "AST", "THREES", "PR", "PA", "RA", "PRA"],
+                    "replacement_side": "UNDER",
+                    "min_probability_gain": 0.04,
+                    "require_replacement_player_selected": True,
+                    "max_replacements": 1,
+                },
+            ],
+        },
+        target_picks=2,
+    )
+
+    assert [row["player"] for row in report["selectedRows"]] == ["Selected PTS", "Replacement PR Win"]
+    assert report["summary"]["sixPickParlayWins"] == 1
+    assert "ml_replacement_rule" in report["selectedRows"][1]["risk_flags"]
+
+
 def test_default_archive_ml_limit_profiles_include_team_opp_guard() -> None:
     profiles = default_archive_ml_limit_profiles(max_picks=6)
 
@@ -536,16 +613,29 @@ def test_default_archive_ml_limit_profiles_include_team_opp_guard() -> None:
         "penalty": 0.0,
     }
     replacement = guarded[0]["limits"]["ml_replacement_rule"]
-    assert replacement == {
-        "selected_tiers": ["D"],
-        "selected_markets": ["REB"],
-        "selected_side": "UNDER",
-        "max_selected_final_score": 0.35,
-        "replacement_side": "UNDER",
-        "min_probability_gain": 0.02,
-        "require_replacement_player_selected": True,
-        "max_replacements": 1,
-    }
+    assert replacement == [
+        {
+            "selected_tiers": ["D"],
+            "selected_markets": ["REB"],
+            "selected_side": "UNDER",
+            "max_selected_final_score": 0.35,
+            "replacement_side": "UNDER",
+            "min_probability_gain": 0.02,
+            "require_replacement_player_selected": True,
+            "max_replacements": 1,
+        },
+        {
+            "selected_tiers": ["C", "D"],
+            "selected_markets": ["PTS", "REB", "AST", "THREES"],
+            "selected_side": "UNDER",
+            "max_selected_final_score": 0.35,
+            "replacement_markets": ["PTS", "REB", "AST", "THREES", "PR", "PA", "RA", "PRA"],
+            "replacement_side": "UNDER",
+            "min_probability_gain": 0.04,
+            "require_replacement_player_selected": True,
+            "max_replacements": 1,
+        },
+    ]
 
 
 def test_audit_archive_ml_replacement_opportunities_reports_one_loss_alternates() -> None:

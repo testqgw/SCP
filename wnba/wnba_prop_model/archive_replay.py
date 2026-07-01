@@ -137,16 +137,29 @@ def default_archive_ml_limit_profiles(max_picks: int = 6, min_score: float = 0.6
                     "hit_rate_floor": 0.55,
                     "penalty": 0.0,
                 },
-                "ml_replacement_rule": {
-                    "selected_tiers": ["D"],
-                    "selected_markets": ["REB"],
-                    "selected_side": "UNDER",
-                    "max_selected_final_score": 0.35,
-                    "replacement_side": "UNDER",
-                    "min_probability_gain": 0.02,
-                    "require_replacement_player_selected": True,
-                    "max_replacements": 1,
-                },
+                "ml_replacement_rule": [
+                    {
+                        "selected_tiers": ["D"],
+                        "selected_markets": ["REB"],
+                        "selected_side": "UNDER",
+                        "max_selected_final_score": 0.35,
+                        "replacement_side": "UNDER",
+                        "min_probability_gain": 0.02,
+                        "require_replacement_player_selected": True,
+                        "max_replacements": 1,
+                    },
+                    {
+                        "selected_tiers": ["C", "D"],
+                        "selected_markets": ["PTS", "REB", "AST", "THREES"],
+                        "selected_side": "UNDER",
+                        "max_selected_final_score": 0.35,
+                        "replacement_markets": ["PTS", "REB", "AST", "THREES", "PR", "PA", "RA", "PRA"],
+                        "replacement_side": "UNDER",
+                        "min_probability_gain": 0.04,
+                        "require_replacement_player_selected": True,
+                        "max_replacements": 1,
+                    },
+                ],
             },
         }
     )
@@ -756,14 +769,12 @@ def _player_key(row: dict[str, Any]) -> str:
     return str(row.get("player_id") or row.get("player") or "").lower()
 
 
-def _apply_ml_replacement_rule(
+def _apply_single_ml_replacement_rule(
     candidate_rows: list[dict[str, Any]],
     selected_rows: list[dict[str, Any]],
     probabilities: list[float],
-    config: dict[str, Any] | None,
+    config: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    if not config:
-        return selected_rows
     selected = deepcopy(selected_rows)
     probability_by_id = {_candidate_key(row): probability for row, probability in zip(candidate_rows, probabilities)}
     selected_ids = {_candidate_key(row) for row in selected}
@@ -780,6 +791,7 @@ def _apply_ml_replacement_rule(
     selected_tiers = set(config.get("selected_tiers") or [])
     selected_markets = set(config.get("selected_markets") or [])
     selected_side = str(config.get("selected_side") or "").upper()
+    replacement_markets = set(config.get("replacement_markets") or [])
     replacement_side = str(config.get("replacement_side") or "").upper()
     max_selected_score = float(config.get("max_selected_final_score", 1.0))
     min_probability_gain = float(config.get("min_probability_gain") or 0.0)
@@ -806,7 +818,9 @@ def _apply_ml_replacement_rule(
         for replacement in unselected:
             if _candidate_key(replacement) in selected_ids:
                 continue
-            if replacement.get("market") != selected_row.get("market"):
+            if replacement_markets and replacement.get("market") not in replacement_markets:
+                continue
+            if not replacement_markets and replacement.get("market") != selected_row.get("market"):
                 continue
             if replacement_side and str(replacement.get("side") or "").upper() != replacement_side:
                 continue
@@ -821,9 +835,26 @@ def _apply_ml_replacement_rule(
             selected[selected_index] = replacement
             selected_ids.discard(_candidate_key(selected_row))
             selected_ids.add(_candidate_key(replacement))
+            selected_players = {_player_key(row) for row in selected}
             replacements += 1
             break
     return sorted(selected, key=lambda row: row.get("selected_rank") or 999)
+
+
+def _apply_ml_replacement_rule(
+    candidate_rows: list[dict[str, Any]],
+    selected_rows: list[dict[str, Any]],
+    probabilities: list[float],
+    config: dict[str, Any] | list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    if not config:
+        return selected_rows
+    configs = config if isinstance(config, list) else [config]
+    selected = selected_rows
+    for replacement_config in configs:
+        if replacement_config:
+            selected = _apply_single_ml_replacement_rule(candidate_rows, selected, probabilities, replacement_config)
+    return selected
 
 
 def _selected_ml_rows_for_report(
