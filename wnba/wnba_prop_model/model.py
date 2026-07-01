@@ -767,8 +767,14 @@ def _forced_fill_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
     stability_penalty = 0.0
     if row["market"] == "THREES":
         stability_penalty += 0.06
+        if row["side"] == "OVER":
+            stability_penalty += 0.07
     if row["market"] in COMBO_MARKETS:
         stability_penalty += 0.03
+    if row["market"] == "PRA":
+        stability_penalty += 0.04
+    if row["market"] == "PTS" and row["side"] == "UNDER":
+        stability_penalty += 0.04
     if "volatile_minutes" in row.get("risk_flags", []):
         stability_penalty += 0.03
     if "source_projection_disagreement" in row.get("risk_flags", []):

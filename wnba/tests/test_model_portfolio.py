@@ -100,7 +100,7 @@ def test_forced_fill_blocks_unresolved_or_unknown_context_rows() -> None:
 def test_forced_fill_prefers_sturdier_market_when_scores_are_close() -> None:
     standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
     volatile_fill = _row("volatile", "Volatile Fill", "volatile", "THREES", 0.61)
-    sturdy_fill = _row("sturdy", "Sturdy Fill", "sturdy", "PTS", 0.59)
+    sturdy_fill = _row("sturdy", "Sturdy Fill", "sturdy", "REB", 0.59)
     rows = standard_rows + [volatile_fill, sturdy_fill]
     for row in standard_rows:
         row["tier"] = "A"
@@ -205,6 +205,110 @@ def test_forced_fill_prefers_clean_projection_over_disagreement_when_scores_are_
     selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
     assert "Clean Fill" in selected_players
     assert "Disagreement Fill" not in selected_players
+
+
+def test_forced_fill_prefers_stable_market_over_pts_under_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    points_under_fill = _row("points-under", "Points Under Fill", "points-under", "PTS", 0.61)
+    stable_fill = _row("stable", "Stable Fill", "stable", "REB", 0.58)
+    rows = standard_rows + [points_under_fill, stable_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    for row in [points_under_fill, stable_fill]:
+        row["tier"] = "D"
+        row["model_probability"] = 0.56
+        row["fair_probability"] = 0.50
+        row["price_edge"] = -0.01
+    points_under_fill["side"] = "UNDER"
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Stable Fill" in selected_players
+    assert "Points Under Fill" not in selected_players
+
+
+def test_forced_fill_prefers_stable_market_over_pra_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    pra_fill = _row("pra", "PRA Fill", "pra", "PRA", 0.62)
+    stable_fill = _row("stable", "Stable Fill", "stable", "REB", 0.58)
+    rows = standard_rows + [pra_fill, stable_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    for row in [pra_fill, stable_fill]:
+        row["tier"] = "D"
+        row["model_probability"] = 0.56
+        row["fair_probability"] = 0.50
+        row["price_edge"] = -0.01
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Stable Fill" in selected_players
+    assert "PRA Fill" not in selected_players
+
+
+def test_forced_fill_prefers_stable_market_over_threes_over_when_scores_are_close() -> None:
+    standard_rows = [_row(f"standard-{index}", f"Standard {index}", f"s{index}", "AST", 0.80) for index in range(5)]
+    threes_over_fill = _row("threes-over", "Threes Over Fill", "threes-over", "THREES", 0.66)
+    stable_fill = _row("stable", "Stable Fill", "stable", "REB", 0.58)
+    rows = standard_rows + [threes_over_fill, stable_fill]
+    for row in standard_rows:
+        row["tier"] = "A"
+        row["model_probability"] = 0.68
+    for row in [threes_over_fill, stable_fill]:
+        row["tier"] = "D"
+        row["model_probability"] = 0.56
+        row["fair_probability"] = 0.50
+        row["price_edge"] = -0.01
+    threes_over_fill["side"] = "OVER"
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_same_team_counting_overs": 6,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected_players = [row["player"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "Stable Fill" in selected_players
+    assert "Threes Over Fill" not in selected_players
 
 
 def test_empty_card_is_safe_for_no_slate_output() -> None:
