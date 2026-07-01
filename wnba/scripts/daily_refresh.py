@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
+from wnba_prop_model.archive_replay import rerank_current_card_with_archive_ml
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
 from wnba_prop_model.model import empty_card, load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
@@ -44,6 +45,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sportsgrid-urls", nargs="*", default=None)
     parser.add_argument("--max-picks", type=int, default=6)
     parser.add_argument("--min-score", type=float, default=0.68)
+    parser.add_argument("--selector", choices=["archive-ml", "baseline"], default="archive-ml")
+    parser.add_argument("--ml-min-training-cards", type=int, default=5)
+    parser.add_argument("--ml-min-training-rows", type=int, default=80)
     return parser.parse_args()
 
 
@@ -267,7 +271,17 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
                 "max_combo_markets": 4,
             }
         )
-    return score_board(logs, board, slate_date=target_date, limits=limits)
+    card = score_board(logs, board, slate_date=target_date, limits=limits)
+    if args.selector == "archive-ml" and args.book == "expanded":
+        card = rerank_current_card_with_archive_ml(
+            card,
+            ROOT / "archive",
+            logs,
+            limits=limits,
+            min_training_cards=args.ml_min_training_cards,
+            min_training_rows=args.ml_min_training_rows,
+        )
+    return card
 
 
 def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:

@@ -420,6 +420,15 @@ def _candidate_card_for_ml(
     limits: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     card = json.loads(card_path.read_text(encoding="utf-8"))
+    return _candidate_card_data_for_ml(card, logs, limits, str(card_path))
+
+
+def _candidate_card_data_for_ml(
+    card: dict[str, Any],
+    logs: pd.DataFrame,
+    limits: dict[str, Any] | None,
+    card_path: str,
+) -> dict[str, Any] | None:
     if not card.get("boardRows"):
         return None
     replay = _replay_card(card, logs, limits)
@@ -435,9 +444,10 @@ def _candidate_card_for_ml(
             candidate["hit_label"] = 1 if settlement == "WIN" else 0
         candidate_rows.append(candidate)
     return {
-        "cardPath": str(card_path),
-        "slateDate": str(card.get("slateDate") or card_path.parent.name),
+        "cardPath": card_path,
+        "slateDate": str(card.get("slateDate") or Path(card_path).parent.name),
         "portfolioConfig": replay["card"].get("portfolioConfig") or {},
+        "boardRows": replay["card"].get("boardRows") or [],
         "candidateRows": candidate_rows,
     }
 
@@ -950,6 +960,205 @@ def walk_forward_archive_ml_limit_profiles(
         "dailyRows": daily_rows,
         "selectedRows": selected_rows,
     }
+
+
+def _prior_archive_paths(archive_root: str | Path, slate_date: str | None) -> list[Path]:
+    paths = _card_paths(archive_root)
+    if not slate_date:
+        return paths
+    target = pd.to_datetime(slate_date, errors="coerce")
+    if pd.isna(target):
+        return paths
+    prior_paths: list[Path] = []
+    for path in paths:
+        path_date = pd.to_datetime(path.parent.name, errors="coerce")
+        if pd.isna(path_date) or path_date < target:
+            prior_paths.append(path)
+    return prior_paths
+
+
+def _prediction_card_for_current(
+    prior_card_data: list[dict[str, Any]],
+    current_data: dict[str, Any],
+    *,
+    min_training_cards: int,
+    min_training_rows: int,
+) -> tuple[dict[str, Any] | None, str | None]:
+    if len(prior_card_data) < min_training_cards:
+        return None, "insufficient_archive_training_cards"
+    training_rows = [
+        row
+        for prior_data in prior_card_data
+        for row in prior_data["candidateRows"]
+        if row.get("hit_label") in {0, 1}
+    ]
+    labels = [int(row["hit_label"]) for row in training_rows]
+    if len(training_rows) < min_training_rows or len(set(labels)) < 2:
+        return None, "insufficient_archive_training_rows"
+    candidate_rows = deepcopy(current_data["candidateRows"])
+    if not candidate_rows:
+        return None, "no_current_candidates"
+    ranker = _build_archive_ml_ranker(len(training_rows))
+    ranker.fit(_ml_feature_frame(training_rows), labels)
+    probabilities = _predict_win_probabilities(ranker, candidate_rows)
+    for rank, (row, probability) in enumerate(zip(candidate_rows, probabilities), start=1):
+        row["ml_candidate_rank"] = rank
+        row["learnedHitProbability"] = round(probability, 5)
+    return (
+        {
+            "cardPath": current_data["cardPath"],
+            "slateDate": current_data["slateDate"],
+            "portfolioConfig": current_data["portfolioConfig"],
+            "candidateRows": candidate_rows,
+            "trainingCards": len(prior_card_data),
+            "trainingRows": len(training_rows),
+        },
+        None,
+    )
+
+
+def _best_ml_limit_profile_from_prediction_cards(
+    prediction_cards: list[dict[str, Any]],
+    profiles: list[dict[str, Any]],
+    target_picks: int,
+) -> dict[str, Any]:
+    profile_results: list[dict[str, Any]] = []
+    for index, profile in enumerate(profiles):
+        profile_limits = dict(profile.get("limits") or {})
+        report = _ml_report_from_prediction_cards(
+            prediction_cards,
+            limits=profile_limits,
+            target_picks=target_picks,
+        )
+        profile_results.append(
+            {
+                "profileIndex": index,
+                "profileName": str(profile.get("name") or f"profile_{index + 1}"),
+                "limits": profile_limits,
+                "summary": report["summary"],
+            }
+        )
+    profile_results.sort(key=_ml_sweep_sort_key, reverse=True)
+    return profile_results[0] if profile_results else {"profileName": "none", "limits": {}, "summary": {}}
+
+
+def rerank_current_card_with_archive_ml(
+    card: dict[str, Any],
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    limits: dict[str, Any] | None = None,
+    profiles: list[dict[str, Any]] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+) -> dict[str, Any]:
+    slate_date = str(card.get("slateDate") or "")
+    replay_limits = limits or card.get("portfolioConfig") or daily_six_pick_limits()
+    prior_card_data = [
+        data
+        for path in _prior_archive_paths(archive_root, slate_date)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    current_data = _candidate_card_data_for_ml(card, logs, replay_limits, "current-card")
+    if current_data is None:
+        return card
+    prediction_cards, _skipped_cards = _build_ml_prediction_cards(
+        prior_card_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    current_prediction, skip_reason = _prediction_card_for_current(
+        prior_card_data,
+        current_data,
+        min_training_cards=min_training_cards,
+        min_training_rows=min_training_rows,
+    )
+    reranked_card = deepcopy(card)
+    warnings = list(reranked_card.get("warnings") or [])
+    if current_prediction is None:
+        warnings.append(f"Archive ML rerank skipped: {skip_reason}.")
+        reranked_card["warnings"] = warnings
+        return reranked_card
+
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    profile_grid = profiles or default_archive_ml_limit_profiles(max_picks=target_picks)
+    best_profile = _best_ml_limit_profile_from_prediction_cards(prediction_cards, profile_grid, target_picks)
+    selected_profile_name = str(best_profile.get("profileName") or "archive_ml")
+    profile_limits = dict(best_profile.get("limits") or {})
+    probabilities = [float(row.get("learnedHitProbability") or 0.0) for row in current_prediction["candidateRows"]]
+    selected = _select_ml_ranked_rows(
+        current_prediction["candidateRows"],
+        probabilities,
+        {**current_prediction["portfolioConfig"], **profile_limits},
+    )
+    if len(selected) < target_picks:
+        profile_limits = {**profile_limits, "allow_same_player_coverage_fill": True}
+        selected = _select_ml_ranked_rows(
+            current_prediction["candidateRows"],
+            probabilities,
+            {**current_prediction["portfolioConfig"], **profile_limits},
+        )
+        selected_profile_name = f"{selected_profile_name}_auto_sameplayerfill"
+        warnings.append("Archive ML rerank auto-filled to preserve six-pick coverage.")
+    selected_by_id = {str(row.get("candidate_id") or id(row)): row for row in selected}
+    candidate_ids = {str(row.get("candidate_id") or id(row)) for row in current_prediction["candidateRows"]}
+    board_rows = deepcopy(current_data["boardRows"])
+    for row in board_rows:
+        candidate_id = str(row.get("candidate_id") or id(row))
+        if candidate_id in selected_by_id:
+            row.update(selected_by_id[candidate_id])
+        elif candidate_id in candidate_ids:
+            row["model_action"] = "CANDIDATE"
+            row["selected_rank"] = None
+            row["rejection_reason"] = row.get("rejection_reason")
+        else:
+            row["model_action"] = "COVERAGE"
+            row["selected_rank"] = None
+    selected_rows = sorted(selected_by_id.values(), key=lambda row: row.get("selected_rank") or 999)
+    reranked_card["mode"] = f"{card.get('mode') or 'CURRENT'}_ARCHIVE_ML_RERANK"
+    reranked_card["portfolioConfig"] = {**(current_prediction["portfolioConfig"] or {}), **profile_limits}
+    reranked_card["boardRows"] = board_rows
+    reranked_card["selectedRows"] = selected_rows
+    reranked_card["candidateRows"] = sorted(
+        [row for row in board_rows if row.get("model_action") == "CANDIDATE"],
+        key=lambda row: float(row.get("learnedHitProbability") or row.get("final_score") or 0.0),
+        reverse=True,
+    )
+    summary = dict(reranked_card.get("summary") or {})
+    summary.update(
+        {
+            "candidateCount": len(reranked_card["candidateRows"]),
+            "selectedCount": len(selected_rows),
+            "selectedByTier": dict(Counter(row.get("tier") for row in selected_rows)),
+            "averageModelProbability": round(
+                sum(float(row.get("model_probability") or 0.0) for row in selected_rows) / len(selected_rows),
+                5,
+            )
+            if selected_rows
+            else None,
+            "averageFinalScore": round(
+                sum(float(row.get("final_score") or 0.0) for row in selected_rows) / len(selected_rows),
+                5,
+            )
+            if selected_rows
+            else None,
+        }
+    )
+    reranked_card["summary"] = summary
+    reranked_card["archiveMlProfile"] = {
+        "profileName": selected_profile_name,
+        "limits": profile_limits,
+        "trainingSummary": best_profile.get("summary"),
+        "trainingCards": current_prediction["trainingCards"],
+        "trainingRows": current_prediction["trainingRows"],
+        "predictionCardsBuilt": len(prediction_cards),
+    }
+    warnings.append(
+        "Archive ML rerank selected this card using only prior archived candidate outcomes; "
+        "same-player coverage fill may be used to maintain six picks."
+    )
+    reranked_card["warnings"] = warnings
+    return reranked_card
 
 
 def write_replay_report(report: dict[str, Any], out: str | Path) -> Path:

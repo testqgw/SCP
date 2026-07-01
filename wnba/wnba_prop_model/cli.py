@@ -379,3 +379,7 @@ def main() -> int:
     if args.command == "archive-replay":
         return cmd_archive_replay(args)
     raise RuntimeError(f"Unknown command {args.command}")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

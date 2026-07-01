@@ -11,6 +11,7 @@ from wnba_prop_model.archive_replay import (
     daily_six_pick_limits,
     default_archive_profiles,
     replay_archived_cards,
+    rerank_current_card_with_archive_ml,
     sweep_archive_ml_ranker_limits,
     sweep_archive_profiles,
     walk_forward_archive_ml_limit_profiles,
@@ -326,6 +327,68 @@ def test_walk_forward_archive_ml_ranker_learns_from_prior_candidate_rows(tmp_pat
     assert walk_forward["summary"]["sixPickParlayAccuracyPct"] == 100.0
     assert {row["market"] for row in walk_forward["selectedRows"]} == {"PTS", "REB"}
     assert all(row["learnedHitProbability"] > 0.5 for row in walk_forward["selectedRows"])
+
+
+def test_rerank_current_card_with_archive_ml_uses_prior_archive_rows(tmp_path: Path) -> None:
+    for slate_date in ["2026-06-28", "2026-06-29"]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+    current = _market_learning_card("2026-06-30")
+
+    reranked = rerank_current_card_with_archive_ml(
+        current,
+        tmp_path / "archive",
+        _market_learning_logs(["2026-06-28", "2026-06-29", "2026-06-30"]),
+        min_training_cards=1,
+        min_training_rows=12,
+    )
+
+    assert reranked["mode"] == "TEST_ARCHIVE_ML_RERANK"
+    assert reranked["summary"]["selectedCount"] == 6
+    assert {row["market"] for row in reranked["selectedRows"]} == {"PTS", "REB"}
+    assert reranked["archiveMlProfile"]["profileName"].endswith("sameplayerfill")
+    assert all("learnedHitProbability" in row for row in reranked["selectedRows"])
+
+
+def test_rerank_current_card_with_archive_ml_auto_fills_when_profile_selects_short(tmp_path: Path) -> None:
+    for slate_date in ["2026-06-28", "2026-06-29"]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+    current = _market_learning_card("2026-06-30")
+    strict_profile = [
+        {
+            "name": "strict_market_cap",
+            "limits": {
+                "max_picks": 6,
+                "target_picks": 6,
+                "max_per_player": 0,
+                "max_per_market": 1,
+                "max_combo_markets": 1,
+                "allow_forced_six_pick_fill": False,
+            },
+        }
+    ]
+
+    reranked = rerank_current_card_with_archive_ml(
+        current,
+        tmp_path / "archive",
+        _market_learning_logs(["2026-06-28", "2026-06-29", "2026-06-30"]),
+        profiles=strict_profile,
+        min_training_cards=1,
+        min_training_rows=12,
+    )
+
+    assert reranked["summary"]["selectedCount"] == 6
+    assert reranked["archiveMlProfile"]["profileName"] == "strict_market_cap_auto_sameplayerfill"
+    assert any("same_player_coverage_fill" in row.get("risk_flags", []) for row in reranked["selectedRows"])
 
 
 def test_walk_forward_archive_ml_ranker_can_fill_same_player_coverage(tmp_path: Path) -> None:

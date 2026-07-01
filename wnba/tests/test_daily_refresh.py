@@ -48,6 +48,16 @@ def test_refresh_logs_raises_when_espn_fetch_fails_without_cache(tmp_path, monke
         daily_refresh.refresh_logs(Namespace(skip_fetch=False, seasons=[2026], fetch_sleep=0))
 
 
+def test_daily_refresh_parses_archive_ml_selector_defaults(monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", ["daily_refresh.py"])
+
+    args = daily_refresh.parse_args()
+
+    assert args.selector == "archive-ml"
+    assert args.ml_min_training_cards == 5
+    assert args.ml_min_training_rows == 80
+
+
 def test_main_records_refresh_warnings_in_summary(tmp_path, monkeypatch):
     summary_path = tmp_path / "current-refresh-summary.json"
     board_path = daily_refresh.ROOT / "data/current/test_board.csv"
