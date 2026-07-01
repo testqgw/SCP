@@ -753,6 +753,31 @@ def test_ml_sweep_rank_prefers_same_player_fill_when_metrics_tie() -> None:
     assert _ml_sweep_sort_key(same_player_fill) > _ml_sweep_sort_key(no_fill)
 
 
+def test_ml_sweep_rank_prefers_weak_bucket_guard_before_leg_accuracy_tiebreak() -> None:
+    plain = {
+        "limits": {"max_per_market": 3},
+        "summary": {
+            "cardsEvaluated": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 8,
+            "sixPickParlayAccuracyPct": 25.0,
+            "legAccuracyPct": 68.0,
+        },
+    }
+    guarded = {
+        "limits": {"max_per_market": 3, "weak_bucket_guard": {"fields": ["team"]}},
+        "summary": {
+            "cardsEvaluated": 10,
+            "sixPickCoveredDates": 10,
+            "sixPickSettledDates": 8,
+            "sixPickParlayAccuracyPct": 25.0,
+            "legAccuracyPct": 67.5,
+        },
+    }
+
+    assert _ml_sweep_sort_key(guarded) > _ml_sweep_sort_key(plain)
+
+
 def test_daily_six_pick_limits_match_expanded_site_forced_fill() -> None:
     limits = daily_six_pick_limits(max_picks=6, min_score=0.68)
 

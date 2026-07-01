@@ -930,6 +930,7 @@ def _ml_sweep_sort_key(profile_result: dict[str, Any]) -> tuple[float, float, fl
         coverage_rate,
         float(summary["sixPickParlayAccuracyPct"] or 0.0),
         float(summary["sixPickSettledDates"]),
+        1.0 if limits.get("weak_bucket_guard") else 0.0,
         float(summary["legAccuracyPct"] or 0.0),
         settled_rate,
         1.0 if limits.get("allow_same_player_coverage_fill") else 0.0,
