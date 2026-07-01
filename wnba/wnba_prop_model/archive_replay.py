@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
-from .model import CLAIM_BOUNDARY, MODEL_ID, MODEL_VERSION, _select_portfolio, utc_now
-from .settlement import settle_card
+from .model import CLAIM_BOUNDARY, MODEL_ID, MODEL_VERSION, PORTFOLIO_LIMITS, _select_portfolio, _try_select_row, utc_now
+from .settlement import _actual_for_row, _has_final_team_boxscore, _settlement_status, settle_card
 
 SELECTION_ONLY_FLAGS = {
     "expanded_card_fill",
@@ -16,6 +17,32 @@ SELECTION_ONLY_FLAGS = {
     "same_game_concentration",
     "same_player_correlation",
 }
+
+ML_FLAG_FEATURES = [
+    "volatile_minutes",
+    "combo_market_correlation",
+    "single_side_price",
+    "thin_market_count",
+    "blowout_spread",
+    "source_projection_near_line",
+    "source_projection_disagreement",
+    "short_rest_or_b2b",
+    "low_player_sample",
+    "thin_player_history",
+]
+ML_NUMERIC_FEATURES = [
+    "final_score",
+    "model_probability",
+    "abs_line_gap",
+    "line",
+    "projected_value",
+    "line_gap",
+    "price_edge",
+    "fair_probability",
+    "projected_minutes",
+    "sample_size",
+]
+ML_CATEGORICAL_FEATURES = ["market", "side", "tier", "source_book", "team", "opponent"]
 
 
 def daily_six_pick_limits(max_picks: int = 6, min_score: float = 0.68) -> dict[str, Any]:
@@ -347,6 +374,298 @@ def walk_forward_archive_profiles(
             target_picks,
             cards_key="cardsEvaluated",
             extra={"minTrainingCards": min_training_cards},
+        ),
+        "dailyRows": daily_rows,
+        "selectedRows": selected_rows,
+    }
+
+
+def _settle_replay_candidate(row: dict[str, Any], logs: pd.DataFrame) -> tuple[float | None, str]:
+    actual = _actual_for_row(logs, row)
+    settlement = _settlement_status(row, actual)
+    if settlement == "PENDING" and _has_final_team_boxscore(logs, row):
+        settlement = "NO_ACTION"
+    return actual, settlement
+
+
+def _candidate_card_for_ml(
+    card_path: Path,
+    logs: pd.DataFrame,
+    limits: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    card = json.loads(card_path.read_text(encoding="utf-8"))
+    if not card.get("boardRows"):
+        return None
+    replay = _replay_card(card, logs, limits)
+    candidate_rows: list[dict[str, Any]] = []
+    for row in replay["card"]["boardRows"]:
+        if row["model_action"] not in {"SELECTED", "CANDIDATE"}:
+            continue
+        candidate = deepcopy(row)
+        actual, settlement = _settle_replay_candidate(candidate, logs)
+        candidate["actual"] = actual
+        candidate["settlement"] = settlement
+        if settlement in {"WIN", "LOSS"}:
+            candidate["hit_label"] = 1 if settlement == "WIN" else 0
+        candidate_rows.append(candidate)
+    return {
+        "cardPath": str(card_path),
+        "slateDate": str(card.get("slateDate") or card_path.parent.name),
+        "portfolioConfig": replay["card"].get("portfolioConfig") or {},
+        "candidateRows": candidate_rows,
+    }
+
+
+def _ml_feature_frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    feature_rows: list[dict[str, Any]] = []
+    for row in rows:
+        flags = set(row.get("risk_flags") or [])
+        features: dict[str, Any] = {}
+        for column in ML_NUMERIC_FEATURES:
+            features[column] = row.get(column)
+        for column in ML_CATEGORICAL_FEATURES:
+            features[column] = str(row.get(column) or "")
+        for flag in ML_FLAG_FEATURES:
+            features[f"flag_{flag}"] = 1 if flag in flags else 0
+        feature_rows.append(features)
+    frame = pd.DataFrame(feature_rows)
+    for column in ML_NUMERIC_FEATURES + [f"flag_{flag}" for flag in ML_FLAG_FEATURES]:
+        if column in frame.columns:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce")
+            if frame[column].isna().all():
+                frame[column] = 0.0
+    return frame
+
+
+def _build_archive_ml_ranker(training_row_count: int = 0) -> Any:
+    try:
+        from sklearn.compose import ColumnTransformer
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.impute import SimpleImputer
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import OneHotEncoder, StandardScaler
+    except ImportError as error:  # pragma: no cover - exercised only in missing optional dependency environments
+        raise RuntimeError("scikit-learn is required for archive ML ranker diagnostics.") from error
+
+    numeric_features = ML_NUMERIC_FEATURES + [f"flag_{flag}" for flag in ML_FLAG_FEATURES]
+    min_samples_leaf = max(2, min(12, training_row_count // 6 if training_row_count else 12))
+    preprocessing = ColumnTransformer(
+        [
+            (
+                "num",
+                Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())]),
+                numeric_features,
+            ),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), ML_CATEGORICAL_FEATURES),
+        ]
+    )
+    return Pipeline(
+        [
+            ("pre", preprocessing),
+            (
+                "clf",
+                RandomForestClassifier(
+                    n_estimators=200,
+                    max_depth=3,
+                    min_samples_leaf=min_samples_leaf,
+                    random_state=7,
+                    class_weight="balanced_subsample",
+                ),
+            ),
+        ]
+    )
+
+
+def _predict_win_probabilities(ranker: Any, rows: list[dict[str, Any]]) -> list[float]:
+    probabilities = ranker.predict_proba(_ml_feature_frame(rows))
+    classes = list(ranker.named_steps["clf"].classes_)
+    if 1 not in classes:
+        return [0.0 for _ in rows]
+    win_index = classes.index(1)
+    return [float(value) for value in probabilities[:, win_index]]
+
+
+def _select_ml_ranked_rows(
+    candidate_rows: list[dict[str, Any]],
+    win_probabilities: list[float],
+    limits: dict[str, Any],
+) -> list[dict[str, Any]]:
+    rows = deepcopy(candidate_rows)
+    active_limits = {**PORTFOLIO_LIMITS, **limits}
+    target = min(int(active_limits.get("target_picks") or active_limits["max_picks"]), int(active_limits["max_picks"]))
+    for rank, (row, probability) in enumerate(zip(rows, win_probabilities), start=1):
+        row["model_action"] = "CANDIDATE"
+        row["selected_rank"] = None
+        row["rejection_reason"] = None
+        row["ml_candidate_rank"] = rank
+        row["learnedHitProbability"] = round(probability, 5)
+    rows.sort(
+        key=lambda row: (
+            float(row.get("learnedHitProbability") or 0.0),
+            float(row.get("final_score") or 0.0),
+            float(row.get("model_probability") or 0.0),
+        ),
+        reverse=True,
+    )
+    player_counts: Counter[str] = Counter()
+    team_counts: Counter[str] = Counter()
+    game_counts: Counter[str] = Counter()
+    market_counts: Counter[str] = Counter()
+    same_team_counting_overs: Counter[tuple[str, str]] = Counter()
+    combo_count = 0
+    selected = 0
+    for relax_correlation_limits in [False, True]:
+        for row in rows:
+            if selected >= target:
+                break
+            if row["model_action"] == "SELECTED":
+                continue
+            picked, combo_count = _try_select_row(
+                row,
+                active_limits,
+                selected,
+                player_counts,
+                team_counts,
+                game_counts,
+                market_counts,
+                same_team_counting_overs,
+                combo_count,
+                relax_correlation_limits=relax_correlation_limits,
+            )
+            if picked:
+                selected += 1
+        if selected >= target:
+            break
+    return sorted(
+        [row for row in rows if row["model_action"] == "SELECTED"],
+        key=lambda row: row.get("selected_rank") or 999,
+    )
+
+
+def _selected_ml_rows_for_report(
+    selected_rows: list[dict[str, Any]],
+    card_path: str,
+    parlay_hit: bool,
+) -> list[dict[str, Any]]:
+    report_rows: list[dict[str, Any]] = []
+    for row in selected_rows:
+        report_rows.append(
+            {
+                "slate_date": row.get("slate_date"),
+                "selected_rank": row.get("selected_rank"),
+                "player": row.get("player"),
+                "team": row.get("team"),
+                "team_name": row.get("team_name"),
+                "opponent": row.get("opponent"),
+                "opponent_name": row.get("opponent_name"),
+                "market": row.get("market"),
+                "side": row.get("side"),
+                "line": row.get("line"),
+                "actual": row.get("actual"),
+                "settlement": row.get("settlement"),
+                "model_probability": row.get("model_probability"),
+                "final_score": row.get("final_score"),
+                "learnedHitProbability": row.get("learnedHitProbability"),
+                "source_book": row.get("source_book"),
+                "source_url": row.get("source_url"),
+                "risk_flags": list(row.get("risk_flags") or []),
+                "tier": row.get("tier"),
+                "cardPath": card_path,
+                "sixPickParlayHit": parlay_hit,
+            }
+        )
+    return report_rows
+
+
+def walk_forward_archive_ml_ranker(
+    archive_root: str | Path,
+    logs: pd.DataFrame,
+    *,
+    current_card: str | Path | None = None,
+    limits: dict[str, Any] | None = None,
+    min_training_cards: int = 5,
+    min_training_rows: int = 80,
+) -> dict[str, Any]:
+    replay_limits = limits or daily_six_pick_limits()
+    card_data = [
+        data
+        for path in _card_paths(archive_root, current_card)
+        if (data := _candidate_card_for_ml(path, logs, replay_limits)) is not None
+    ]
+    daily_rows: list[dict[str, Any]] = []
+    selected_rows: list[dict[str, Any]] = []
+    target_picks = int(replay_limits.get("target_picks") or replay_limits.get("max_picks") or 6)
+    skipped_cards = 0
+
+    for index, data in enumerate(card_data):
+        if index < min_training_cards:
+            skipped_cards += 1
+            continue
+        training_rows = [
+            row
+            for prior_data in card_data[:index]
+            for row in prior_data["candidateRows"]
+            if row.get("hit_label") in {0, 1}
+        ]
+        labels = [int(row["hit_label"]) for row in training_rows]
+        if len(training_rows) < min_training_rows or len(set(labels)) < 2:
+            skipped_cards += 1
+            continue
+        candidate_rows = data["candidateRows"]
+        if not candidate_rows:
+            skipped_cards += 1
+            continue
+        ranker = _build_archive_ml_ranker(len(training_rows))
+        ranker.fit(_ml_feature_frame(training_rows), labels)
+        probabilities = _predict_win_probabilities(ranker, candidate_rows)
+        selected = _select_ml_ranked_rows(candidate_rows, probabilities, data["portfolioConfig"])
+        selected_count = len(selected)
+        wins = sum(row.get("settlement") == "WIN" for row in selected)
+        losses = sum(row.get("settlement") == "LOSS" for row in selected)
+        pushes = sum(row.get("settlement") == "PUSH" for row in selected)
+        no_action = sum(row.get("settlement") == "NO_ACTION" for row in selected)
+        pending = sum(row.get("settlement") == "PENDING" for row in selected)
+        settled = wins + losses
+        settled_full_card = selected_count >= target_picks and settled == selected_count
+        parlay_hit = bool(settled_full_card and wins == selected_count)
+        daily_rows.append(
+            {
+                "slateDate": data["slateDate"],
+                "cardPath": data["cardPath"],
+                "selectedCount": selected_count,
+                "settledPicks": settled,
+                "wins": wins,
+                "losses": losses,
+                "pushes": pushes,
+                "pendingPicks": pending,
+                "noActionPicks": no_action,
+                "legAccuracyPct": round(100.0 * wins / settled, 2) if settled else None,
+                "sixPickCovered": selected_count >= target_picks,
+                "sixPickSettled": settled_full_card,
+                "sixPickParlayHit": parlay_hit,
+                "trainingCards": index,
+                "trainingRows": len(training_rows),
+                "rankerModel": "random_forest_candidate_ranker",
+            }
+        )
+        selected_rows.extend(_selected_ml_rows_for_report(selected, data["cardPath"], parlay_hit))
+
+    return {
+        "generatedAt": utc_now(),
+        "modelId": MODEL_ID,
+        "modelVersion": MODEL_VERSION,
+        "claimBoundary": CLAIM_BOUNDARY,
+        "summary": _archive_summary(
+            daily_rows,
+            selected_rows,
+            target_picks,
+            cards_key="cardsEvaluated",
+            extra={
+                "cardsSkipped": skipped_cards,
+                "minTrainingCards": min_training_cards,
+                "minTrainingRows": min_training_rows,
+                "rankerModel": "random_forest_candidate_ranker",
+            },
         ),
         "dailyRows": daily_rows,
         "selectedRows": selected_rows,

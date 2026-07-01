@@ -12,6 +12,7 @@ from wnba_prop_model.archive_replay import (
     replay_archived_cards,
     sweep_archive_profiles,
     walk_forward_archive_profiles,
+    walk_forward_archive_ml_ranker,
 )
 from wnba_prop_model.model import PORTFOLIO_LIMITS
 
@@ -94,6 +95,52 @@ def _logs() -> pd.DataFrame:
             for index in range(7)
         ]
     )
+
+
+def _market_learning_logs(dates: list[str]) -> pd.DataFrame:
+    rows = []
+    for slate_date in dates:
+        for index in range(12):
+            rows.append(
+                {
+                    "game_date": pd.Timestamp(slate_date),
+                    "player_id": str(index),
+                    "player_key": f"player {index}",
+                    "team_abbr": "IND",
+                    "opponent_abbr": "WSH",
+                    "PTS": 10.0,
+                    "REB": 2.0,
+                    "AST": 3.0,
+                    "THREES": 0.0,
+                    "PRA": 15.0,
+                    "PA": 13.0,
+                    "PR": 12.0,
+                    "RA": 5.0,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def _market_learning_card(slate_date: str) -> dict:
+    rows = []
+    for index in range(6):
+        row = _row(f"{slate_date}-ast-{index}", f"Player {index}", str(index), "AST", "UNDER", 0.88)
+        row["slate_date"] = slate_date
+        row["line"] = 1.5
+        rows.append(row)
+    for index in range(6, 9):
+        row = _row(f"{slate_date}-reb-{index}", f"Player {index}", str(index), "REB", "UNDER", 0.70)
+        row["slate_date"] = slate_date
+        row["line"] = 5.5
+        rows.append(row)
+    for index in range(9, 12):
+        row = _row(f"{slate_date}-pts-{index}", f"Player {index}", str(index), "PTS", "UNDER", 0.70)
+        row["slate_date"] = slate_date
+        row["line"] = 12.5
+        rows.append(row)
+    card = _card(rows)
+    card["slateDate"] = slate_date
+    return card
 
 
 def test_archive_replay_reselects_with_current_selector_and_settles(tmp_path: Path) -> None:
@@ -189,6 +236,28 @@ def test_walk_forward_archive_profiles_choose_profile_from_prior_cards(tmp_path:
     assert {row["selectedProfileName"] for row in walk_forward["selectedRows"]} == {"strict"}
 
 
+def test_walk_forward_archive_ml_ranker_learns_from_prior_candidate_rows(tmp_path: Path) -> None:
+    for slate_date in ["2026-06-29", "2026-06-30"]:
+        archive_dir = tmp_path / "archive" / slate_date
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "current-card.json").write_text(
+            json.dumps(_market_learning_card(slate_date)),
+            encoding="utf-8",
+        )
+
+    walk_forward = walk_forward_archive_ml_ranker(
+        tmp_path / "archive",
+        _market_learning_logs(["2026-06-29", "2026-06-30"]),
+        min_training_cards=1,
+        min_training_rows=12,
+    )
+
+    assert walk_forward["summary"]["cardsEvaluated"] == 1
+    assert walk_forward["summary"]["sixPickParlayAccuracyPct"] == 100.0
+    assert {row["market"] for row in walk_forward["selectedRows"]} == {"PTS", "REB"}
+    assert all(row["learnedHitProbability"] > 0.5 for row in walk_forward["selectedRows"])
+
+
 def test_archive_sweep_rank_prioritizes_parlay_accuracy_after_coverage() -> None:
     higher_accuracy = {
         "summary": {
@@ -272,6 +341,12 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
             "output/archive-sweep.json",
             "--walk-forward-out",
             "output/archive-walk-forward.json",
+            "--ml-ranker-out",
+            "output/archive-ml-ranker.json",
+            "--ml-min-training-cards",
+            "5",
+            "--ml-min-training-rows",
+            "80",
             "--out",
             "output/archive-replay.json",
         ],
@@ -285,4 +360,7 @@ def test_cli_parses_archive_replay_daily_six_pick(monkeypatch) -> None:
     assert args.daily_six_pick is True
     assert args.sweep_out == "output/archive-sweep.json"
     assert args.walk_forward_out == "output/archive-walk-forward.json"
+    assert args.ml_ranker_out == "output/archive-ml-ranker.json"
+    assert args.ml_min_training_cards == 5
+    assert args.ml_min_training_rows == 80
     assert args.out == "output/archive-replay.json"

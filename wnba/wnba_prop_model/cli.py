@@ -11,6 +11,7 @@ from .archive_replay import (
     default_archive_profiles,
     replay_archived_cards,
     sweep_archive_profiles,
+    walk_forward_archive_ml_ranker,
     walk_forward_archive_profiles,
     write_replay_report,
 )
@@ -100,6 +101,9 @@ def parse_args() -> argparse.Namespace:
     archive_replay.add_argument("--out", default="output/wnba-archive-replay.json")
     archive_replay.add_argument("--sweep-out", default=None)
     archive_replay.add_argument("--walk-forward-out", default=None)
+    archive_replay.add_argument("--ml-ranker-out", default=None)
+    archive_replay.add_argument("--ml-min-training-cards", type=int, default=5)
+    archive_replay.add_argument("--ml-min-training-rows", type=int, default=80)
     archive_replay.add_argument("--include-preseason", action="store_true")
     return parser.parse_args()
 
@@ -289,6 +293,24 @@ def cmd_archive_replay(args: argparse.Namespace) -> int:
             f"leg accuracy: {walk_summary['legAccuracyPct']}"
         )
         print(f"Walk-forward JSON: {walk_forward_out}")
+    if args.ml_ranker_out:
+        ml_ranker = walk_forward_archive_ml_ranker(
+            args.archive_root,
+            logs,
+            current_card=args.current_card if args.include_current else None,
+            limits=daily_six_pick_limits(max_picks=args.max_picks, min_score=args.min_score),
+            min_training_cards=args.ml_min_training_cards,
+            min_training_rows=args.ml_min_training_rows,
+        )
+        ml_ranker_out = write_replay_report(ml_ranker, args.ml_ranker_out)
+        ml_summary = ml_ranker["summary"]
+        print(
+            f"Walk-forward ML ranker: evaluated {ml_summary['cardsEvaluated']} cards; "
+            f"six-pick settled dates: {ml_summary['sixPickSettledDates']}; "
+            f"parlay accuracy: {ml_summary['sixPickParlayAccuracyPct']}; "
+            f"leg accuracy: {ml_summary['legAccuracyPct']}"
+        )
+        print(f"ML ranker JSON: {ml_ranker_out}")
     return 0
 
 
