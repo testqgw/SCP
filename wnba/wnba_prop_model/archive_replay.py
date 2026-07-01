@@ -1266,6 +1266,7 @@ def audit_archive_ml_replacement_opportunities(
 ) -> dict[str, Any]:
     daily_rows: list[dict[str, Any]] = []
     rescue_rows: list[dict[str, Any]] = []
+    oracle_rows: list[dict[str, Any]] = []
     for index in range(len(prediction_cards)):
         if index < min_profile_training_cards:
             continue
@@ -1308,12 +1309,35 @@ def audit_archive_ml_replacement_opportunities(
         wins = sum(row.get("settlement") == "WIN" for row in selected)
         losses = sum(row.get("settlement") == "LOSS" for row in selected)
         settled = wins + losses
-        if selected_count < target_picks or settled != selected_count or losses not in {1, 2}:
-            continue
         probability_by_id = {
             str(row.get("candidate_id") or id(row)): probability
             for row, probability in zip(data["candidateRows"], probabilities)
         }
+        if selected_count >= target_picks and settled == selected_count:
+            oracle_probabilities = [1.0 if row.get("settlement") == "WIN" else 0.0 for row in data["candidateRows"]]
+            oracle_selected = _select_ml_ranked_rows(data["candidateRows"], oracle_probabilities, selection_limits)
+            oracle_selected = sorted(oracle_selected, key=lambda row: row.get("selected_rank") or 999)[:target_picks]
+            candidate_oracle_hit = (
+                len(oracle_selected) >= target_picks
+                and all(row.get("settlement") == "WIN" for row in oracle_selected)
+            )
+            oracle_rows.append(
+                {
+                    "slateDate": data["slateDate"],
+                    "cardPath": data["cardPath"],
+                    "selectedProfileName": selected_profile["profileName"],
+                    "selectedWins": wins,
+                    "selectedLosses": losses,
+                    "winningCandidateCount": sum(row.get("settlement") == "WIN" for row in data["candidateRows"]),
+                    "candidateOracleHit": candidate_oracle_hit,
+                    "candidateOracleRows": [
+                        _audit_leg_summary(row, probability_by_id.get(str(row.get("candidate_id") or id(row))))
+                        for row in oracle_selected
+                    ],
+                }
+            )
+        if selected_count < target_picks or settled != selected_count or losses not in {1, 2}:
+            continue
         selected_ids = {str(row.get("candidate_id") or id(row)) for row in selected}
         losing_legs = [row for row in selected if row.get("settlement") == "LOSS"]
         alternatives = [
@@ -1356,6 +1380,8 @@ def audit_archive_ml_replacement_opportunities(
     one_loss_with_alternatives = sum(1 for row in daily_rows if row["winningAlternatives"])
     two_loss_rows = [row for row in rescue_rows if row["losses"] == 2]
     two_loss_with_enough_alternatives = sum(1 for row in two_loss_rows if row["hasEnoughWinningAlternatives"])
+    candidate_oracle_wins = sum(1 for row in oracle_rows if row["candidateOracleHit"])
+    candidate_oracle_settled_cards = len(oracle_rows)
     return {
         "generatedAt": utc_now(),
         "modelId": MODEL_ID,
@@ -1372,9 +1398,17 @@ def audit_archive_ml_replacement_opportunities(
             "maxPotentialAdditionalParlayWinsIncludingTwoLoss": (
                 one_loss_with_alternatives + two_loss_with_enough_alternatives
             ),
+            "candidateOracleSettledCards": candidate_oracle_settled_cards,
+            "candidateOracleParlayWins": candidate_oracle_wins,
+            "candidateOracleParlayAccuracyPct": (
+                round(100.0 * candidate_oracle_wins / candidate_oracle_settled_cards, 2)
+                if candidate_oracle_settled_cards
+                else 0.0
+            ),
         },
         "dailyRows": daily_rows,
         "rescueRows": rescue_rows,
+        "oracleRows": oracle_rows,
     }
 
 
