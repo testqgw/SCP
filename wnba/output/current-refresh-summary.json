@@ -1,13 +1,18 @@
 {
-  "generatedAt": "2026-07-02T22:13:06Z",
+  "generatedAt": "2026-07-02T22:32:43Z",
   "targetDate": "2026-07-02",
-  "source": "expanded-existing-board",
+  "source": "expanded-existing-board-player-filtered",
   "boardPath": "data\\current\\expanded_board_2026-07-02.csv",
-  "archivedSlate": null,
+  "blockedPlayers": [
+    "noemie brochant"
+  ],
+  "removedRows": 8,
   "selectedCount": 6,
-  "totalBoardRows": 150,
+  "totalBoardRows": 142,
   "marketQuiescence": null,
-  "refreshWarnings": [],
+  "refreshWarnings": [
+    "Manual availability update: one unavailable prop was removed from the July 2 card because it was not selectable."
+  ],
   "priorSettlement": null,
   "currentSettlement": {
     "trackedPicks": 6,

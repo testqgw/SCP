@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-02T22:13:06Z",
+  "generatedAt": "2026-07-02T22:32:43Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-02-archive-ml-selector-v11",
-  "cardGeneratedAt": "2026-07-02T22:12:01Z",
+  "cardGeneratedAt": "2026-07-02T22:31:34Z",
   "slateDate": "2026-07-02",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -19,24 +19,6 @@
     {
       "slate_date": "2026-07-02",
       "selected_rank": 1,
-      "player": "Noemie Brochant",
-      "team": "PHX",
-      "team_name": "Phoenix Mercury",
-      "opponent": "SEA",
-      "opponent_name": "Seattle Storm",
-      "market": "REB",
-      "side": "UNDER",
-      "line": 3.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.61745,
-      "final_score": 0.43912,
-      "source_book": "draftkings",
-      "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
-    },
-    {
-      "slate_date": "2026-07-02",
-      "selected_rank": 2,
       "player": "Azzi Fudd",
       "team": "DAL",
       "team_name": "Dallas Wings",
@@ -50,6 +32,24 @@
       "model_probability": 0.59675,
       "final_score": 0.37884,
       "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
+    },
+    {
+      "slate_date": "2026-07-02",
+      "selected_rank": 2,
+      "player": "Valeriane Ayayi",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "SEA",
+      "opponent_name": "Seattle Storm",
+      "market": "REB",
+      "side": "UNDER",
+      "line": 5.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.61308,
+      "final_score": 0.35286,
+      "source_book": "fanduel",
       "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     },
     {
