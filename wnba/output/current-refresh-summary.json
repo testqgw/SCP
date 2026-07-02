@@ -1,17 +1,19 @@
 {
-  "generatedAt": "2026-07-02T22:32:43Z",
+  "generatedAt": "2026-07-02T22:51:00Z",
   "targetDate": "2026-07-02",
-  "source": "expanded-existing-board-player-filtered",
-  "boardPath": "data\\current\\expanded_board_2026-07-02.csv",
-  "blockedPlayers": [
-    "noemie brochant"
+  "source": "fanduel-playable-existing-board",
+  "boardPath": "data\\current\\fanduel_playable_board_2026-07-02.csv",
+  "fanduelRows": 9,
+  "blockedPlayersOrProps": [
+    "unavailable prop excluded",
+    "unavailable rebound prop excluded"
   ],
-  "removedRows": 8,
   "selectedCount": 6,
-  "totalBoardRows": 142,
+  "totalBoardRows": 9,
   "marketQuiescence": null,
   "refreshWarnings": [
-    "Manual availability update: one unavailable prop was removed from the July 2 card because it was not selectable."
+    "FanDuel-only update: unavailable props were excluded from the card.",
+    "FanDuel app availability can still change; verify each listed line is still present before placing the parlay."
   ],
   "priorSettlement": null,
   "currentSettlement": {
