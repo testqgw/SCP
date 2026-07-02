@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  WNBA_ARCHIVE_SELECTOR_PROOF,
   WNBA_INPUT_COLUMNS,
   WNBA_MODEL_STAGES,
   WNBA_MODEL_SUMMARY,
@@ -922,6 +923,18 @@ export default function WnbaDashboard({
           </InfoPanel>
 
           <div className="grid gap-4">
+            <InfoPanel title="Latest Selector Proof" icon={Trophy}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {WNBA_ARCHIVE_SELECTOR_PROOF.map((metric) => (
+                  <div key={metric.label} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">{metric.label}</div>
+                    <div className="mt-2 text-2xl font-semibold tracking-normal text-zinc-50">{metric.value}</div>
+                    <div className="mt-1 text-sm leading-6 text-zinc-400">{metric.note}</div>
+                  </div>
+                ))}
+              </div>
+            </InfoPanel>
+
             <InfoPanel title="Portfolio Gates" icon={ShieldCheck}>
               <div className="grid gap-2">
                 {WNBA_PORTFOLIO_RULES.map((rule) => (

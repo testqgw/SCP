@@ -1,16 +1,16 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-02T19:57:09Z
+Generated: 2026-07-02T22:12:01Z
 Slate: 2026-07-02
 
 ## Selected
 
-1. Allisha Gray UNDER REB 3.5 (Atlanta Dream vs Washington Mystics): p=60.6%, proj=2.88, edge -8.2%, score=0.414, source=hardrock
-2. Angel Reese UNDER RA 14.5 (Atlanta Dream vs Washington Mystics): p=66.6%, proj=11.97, edge +10.1%, score=0.756, source=nan
-3. Ezi Magbegor OVER REB 3.5 (Seattle Storm vs Phoenix Mercury): p=69.8%, proj=5.08, edge +15.4%, score=0.875, source=draftkings
-4. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Phoenix Mercury): p=60.3%, proj=2.03, edge +0.5%, score=0.421, source=draftkings
-5. Brittney Griner UNDER AST 2.5 (Connecticut Sun vs Dallas Wings): p=57.6%, proj=2.24, edge -6.7%, score=0.254, source=bet365
-6. Azzi Fudd UNDER REB 2.5 (Dallas Wings vs Connecticut Sun): p=59.7%, proj=1.95, edge -2.6%, score=0.379, source=hardrock
+1. Noemie Brochant UNDER REB 3.5 (Phoenix Mercury vs Seattle Storm): p=61.7%, proj=2.97, edge +3.1%, score=0.439, source=draftkings
+2. Azzi Fudd UNDER REB 2.5 (Dallas Wings vs Connecticut Sun): p=59.7%, proj=1.95, edge -3.3%, score=0.379, source=bet365
+3. Shakira Austin UNDER PA 15.5 (Washington Mystics vs Atlanta Dream): p=62.0%, proj=13.57, edge +11.9%, score=0.591, source=bet365
+4. Arike Ogunbowale UNDER PTS 13.5 (Dallas Wings vs Connecticut Sun): p=59.5%, proj=10.82, edge +11.4%, score=0.596, source=caesars
+5. Brittney Griner UNDER AST 2.5 (Connecticut Sun vs Dallas Wings): p=57.6%, proj=2.24, edge -7.9%, score=0.254, source=bet365
+6. Charlisse Leger-Walker UNDER AST 3.5 (Connecticut Sun vs Dallas Wings): p=52.8%, proj=3.45, edge -6.6%, score=0.201, source=draftkings
 
 ## Warnings
 
