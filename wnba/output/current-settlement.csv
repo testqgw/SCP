@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-06-30,1,NaLyssa Smith,LV,Las Vegas Aces,NY,New York Liberty,PR,UNDER,19.5,15.0,WIN,0.69835,0.88206,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
-2026-06-30,2,Jewell Loyd,LV,Las Vegas Aces,NY,New York Liberty,AST,UNDER,2.5,0.0,WIN,0.70748,0.8742,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-06-30,3,Jonquel Jones,NY,New York Liberty,LV,Las Vegas Aces,THREES,OVER,1.5,0.0,LOSS,0.61585,0.60418,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-06-30,4,Breanna Stewart,NY,New York Liberty,LV,Las Vegas Aces,REB,UNDER,8.5,11.0,LOSS,0.57611,0.52307,bet365,https://www.scoresandodds.com/wnba/props/rebounds
-2026-06-30,5,Pauline Astier,NY,New York Liberty,LV,Las Vegas Aces,PTS,UNDER,8.5,15.0,LOSS,0.56114,0.4766,draftkings,https://www.scoresandodds.com/wnba/props/points
-2026-06-30,6,Jackie Young,LV,Las Vegas Aces,NY,New York Liberty,REB,UNDER,5.5,2.0,WIN,0.59157,0.46119,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-02,1,Angel Reese,ATL,Atlanta Dream,WSH,Washington Mystics,REB,UNDER,12.5,,PENDING,0.69328,0.84547,nan,https://www.sportsgrid.com/wnba/game/atlanta-dream-washington-mystics-scores-odds-picks-props-july-02-2026/e247f8d9-201f-4c1c-af31-8df33d12fd71
+2026-07-02,2,Allisha Gray,ATL,Atlanta Dream,WSH,Washington Mystics,REB,UNDER,3.5,,PENDING,0.60558,0.41366,hardrock,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-02,3,Ezi Magbegor,SEA,Seattle Storm,PHX,Phoenix Mercury,REB,OVER,3.5,,PENDING,0.69821,0.87546,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-02,4,Natisha Hiedeman,SEA,Seattle Storm,PHX,Phoenix Mercury,THREES,UNDER,2.5,,PENDING,0.60303,0.43118,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-02,5,Brittney Griner,CON,Connecticut Sun,DAL,Dallas Wings,AST,UNDER,2.5,,PENDING,0.57577,0.2539,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-07-02,6,Noemie Brochant,PHX,Phoenix Mercury,SEA,Seattle Storm,THREES,UNDER,1.5,,PENDING,0.5704,0.26083,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
