@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-02T16:09:17Z",
+  "generatedAt": "2026-07-02T19:58:00Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-07-02T16:08:25Z",
+  "cardGeneratedAt": "2026-07-02T19:57:09Z",
   "slateDate": "2026-07-02",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -19,24 +19,6 @@
     {
       "slate_date": "2026-07-02",
       "selected_rank": 1,
-      "player": "Angel Reese",
-      "team": "ATL",
-      "team_name": "Atlanta Dream",
-      "opponent": "WSH",
-      "opponent_name": "Washington Mystics",
-      "market": "REB",
-      "side": "UNDER",
-      "line": 12.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.69328,
-      "final_score": 0.84547,
-      "source_book": "nan",
-      "source_url": "https://www.sportsgrid.com/wnba/game/atlanta-dream-washington-mystics-scores-odds-picks-props-july-02-2026/e247f8d9-201f-4c1c-af31-8df33d12fd71"
-    },
-    {
-      "slate_date": "2026-07-02",
-      "selected_rank": 2,
       "player": "Allisha Gray",
       "team": "ATL",
       "team_name": "Atlanta Dream",
@@ -54,6 +36,24 @@
     },
     {
       "slate_date": "2026-07-02",
+      "selected_rank": 2,
+      "player": "Angel Reese",
+      "team": "ATL",
+      "team_name": "Atlanta Dream",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "RA",
+      "side": "UNDER",
+      "line": 14.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.66632,
+      "final_score": 0.75646,
+      "source_book": "nan",
+      "source_url": "https://www.sportsgrid.com/wnba/game/atlanta-dream-washington-mystics-scores-odds-picks-props-july-02-2026/e247f8d9-201f-4c1c-af31-8df33d12fd71"
+    },
+    {
+      "slate_date": "2026-07-02",
       "selected_rank": 3,
       "player": "Ezi Magbegor",
       "team": "SEA",
@@ -67,7 +67,7 @@
       "settlement": "PENDING",
       "model_probability": 0.69821,
       "final_score": 0.87546,
-      "source_book": "bet365",
+      "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     },
     {
@@ -84,7 +84,7 @@
       "actual": null,
       "settlement": "PENDING",
       "model_probability": 0.60303,
-      "final_score": 0.43118,
+      "final_score": 0.42088,
       "source_book": "draftkings",
       "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
     },
@@ -109,20 +109,20 @@
     {
       "slate_date": "2026-07-02",
       "selected_rank": 6,
-      "player": "Noemie Brochant",
-      "team": "PHX",
-      "team_name": "Phoenix Mercury",
-      "opponent": "SEA",
-      "opponent_name": "Seattle Storm",
-      "market": "THREES",
+      "player": "Azzi Fudd",
+      "team": "DAL",
+      "team_name": "Dallas Wings",
+      "opponent": "CON",
+      "opponent_name": "Connecticut Sun",
+      "market": "REB",
       "side": "UNDER",
-      "line": 1.5,
+      "line": 2.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.5704,
-      "final_score": 0.26083,
-      "source_book": "draftkings",
-      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
+      "model_probability": 0.59675,
+      "final_score": 0.37884,
+      "source_book": "hardrock",
+      "source_url": "https://www.scoresandodds.com/wnba/props/rebounds"
     }
   ]
 }
