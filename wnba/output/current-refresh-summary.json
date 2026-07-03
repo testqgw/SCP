@@ -1,21 +1,22 @@
 {
-  "generatedAt": "2026-07-02T22:51:00Z",
-  "targetDate": "2026-07-02",
-  "source": "fanduel-playable-existing-board",
-  "boardPath": "data\\current\\fanduel_playable_board_2026-07-02.csv",
-  "fanduelRows": 9,
-  "blockedPlayersOrProps": [
-    "unavailable prop excluded",
-    "unavailable rebound prop excluded"
-  ],
+  "generatedAt": "2026-07-03T16:02:11Z",
+  "targetDate": "2026-07-03",
+  "source": "sportsgrid-fanduel+scoresandodds",
+  "boardPath": "data/current/expanded_board_2026-07-03.csv",
+  "archivedSlate": "2026-07-02",
   "selectedCount": 6,
-  "totalBoardRows": 9,
-  "marketQuiescence": null,
-  "refreshWarnings": [
-    "FanDuel-only update: unavailable props were excluded from the card.",
-    "FanDuel app availability can still change; verify each listed line is still present before placing the parlay."
-  ],
-  "priorSettlement": null,
+  "totalBoardRows": 95,
+  "refreshWarnings": [],
+  "priorSettlement": {
+    "trackedPicks": 6,
+    "settledPicks": 6,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 4,
+    "losses": 2,
+    "pushes": 0,
+    "accuracyPct": 66.67
+  },
   "currentSettlement": {
     "trackedPicks": 6,
     "settledPicks": 0,
@@ -27,13 +28,13 @@
     "accuracyPct": null
   },
   "cardPaths": {
-    "json": "output\\current-card.json",
-    "csv": "output\\current-card.csv",
-    "md": "output\\current-card.md"
+    "json": "output/current-card.json",
+    "csv": "output/current-card.csv",
+    "md": "output/current-card.md"
   },
   "settlementPaths": {
-    "json": "output\\current-settlement.json",
-    "csv": "output\\current-settlement.csv",
-    "md": "output\\current-settlement.md"
+    "json": "output/current-settlement.json",
+    "csv": "output/current-settlement.csv",
+    "md": "output/current-settlement.md"
   }
 }

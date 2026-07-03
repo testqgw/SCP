@@ -1,21 +1,21 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-02T22:51:00Z
-Slate: 2026-07-02
+Generated: 2026-07-03T16:01:19Z
+Slate: 2026-07-03
 
 ## Selected
 
-1. Angel Reese UNDER RA 14.5 (Atlanta Dream vs Washington Mystics): p=66.6%, proj=11.97, edge +9.7%, score=0.756, source=FanDuel
-2. Kahleah Copper OVER PTS 18.5 (Phoenix Mercury vs Seattle Storm): p=60.8%, proj=21.55, edge +5.2%, score=0.590, source=FanDuel
-3. Brittney Griner OVER REB 4.5 (Connecticut Sun vs Dallas Wings): p=56.5%, proj=5.43, edge +3.2%, score=0.424, source=FanDuel
-4. Leila Lacan OVER PTS 11.5 (Connecticut Sun vs Dallas Wings): p=56.2%, proj=12.96, edge +1.6%, score=0.360, source=FanDuel
-5. Olivia Nelson-Ododa OVER REB 5.5 (Connecticut Sun vs Dallas Wings): p=58.0%, proj=6.91, edge -3.2%, score=0.383, source=FanDuel
-6. Natisha Hiedeman OVER PTS 14.5 (Seattle Storm vs Phoenix Mercury): p=56.7%, proj=15.40, edge -0.7%, score=0.324, source=FanDuel
+1. Kayla McBride OVER THREES 1.5 (Minnesota Lynx vs New York Liberty): p=69.6%, proj=2.62, edge +10.8%, score=0.913, source=hardrock
+2. NaLyssa Smith UNDER RA 8.5 (Las Vegas Aces vs Chicago Sky): p=68.5%, proj=6.39, edge +15.1%, score=0.824, source=draftkings
+3. Chelsea Gray UNDER THREES 2.5 (Las Vegas Aces vs Chicago Sky): p=67.1%, proj=1.87, edge +6.7%, score=0.527, source=draftkings
+4. Olivia Miles UNDER THREES 1.5 (Minnesota Lynx vs New York Liberty): p=61.6%, proj=1.17, edge -2.6%, score=0.476, source=hardrock
+5. Jackie Young UNDER REB 5.5 (Las Vegas Aces vs Chicago Sky): p=66.6%, proj=4.42, edge +14.9%, score=0.785, source=draftkings
+6. Breanna Stewart UNDER AST 3.5 (New York Liberty vs Minnesota Lynx): p=55.6%, proj=3.08, edge -1.1%, score=0.275, source=draftkings
 
 ## Warnings
 
+Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.
+Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
 Expanded card is concentrated in one matchup; treat correlated results as higher variance.
-FanDuel-only update: unavailable props were excluded from the card.
-FanDuel app availability can still change; verify each listed line is still present before placing the parlay.
+Archive ML rerank selected this card using only prior archived candidate outcomes; same-player coverage fill may be used to maintain six picks.
