@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-03T16:02:11Z",
+  "generatedAt": "2026-07-03T19:58:49Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-05-16-roster-slate-gate-v10",
-  "cardGeneratedAt": "2026-07-03T16:01:19Z",
+  "cardGeneratedAt": "2026-07-03T19:57:59Z",
   "slateDate": "2026-07-03",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -37,6 +37,24 @@
     {
       "slate_date": "2026-07-03",
       "selected_rank": 2,
+      "player": "Courtney Williams",
+      "team": "MIN",
+      "team_name": "Minnesota Lynx",
+      "opponent": "NY",
+      "opponent_name": "New York Liberty",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 1.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.64081,
+      "final_score": 0.58167,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
+    },
+    {
+      "slate_date": "2026-07-03",
+      "selected_rank": 3,
       "player": "NaLyssa Smith",
       "team": "LV",
       "team_name": "Las Vegas Aces",
@@ -54,7 +72,7 @@
     },
     {
       "slate_date": "2026-07-03",
-      "selected_rank": 3,
+      "selected_rank": 4,
       "player": "Chelsea Gray",
       "team": "LV",
       "team_name": "Las Vegas Aces",
@@ -66,26 +84,8 @@
       "actual": null,
       "settlement": "PENDING",
       "model_probability": 0.67105,
-      "final_score": 0.52712,
-      "source_book": "draftkings",
-      "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
-    },
-    {
-      "slate_date": "2026-07-03",
-      "selected_rank": 4,
-      "player": "Olivia Miles",
-      "team": "MIN",
-      "team_name": "Minnesota Lynx",
-      "opponent": "NY",
-      "opponent_name": "New York Liberty",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 1.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.6162,
-      "final_score": 0.47616,
-      "source_book": "hardrock",
+      "final_score": 0.51826,
+      "source_book": "bet365",
       "source_url": "https://www.scoresandodds.com/wnba/props/3-pointers"
     },
     {
@@ -109,20 +109,20 @@
     {
       "slate_date": "2026-07-03",
       "selected_rank": 6,
-      "player": "Breanna Stewart",
+      "player": "Marine Johannes",
       "team": "NY",
       "team_name": "New York Liberty",
       "opponent": "MIN",
       "opponent_name": "Minnesota Lynx",
-      "market": "AST",
+      "market": "PTS",
       "side": "UNDER",
-      "line": 3.5,
+      "line": 7.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.55614,
-      "final_score": 0.27487,
-      "source_book": "draftkings",
-      "source_url": "https://www.scoresandodds.com/wnba/props/assists"
+      "model_probability": 0.57074,
+      "final_score": 0.48754,
+      "source_book": "bet365",
+      "source_url": "https://www.scoresandodds.com/wnba/props/points"
     }
   ]
 }

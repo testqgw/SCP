@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
 2026-07-03,1,Kayla McBride,MIN,Minnesota Lynx,NY,New York Liberty,THREES,OVER,1.5,,PENDING,0.69629,0.91287,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-03,2,NaLyssa Smith,LV,Las Vegas Aces,CHI,Chicago Sky,RA,UNDER,8.5,,PENDING,0.68479,0.82411,draftkings,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
-2026-07-03,3,Chelsea Gray,LV,Las Vegas Aces,CHI,Chicago Sky,THREES,UNDER,2.5,,PENDING,0.67105,0.52712,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-03,4,Olivia Miles,MIN,Minnesota Lynx,NY,New York Liberty,THREES,UNDER,1.5,,PENDING,0.6162,0.47616,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-03,2,Courtney Williams,MIN,Minnesota Lynx,NY,New York Liberty,THREES,UNDER,1.5,,PENDING,0.64081,0.58167,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-03,3,NaLyssa Smith,LV,Las Vegas Aces,CHI,Chicago Sky,RA,UNDER,8.5,,PENDING,0.68479,0.82411,draftkings,https://www.scoresandodds.com/wnba/props/rebounds-&-assists
+2026-07-03,4,Chelsea Gray,LV,Las Vegas Aces,CHI,Chicago Sky,THREES,UNDER,2.5,,PENDING,0.67105,0.51826,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
 2026-07-03,5,Jackie Young,LV,Las Vegas Aces,CHI,Chicago Sky,REB,UNDER,5.5,,PENDING,0.6665,0.78514,draftkings,https://www.scoresandodds.com/wnba/props/rebounds
-2026-07-03,6,Breanna Stewart,NY,New York Liberty,MIN,Minnesota Lynx,AST,UNDER,3.5,,PENDING,0.55614,0.27487,draftkings,https://www.scoresandodds.com/wnba/props/assists
+2026-07-03,6,Marine Johannes,NY,New York Liberty,MIN,Minnesota Lynx,PTS,UNDER,7.5,,PENDING,0.57074,0.48754,bet365,https://www.scoresandodds.com/wnba/props/points
