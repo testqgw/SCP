@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-04T15:48:28Z
+Generated: 2026-07-04T19:52:19Z
 Slate: 2026-07-04
-Settled: 0 / 6
+Settled: 3 / 6
 No action: 0
-Accuracy: pending
+Accuracy: 66.67
 
 ## Rows
 
-- PENDING: Dominique Malonga UNDER PTS 18.5 (actual pending)
-- PENDING: Veronica Burton UNDER THREES 1.5 (actual pending)
-- PENDING: Cecilia Zandalasini UNDER THREES 1.5 (actual pending)
-- PENDING: Allisha Gray UNDER THREES 1.5 (actual pending)
-- PENDING: Angel Reese UNDER RA 14.5 (actual pending)
-- PENDING: Rhyne Howard UNDER AST 3.5 (actual pending)
+- PENDING: Carla Leite OVER THREES 0.5 (actual pending)
+- LOSS: Veronica Burton UNDER THREES 1.5 (actual 2.0)
+- WIN: Cecilia Zandalasini UNDER THREES 1.5 (actual 1.0)
+- PENDING: Dominique Malonga UNDER PR 26.5 (actual pending)
+- PENDING: Megan Gustafson UNDER PTS 12.5 (actual pending)
+- WIN: Cecilia Zandalasini UNDER REB 2.5 (actual 2.0)
