@@ -1,21 +1,21 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-04T19:51:19Z
-Slate: 2026-07-04
+Generated: 2026-07-05T15:47:40Z
+Slate: 2026-07-05
 
 ## Selected
 
-1. Carla Leite OVER THREES 0.5 (Portland Fire vs Seattle Storm): p=69.6%, proj=1.28, edge +8.1%, score=0.762, source=hardrock
-2. Veronica Burton UNDER THREES 1.5 (Golden State Valkyries vs Atlanta Dream): p=65.1%, proj=0.86, edge +3.2%, score=0.693, source=draftkings
-3. Cecilia Zandalasini UNDER THREES 1.5 (Golden State Valkyries vs Atlanta Dream): p=61.6%, proj=1.06, edge +1.5%, score=0.532, source=bet365
-4. Dominique Malonga UNDER PR 26.5 (Seattle Storm vs Portland Fire): p=64.7%, proj=21.67, edge +15.7%, score=0.694, source=bet365
-5. Megan Gustafson UNDER PTS 12.5 (Portland Fire vs Seattle Storm): p=50.5%, proj=12.12, edge -5.6%, score=0.170, source=nan
-6. Cecilia Zandalasini UNDER REB 2.5 (Golden State Valkyries vs Atlanta Dream): p=58.5%, proj=1.91, edge -0.6%, score=0.411, source=hardrock
+1. Nyara Sabally UNDER THREES 1.5 (Toronto Tempo vs Dallas Wings): p=77.6%, proj=0.47, edge -4.4%, score=0.800, source=bet365
+2. Jackie Young UNDER THREES 2.5 (Las Vegas Aces vs Indiana Fever): p=67.4%, proj=1.65, edge +0.8%, score=0.673, source=nan
+3. Isabelle Harrison UNDER PTS 14.5 (Toronto Tempo vs Dallas Wings): p=68.8%, proj=11.30, edge +11.4%, score=0.797, source=nan
+4. Awak Kuier UNDER REB 3.5 (Dallas Wings vs Toronto Tempo): p=62.3%, proj=2.43, edge +0.1%, score=0.469, source=bet365
+5. Jewell Loyd UNDER REB 3.5 (Las Vegas Aces vs Indiana Fever): p=58.6%, proj=3.16, edge -0.5%, score=0.333, source=draftkings
+6. NaLyssa Smith UNDER REB 7.5 (Las Vegas Aces vs Indiana Fever): p=65.9%, proj=5.88, edge +11.2%, score=0.753, source=bet365
 
 ## Warnings
 
 Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.
+Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
 Expanded card is concentrated in one matchup; treat correlated results as higher variance.
 Archive ML rerank selected this card using only prior archived candidate outcomes; same-player coverage fill may be used to maintain six picks.

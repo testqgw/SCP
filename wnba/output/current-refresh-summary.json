@@ -1,23 +1,15 @@
 {
-  "generatedAt": "2026-07-04T19:52:19Z",
-  "targetDate": "2026-07-04",
+  "generatedAt": "2026-07-05T15:48:45Z",
+  "targetDate": "2026-07-05",
   "source": "sportsgrid-fanduel+scoresandodds",
-  "boardPath": "data/current/expanded_board_2026-07-04.csv",
-  "archivedSlate": null,
+  "boardPath": "data/current/expanded_board_2026-07-05.csv",
+  "archivedSlate": "2026-07-04",
   "selectedCount": 6,
-  "totalBoardRows": 63,
-  "refreshWarnings": [],
+  "totalBoardRows": 96,
+  "refreshWarnings": [
+    "ESPN log refresh failed; reused existing logs at data/raw/wnba_player_game_logs.csv: IncompleteRead(384007 bytes read)"
+  ],
   "priorSettlement": {
-    "trackedPicks": 6,
-    "settledPicks": 5,
-    "pendingPicks": 1,
-    "noActionPicks": 0,
-    "wins": 3,
-    "losses": 2,
-    "pushes": 0,
-    "accuracyPct": 60.0
-  },
-  "currentSettlement": {
     "trackedPicks": 6,
     "settledPicks": 3,
     "pendingPicks": 3,
@@ -26,6 +18,16 @@
     "losses": 1,
     "pushes": 0,
     "accuracyPct": 66.67
+  },
+  "currentSettlement": {
+    "trackedPicks": 6,
+    "settledPicks": 0,
+    "pendingPicks": 6,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": null
   },
   "cardPaths": {
     "json": "output/current-card.json",

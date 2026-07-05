@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-07-04,1,Carla Leite,POR,Portland Fire,SEA,Seattle Storm,THREES,OVER,0.5,,PENDING,0.69593,0.76227,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-04,2,Veronica Burton,GS,Golden State Valkyries,ATL,Atlanta Dream,THREES,UNDER,1.5,2.0,LOSS,0.65142,0.69271,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-04,3,Cecilia Zandalasini,GS,Golden State Valkyries,ATL,Atlanta Dream,THREES,UNDER,1.5,1.0,WIN,0.61631,0.53231,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-04,4,Dominique Malonga,SEA,Seattle Storm,POR,Portland Fire,PR,UNDER,26.5,,PENDING,0.64652,0.69438,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
-2026-07-04,5,Megan Gustafson,POR,Portland Fire,SEA,Seattle Storm,PTS,UNDER,12.5,,PENDING,0.50493,0.17034,nan,https://www.sportsgrid.com/wnba/game/portland-fire-seattle-storm-scores-odds-picks-props-july-04-2026/6b7f9f10-37a3-4f58-a603-b811354503e8
-2026-07-04,6,Cecilia Zandalasini,GS,Golden State Valkyries,ATL,Atlanta Dream,REB,UNDER,2.5,2.0,WIN,0.58482,0.41078,hardrock,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-05,1,Nyara Sabally,TOR,Toronto Tempo,DAL,Dallas Wings,THREES,UNDER,1.5,,PENDING,0.7756,0.80019,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-05,2,Jackie Young,LV,Las Vegas Aces,IND,Indiana Fever,THREES,UNDER,2.5,,PENDING,0.67423,0.67338,nan,https://www.sportsgrid.com/wnba/game/indiana-fever-las-vegas-aces-scores-odds-picks-props-july-05-2026/2bcb9fba-8bce-4f4a-89e3-6064ce4263eb
+2026-07-05,3,Isabelle Harrison,TOR,Toronto Tempo,DAL,Dallas Wings,PTS,UNDER,14.5,,PENDING,0.68811,0.79712,nan,https://www.sportsgrid.com/wnba/game/dallas-wings-toronto-tempo-scores-odds-picks-props-july-05-2026/22e36844-b934-4919-af2a-05fa752efe46
+2026-07-05,4,Awak Kuier,DAL,Dallas Wings,TOR,Toronto Tempo,REB,UNDER,3.5,,PENDING,0.62314,0.46855,bet365,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-05,5,Jewell Loyd,LV,Las Vegas Aces,IND,Indiana Fever,REB,UNDER,3.5,,PENDING,0.58641,0.33332,draftkings,https://www.scoresandodds.com/wnba/props/rebounds
+2026-07-05,6,NaLyssa Smith,LV,Las Vegas Aces,IND,Indiana Fever,REB,UNDER,7.5,,PENDING,0.65871,0.7535,bet365,https://www.scoresandodds.com/wnba/props/rebounds

@@ -1,0 +1,7 @@
+slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
+2026-07-04,1,Carla Leite,POR,Portland Fire,SEA,Seattle Storm,THREES,OVER,0.5,,PENDING,0.69593,0.76227,hardrock,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-04,2,Veronica Burton,GS,Golden State Valkyries,ATL,Atlanta Dream,THREES,UNDER,1.5,2.0,LOSS,0.65142,0.69271,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-04,3,Cecilia Zandalasini,GS,Golden State Valkyries,ATL,Atlanta Dream,THREES,UNDER,1.5,1.0,WIN,0.61631,0.53231,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-04,4,Dominique Malonga,SEA,Seattle Storm,POR,Portland Fire,PR,UNDER,26.5,,PENDING,0.64652,0.69438,bet365,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-07-04,5,Megan Gustafson,POR,Portland Fire,SEA,Seattle Storm,PTS,UNDER,12.5,,PENDING,0.50493,0.17034,nan,https://www.sportsgrid.com/wnba/game/portland-fire-seattle-storm-scores-odds-picks-props-july-04-2026/6b7f9f10-37a3-4f58-a603-b811354503e8
+2026-07-04,6,Cecilia Zandalasini,GS,Golden State Valkyries,ATL,Atlanta Dream,REB,UNDER,2.5,2.0,WIN,0.58482,0.41078,hardrock,https://www.scoresandodds.com/wnba/props/rebounds
