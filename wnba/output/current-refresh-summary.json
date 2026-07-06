@@ -1,21 +1,23 @@
 {
-  "generatedAt": "2026-07-06T16:32:34Z",
+  "generatedAt": "2026-07-06T20:04:36Z",
   "targetDate": "2026-07-06",
   "source": "sportsgrid-fanduel+scoresandodds",
   "boardPath": "data/current/expanded_board_2026-07-06.csv",
-  "archivedSlate": "2026-07-05",
+  "archivedSlate": null,
   "selectedCount": 6,
   "totalBoardRows": 119,
-  "refreshWarnings": [],
+  "refreshWarnings": [
+    "ESPN log refresh failed; reused existing logs at data/raw/wnba_player_game_logs.csv: IncompleteRead(414320 bytes read)"
+  ],
   "priorSettlement": {
     "trackedPicks": 6,
-    "settledPicks": 6,
-    "pendingPicks": 0,
+    "settledPicks": 0,
+    "pendingPicks": 6,
     "noActionPicks": 0,
-    "wins": 4,
-    "losses": 2,
+    "wins": 0,
+    "losses": 0,
     "pushes": 0,
-    "accuracyPct": 66.67
+    "accuracyPct": null
   },
   "currentSettlement": {
     "trackedPicks": 6,

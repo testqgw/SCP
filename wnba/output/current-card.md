@@ -1,16 +1,16 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-06T16:31:22Z
+Generated: 2026-07-06T20:03:52Z
 Slate: 2026-07-06
 
 ## Selected
 
-1. Courtney Williams UNDER PA 21.5 (Minnesota Lynx vs Connecticut Sun): p=72.7%, proj=16.87, edge +20.8%, score=0.821, source=nan
-2. Olivia Miles UNDER THREES 1.5 (Minnesota Lynx vs Connecticut Sun): p=66.4%, proj=0.91, edge +7.0%, score=0.763, source=hardrock
-3. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Los Angeles Sparks): p=64.1%, proj=1.90, edge +2.5%, score=0.581, source=bet365
-4. Shakira Austin UNDER AST 3.5 (Washington Mystics vs Golden State Valkyries): p=62.0%, proj=2.77, edge -4.6%, score=0.439, source=bet365
-5. Cecilia Zandalasini UNDER THREES 1.5 (Golden State Valkyries vs Washington Mystics): p=63.0%, proj=1.04, edge +6.1%, score=0.618, source=bet365
-6. Kiki Iriafen UNDER AST 2.5 (Washington Mystics vs Golden State Valkyries): p=61.1%, proj=2.08, edge -1.2%, score=0.388, source=bet365
+1. Courtney Williams UNDER PA 23.5 (Minnesota Lynx vs Connecticut Sun): p=78.0%, proj=16.87, edge +22.4%, score=0.875, source=nan
+2. Olivia Miles UNDER THREES 1.5 (Minnesota Lynx vs Connecticut Sun): p=68.1%, proj=0.80, edge +8.0%, score=0.718, source=draftkings
+3. Shakira Austin UNDER AST 3.5 (Washington Mystics vs Golden State Valkyries): p=62.1%, proj=2.76, edge -4.6%, score=0.441, source=bet365
+4. Cecilia Zandalasini UNDER THREES 1.5 (Golden State Valkyries vs Washington Mystics): p=63.0%, proj=1.04, edge +6.1%, score=0.618, source=bet365
+5. Veronica Burton UNDER THREES 1.5 (Golden State Valkyries vs Washington Mystics): p=58.4%, proj=1.14, edge -3.7%, score=0.356, source=draftkings
+6. Kiki Iriafen UNDER AST 2.5 (Washington Mystics vs Golden State Valkyries): p=61.1%, proj=2.07, edge -1.1%, score=0.389, source=bet365
 
 ## Warnings
 
