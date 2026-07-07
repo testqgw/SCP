@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-07T05:11:28Z",
+  "generatedAt": "2026-07-07T06:00:37Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -40,25 +40,25 @@
   },
   "parlayPlan": {
     "targetLegs": 6,
-    "selectedLegs": 1,
+    "selectedLegs": 0,
     "isComplete": false,
     "targetParlayProbability": 0.7,
     "requiredAverageLegProbability": 0.94229,
     "independentModelProbability": null,
-    "averageLegProbability": 0.56337,
-    "lowestLegProbability": 0.56337,
+    "averageLegProbability": null,
+    "lowestLegProbability": null,
     "targetMetByIndependentModel": false,
     "targetProbabilityShortfall": null,
     "sameGamePairs": 0,
-    "maxSameGameLegs": 1,
+    "maxSameGameLegs": 0,
     "sameTeamPairs": 0,
-    "comboLegs": 1,
+    "comboLegs": 0,
     "sgpExposure": {
       "requiresSameGameParlayPricing": false,
       "riskLevel": "LOW",
       "sameGamePairs": 0,
-      "maxSameGameLegs": 1,
-      "uniqueGames": 1,
+      "maxSameGameLegs": 0,
+      "uniqueGames": 0,
       "clusters": [],
       "note": "FanDuel can reprice cards with multiple legs from one game as SGP/SGP-plus, so archive hit rate and standard parlay payout math should not be assumed.",
       "estimatedSgpTaxMultiplier": 1.0,
@@ -66,7 +66,7 @@
     },
     "warnings": [
       "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.",
-      "Only 1 of 6 target legs selected."
+      "Only 0 of 6 target legs selected."
     ]
   },
   "portfolioConfig": {
@@ -88,7 +88,7 @@
     "expanded_min_score": 0.58,
     "expanded_min_probability": 0.62,
     "expanded_min_price_edge": 0.04,
-    "allow_forced_six_pick_fill": true,
+    "allow_forced_six_pick_fill": false,
     "forced_fill_min_score": 0.0,
     "forced_fill_min_probability": 0.52,
     "volatile_short_rest_min_score": 0.82,
@@ -112,39 +112,34 @@
   },
   "summary": {
     "totalBoardRows": 6,
-    "candidateCount": 1,
-    "selectedCount": 1,
+    "candidateCount": 0,
+    "selectedCount": 0,
     "targetPicks": 6,
-    "selectedByTier": {
-      "D": 1
-    },
+    "selectedByTier": {},
     "boardRowsByTier": {
       "B": 1,
       "C": 1,
       "D": 4
     },
     "boardRowsByAction": {
-      "COVERAGE": 4,
-      "SELECTED": 1,
-      "CANDIDATE": 1
+      "COVERAGE": 6
     },
-    "averageModelProbability": 0.56337,
-    "averageFinalScore": 0.41526,
+    "averageModelProbability": null,
+    "averageFinalScore": null,
     "priceCoveragePct": 83.33,
     "sgpRiskLevel": "LOW",
     "sameGamePairs": 0,
-    "maxSameGameLegs": 1,
+    "maxSameGameLegs": 0,
     "executionStatus": "EXPERIMENTAL",
     "warningCount": 7
   },
   "warnings": [
     "Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.",
     "Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.",
-    "Only 1 rows cleared the current gates for a 6-pick target.",
+    "No selected rows cleared the FanDuel availability gate.",
     "FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.",
-    "Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.",
     "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.",
-    "Only 1 of 6 target legs selected.",
+    "Only 0 of 6 target legs selected.",
     "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
   ],
   "boardRows": [
@@ -353,11 +348,10 @@
       "selection_model_probability": 0.56337,
       "selection_score": 0.41526,
       "selection_score_adjustment": 0.0,
-      "model_action": "SELECTED",
-      "selected_rank": 1,
+      "model_action": "COVERAGE",
+      "selected_rank": null,
       "risk_flags": [
         "combo_market_correlation",
-        "forced_six_pick_fill",
         "single_side_price",
         "thin_market_count"
       ],
@@ -370,7 +364,7 @@
         "source pick under agrees",
         "source projection 14.00"
       ],
-      "rejection_reason": null
+      "rejection_reason": "below_consensus_probability"
     },
     {
       "candidate_id": "2026-07-07:4066533:PTS:14.5",
@@ -428,7 +422,7 @@
       "selection_model_probability": 0.55317,
       "selection_score": 0.40205,
       "selection_score_adjustment": 0.0,
-      "model_action": "CANDIDATE",
+      "model_action": "COVERAGE",
       "selected_rank": null,
       "risk_flags": [
         "single_side_price",
@@ -443,7 +437,7 @@
         "source pick under agrees",
         "source projection 10.00"
       ],
-      "rejection_reason": "max_per_player"
+      "rejection_reason": "below_consensus_probability"
     },
     {
       "candidate_id": "2026-07-07:4066533:THREES:2.5",
@@ -516,7 +510,7 @@
         "source pick under agrees",
         "source projection 1.50"
       ],
-      "rejection_reason": "below_forced_fill_price_edge"
+      "rejection_reason": "below_consensus_price_edge"
     },
     {
       "candidate_id": "2026-07-07:2998938:THREES:1.5",
@@ -595,158 +589,8 @@
       "rejection_reason": "single_side_price_excluded"
     }
   ],
-  "selectedRows": [
-    {
-      "candidate_id": "2026-07-07:4066533:PA:19.5",
-      "slate_date": "2026-07-07",
-      "player_id": "4066533",
-      "player": "Sabrina Ionescu",
-      "team": "NY",
-      "team_name": "New York Liberty",
-      "opponent": "DAL",
-      "opponent_name": "Dallas Wings",
-      "matchup_key": "DAL-NY",
-      "market": "PA",
-      "side": "UNDER",
-      "line": 19.5,
-      "over_odds": null,
-      "under_odds": -104.0,
-      "over_book": "",
-      "under_book": "",
-      "projected_value": 18.289,
-      "line_gap": -1.211,
-      "abs_line_gap": 1.211,
-      "sigma": 8.859,
-      "over_probability": 0.43663,
-      "model_probability": 0.56337,
-      "fair_probability": 0.5098,
-      "price_edge": 0.05356,
-      "projected_minutes": 30.63,
-      "minutes_confidence": 0.8559,
-      "data_confidence": 0.9597,
-      "sample_size": 109,
-      "rest_days": 4,
-      "sportsbook_count": 1.0,
-      "source_pick": "UNDER",
-      "source_projection": 14.0,
-      "source_odds": -104.0,
-      "source_book": "FanDuel",
-      "source_board_book": "FanDuel",
-      "source_market": "Pts + Ast",
-      "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
-      "source_event_id": "",
-      "source_away": "DAL",
-      "source_home": "NY",
-      "game_time_et": "8:00 PM",
-      "line_last_updated": "2026-07-07T04:59:08Z",
-      "source_status": "live_current",
-      "team_resolution_status": "source_game_match",
-      "market_quiescence_score": 0.0,
-      "is_quiet_market": 0,
-      "minutes_since_line_movement": 0.0,
-      "juice_drift": 0.0,
-      "cross_book_line_std": 0.0,
-      "tier": "D",
-      "base_score": 0.49026,
-      "final_score": 0.41526,
-      "selection_model_probability": 0.56337,
-      "selection_score": 0.41526,
-      "selection_score_adjustment": 0.0,
-      "model_action": "SELECTED",
-      "selected_rank": 1,
-      "risk_flags": [
-        "combo_market_correlation",
-        "forced_six_pick_fill",
-        "single_side_price",
-        "thin_market_count"
-      ],
-      "reasons": [
-        "projection 18.29 vs line 19.50",
-        "under probability 56.3%",
-        "gap -1.21 (0.14 sigma)",
-        "history sample 109",
-        "no-vig edge +5.4%",
-        "source pick under agrees",
-        "source projection 14.00"
-      ],
-      "rejection_reason": null
-    }
-  ],
-  "candidateRows": [
-    {
-      "candidate_id": "2026-07-07:4066533:PTS:14.5",
-      "slate_date": "2026-07-07",
-      "player_id": "4066533",
-      "player": "Sabrina Ionescu",
-      "team": "NY",
-      "team_name": "New York Liberty",
-      "opponent": "DAL",
-      "opponent_name": "Dallas Wings",
-      "matchup_key": "DAL-NY",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 14.5,
-      "over_odds": null,
-      "under_odds": 100.0,
-      "over_book": "",
-      "under_book": "",
-      "projected_value": 13.926,
-      "line_gap": -0.574,
-      "abs_line_gap": 0.574,
-      "sigma": 7.926,
-      "over_probability": 0.44683,
-      "model_probability": 0.55317,
-      "fair_probability": 0.5,
-      "price_edge": 0.05317,
-      "projected_minutes": 30.63,
-      "minutes_confidence": 0.8559,
-      "data_confidence": 0.9597,
-      "sample_size": 109,
-      "rest_days": 4,
-      "sportsbook_count": 1.0,
-      "source_pick": "UNDER",
-      "source_projection": 10.0,
-      "source_odds": 100.0,
-      "source_book": "FanDuel",
-      "source_board_book": "FanDuel",
-      "source_market": "Points",
-      "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
-      "source_event_id": "",
-      "source_away": "DAL",
-      "source_home": "NY",
-      "game_time_et": "8:00 PM",
-      "line_last_updated": "2026-07-07T04:59:08Z",
-      "source_status": "live_current",
-      "team_resolution_status": "source_game_match",
-      "market_quiescence_score": 0.0,
-      "is_quiet_market": 0,
-      "minutes_since_line_movement": 0.0,
-      "juice_drift": 0.0,
-      "cross_book_line_std": 0.0,
-      "tier": "D",
-      "base_score": 0.45205,
-      "final_score": 0.40205,
-      "selection_model_probability": 0.55317,
-      "selection_score": 0.40205,
-      "selection_score_adjustment": 0.0,
-      "model_action": "CANDIDATE",
-      "selected_rank": null,
-      "risk_flags": [
-        "single_side_price",
-        "thin_market_count"
-      ],
-      "reasons": [
-        "projection 13.93 vs line 14.50",
-        "under probability 55.3%",
-        "gap -0.57 (0.07 sigma)",
-        "history sample 109",
-        "no-vig edge +5.3%",
-        "source pick under agrees",
-        "source projection 10.00"
-      ],
-      "rejection_reason": "max_per_player"
-    }
-  ],
+  "selectedRows": [],
+  "candidateRows": [],
   "sourceUrls": [
     "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f",
     "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49"

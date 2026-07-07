@@ -2,7 +2,13 @@ from pathlib import Path
 
 from argparse import Namespace
 
-from scripts.daily_refresh import build_score_limits, generate_current_card, load_unavailable_candidate_ids, parse_args
+from scripts.daily_refresh import (
+    build_score_limits,
+    generate_current_card,
+    generate_from_cached_sportsgrid,
+    load_unavailable_candidate_ids,
+    parse_args,
+)
 
 
 def test_load_unavailable_candidate_ids_filters_by_slate_date(tmp_path: Path) -> None:
@@ -61,6 +67,7 @@ def test_fanduel_live_limits_preserve_same_game_correlation() -> None:
     assert limits["market_side_score_adjustments"] == {"THREES:UNDER": 0.55}
     assert limits["required_source_book"] == "FanDuel"
     assert limits["require_direct_source_book"] is True
+    assert limits["allow_forced_six_pick_fill"] is False
 
 
 def test_sportsgrid_fanduel_limits_allow_pick_side_only_prices() -> None:
@@ -116,6 +123,33 @@ def test_fanduel_auto_uses_cached_sportsgrid_before_best_available(monkeypatch, 
     assert card["summary"]["selectedCount"] == 1
     assert source == "sportsgrid-fanduel-cache"
     assert board_path == tmp_path / "cached.csv"
+
+
+def test_cached_sportsgrid_warning_count_matches_appended_warnings(monkeypatch, tmp_path: Path) -> None:
+    board_path = tmp_path / "data/current/sportsgrid_fanduel_board_2026-07-07.csv"
+    board_path.parent.mkdir(parents=True)
+    board_path.write_text(
+        "game_date,player,source_url\n2026-07-07,Test Player,https://example.test/game\n",
+        encoding="utf-8",
+    )
+    args = Namespace(book="fanduel", max_picks=6, min_score=0.68, unavailable_props="missing.csv")
+
+    def fake_score_current_board(*_args, **_kwargs):
+        return {
+            "mode": "CURRENT_FANDUEL_PREVIEW",
+            "summary": {"selectedCount": 0, "warningCount": 1},
+            "warnings": ["Base warning"],
+        }
+
+    monkeypatch.setattr("scripts.daily_refresh.ROOT", tmp_path)
+    monkeypatch.setattr("scripts.daily_refresh.score_current_board", fake_score_current_board)
+
+    card, source, returned_board_path = generate_from_cached_sportsgrid("2026-07-07", args)
+
+    assert source == "sportsgrid-fanduel-cache"
+    assert returned_board_path == board_path
+    assert len(card["warnings"]) == 2
+    assert card["summary"]["warningCount"] == 2
 
 
 def test_expanded_limits_still_honor_unavailable_props(tmp_path: Path) -> None:

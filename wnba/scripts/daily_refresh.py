@@ -267,7 +267,7 @@ def build_score_limits(args: argparse.Namespace, target_date: str, source: str =
         limits["require_playable_side_odds"] = True
         limits["allow_source_consensus_leans"] = True
         limits["min_consensus_price_edge"] = 0.0
-        limits["allow_forced_six_pick_fill"] = True
+        limits["allow_forced_six_pick_fill"] = False
         limits["forced_fill_min_probability"] = 0.52
         limits["forced_fill_min_price_edge"] = 0.0
         limits["max_per_game"] = 6
@@ -343,6 +343,8 @@ def generate_from_cached_sportsgrid(target_date: str, args: argparse.Namespace) 
     card.setdefault("warnings", []).append(
         "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
     )
+    if isinstance(card.get("summary"), dict):
+        card["summary"]["warningCount"] = len(card.get("warnings") or [])
     return card, "sportsgrid-fanduel-cache", board_path
 
 
