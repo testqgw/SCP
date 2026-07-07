@@ -20,7 +20,7 @@ from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
 from wnba_prop_model.model import empty_card, load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
-from wnba_prop_model.utils import canonical_name
+from wnba_prop_model.utils import canonical_name, player_id_aliases
 
 LOGS_PATH = ROOT / "data/raw/wnba_player_game_logs.csv"
 CURRENT_OUTPUT_PREFIX = ROOT / "output/current-card"
@@ -87,11 +87,15 @@ def load_unavailable_candidate_ids(path: str | Path, target_date: str) -> set[st
                 blocked.add(candidate_id)
                 parts = candidate_id.split(":")
                 if len(parts) >= 4:
-                    blocked.add(f"{parts[0]}:{parts[1]}:{parts[2]}:*")
+                    game_date, player_key, market, line = parts[:4]
+                    for player_alias in player_id_aliases(player_key) or {player_key}:
+                        blocked.add(f"{game_date}:{player_alias}:{market}:{line}")
+                        blocked.add(f"{game_date}:{player_alias}:{market}:*")
             player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
             market = str(row.get("market") or "").strip().upper()
             if player_key and market:
-                blocked.add(f"{target_date}:{player_key}:{market}:*")
+                for player_alias in player_id_aliases(player_key) or {player_key}:
+                    blocked.add(f"{target_date}:{player_alias}:{market}:*")
     return blocked
 
 

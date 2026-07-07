@@ -1,6 +1,6 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-07T03:22:50Z
+Generated: 2026-07-07T03:47:35Z
 Slate: 2026-07-06
 Settled: 4 / 6
 No action: 0

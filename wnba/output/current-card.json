@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-07T03:22:49Z",
+  "generatedAt": "2026-07-07T03:47:34Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -109,6 +109,8 @@
     "mqi_score_floor": 0.0,
     "mqi_quiet_boost": 1.0,
     "blocked_candidate_ids": [
+      "2026-07-06:5220150.0:REB:*",
+      "2026-07-06:5220150.0:REB:8.5",
       "2026-07-06:5220150:REB:*",
       "2026-07-06:5220150:REB:8.5",
       "2026-07-06:dominique malonga:REB:*"
@@ -7906,7 +7908,7 @@
         "no-vig edge +10.7%",
         "source projection 8.03"
       ],
-      "rejection_reason": "rebound_under_excluded"
+      "rejection_reason": "unavailable_live_prop"
     },
     {
       "candidate_id": "2026-07-06:4698736.0:AST:2.5",

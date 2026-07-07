@@ -502,6 +502,30 @@ def test_portfolio_blocks_unavailable_player_market_wildcard() -> None:
     assert rows[0]["rejection_reason"] == "unavailable_live_prop"
 
 
+def test_portfolio_blocks_unavailable_player_market_wildcard_with_decimal_player_id() -> None:
+    rows = [
+        _row("2026-07-06:5220150.0:REB:8.5", "Dominique Malonga", "5220150.0", "REB", 0.95),
+        _row("replacement", "Replacement Player", "replacement", "PTS", 0.80),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "max_per_team": 2,
+            "max_per_game": 2,
+            "blocked_candidate_ids": {"2026-07-06:5220150:REB:*"},
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert selected == ["replacement"]
+    assert rows[0]["rejection_reason"] == "unavailable_live_prop"
+
+
 def test_portfolio_replaces_single_side_price_when_excluded() -> None:
     rows = [
         _row("thin", "Thin Price Player", "thin", "PTS", 0.99),

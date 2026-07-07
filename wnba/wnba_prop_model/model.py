@@ -24,6 +24,7 @@ from .utils import (
     normal_cdf,
     normalize_market,
     normalize_team,
+    player_id_aliases,
     round_or_none,
     season_phase_for_date,
     team_display_name,
@@ -737,12 +738,16 @@ def _passes_context_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     candidate_parts = candidate_id.split(":")
     candidate_wildcards = {candidate_id}
     if len(candidate_parts) >= 4:
-        candidate_wildcards.add(f"{candidate_parts[0]}:{candidate_parts[1]}:{candidate_parts[2]}:*")
+        candidate_date, candidate_player, candidate_market, candidate_line = candidate_parts[:4]
+        for player_alias in player_id_aliases(candidate_player) or {candidate_player}:
+            candidate_wildcards.add(f"{candidate_date}:{player_alias}:{candidate_market}:{candidate_line}")
+            candidate_wildcards.add(f"{candidate_date}:{player_alias}:{candidate_market}:*")
     game_date = str(row.get("game_date") or "").split(" ")[0]
     player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
     market = str(row.get("market") or "").strip().upper()
     if game_date and player_key and market:
-        candidate_wildcards.add(f"{game_date}:{player_key}:{market}:*")
+        for player_alias in player_id_aliases(player_key) or {player_key}:
+            candidate_wildcards.add(f"{game_date}:{player_alias}:{market}:*")
     if candidate_wildcards & blocked_ids:
         row["rejection_reason"] = "unavailable_live_prop"
         return False

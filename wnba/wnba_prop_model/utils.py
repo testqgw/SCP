@@ -198,6 +198,19 @@ def canonical_name(value: Any) -> str:
     return " ".join(text.split())
 
 
+def player_id_aliases(value: Any) -> set[str]:
+    text = "" if value is None else str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null"}:
+        return set()
+    aliases = {text}
+    number = clean_number(text)
+    if number is not None and float(number).is_integer():
+        integer_text = str(int(number))
+        aliases.add(integer_text)
+        aliases.add(f"{integer_text}.0")
+    return aliases
+
+
 def normalize_team(value: Any) -> str:
     text = "" if value is None else str(value)
     text = text.strip().upper()

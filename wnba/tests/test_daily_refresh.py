@@ -24,8 +24,29 @@ def test_load_unavailable_candidate_ids_filters_by_slate_date(tmp_path: Path) ->
     assert blocked == {
         "2026-07-03:2529458:PR:12.5",
         "2026-07-03:2529458:PR:*",
+        "2026-07-03:2529458.0:PR:12.5",
+        "2026-07-03:2529458.0:PR:*",
         "2026-07-03:cheyenne parker tyus:PR:*",
     }
+
+
+def test_load_unavailable_candidate_ids_blocks_decimal_player_id_alias(tmp_path: Path) -> None:
+    path = tmp_path / "unavailable.csv"
+    path.write_text(
+        "\n".join(
+            [
+                "game_date,candidate_id,player,market,line,reason",
+                "2026-07-06,2026-07-06:5220150:REB:8.5,Dominique Malonga,REB,8.5,missing on FanDuel",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    blocked = load_unavailable_candidate_ids(path, "2026-07-06")
+
+    assert "2026-07-06:5220150.0:REB:*" in blocked
+    assert "2026-07-06:5220150.0:REB:8.5" in blocked
 
 
 def test_fanduel_live_limits_preserve_same_game_correlation() -> None:
