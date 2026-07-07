@@ -129,7 +129,7 @@ def write_settlement(result: dict[str, Any], out_prefix: str | Path) -> dict[str
     rows = result["rows"]
     if rows:
         with csv_path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]), lineterminator="\n")
             writer.writeheader()
             writer.writerows(rows)
     summary = result["summary"]

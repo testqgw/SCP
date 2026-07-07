@@ -17,7 +17,6 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from wnba_prop_model import data_scoresandodds, data_sportsgrid, data_theoddsapi
-from wnba_prop_model.archive_replay import rerank_current_card_with_archive_ml
 from wnba_prop_model.data_espn import fetch_player_game_logs, write_logs_csv
 from wnba_prop_model.model import empty_card, load_board, load_logs, score_board, write_card
 from wnba_prop_model.settlement import settle_card, write_settlement
@@ -27,6 +26,7 @@ LOGS_PATH = ROOT / "data/raw/wnba_player_game_logs.csv"
 CURRENT_OUTPUT_PREFIX = ROOT / "output/current-card"
 CURRENT_SETTLEMENT_PREFIX = ROOT / "output/current-settlement"
 REFRESH_SUMMARY_PATH = ROOT / "output/current-refresh-summary.json"
+UNAVAILABLE_PROPS_PATH = ROOT / "data/current/fanduel_unavailable_props.csv"
 
 
 def today_et() -> str:
@@ -40,14 +40,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seasons", nargs="+", type=int, default=[2024, 2025, 2026])
     parser.add_argument("--fetch-sleep", type=float, default=0.05)
     parser.add_argument("--source", choices=["auto", "sportsgrid", "scoresandodds", "oddsapi"], default="auto")
-    parser.add_argument("--book", choices=["fanduel", "best", "expanded"], default="expanded")
+    parser.add_argument("--book", choices=["fanduel", "best", "expanded"], default="fanduel")
     parser.add_argument("--bookmakers", default=None)
     parser.add_argument("--sportsgrid-urls", nargs="*", default=None)
+    parser.add_argument("--unavailable-props", default=str(UNAVAILABLE_PROPS_PATH))
     parser.add_argument("--max-picks", type=int, default=6)
     parser.add_argument("--min-score", type=float, default=0.68)
-    parser.add_argument("--selector", choices=["archive-ml", "baseline"], default="archive-ml")
-    parser.add_argument("--ml-min-training-cards", type=int, default=5)
-    parser.add_argument("--ml-min-training-rows", type=int, default=80)
     return parser.parse_args()
 
 
@@ -68,11 +66,33 @@ def relative_paths(paths: dict[str, str]) -> dict[str, str]:
     return clean_paths
 
 
-def display_cache_path(path: Path) -> str:
-    try:
-        return path.relative_to(ROOT).as_posix()
-    except ValueError:
-        return path.name
+def load_unavailable_candidate_ids(path: str | Path, target_date: str) -> set[str]:
+    source_path = Path(path)
+    if not source_path.exists():
+        return set()
+    blocked: set[str] = set()
+    with source_path.open(newline="", encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            row_date = str(row.get("game_date") or "").strip()
+            if row_date and row_date != target_date:
+                continue
+            candidate_id = str(row.get("candidate_id") or "").strip()
+            if not candidate_id:
+                player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
+                market = str(row.get("market") or "").strip().upper()
+                line = str(row.get("line") or "").strip()
+                if player_key and market and line:
+                    candidate_id = f"{target_date}:{player_key}:{market}:{line}"
+            if candidate_id:
+                blocked.add(candidate_id)
+                parts = candidate_id.split(":")
+                if len(parts) >= 4:
+                    blocked.add(f"{parts[0]}:{parts[1]}:{parts[2]}:*")
+            player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
+            market = str(row.get("market") or "").strip().upper()
+            if player_key and market:
+                blocked.add(f"{target_date}:{player_key}:{market}:*")
+    return blocked
 
 
 def _board_row_key(row: dict) -> tuple[str, str, str, str, str, str]:
@@ -210,25 +230,13 @@ def archive_existing_card(target_date: str) -> str | None:
     return slate_date
 
 
-def refresh_logs(args: argparse.Namespace) -> list[str]:
+def refresh_logs(args: argparse.Namespace) -> None:
     if args.skip_fetch:
-        return []
-    try:
-        rows = fetch_player_game_logs(args.seasons, include_unfinal=False, sleep_seconds=args.fetch_sleep)
-    except Exception as error:
-        if LOGS_PATH.exists():
-            return [
-                f"ESPN log refresh failed; reused existing logs at {display_cache_path(LOGS_PATH)}: {error}"
-            ]
-        raise
+        return
+    rows = fetch_player_game_logs(args.seasons, include_unfinal=False, sleep_seconds=args.fetch_sleep)
     if not rows:
-        if LOGS_PATH.exists():
-            return [
-                f"ESPN log refresh returned zero rows; reused existing logs at {display_cache_path(LOGS_PATH)}"
-            ]
         raise RuntimeError("ESPN log refresh returned zero rows.")
     write_logs_csv(rows, LOGS_PATH)
-    return []
 
 
 def settle_existing_card(archived_slate: str | None) -> dict | None:
@@ -244,14 +252,22 @@ def settle_existing_card(archived_slate: str | None) -> dict | None:
     return result
 
 
-def score_current_board(logs_path: Path, board_path: Path, target_date: str, args: argparse.Namespace) -> dict:
-    logs = load_logs(logs_path, include_preseason=True)
-    board = load_board(board_path, default_date=target_date)
+def build_score_limits(args: argparse.Namespace, target_date: str) -> dict[str, object]:
     limits: dict[str, object] = {"max_picks": args.max_picks, "min_score": args.min_score}
+    blocked_candidate_ids = load_unavailable_candidate_ids(args.unavailable_props, target_date)
+    if blocked_candidate_ids:
+        limits["blocked_candidate_ids"] = blocked_candidate_ids
     if args.book == "fanduel":
         limits["required_source_book"] = "FanDuel"
         limits["require_playable_side_odds"] = True
         limits["allow_source_consensus_leans"] = True
+        limits["allow_forced_six_pick_fill"] = True
+        limits["forced_fill_min_probability"] = 0.52
+        limits["max_per_game"] = 6
+        limits["sgp_tax_penalty_per_same_game_pair"] = 0.035
+        limits["exclude_single_side_prices"] = True
+        limits["exclude_rebound_unders"] = True
+        limits["market_side_score_adjustments"] = {"THREES:UNDER": 0.55}
     elif args.book == "expanded":
         limits.update(
             {
@@ -262,8 +278,7 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
                 "expanded_min_probability": 0.62,
                 "expanded_min_price_edge": 0.04,
                 "allow_forced_six_pick_fill": True,
-                "forced_fill_min_score": 0.0,
-                "forced_fill_min_probability": 0.50,
+                "forced_fill_min_probability": 0.60,
                 "max_per_player": 1,
                 "max_per_team": 6,
                 "max_per_game": 6,
@@ -271,17 +286,14 @@ def score_current_board(logs_path: Path, board_path: Path, target_date: str, arg
                 "max_combo_markets": 4,
             }
         )
-    card = score_board(logs, board, slate_date=target_date, limits=limits)
-    if args.selector == "archive-ml" and args.book == "expanded":
-        card = rerank_current_card_with_archive_ml(
-            card,
-            ROOT / "archive",
-            logs,
-            limits=limits,
-            min_training_cards=args.ml_min_training_cards,
-            min_training_rows=args.ml_min_training_rows,
-        )
-    return card
+    return limits
+
+
+def score_current_board(logs_path: Path, board_path: Path, target_date: str, args: argparse.Namespace) -> dict:
+    logs = load_logs(logs_path, include_preseason=True)
+    board = load_board(board_path, default_date=target_date)
+    limits = build_score_limits(args, target_date)
+    return score_board(logs, board, slate_date=target_date, limits=limits)
 
 
 def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
@@ -310,7 +322,7 @@ def generate_from_scoresandodds(target_date: str, args: argparse.Namespace) -> t
     board_path = ROOT / f"data/current/scoresandodds_board_{target_date}.csv"
     data_scoresandodds.write_board_csv(rows, board_path)
     card = score_current_board(LOGS_PATH, board_path, target_date, args)
-    card["mode"] = "CURRENT_BEST_ODDS_PREVIEW"
+    card["mode"] = "CURRENT_FANDUEL_MARKET_PREVIEW" if args.book == "fanduel" else "CURRENT_BEST_ODDS_PREVIEW"
     card["sourceUrls"] = sorted({row.get("source_url") for row in rows if row.get("source_url")})
     if args.book == "fanduel":
         card["sourceNote"] = "ScoresAndOdds public WNBA prop tables for coverage only; FanDuel-strict selected rows are blocked unless a FanDuel source is present."
@@ -453,9 +465,7 @@ def main() -> int:
     args = parse_args()
     target_date = args.date or today_et()
     archived_slate = archive_existing_card(target_date)
-    refresh_warnings = refresh_logs(args)
-    for warning in refresh_warnings:
-        print(f"Warning: {warning}")
+    refresh_logs(args)
     prior_settlement = settle_existing_card(archived_slate)
     card, source, board_path = generate_current_card(target_date, args)
     paths = write_card(card, CURRENT_OUTPUT_PREFIX)
@@ -470,7 +480,6 @@ def main() -> int:
         "archivedSlate": archived_slate,
         "selectedCount": card["summary"]["selectedCount"],
         "totalBoardRows": card["summary"]["totalBoardRows"],
-        "refreshWarnings": refresh_warnings,
         "priorSettlement": prior_settlement["summary"] if prior_settlement else None,
         "currentSettlement": current_settlement["summary"],
         "cardPaths": relative_paths(paths),

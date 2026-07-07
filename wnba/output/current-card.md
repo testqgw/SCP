@@ -1,21 +1,27 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-06T20:03:52Z
+Generated: 2026-07-07T03:22:49Z
 Slate: 2026-07-06
 
 ## Selected
 
-1. Courtney Williams UNDER PA 23.5 (Minnesota Lynx vs Connecticut Sun): p=78.0%, proj=16.87, edge +22.4%, score=0.875, source=nan
-2. Olivia Miles UNDER THREES 1.5 (Minnesota Lynx vs Connecticut Sun): p=68.1%, proj=0.80, edge +8.0%, score=0.718, source=draftkings
-3. Shakira Austin UNDER AST 3.5 (Washington Mystics vs Golden State Valkyries): p=62.1%, proj=2.76, edge -4.6%, score=0.441, source=bet365
-4. Cecilia Zandalasini UNDER THREES 1.5 (Golden State Valkyries vs Washington Mystics): p=63.0%, proj=1.04, edge +6.1%, score=0.618, source=bet365
-5. Veronica Burton UNDER THREES 1.5 (Golden State Valkyries vs Washington Mystics): p=58.4%, proj=1.14, edge -3.7%, score=0.356, source=draftkings
-6. Kiki Iriafen UNDER AST 2.5 (Washington Mystics vs Golden State Valkyries): p=61.1%, proj=2.07, edge -1.1%, score=0.389, source=bet365
+1. Jihyun Park UNDER THREES 1.5 (Los Angeles Sparks vs Seattle Storm): p=76.4%, proj=0.40, edge +10.1%, score=0.875, source=fanduel
+2. Kaila Charles OVER PR 8.5 (Golden State Valkyries vs Washington Mystics): p=62.1%, proj=10.93, edge +8.3%, score=0.630, source=fanduel
+3. Zia Cooke UNDER PTS 6.5 (Seattle Storm vs Los Angeles Sparks): p=62.1%, proj=3.70, edge +10.5%, score=0.644, source=fanduel
+4. Georgia Amoore UNDER THREES 1.5 (Washington Mystics vs Golden State Valkyries): p=62.3%, proj=1.17, edge +1.2%, score=0.486, source=fanduel
+5. Maya Caldwell UNDER PR 10.5 (Minnesota Lynx vs Connecticut Sun): p=66.8%, proj=8.03, edge +18.4%, score=0.650, source=fanduel
+6. Tiffany Hayes OVER PTS 6.5 (Golden State Valkyries vs Washington Mystics): p=53.7%, proj=7.39, edge +3.6%, score=0.360, source=fanduel
+
+## Execution Reality
+
+FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
+Selected legs: 6/6; independent probability: 6.6%; estimated SGP-taxed probability: 5.9%; SGP risk: HIGH
 
 ## Warnings
 
-Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
-Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
+FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.
+Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.
 Expanded card is concentrated in one matchup; treat correlated results as higher variance.
-Archive ML rerank selected this card using only prior archived candidate outcomes; same-player coverage fill may be used to maintain six picks.
+Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
+Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.

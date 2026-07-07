@@ -12,18 +12,18 @@ export type WnbaModelStage = {
 export const WNBA_MODEL_SUMMARY = {
   modelId: "wnba-player-prop-model-v1",
   modelName: "WNBA Correlation-Aware Player Prop Model V1",
-  modelVersion: "2026-07-02-archive-ml-selector-v11",
-  status: "Archive-ML July 2 WNBA card and strict selector proof published",
-  currentDateEt: "2026-07-02",
+  modelVersion: "2026-07-06-fanduel-live-model-v13",
+  status: "FanDuel-live model selector is primary; unavailable props are vetoed before selection",
+  currentDateEt: "2026-07-06",
   repoPath: "wnba/",
   toolkitPath: "wnba/wnba_prop_model/",
   boardTemplatePath: "wnba/data/templates/market_board_template.csv",
   historicalLinesTemplatePath: "wnba/data/templates/historical_lines_template.csv",
   rawLogPath: "wnba/data/raw/wnba_player_game_logs.csv",
   claimBoundary:
-    "WNBA V1 ranks sourced player props with historical boxscore evidence, best available over/under prices, source projection alignment, and portfolio gates. It is not a guarantee, and live use still requires player availability confirmation.",
+    "WNBA V1 ranks sourced player props with historical boxscore evidence, current FanDuel-labeled prices, source projection alignment, and portfolio gates. Archive proof and live FanDuel execution are separated; live use still requires player availability and book availability confirmation.",
   dataSource:
-    "ESPN public WNBA scoreboard, roster, and boxscore endpoints for logs and active-player validation; SportsGrid FanDuel prop cards when available; ScoresAndOdds public best-odds prop tables for expanded coverage; and optional The Odds API support when an API key is supplied.",
+    "ESPN public WNBA scoreboard, roster, and boxscore endpoints for logs and active-player validation; RotoWire/SportsGrid FanDuel-labeled prop cards when available; ScoresAndOdds public tables for non-primary coverage checks; and optional The Odds API support when an API key is supplied.",
   rawRows: "14,796",
   regularRows: "14,796",
   games: "765",
@@ -69,17 +69,17 @@ export const WNBA_ARCHIVE_SELECTOR_PROOF: WnbaModelMetric[] = [
   {
     label: "Settled parlays",
     value: "14/27",
-    note: "51.85% strict six-pick parlay hit rate",
+    note: "51.85% archive/cross-source six-pick parlay hit rate",
   },
   {
     label: "Settled legs",
     value: "175/226",
-    note: "77.43% selected-leg accuracy after source-disagreement cleanup",
+    note: "77.43% archive selected-leg accuracy",
   },
   {
-    label: "Selector profile",
-    value: "v11",
-    note: "Volatile-mix source-disagreement cleanup profile",
+    label: "FanDuel shadow",
+    value: "3/5",
+    note: "60.00% limited FanDuel availability replay; sample is too small to drive the selector",
   },
 ] as const;
 
@@ -102,22 +102,28 @@ export const WNBA_MODEL_STAGES: WnbaModelStage[] = [
   {
     label: "Portfolio gates",
     detail:
-      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then uses archive-ML reranking plus controlled fill gates to reach the six-pick target.",
+      "Limits exposure by player, team, game, market, combo market, and same-team counting overs, then applies live-mode availability gates and SGP exposure accounting.",
   },
 ];
 
 export const WNBA_PORTFOLIO_RULES = [
   "Max 6 picks",
   "Max 1 per player per slate",
-  "Max 6 per team in expanded mode",
-  "Max 6 per game in expanded mode",
+  "FanDuel-live mode is the primary six-pick path for the website card",
+  "Archive-ML proof does not transfer to single-book availability by default",
+  "Unavailable user-confirmed FanDuel props are removed before model selection",
+  "Soft SGP tax lowers priority for additional same-game legs in FanDuel-live mode",
+  "Max 6 per team in live mode",
+  "Max 6 per game in live mode",
   "Max 4 per market",
   "Max 4 combo markets",
   "Max 1 same-team counting over",
   "Requires target-date ESPN slate and current ESPN roster match",
-  "Expanded fill requires probability, edge, and clean team context",
+  "FanDuel rows require playable side odds and current source context",
+  "Live forced fill requires at least 52% model probability",
   "Archive-ML rerank uses only prior archived candidate outcomes",
-  "Current proof: 41/41 covered, 14/27 settled six-pick parlays, 175/226 legs",
+  "Current archive proof: 41/41 covered, 14/27 settled six-pick parlays, 175/226 legs",
+  "Limited FanDuel replay: 3/5 settled six-pick parlays, 73.33% legs",
 ] as const;
 
 export const WNBA_INPUT_COLUMNS = [

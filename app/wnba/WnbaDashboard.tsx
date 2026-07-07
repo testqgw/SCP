@@ -44,9 +44,9 @@ export type CurrentCardRow = {
   final_score: number;
   player: string;
   team: string;
-  team_name?: string;
+  team_name?: string | null;
   opponent: string;
-  opponent_name?: string;
+  opponent_name?: string | null;
   matchup_key?: string;
   market: string;
   side: Side;
@@ -83,13 +83,59 @@ export type CurrentCard = {
   mode: string;
   sourceNote?: string;
   sourceUrls?: string[];
+  executionProfile?: {
+    mode: string;
+    label: string;
+    status: string;
+    inheritsArchiveProof: boolean;
+    requiresPlayableSideOdds: boolean;
+    proofBoundary: string;
+  };
+  proofContext?: {
+    archiveSelector?: {
+      sixPickParlayWins?: number;
+      sixPickSettledDates?: number;
+      sixPickParlayAccuracyPct?: number;
+      legWins?: number;
+      settledLegs?: number;
+      legAccuracyPct?: number;
+    };
+    fanDuelStrictShadow?: {
+      sixPickParlayWins?: number;
+      sixPickSettledDates?: number;
+      sixPickParlayAccuracyPct?: number;
+      settledLegAccuracyPct?: number;
+    };
+    liveFanDuelClaim?: string;
+  };
+  parlayPlan?: {
+    targetLegs: number;
+    selectedLegs: number;
+    independentModelProbability: number | null;
+    targetMetByIndependentModel: boolean;
+    sgpExposure?: {
+      requiresSameGameParlayPricing: boolean;
+      riskLevel: string;
+      sameGamePairs: number;
+      maxSameGameLegs: number;
+      uniqueGames: number;
+      estimatedSgpTaxMultiplier?: number | null;
+      estimatedTaxedIndependentProbability?: number | null;
+      note?: string;
+    };
+  };
   summary: {
     totalBoardRows: number;
     selectedCount: number;
+    targetPicks?: number;
     candidateCount: number;
     averageModelProbability: number | null;
     averageFinalScore: number | null;
     priceCoveragePct: number;
+    sgpRiskLevel?: string;
+    sameGamePairs?: number;
+    maxSameGameLegs?: number;
+    executionStatus?: string;
     warningCount?: number;
     selectedByTier?: Record<string, number>;
     boardRowsByAction?: Record<string, number>;
@@ -116,8 +162,8 @@ export type CurrentSettlement = {
   rows?: Array<{
     selected_rank: number;
     player: string;
-    team_name?: string;
-    opponent_name?: string;
+    team_name?: string | null;
+    opponent_name?: string | null;
     market: string;
     side: Side;
     line: number;
@@ -653,6 +699,16 @@ export default function WnbaDashboard({
     settlement.summary.accuracyPct === null
       ? `${settlement.summary.pendingPicks} pending`
       : `${settlement.summary.accuracyPct.toFixed(1)}% settled accuracy`;
+  const execution = card.executionProfile;
+  const sgpExposure = card.parlayPlan?.sgpExposure;
+  const archiveProof = card.proofContext?.archiveSelector;
+  const fanduelShadow = card.proofContext?.fanDuelStrictShadow;
+  const liveStatus = execution ? `${execution.label}: ${formatFlag(execution.status)}` : "Current card live";
+  const sgpRisk = sgpExposure?.riskLevel ?? card.summary.sgpRiskLevel ?? "UNKNOWN";
+  const sgpTaxText =
+    typeof sgpExposure?.estimatedSgpTaxMultiplier === "number"
+      ? `${(sgpExposure.estimatedSgpTaxMultiplier * 100).toFixed(1)}% est. multiplier`
+      : `${card.summary.sameGamePairs ?? 0} same-game pairs`;
 
   const clearFilters = () => {
     setMode("all");
@@ -709,7 +765,7 @@ export default function WnbaDashboard({
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-md border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-semibold text-emerald-100">
                 <CheckCircle2 aria-hidden="true" size={15} />
-                Current card live
+                {liveStatus}
               </span>
               <span className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-zinc-300">
                 <Clock3 aria-hidden="true" size={15} />
@@ -720,12 +776,12 @@ export default function WnbaDashboard({
               WNBA Prop Card
             </h1>
             <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-400">
-              {card.modelName} ranks the current slate by model probability, projection gap, book price, and portfolio risk.
+              {card.modelName} ranks the current slate by model probability, projection gap, book price, and portfolio risk. FanDuel-live mode is the primary card path, with unavailable props removed before model selection.
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <StatTile icon={Target} label="Selected" value={String(card.summary.selectedCount)} note={`${card.summary.totalBoardRows} board rows`} tone="emerald" />
               <StatTile icon={Gauge} label="Avg prob." value={formatPct(card.summary.averageModelProbability)} note={selectedTierText} tone="cyan" />
-              <StatTile icon={Star} label="Avg score" value={formatScore(card.summary.averageFinalScore)} note="Selected card" tone="violet" />
+              <StatTile icon={Star} label="SGP risk" value={formatFlag(sgpRisk)} note={sgpTaxText} tone={sgpRisk === "HIGH" ? "amber" : "violet"} />
               <StatTile icon={ShieldCheck} label="Settlement" value={settlement.summary.accuracyPct === null ? "Pending" : `${settlement.summary.accuracyPct.toFixed(1)}%`} note={settlementText} tone="amber" />
             </div>
           </div>
@@ -741,6 +797,35 @@ export default function WnbaDashboard({
               </div>
             </div>
             <div className="mt-4 grid gap-2">
+              {execution ? (
+                <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm leading-6 text-cyan-50/90">
+                  <div className="font-semibold text-cyan-50">{execution.label}</div>
+                  <div>{execution.proofBoundary}</div>
+                </div>
+              ) : null}
+              {archiveProof && fanduelShadow ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive proof</div>
+                    <div className="mt-1 text-sm font-semibold text-zinc-100">
+                      {archiveProof.sixPickParlayWins}/{archiveProof.sixPickSettledDates} parlays
+                    </div>
+                    <div className="text-xs text-zinc-400">{archiveProof.sixPickParlayAccuracyPct?.toFixed(2)}% archive-only</div>
+                  </div>
+                  <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-100/70">FanDuel shadow</div>
+                    <div className="mt-1 text-sm font-semibold text-amber-50">
+                      {fanduelShadow.sixPickParlayWins}/{fanduelShadow.sixPickSettledDates} parlays
+                    </div>
+                    <div className="text-xs text-amber-100/75">{fanduelShadow.sixPickParlayAccuracyPct?.toFixed(2)}% limited replay</div>
+                  </div>
+                </div>
+              ) : null}
+              {sgpExposure ? (
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm leading-6 text-zinc-300">
+                  SGP exposure: {sgpExposure.maxSameGameLegs} max legs in one game, {sgpExposure.sameGamePairs} same-game pairs, {sgpTaxText}.
+                </div>
+              ) : null}
               {card.warnings.map((warning) => (
                 <div key={warning} className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm leading-6 text-amber-50/90">
                   {warning}

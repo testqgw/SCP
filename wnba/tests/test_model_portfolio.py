@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from wnba_prop_model.model import PORTFOLIO_LIMITS, _select_portfolio, empty_card
+from wnba_prop_model.model import PORTFOLIO_LIMITS, _select_portfolio, empty_card, score_board, write_card
 
 
 def _row(candidate_id: str, player: str, player_id: str, market: str, score: float) -> dict:
@@ -27,6 +27,43 @@ def _row(candidate_id: str, player: str, player_id: str, market: str, score: flo
         "matchup_key": "IND-WSH",
         "market": market,
     }
+
+
+def _write_score_fixture(tmp_path, same_game: bool = False) -> tuple:
+    logs_path = tmp_path / "logs.csv"
+    board_path = tmp_path / "board.csv"
+    game_team = "NY" if same_game else None
+    game_opponent = "CON" if same_game else None
+    players = [
+        ("1001", "Player One", game_team or "NY", game_opponent or "CON", "PTS", 12.5),
+        ("1002", "Player Two", game_team or "LV", game_opponent or "LA", "REB", 4.5),
+        ("1003", "Player Three", game_team or "SEA", game_opponent or "PHX", "AST", 3.5),
+        ("1004", "Player Four", game_team or "MIN", game_opponent or "ATL", "THREES", 1.5),
+        ("1005", "Player Five", game_team or "DAL", game_opponent or "CHI", "PRA", 24.5),
+        ("1006", "Player Six", game_team or "WAS", game_opponent or "IND", "PA", 17.5),
+    ]
+    log_rows = [
+        "game_date,game_id,player_id,player,team,opponent,minutes,points,rebounds,assists,threes,is_home,starter,position"
+    ]
+    for game_number in range(1, 13):
+        date = f"2026-06-{game_number:02d}"
+        for index, (player_id, player, team, opponent, *_rest) in enumerate(players, start=1):
+            log_rows.append(
+                f"{date},g{game_number}-{index},{player_id},{player},{team},{opponent},"
+                "32,22,9,7,3,1,1,G"
+            )
+    board_rows = [
+        "game_date,player,player_id,team,opponent,is_home,market,line,over_odds,under_odds,sportsbook_count,source_book,over_book,under_book,source_projection,source_pick"
+    ]
+    for player_id, player, team, opponent, market, line in players:
+        board_rows.append(
+            f"2026-07-03,{player},{player_id},{team},{opponent},1,{market},{line},+140,-165,1,FanDuel,FanDuel,FanDuel,30,OVER"
+        )
+    logs_path.write_text("\n".join(log_rows) + "\n", encoding="utf-8")
+    board_path.write_text("\n".join(board_rows) + "\n", encoding="utf-8")
+    from wnba_prop_model.model import load_board, load_logs
+
+    return load_logs(logs_path, include_preseason=True), load_board(board_path)
 
 
 def test_portfolio_selects_one_pick_per_player() -> None:
@@ -407,6 +444,155 @@ def test_standard_selection_prefers_stable_minutes_when_scores_are_close() -> No
     assert "Volatile" not in selected_players
 
 
+def test_portfolio_replaces_blocked_unavailable_candidate() -> None:
+    rows = [
+        _row("blocked", "Blocked Player", "blocked", "PTS", 0.99),
+        _row("a", "Player A", "a", "PTS", 0.95),
+        _row("b", "Player B", "b", "RA", 0.94),
+        _row("c", "Player C", "c", "AST", 0.93),
+        _row("d", "Player D", "d", "THREES", 0.92),
+        _row("e", "Player E", "e", "PRA", 0.91),
+        _row("replacement", "Replacement Player", "replacement", "PA", 0.90),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "max_per_team": 7,
+            "max_per_game": 7,
+            "max_per_market": 7,
+            "max_combo_markets": 7,
+            "max_same_team_counting_overs": 7,
+            "blocked_candidate_ids": {"blocked"},
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "blocked" not in selected
+    assert "replacement" in selected
+    assert len(selected) == 6
+    assert rows[0]["rejection_reason"] == "unavailable_live_prop"
+
+
+def test_portfolio_blocks_unavailable_player_market_wildcard() -> None:
+    rows = [
+        _row("2026-07-03:2529458:PR:13.5", "Cheyenne Parker-Tyus", "2529458", "PR", 0.95),
+        _row("replacement", "Replacement Player", "replacement", "PTS", 0.80),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "max_per_team": 2,
+            "max_per_game": 2,
+            "blocked_candidate_ids": {"2026-07-03:2529458:PR:*"},
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert selected == ["replacement"]
+    assert rows[0]["rejection_reason"] == "unavailable_live_prop"
+
+
+def test_portfolio_replaces_single_side_price_when_excluded() -> None:
+    rows = [
+        _row("thin", "Thin Price Player", "thin", "PTS", 0.99),
+        _row("a", "Player A", "a", "PTS", 0.95),
+        _row("b", "Player B", "b", "RA", 0.94),
+        _row("c", "Player C", "c", "AST", 0.93),
+        _row("d", "Player D", "d", "THREES", 0.92),
+        _row("e", "Player E", "e", "PRA", 0.91),
+        _row("replacement", "Replacement Player", "replacement", "PA", 0.90),
+    ]
+    rows[0]["risk_flags"] = ["single_side_price", "thin_market_count"]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "max_per_team": 7,
+            "max_per_game": 7,
+            "max_per_market": 7,
+            "max_combo_markets": 7,
+            "max_same_team_counting_overs": 7,
+            "exclude_single_side_prices": True,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "thin" not in selected
+    assert "replacement" in selected
+    assert len(selected) == 6
+    assert rows[0]["rejection_reason"] == "single_side_price_excluded"
+
+
+def test_portfolio_replaces_rebound_unders_when_excluded() -> None:
+    rows = [
+        _row("reb-under", "Rebound Under Player", "reb-under", "REB", 0.99),
+        _row("a", "Player A", "a", "PTS", 0.95),
+        _row("b", "Player B", "b", "RA", 0.94),
+        _row("c", "Player C", "c", "AST", 0.93),
+        _row("d", "Player D", "d", "THREES", 0.92),
+        _row("e", "Player E", "e", "PRA", 0.91),
+        _row("replacement", "Replacement Player", "replacement", "PA", 0.90),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "max_per_team": 7,
+            "max_per_game": 7,
+            "max_per_market": 7,
+            "max_combo_markets": 7,
+            "max_same_team_counting_overs": 7,
+            "exclude_rebound_unders": True,
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert "reb-under" not in selected
+    assert "replacement" in selected
+    assert len(selected) == 6
+    assert rows[0]["rejection_reason"] == "rebound_under_excluded"
+
+
+def test_market_side_score_adjustment_can_promote_replay_learned_bucket() -> None:
+    rows = [
+        _row("pts", "Points Player", "pts", "PTS", 0.90),
+        _row("threes-under", "Shooter", "shooter", "THREES", 0.40),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "market_side_score_adjustments": {"THREES:UNDER": 0.55},
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert selected == ["threes-under"]
+    assert rows[1]["selection_score_adjustment"] == 0.55
+
+
 def test_empty_card_is_safe_for_no_slate_output() -> None:
     card = empty_card("2026-05-16", mode="NO_SLATE", warnings=["No ESPN WNBA games found."])
 
@@ -417,3 +603,103 @@ def test_empty_card_is_safe_for_no_slate_output() -> None:
     assert card["boardRows"] == []
     assert card["selectedRows"] == []
     assert card["warnings"] == ["No ESPN WNBA games found."]
+
+
+def test_fanduel_live_card_is_labeled_experimental_and_separate_from_archive_proof(tmp_path) -> None:
+    logs, board = _write_score_fixture(tmp_path)
+
+    card = score_board(
+        logs,
+        board,
+        slate_date="2026-07-03",
+        limits={
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "allow_source_consensus_leans": True,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_combo_markets": 6,
+            "max_same_team_counting_overs": 6,
+        },
+    )
+
+    assert card["executionProfile"]["mode"] == "FANDUEL_LIVE"
+    assert card["executionProfile"]["status"] == "EXPERIMENTAL"
+    assert card["executionProfile"]["inheritsArchiveProof"] is False
+    assert card["proofContext"]["archiveSelector"]["sixPickParlayAccuracyPct"] == 51.85
+    assert card["proofContext"]["fanDuelStrictShadow"]["sixPickParlayAccuracyPct"] == 60.0
+    assert any("FanDuel-live card is experimental" in warning for warning in card["warnings"])
+
+
+def test_score_board_reports_sgp_exposure_for_same_game_cards(tmp_path) -> None:
+    logs, board = _write_score_fixture(tmp_path, same_game=True)
+
+    card = score_board(
+        logs,
+        board,
+        slate_date="2026-07-03",
+        limits={
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "allow_source_consensus_leans": True,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_combo_markets": 6,
+            "max_same_team_counting_overs": 6,
+        },
+    )
+
+    assert card["parlayPlan"]["isComplete"] is True
+    assert card["parlayPlan"]["sgpExposure"]["maxSameGameLegs"] == 6
+    assert card["parlayPlan"]["sgpExposure"]["sameGamePairs"] == 15
+    assert card["parlayPlan"]["sgpExposure"]["requiresSameGameParlayPricing"] is True
+    assert card["parlayPlan"]["sgpExposure"]["riskLevel"] == "HIGH"
+    assert card["parlayPlan"]["sgpExposure"]["estimatedSgpTaxMultiplier"] < 1.0
+    assert (
+        card["parlayPlan"]["sgpExposure"]["estimatedTaxedIndependentProbability"]
+        < card["parlayPlan"]["independentModelProbability"]
+    )
+    assert card["summary"]["sgpRiskLevel"] == "HIGH"
+
+
+def test_write_card_uses_lf_csv_line_endings(tmp_path) -> None:
+    logs, board = _write_score_fixture(tmp_path)
+    card = score_board(
+        logs,
+        board,
+        slate_date="2026-07-03",
+        limits={
+            "max_picks": 6,
+            "target_picks": 6,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "allow_source_consensus_leans": True,
+            "max_per_team": 6,
+            "max_per_game": 6,
+            "max_per_market": 6,
+            "max_combo_markets": 6,
+            "max_same_team_counting_overs": 6,
+        },
+    )
+
+    paths = write_card(card, tmp_path / "card")
+
+    assert b"\r\n" not in (tmp_path / "card.csv").read_bytes()
+    assert paths["csv"].endswith("card.csv")
+
+
+def test_write_card_serializes_blocked_candidate_ids(tmp_path) -> None:
+    card = empty_card("2026-07-03", limits={"blocked_candidate_ids": {"blocked-id"}})
+
+    paths = write_card(card, tmp_path / "card")
+
+    assert paths["json"].endswith("card.json")

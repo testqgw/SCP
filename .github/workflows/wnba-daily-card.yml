@@ -48,7 +48,7 @@ jobs:
           python -m pip install -r wnba/requirements.txt
 
       - name: Refresh WNBA card
-        run: python wnba/scripts/daily_refresh.py --book expanded --max-picks 6
+        run: python wnba/scripts/daily_refresh.py --book fanduel --max-picks 6
 
       - name: Verify WNBA artifacts
         run: |

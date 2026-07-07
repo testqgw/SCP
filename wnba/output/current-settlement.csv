@@ -1,7 +1,7 @@
 slate_date,selected_rank,player,team,team_name,opponent,opponent_name,market,side,line,actual,settlement,model_probability,final_score,source_book,source_url
-2026-07-06,1,Courtney Williams,MIN,Minnesota Lynx,CON,Connecticut Sun,PA,UNDER,23.5,,PENDING,0.78003,0.87549,nan,https://www.sportsgrid.com/wnba/game/connecticut-sun-minnesota-lynx-scores-odds-picks-props-july-06-2026/eae2a11b-68c6-4bdb-bcf6-340e3583d823
-2026-07-06,2,Olivia Miles,MIN,Minnesota Lynx,CON,Connecticut Sun,THREES,UNDER,1.5,,PENDING,0.68102,0.71819,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-06,3,Shakira Austin,WSH,Washington Mystics,GS,Golden State Valkyries,AST,UNDER,3.5,,PENDING,0.62078,0.44089,bet365,https://www.scoresandodds.com/wnba/props/assists
-2026-07-06,4,Cecilia Zandalasini,GS,Golden State Valkyries,WSH,Washington Mystics,THREES,UNDER,1.5,,PENDING,0.62987,0.61838,bet365,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-06,5,Veronica Burton,GS,Golden State Valkyries,WSH,Washington Mystics,THREES,UNDER,1.5,,PENDING,0.58401,0.35567,draftkings,https://www.scoresandodds.com/wnba/props/3-pointers
-2026-07-06,6,Kiki Iriafen,WSH,Washington Mystics,GS,Golden State Valkyries,AST,UNDER,2.5,,PENDING,0.61126,0.38855,bet365,https://www.scoresandodds.com/wnba/props/assists
+2026-07-06,1,Jihyun Park,LA,Los Angeles Sparks,SEA,Seattle Storm,THREES,UNDER,1.5,,PENDING,0.76439,0.87521,fanduel,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-06,2,Kaila Charles,GS,Golden State Valkyries,WSH,Washington Mystics,PR,OVER,8.5,13.0,WIN,0.62055,0.62997,fanduel,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-07-06,3,Zia Cooke,SEA,Seattle Storm,LA,Los Angeles Sparks,PTS,UNDER,6.5,,PENDING,0.62095,0.64437,fanduel,https://www.scoresandodds.com/wnba/props/points
+2026-07-06,4,Georgia Amoore,WSH,Washington Mystics,GS,Golden State Valkyries,THREES,UNDER,1.5,1.0,WIN,0.62256,0.48602,fanduel,https://www.scoresandodds.com/wnba/props/3-pointers
+2026-07-06,5,Maya Caldwell,MIN,Minnesota Lynx,CON,Connecticut Sun,PR,UNDER,10.5,4.0,WIN,0.66796,0.64995,fanduel,https://www.scoresandodds.com/wnba/props/points-&-rebounds
+2026-07-06,6,Tiffany Hayes,GS,Golden State Valkyries,WSH,Washington Mystics,PTS,OVER,6.5,9.0,WIN,0.53731,0.36026,fanduel,https://www.scoresandodds.com/wnba/props/points

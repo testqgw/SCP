@@ -31,11 +31,34 @@ from .utils import (
 )
 
 MODEL_ID = "wnba-player-prop-model-v1"
-MODEL_VERSION = "2026-05-16-roster-slate-gate-v10"
+MODEL_VERSION = "2026-07-06-fanduel-live-model-v13"
 CLAIM_BOUNDARY = (
     "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, "
     "not a guarantee. Live betting claims require current lines, player availability, and settled forward audit."
 )
+TARGET_PARLAY_PROBABILITY = 0.70
+
+ARCHIVE_SELECTOR_PROOF = {
+    "label": "Archive-ML selector proof",
+    "cardsEvaluated": 41,
+    "sixPickCoveredDates": 41,
+    "sixPickSettledDates": 27,
+    "sixPickParlayWins": 14,
+    "sixPickParlayAccuracyPct": 51.85,
+    "settledLegs": 226,
+    "legWins": 175,
+    "legAccuracyPct": 77.43,
+    "proofBoundary": "Archive/cross-source proof; not automatically transferable to live FanDuel availability.",
+}
+
+FANDUEL_STRICT_SHADOW_PROOF = {
+    "label": "Limited FanDuel availability replay",
+    "sixPickSettledDates": 5,
+    "sixPickParlayWins": 3,
+    "sixPickParlayAccuracyPct": 60.0,
+    "settledLegAccuracyPct": 73.33,
+    "proofBoundary": "Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.",
+}
 
 PORTFOLIO_LIMITS = {
     "max_picks": 6,
@@ -62,6 +85,9 @@ PORTFOLIO_LIMITS = {
     "volatile_short_rest_min_score": 0.82,
     "standard_pra_under_penalty": 0.04,
     "standard_volatile_penalty": 0.04,
+    "sgp_tax_penalty_per_same_game_pair": 0.0,
+    "mqi_score_floor": 0.0,
+    "mqi_quiet_boost": 1.0,
 }
 
 MARKET_CONFIG = {
@@ -74,6 +100,14 @@ MARKET_CONFIG = {
     "PR": {"alpha": 0.42, "sigma_floor": 5.3, "opp_weight": 0.10, "line_gap_scale": 6.0},
     "RA": {"alpha": 0.40, "sigma_floor": 3.5, "opp_weight": 0.10, "line_gap_scale": 4.2},
 }
+
+MQI_FEATURE_COLUMNS = [
+    "market_quiescence_score",
+    "is_quiet_market",
+    "minutes_since_line_movement",
+    "juice_drift",
+    "cross_book_line_std",
+]
 
 
 def utc_now() -> str:
@@ -212,6 +246,52 @@ def load_board(path: str | Path, default_date: str | None = None) -> pd.DataFram
     df["source_away_abbr"] = df["source_away_abbr"].map(normalize_team)
     df["source_home_abbr"] = df["source_home_abbr"].map(normalize_team)
     return df.reset_index(drop=True)
+
+
+def apply_market_quiescence_features(board: pd.DataFrame, mqi_features: pd.DataFrame) -> pd.DataFrame:
+    if board.empty:
+        return board.copy()
+    df = board.copy()
+    for column in MQI_FEATURE_COLUMNS:
+        if column not in df.columns:
+            df[column] = 0.0
+    if mqi_features.empty:
+        df["is_quiet_market"] = df["is_quiet_market"].fillna(0).astype(int)
+        return df
+
+    features = mqi_features.copy()
+    features["snapshot_timestamp"] = pd.to_datetime(features["snapshot_timestamp"], utc=True, errors="coerce")
+    features = features[features["snapshot_timestamp"].notna()].copy()
+    if features.empty:
+        df["is_quiet_market"] = df["is_quiet_market"].fillna(0).astype(int)
+        return df
+
+    board_key = df.assign(
+        _mqi_game_date=pd.to_datetime(df["game_date"], errors="coerce").dt.date.astype(str),
+        _mqi_player_id=df["player_id"].fillna("").astype(str),
+        _mqi_market=df["market"].astype(str).str.upper(),
+    )
+    latest = (
+        features.assign(
+            _mqi_game_date=pd.to_datetime(features["game_date"], errors="coerce").dt.date.astype(str),
+            _mqi_player_id=features["player_id"].fillna("").astype(str),
+            _mqi_market=features["market_type"].astype(str).str.upper(),
+        )
+        .sort_values("snapshot_timestamp")
+        .groupby(["_mqi_game_date", "_mqi_player_id", "_mqi_market"], as_index=False)
+        .tail(1)
+    )
+    merge_columns = ["_mqi_game_date", "_mqi_player_id", "_mqi_market", *MQI_FEATURE_COLUMNS]
+    merged = board_key.drop(columns=MQI_FEATURE_COLUMNS, errors="ignore").merge(
+        latest[merge_columns],
+        on=["_mqi_game_date", "_mqi_player_id", "_mqi_market"],
+        how="left",
+    )
+    merged = merged.drop(columns=["_mqi_game_date", "_mqi_player_id", "_mqi_market"])
+    for column in MQI_FEATURE_COLUMNS:
+        merged[column] = pd.to_numeric(merged[column], errors="coerce").fillna(0.0)
+    merged["is_quiet_market"] = merged["is_quiet_market"].astype(int)
+    return merged
 
 
 def resolve_player_ids(board: pd.DataFrame, logs: pd.DataFrame) -> pd.DataFrame:
@@ -610,9 +690,17 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "line_last_updated": str(row.get("line_last_updated") or ""),
         "source_status": str(row.get("source_status") or ""),
         "team_resolution_status": str(row.get("team_resolution_status") or ""),
+        "market_quiescence_score": round_or_none(row.get("market_quiescence_score"), 4) or 0.0,
+        "is_quiet_market": int(clean_number(row.get("is_quiet_market")) or 0),
+        "minutes_since_line_movement": round_or_none(row.get("minutes_since_line_movement"), 2) or 0.0,
+        "juice_drift": round_or_none(row.get("juice_drift"), 4) or 0.0,
+        "cross_book_line_std": round_or_none(row.get("cross_book_line_std"), 4) or 0.0,
         "tier": tier,
         "base_score": round(base_score, 5),
         "final_score": round(final_score, 5),
+        "selection_model_probability": round(model_prob, 5),
+        "selection_score": round(final_score, 5),
+        "selection_score_adjustment": 0.0,
         "model_action": "COVERAGE",
         "selected_rank": None,
         "risk_flags": sorted(set(risk_flags)),
@@ -644,6 +732,30 @@ def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
 
 
 def _passes_context_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    blocked_ids = {str(value) for value in limits.get("blocked_candidate_ids", set()) or set()}
+    candidate_id = str(row.get("candidate_id") or "")
+    candidate_parts = candidate_id.split(":")
+    candidate_wildcards = {candidate_id}
+    if len(candidate_parts) >= 4:
+        candidate_wildcards.add(f"{candidate_parts[0]}:{candidate_parts[1]}:{candidate_parts[2]}:*")
+    game_date = str(row.get("game_date") or "").split(" ")[0]
+    player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
+    market = str(row.get("market") or "").strip().upper()
+    if game_date and player_key and market:
+        candidate_wildcards.add(f"{game_date}:{player_key}:{market}:*")
+    if candidate_wildcards & blocked_ids:
+        row["rejection_reason"] = "unavailable_live_prop"
+        return False
+    if limits.get("exclude_single_side_prices") and {"single_side_price", "thin_market_count"} & set(row.get("risk_flags") or []):
+        row["rejection_reason"] = "single_side_price_excluded"
+        return False
+    if limits.get("exclude_rebound_unders") and row.get("market") == "REB" and row.get("side") == "UNDER":
+        row["rejection_reason"] = "rebound_under_excluded"
+        return False
+    mqi_score_floor = float(limits.get("mqi_score_floor", 0.0) or 0.0)
+    if mqi_score_floor > 0 and float(row.get("market_quiescence_score") or 0.0) < mqi_score_floor:
+        row["rejection_reason"] = "below_mqi_score_floor"
+        return False
     risk_flags = set(row.get("risk_flags") or [])
     if {"volatile_minutes", "short_rest_or_b2b"}.issubset(risk_flags):
         min_score = float(limits.get("volatile_short_rest_min_score", 0.82))
@@ -708,6 +820,8 @@ def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) 
 def _is_expanded_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     if not limits.get("allow_expanded_fill"):
         return False
+    if not _passes_context_gate(row, limits):
+        return False
     if row["final_score"] < float(limits.get("expanded_min_score", 0.58)):
         return False
     if row["model_probability"] < float(limits.get("expanded_min_probability", 0.62)):
@@ -741,6 +855,8 @@ def _is_expanded_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> 
 def _is_forced_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     if not limits.get("allow_forced_six_pick_fill"):
         return False
+    if not _passes_context_gate(row, limits):
+        return False
     if row["final_score"] < float(limits.get("forced_fill_min_score", 0.0)):
         return False
     if row["model_probability"] < float(limits.get("forced_fill_min_probability", 0.52)):
@@ -767,7 +883,24 @@ def _candidate_sort_key(row: dict[str, Any], limits: dict[str, Any]) -> tuple[fl
         stability_penalty += float(limits.get("standard_pra_under_penalty", 0.04))
     if "volatile_minutes" in row.get("risk_flags", []):
         stability_penalty += float(limits.get("standard_volatile_penalty", 0.04))
-    return (float(row["final_score"]) - stability_penalty, float(row["model_probability"]), float(row["abs_line_gap"]))
+    return (
+        float(row.get("selection_score", row["final_score"])) - stability_penalty,
+        float(row.get("selection_model_probability", row["model_probability"])),
+        float(row["abs_line_gap"]),
+    )
+
+
+def _candidate_state_sort_key(
+    row: dict[str, Any],
+    limits: dict[str, Any],
+    game_counts: Counter[str],
+    *,
+    forced_fill: bool = False,
+) -> tuple[float, float, float]:
+    base_score, probability, gap = _forced_fill_sort_key(row) if forced_fill else _candidate_sort_key(row, limits)
+    same_game_pairs_added = int(game_counts[row["matchup_key"]])
+    sgp_penalty = same_game_pairs_added * float(limits.get("sgp_tax_penalty_per_same_game_pair", 0.0) or 0.0)
+    return (base_score - sgp_penalty, probability, gap)
 
 
 def _forced_fill_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
@@ -789,10 +922,26 @@ def _forced_fill_sort_key(row: dict[str, Any]) -> tuple[float, float, float]:
     if "source_projection_near_line" in row.get("risk_flags", []):
         stability_penalty += 0.04
     return (
-        float(row["final_score"]) - stability_penalty,
-        float(row["model_probability"]),
+        float(row.get("selection_score", row["final_score"])) - stability_penalty,
+        float(row.get("selection_model_probability", row["model_probability"])),
         float(row["abs_line_gap"]),
     )
+
+
+def _prepare_selection_scores(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
+    quiet_boost = max(0.0, float(limits.get("mqi_quiet_boost", 1.0) or 1.0))
+    market_side_adjustments = limits.get("market_side_score_adjustments") or {}
+    for row in rows:
+        base_probability = float(row.get("model_probability") or 0.0)
+        selection_probability = base_probability
+        if int(row.get("is_quiet_market") or 0) == 1:
+            selection_probability = clamp(base_probability * quiet_boost, 0.0, 1.0)
+        adjustment = selection_probability - base_probability
+        market_side_key = f"{row.get('market')}:{row.get('side')}"
+        adjustment += float(market_side_adjustments.get(market_side_key, 0.0) or 0.0)
+        row["selection_model_probability"] = round(selection_probability, 5)
+        row["selection_score_adjustment"] = round(adjustment, 5)
+        row["selection_score"] = round(clamp(float(row.get("final_score") or 0.0) + adjustment, 0.0, 1.0), 5)
 
 
 def _dedupe_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -865,6 +1014,7 @@ def _try_select_row(
 
 
 def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> None:
+    _prepare_selection_scores(rows, limits)
     standard_candidates = [row for row in rows if _is_standard_candidate(row, limits) or _is_source_consensus_candidate(row, limits)]
     expanded_candidates = [row for row in rows if row not in standard_candidates and _is_expanded_fill_candidate(row, limits)]
     forced_fill_candidates = [row for row in rows if _is_forced_fill_candidate(row, limits)]
@@ -881,65 +1031,60 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
     selected = 0
     _mark_candidate_rows(rows, candidates)
     target = min(int(limits.get("target_picks") or limits["max_picks"]), int(limits["max_picks"]))
-    for row in standard_candidates:
+    def select_from_pool(
+        pool: list[dict[str, Any]],
+        *,
+        fill_flag: str | None = None,
+        forced_fill: bool = False,
+        relax_correlation_limits: bool = False,
+    ) -> None:
+        nonlocal selected, combo_count
+        remaining = [row for row in pool if row["model_action"] != "SELECTED"]
+        while selected < target and remaining:
+            remaining.sort(
+                key=lambda row: _candidate_state_sort_key(row, limits, game_counts, forced_fill=forced_fill),
+                reverse=True,
+            )
+            picked_any = False
+            for row in list(remaining):
+                remaining.remove(row)
+                if row["model_action"] == "SELECTED":
+                    continue
+                picked, combo_count = _try_select_row(
+                    row,
+                    limits,
+                    selected,
+                    player_counts,
+                    team_counts,
+                    game_counts,
+                    market_counts,
+                    same_team_counting_overs,
+                    combo_count,
+                    relax_correlation_limits=relax_correlation_limits,
+                )
+                selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
+                if picked:
+                    if fill_flag:
+                        row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + [fill_flag]))
+                    picked_any = True
+                    break
+            if not picked_any:
+                break
         if selected >= target:
-            row["rejection_reason"] = "portfolio_full"
-            continue
-        _, combo_count = _try_select_row(
-            row,
-            limits,
-            selected,
-            player_counts,
-            team_counts,
-            game_counts,
-            market_counts,
-            same_team_counting_overs,
-            combo_count,
+            for row in remaining:
+                if row["model_action"] != "SELECTED" and not row.get("rejection_reason"):
+                    row["rejection_reason"] = "portfolio_full"
+
+    select_from_pool(standard_candidates)
+    if selected < target:
+        select_from_pool(expanded_candidates, fill_flag="expanded_card_fill")
+    if selected < target:
+        select_from_pool(
+            forced_fill_candidates,
+            fill_flag="forced_six_pick_fill",
+            forced_fill=True,
+            relax_correlation_limits=True,
         )
-        selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
-    if selected < target:
-        for row in expanded_candidates:
-            if selected >= target:
-                row["rejection_reason"] = "portfolio_full"
-                continue
-            if row["model_action"] == "SELECTED":
-                continue
-            picked, combo_count = _try_select_row(
-                row,
-                limits,
-                selected,
-                player_counts,
-                team_counts,
-                game_counts,
-                market_counts,
-                same_team_counting_overs,
-                combo_count,
-            )
-            if picked:
-                row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["expanded_card_fill"]))
-            selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
-    if selected < target:
-        for row in forced_fill_candidates:
-            if selected >= target:
-                row["rejection_reason"] = "portfolio_full"
-                continue
-            if row["model_action"] == "SELECTED":
-                continue
-            picked, combo_count = _try_select_row(
-                row,
-                limits,
-                selected,
-                player_counts,
-                team_counts,
-                game_counts,
-                market_counts,
-                same_team_counting_overs,
-                combo_count,
-                relax_correlation_limits=True,
-            )
-            if picked:
-                row["risk_flags"] = sorted(set((row.get("risk_flags") or []) + ["forced_six_pick_fill"]))
-            selected = sum(1 for candidate in candidates if candidate["model_action"] == "SELECTED")
     selected_rows = [row for row in rows if row["model_action"] == "SELECTED"]
     selected_player_counts = Counter(row["player_id"] or str(row["player"]).lower() for row in selected_rows)
     selected_game_counts = Counter(row["matchup_key"] for row in selected_rows)
@@ -951,6 +1096,126 @@ def _select_portfolio(rows: list[dict[str, Any]], limits: dict[str, Any]) -> Non
         if selected_game_counts[row["matchup_key"]] > 2:
             flags.add("same_game_concentration")
         row["risk_flags"] = sorted(flags)
+
+
+def _sgp_exposure(selected_rows: list[dict[str, Any]], target_picks: int = 6) -> dict[str, Any]:
+    legs = sorted(selected_rows, key=lambda row: row.get("selected_rank") or 999)[:target_picks]
+    game_counts = Counter(row["matchup_key"] for row in legs)
+    same_game_pairs = sum(count * (count - 1) // 2 for count in game_counts.values())
+    max_same_game_legs = max(game_counts.values(), default=0)
+    if max_same_game_legs >= 3 or same_game_pairs >= 6:
+        risk_level = "HIGH"
+    elif max_same_game_legs == 2 or same_game_pairs > 0:
+        risk_level = "MEDIUM"
+    else:
+        risk_level = "LOW"
+    clusters = [
+        {
+            "matchupKey": matchup_key,
+            "legCount": count,
+            "sameGamePairs": count * (count - 1) // 2,
+        }
+        for matchup_key, count in sorted(game_counts.items(), key=lambda item: (-item[1], item[0]))
+        if count > 1
+    ]
+    return {
+        "requiresSameGameParlayPricing": same_game_pairs > 0,
+        "riskLevel": risk_level,
+        "sameGamePairs": int(same_game_pairs),
+        "maxSameGameLegs": int(max_same_game_legs),
+        "uniqueGames": len(game_counts),
+        "clusters": clusters,
+        "note": (
+            "FanDuel can reprice cards with multiple legs from one game as SGP/SGP-plus, so archive hit rate and "
+            "standard parlay payout math should not be assumed."
+        ),
+    }
+
+
+def _parlay_plan(
+    selected_rows: list[dict[str, Any]],
+    target_picks: int = 6,
+    target_probability: float = TARGET_PARLAY_PROBABILITY,
+) -> dict[str, Any]:
+    legs = sorted(selected_rows, key=lambda row: row.get("selected_rank") or 999)[:target_picks]
+    probabilities = [float(row.get("selection_model_probability", row["model_probability"])) for row in legs]
+    complete = len(legs) == target_picks
+    independent_probability = math.prod(probabilities) if complete else None
+    required_average = target_probability ** (1.0 / target_picks)
+    exposure = _sgp_exposure(legs, target_picks)
+    estimated_tax_multiplier = max(0.50, 1.0 - (0.025 * float(exposure["sameGamePairs"])))
+    exposure["estimatedSgpTaxMultiplier"] = round(estimated_tax_multiplier, 5)
+    exposure["estimatedTaxedIndependentProbability"] = (
+        round(independent_probability * estimated_tax_multiplier, 5) if independent_probability is not None else None
+    )
+    warnings = [
+        "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results."
+    ]
+    if not complete:
+        warnings.append(f"Only {len(legs)} of {target_picks} target legs selected.")
+    if exposure["requiresSameGameParlayPricing"]:
+        warnings.append("Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.")
+    return {
+        "targetLegs": target_picks,
+        "selectedLegs": len(legs),
+        "isComplete": complete,
+        "targetParlayProbability": round(target_probability, 5),
+        "requiredAverageLegProbability": round(required_average, 5),
+        "independentModelProbability": round(independent_probability, 5) if independent_probability is not None else None,
+        "averageLegProbability": round(float(np.mean(probabilities)), 5) if probabilities else None,
+        "lowestLegProbability": round(min(probabilities), 5) if probabilities else None,
+        "targetMetByIndependentModel": bool(independent_probability is not None and independent_probability >= target_probability),
+        "targetProbabilityShortfall": round(max(0.0, target_probability - independent_probability), 5)
+        if independent_probability is not None
+        else None,
+        "sameGamePairs": exposure["sameGamePairs"],
+        "maxSameGameLegs": exposure["maxSameGameLegs"],
+        "sameTeamPairs": sum(count * (count - 1) // 2 for count in Counter(row["team"] for row in legs).values()),
+        "comboLegs": sum(1 for row in legs if row["market"] in COMBO_MARKETS),
+        "sgpExposure": exposure,
+        "warnings": warnings,
+    }
+
+
+def _proof_context() -> dict[str, Any]:
+    return {
+        "archiveSelector": dict(ARCHIVE_SELECTOR_PROOF),
+        "fanDuelStrictShadow": dict(FANDUEL_STRICT_SHADOW_PROOF),
+        "liveFanDuelClaim": (
+            "The website card uses FanDuel-live model selection. Archive/cross-source proof is research context only, "
+            "and it does not transfer to strict single-book execution."
+        ),
+    }
+
+
+def _execution_profile(limits: dict[str, Any]) -> dict[str, Any]:
+    required_book = str(limits.get("required_source_book") or "").strip().lower()
+    if "fanduel" in required_book:
+        return {
+            "mode": "FANDUEL_LIVE",
+            "label": "FanDuel Live Mode",
+            "status": "EXPERIMENTAL",
+            "inheritsArchiveProof": False,
+            "requiresPlayableSideOdds": bool(limits.get("require_playable_side_odds")),
+            "proofBoundary": FANDUEL_STRICT_SHADOW_PROOF["proofBoundary"],
+        }
+    if limits.get("allow_expanded_fill"):
+        return {
+            "mode": "EXPANDED_RESEARCH",
+            "label": "Expanded Research Mode",
+            "status": "RESEARCH",
+            "inheritsArchiveProof": False,
+            "requiresPlayableSideOdds": bool(limits.get("require_playable_side_odds")),
+            "proofBoundary": "Expanded cards can use non-FanDuel rows and must be checked for book availability before betting.",
+        }
+    return {
+        "mode": "ARCHIVE_OR_GENERIC_RESEARCH",
+        "label": "Research Preview Mode",
+        "status": "RESEARCH",
+        "inheritsArchiveProof": False,
+        "requiresPlayableSideOdds": bool(limits.get("require_playable_side_odds")),
+        "proofBoundary": CLAIM_BOUNDARY,
+    }
 
 
 def score_board(
@@ -973,10 +1238,15 @@ def score_board(
     _select_portfolio(rows, active_limits)
     selected_rows = [row for row in rows if row["model_action"] == "SELECTED"]
     candidate_rows = [row for row in rows if row["model_action"] == "CANDIDATE"]
+    target_picks = int(active_limits.get("target_picks") or active_limits["max_picks"])
+    parlay_plan = _parlay_plan(selected_rows, target_picks=target_picks)
+    execution_profile = _execution_profile(active_limits)
+    proof_context = _proof_context()
     summary = {
         "totalBoardRows": len(rows),
         "candidateCount": len(candidate_rows),
         "selectedCount": len(selected_rows),
+        "targetPicks": target_picks,
         "selectedByTier": dict(Counter(row["tier"] for row in selected_rows)),
         "boardRowsByTier": dict(Counter(row["tier"] for row in rows)),
         "boardRowsByAction": dict(Counter(row["model_action"] for row in rows)),
@@ -985,6 +1255,10 @@ def score_board(
         else None,
         "averageFinalScore": round(float(np.mean([row["final_score"] for row in selected_rows])), 5) if selected_rows else None,
         "priceCoveragePct": round(100.0 * sum(row["fair_probability"] is not None for row in rows) / len(rows), 2),
+        "sgpRiskLevel": parlay_plan["sgpExposure"]["riskLevel"],
+        "sameGamePairs": parlay_plan["sameGamePairs"],
+        "maxSameGameLegs": parlay_plan["maxSameGameLegs"],
+        "executionStatus": execution_profile["status"],
         "warningCount": 0,
     }
     warnings: list[str] = []
@@ -997,9 +1271,12 @@ def score_board(
     required_book = str(active_limits.get("required_source_book") or "").strip()
     if required_book and not selected_rows:
         warnings.append(f"No selected rows cleared the {required_book} availability gate.")
-    target_picks = int(active_limits.get("target_picks") or active_limits["max_picks"])
     if 0 < len(selected_rows) < target_picks:
         warnings.append(f"Only {len(selected_rows)} rows cleared the current gates for a {target_picks}-pick target.")
+    if execution_profile["mode"] == "FANDUEL_LIVE":
+        warnings.append(
+            "FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution."
+        )
     if selected_rows and any("expanded_card_fill" in row["risk_flags"] for row in selected_rows):
         warnings.append("Expanded-card rows are included to reach the target count; verify book availability and current odds before using them.")
     if selected_rows and any("forced_six_pick_fill" in row["risk_flags"] for row in selected_rows):
@@ -1008,6 +1285,7 @@ def score_board(
         warnings.append("Expanded card includes multiple props on the same player because the available slate board is concentrated.")
     if selected_rows and any("same_game_concentration" in row["risk_flags"] for row in selected_rows):
         warnings.append("Expanded card is concentrated in one matchup; treat correlated results as higher variance.")
+    warnings.extend(parlay_plan["warnings"])
     summary["warningCount"] = len(warnings)
     return {
         "generatedAt": utc_now(),
@@ -1018,6 +1296,9 @@ def score_board(
         "slateDate": str(board["game_date"].dt.date.min()),
         "currentDateEt": today_et(),
         "claimBoundary": CLAIM_BOUNDARY,
+        "executionProfile": execution_profile,
+        "proofContext": proof_context,
+        "parlayPlan": parlay_plan,
         "portfolioConfig": active_limits,
         "summary": summary,
         "warnings": warnings,
@@ -1065,13 +1346,23 @@ def empty_card(
     }
 
 
+def _json_ready(value: Any) -> Any:
+    if isinstance(value, set):
+        return sorted(value)
+    if isinstance(value, dict):
+        return {key: _json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_ready(item) for item in value]
+    return value
+
+
 def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
     prefix = Path(out_prefix)
     prefix.parent.mkdir(parents=True, exist_ok=True)
     json_path = prefix.with_suffix(".json")
     csv_path = prefix.with_suffix(".csv")
     md_path = prefix.with_suffix(".md")
-    json_path.write_text(json.dumps(card, indent=2), encoding="utf-8")
+    json_path.write_text(json.dumps(_json_ready(card), indent=2), encoding="utf-8")
     rows = card["boardRows"]
     if rows:
         fieldnames = [
@@ -1106,7 +1397,7 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             "rejection_reason",
         ]
         with csv_path.open("w", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore")
+            writer = csv.DictWriter(handle, fieldnames=fieldnames, extrasaction="ignore", lineterminator="\n")
             writer.writeheader()
             for row in rows:
                 copy = dict(row)
@@ -1132,6 +1423,26 @@ def write_card(card: dict[str, Any], out_prefix: str | Path) -> dict[str, str]:
             f"({team_label} vs {opponent_label}): p={row['model_probability']:.1%}, "
             f"proj={row['projected_value']:.2f}{edge}, score={row['final_score']:.3f}, "
             f"source={row.get('source_book') or 'Public board'}"
+        )
+    execution = card.get("executionProfile") or {}
+    parlay = card.get("parlayPlan") or {}
+    sgp = parlay.get("sgpExposure") or {}
+    if execution or parlay:
+        lines.extend(["", "## Execution Reality", ""])
+    if execution:
+        lines.append(
+            f"{execution.get('label', 'Execution mode')}: {execution.get('status', 'UNKNOWN')}. "
+            f"{execution.get('proofBoundary', CLAIM_BOUNDARY)}"
+        )
+    if parlay:
+        independent = parlay.get("independentModelProbability")
+        taxed = sgp.get("estimatedTaxedIndependentProbability")
+        independent_text = "incomplete" if independent is None else f"{independent:.1%}"
+        taxed_text = "n/a" if taxed is None else f"{taxed:.1%}"
+        lines.append(
+            f"Selected legs: {parlay.get('selectedLegs')}/{parlay.get('targetLegs')}; "
+            f"independent probability: {independent_text}; estimated SGP-taxed probability: {taxed_text}; "
+            f"SGP risk: {sgp.get('riskLevel', 'UNKNOWN')}"
         )
     lines.extend(["", "## Warnings", ""])
     lines.extend(card["warnings"] or ["None"])

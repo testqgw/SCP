@@ -1,88 +1,77 @@
-from __future__ import annotations
+from pathlib import Path
 
 from argparse import Namespace
-from pathlib import Path
-import sys
 
-import pytest
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from scripts import daily_refresh
+from scripts.daily_refresh import build_score_limits, load_unavailable_candidate_ids, parse_args
 
 
-def test_refresh_logs_reuses_existing_cache_when_espn_fetch_fails(tmp_path, monkeypatch):
-    logs_path = tmp_path / "wnba_player_game_logs.csv"
-    logs_path.write_text("player,game_date\nCached Player,2026-06-28\n", encoding="utf-8")
-
-    def fail_fetch(*args, **kwargs):
-        raise RuntimeError("network down")
-
-    def fail_write(*args, **kwargs):
-        raise AssertionError("cached fallback should not rewrite logs")
-
-    monkeypatch.setattr(daily_refresh, "LOGS_PATH", logs_path)
-    monkeypatch.setattr(daily_refresh, "fetch_player_game_logs", fail_fetch)
-    monkeypatch.setattr(daily_refresh, "write_logs_csv", fail_write)
-
-    warnings = daily_refresh.refresh_logs(Namespace(skip_fetch=False, seasons=[2026], fetch_sleep=0))
-
-    assert warnings == [
-        "ESPN log refresh failed; reused existing logs at wnba_player_game_logs.csv: network down"
-    ]
-    assert logs_path.read_text(encoding="utf-8").startswith("player,game_date")
-
-
-def test_refresh_logs_raises_when_espn_fetch_fails_without_cache(tmp_path, monkeypatch):
-    logs_path = tmp_path / "missing_logs.csv"
-
-    def fail_fetch(*args, **kwargs):
-        raise RuntimeError("network down")
-
-    monkeypatch.setattr(daily_refresh, "LOGS_PATH", logs_path)
-    monkeypatch.setattr(daily_refresh, "fetch_player_game_logs", fail_fetch)
-
-    with pytest.raises(RuntimeError, match="network down"):
-        daily_refresh.refresh_logs(Namespace(skip_fetch=False, seasons=[2026], fetch_sleep=0))
-
-
-def test_daily_refresh_parses_archive_ml_selector_defaults(monkeypatch) -> None:
-    monkeypatch.setattr(sys, "argv", ["daily_refresh.py"])
-
-    args = daily_refresh.parse_args()
-
-    assert args.selector == "archive-ml"
-    assert args.ml_min_training_cards == 5
-    assert args.ml_min_training_rows == 80
-
-
-def test_main_records_refresh_warnings_in_summary(tmp_path, monkeypatch):
-    summary_path = tmp_path / "current-refresh-summary.json"
-    board_path = daily_refresh.ROOT / "data/current/test_board.csv"
-    card = {"summary": {"selectedCount": 0, "totalBoardRows": 0}}
-    settlement = {"summary": {"settledPicks": 0}}
-
-    monkeypatch.setattr(
-        daily_refresh,
-        "parse_args",
-        lambda: Namespace(date="2026-06-29", skip_fetch=False, seasons=[2026], fetch_sleep=0),
-    )
-    monkeypatch.setattr(daily_refresh, "REFRESH_SUMMARY_PATH", summary_path)
-    monkeypatch.setattr(daily_refresh, "archive_existing_card", lambda target_date: None)
-    monkeypatch.setattr(daily_refresh, "refresh_logs", lambda args: ["cached logs reused"])
-    monkeypatch.setattr(daily_refresh, "settle_existing_card", lambda archived_slate: None)
-    monkeypatch.setattr(daily_refresh, "generate_current_card", lambda target_date, args: (card, "expanded", board_path))
-    monkeypatch.setattr(daily_refresh, "write_card", lambda card, prefix: {"json": str(tmp_path / "card.json")})
-    monkeypatch.setattr(daily_refresh, "load_logs", lambda path, include_preseason=False: object())
-    monkeypatch.setattr(daily_refresh, "settle_card", lambda card, logs: settlement)
-    monkeypatch.setattr(
-        daily_refresh,
-        "write_settlement",
-        lambda result, prefix: {"json": str(tmp_path / "settlement.json")},
+def test_load_unavailable_candidate_ids_filters_by_slate_date(tmp_path: Path) -> None:
+    path = tmp_path / "unavailable.csv"
+    path.write_text(
+        "\n".join(
+            [
+                "game_date,candidate_id,player,market,line,reason",
+                "2026-07-03,2026-07-03:2529458:PR:12.5,Cheyenne Parker-Tyus,PR,12.5,missing on FanDuel",
+                "2026-07-02,2026-07-02:2529458:PR:12.5,Cheyenne Parker-Tyus,PR,12.5,old slate",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
-    assert daily_refresh.main() == 0
+    blocked = load_unavailable_candidate_ids(path, "2026-07-03")
 
-    assert '"refreshWarnings": [\n    "cached logs reused"\n  ]' in summary_path.read_text(encoding="utf-8")
+    assert blocked == {
+        "2026-07-03:2529458:PR:12.5",
+        "2026-07-03:2529458:PR:*",
+        "2026-07-03:cheyenne parker tyus:PR:*",
+    }
+
+
+def test_fanduel_live_limits_preserve_same_game_correlation() -> None:
+    args = Namespace(book="fanduel", max_picks=6, min_score=0.68, unavailable_props="missing.csv")
+
+    limits = build_score_limits(args, "2026-07-03")
+
+    assert limits["max_per_game"] == 6
+    assert limits["sgp_tax_penalty_per_same_game_pair"] > 0
+    assert limits["exclude_single_side_prices"] is True
+    assert limits["exclude_rebound_unders"] is True
+    assert limits["market_side_score_adjustments"] == {"THREES:UNDER": 0.55}
+    assert limits["required_source_book"] == "FanDuel"
+
+
+def test_daily_refresh_defaults_to_fanduel_live_mode(monkeypatch) -> None:
+    monkeypatch.setattr("sys.argv", ["daily_refresh.py"])
+
+    args = parse_args()
+
+    assert args.book == "fanduel"
+
+
+def test_workflow_runs_fanduel_live_mode() -> None:
+    workflow = Path("../.github/workflows/wnba-daily-card.yml").read_text(encoding="utf-8")
+
+    assert "daily_refresh.py --book fanduel --max-picks 6" in workflow
+
+
+def test_expanded_limits_still_honor_unavailable_props(tmp_path: Path) -> None:
+    path = tmp_path / "unavailable.csv"
+    path.write_text(
+        "\n".join(
+            [
+                "game_date,candidate_id,player,market,line,reason",
+                "2026-07-03,2026-07-03:2529458:PR:12.5,Cheyenne Parker-Tyus,PR,12.5,missing on FanDuel",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    args = Namespace(book="expanded", max_picks=6, min_score=0.68, unavailable_props=str(path))
+
+    limits = build_score_limits(args, "2026-07-03")
+
+    assert "2026-07-03:2529458:PR:*" in limits["blocked_candidate_ids"]
+    assert limits["allow_expanded_fill"] is True
+    assert limits["allow_forced_six_pick_fill"] is True
+    assert limits["forced_fill_min_probability"] == 0.60

@@ -1,16 +1,16 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-06T20:04:36Z
+Generated: 2026-07-07T03:22:50Z
 Slate: 2026-07-06
-Settled: 0 / 6
+Settled: 4 / 6
 No action: 0
-Accuracy: pending
+Accuracy: 100.0
 
 ## Rows
 
-- PENDING: Courtney Williams UNDER PA 23.5 (actual pending)
-- PENDING: Olivia Miles UNDER THREES 1.5 (actual pending)
-- PENDING: Shakira Austin UNDER AST 3.5 (actual pending)
-- PENDING: Cecilia Zandalasini UNDER THREES 1.5 (actual pending)
-- PENDING: Veronica Burton UNDER THREES 1.5 (actual pending)
-- PENDING: Kiki Iriafen UNDER AST 2.5 (actual pending)
+- PENDING: Jihyun Park UNDER THREES 1.5 (actual pending)
+- WIN: Kaila Charles OVER PR 8.5 (actual 13.0)
+- PENDING: Zia Cooke UNDER PTS 6.5 (actual pending)
+- WIN: Georgia Amoore UNDER THREES 1.5 (actual 1.0)
+- WIN: Maya Caldwell UNDER PR 10.5 (actual 4.0)
+- WIN: Tiffany Hayes OVER PTS 6.5 (actual 9.0)
