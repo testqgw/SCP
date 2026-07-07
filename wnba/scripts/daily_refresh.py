@@ -263,6 +263,7 @@ def build_score_limits(args: argparse.Namespace, target_date: str, source: str =
         limits["blocked_candidate_ids"] = blocked_candidate_ids
     if args.book == "fanduel":
         limits["required_source_book"] = "FanDuel"
+        limits["require_direct_source_book"] = True
         limits["require_playable_side_odds"] = True
         limits["allow_source_consensus_leans"] = True
         limits["min_consensus_price_edge"] = 0.0

@@ -60,6 +60,7 @@ def test_fanduel_live_limits_preserve_same_game_correlation() -> None:
     assert limits["exclude_rebound_unders"] is True
     assert limits["market_side_score_adjustments"] == {"THREES:UNDER": 0.55}
     assert limits["required_source_book"] == "FanDuel"
+    assert limits["require_direct_source_book"] is True
 
 
 def test_sportsgrid_fanduel_limits_allow_pick_side_only_prices() -> None:

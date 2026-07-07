@@ -767,6 +767,40 @@ def test_fanduel_gate_accepts_scoresandodds_row_when_pick_side_book_is_fanduel()
     assert other_book_side["rejection_reason"] == "not_fanduel_sourced"
 
 
+def test_direct_fanduel_live_gate_blocks_scoresandodds_best_available_rows() -> None:
+    best_available = _row("best-available", "Best Available", "best", "PTS", 0.90)
+    best_available["source_book"] = "ScoresAndOdds Best Odds"
+    best_available["side"] = "OVER"
+    best_available["over_book"] = "FanDuel"
+    best_available["under_book"] = "DraftKings"
+    direct_model = _row("direct-model", "Direct Model", "direct", "PA", 0.89)
+    direct_model["source_book"] = "FanDuel"
+    direct_model["side"] = "OVER"
+    direct_model["over_book"] = ""
+    direct_model["under_book"] = ""
+    direct_model["source_pick"] = "OVER"
+    direct_model["source_odds"] = -112
+    direct_model["risk_flags"] = ["single_side_price", "thin_market_count"]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_direct_source_book": True,
+            "require_playable_side_odds": True,
+            "allow_pick_side_only_prices": True,
+        }
+    )
+
+    _select_portfolio([best_available, direct_model], limits)
+
+    selected = [row["candidate_id"] for row in [best_available, direct_model] if row["model_action"] == "SELECTED"]
+    assert selected == ["direct-model"]
+    assert best_available["rejection_reason"] == "not_fanduel_sourced"
+
+
 def test_score_board_preserves_pick_side_book_for_fanduel_gate(tmp_path) -> None:
     logs_path = tmp_path / "logs.csv"
     board_path = tmp_path / "board.csv"

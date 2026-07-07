@@ -736,6 +736,9 @@ def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     side_book = row.get("over_book") if row["side"] == "OVER" else row.get("under_book")
     source_book = str(row.get("source_book") or "").lower()
     pick_side_book = str(side_book or "").lower()
+    if required_book and limits.get("require_direct_source_book") and required_book not in source_book:
+        row["rejection_reason"] = f"not_{required_book}_sourced"
+        return False
     if required_book and required_book not in source_book and required_book not in pick_side_book:
         row["rejection_reason"] = f"not_{required_book}_sourced"
         return False
