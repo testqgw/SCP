@@ -1,19 +1,38 @@
 {
-  "generatedAt": "2026-07-07T06:00:38Z",
+  "generatedAt": "2026-07-07T16:13:43Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-07T06:00:37Z",
+  "cardGeneratedAt": "2026-07-07T16:13:43Z",
   "slateDate": "2026-07-07",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 0,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 0,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
     "accuracyPct": null
   },
-  "rows": []
+  "rows": [
+    {
+      "slate_date": "2026-07-07",
+      "selected_rank": 1,
+      "player": "Skylar Diggins",
+      "team": "CHI",
+      "team_name": "Chicago Sky",
+      "opponent": "PHX",
+      "opponent_name": "Phoenix Mercury",
+      "market": "PA",
+      "side": "OVER",
+      "line": 14.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.69752,
+      "final_score": 0.82977,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f"
+    }
+  ]
 }
