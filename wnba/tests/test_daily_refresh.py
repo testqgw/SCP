@@ -2,7 +2,7 @@ from pathlib import Path
 
 from argparse import Namespace
 
-from scripts.daily_refresh import build_score_limits, load_unavailable_candidate_ids, parse_args
+from scripts.daily_refresh import build_score_limits, generate_current_card, load_unavailable_candidate_ids, parse_args
 
 
 def test_load_unavailable_candidate_ids_filters_by_slate_date(tmp_path: Path) -> None:
@@ -85,6 +85,37 @@ def test_workflow_runs_fanduel_live_mode() -> None:
     workflow = Path("../.github/workflows/wnba-daily-card.yml").read_text(encoding="utf-8")
 
     assert "daily_refresh.py --book fanduel --max-picks 6" in workflow
+
+
+def test_fanduel_auto_uses_cached_sportsgrid_before_best_available(monkeypatch, tmp_path: Path) -> None:
+    args = Namespace(
+        book="fanduel",
+        source="auto",
+        max_picks=6,
+        min_score=0.68,
+        unavailable_props="missing.csv",
+        bookmakers=None,
+        sportsgrid_urls=None,
+    )
+
+    def fail_sportsgrid(target_date: str, args: Namespace):
+        raise RuntimeError("No SportsGrid WNBA game URLs discovered")
+
+    def cached_sportsgrid(target_date: str, args: Namespace):
+        return ({"mode": "CURRENT_FANDUEL_PREVIEW", "summary": {"selectedCount": 1}}, "sportsgrid-fanduel-cache", tmp_path / "cached.csv")
+
+    def fail_best_available(target_date: str, args: Namespace):
+        raise AssertionError("best-available fallback should not run before cached FanDuel rows")
+
+    monkeypatch.setattr("scripts.daily_refresh.generate_from_sportsgrid", fail_sportsgrid)
+    monkeypatch.setattr("scripts.daily_refresh.generate_from_cached_sportsgrid", cached_sportsgrid, raising=False)
+    monkeypatch.setattr("scripts.daily_refresh.generate_from_scoresandodds", fail_best_available)
+
+    card, source, board_path = generate_current_card("2026-07-07", args)
+
+    assert card["summary"]["selectedCount"] == 1
+    assert source == "sportsgrid-fanduel-cache"
+    assert board_path == tmp_path / "cached.csv"
 
 
 def test_expanded_limits_still_honor_unavailable_props(tmp_path: Path) -> None:

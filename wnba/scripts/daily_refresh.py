@@ -324,6 +324,28 @@ def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tupl
     return card, "sportsgrid-fanduel", board_path
 
 
+def generate_from_cached_sportsgrid(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path] | None:
+    board_path = ROOT / f"data/current/sportsgrid_fanduel_board_{target_date}.csv"
+    if not board_path.exists():
+        return None
+    card = score_current_board(LOGS_PATH, board_path, target_date, args, source="sportsgrid-fanduel")
+    card["mode"] = "CURRENT_FANDUEL_PREVIEW"
+    try:
+        with board_path.open(newline="", encoding="utf-8") as handle:
+            source_urls = sorted({row.get("source_url") for row in csv.DictReader(handle) if row.get("source_url")})
+    except OSError:
+        source_urls = []
+    card["sourceUrls"] = source_urls
+    card["sourceNote"] = (
+        "Cached same-day SportsGrid FanDuel board rescored after live discovery failed; selected rows still require "
+        "direct FanDuel source, playable side odds, current-source status, and unavailable-prop vetoes."
+    )
+    card.setdefault("warnings", []).append(
+        "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
+    )
+    return card, "sportsgrid-fanduel-cache", board_path
+
+
 def generate_from_scoresandodds(target_date: str, args: argparse.Namespace) -> tuple[dict, str, Path]:
     resolver_logs = load_logs(LOGS_PATH, include_preseason=True)
     props = data_scoresandodds.fetch_props(list(data_scoresandodds.MARKET_PATHS), default_date=target_date)
@@ -466,6 +488,10 @@ def generate_current_card(target_date: str, args: argparse.Namespace) -> tuple[d
         except Exception as error:
             if args.source == "sportsgrid":
                 raise
+            cached = generate_from_cached_sportsgrid(target_date, args)
+            if cached is not None:
+                print(f"SportsGrid FanDuel refresh failed, using cached same-day FanDuel board: {error}")
+                return cached
             print(f"SportsGrid FanDuel refresh failed, falling back to ScoresAndOdds coverage: {error}")
     return generate_from_scoresandodds(target_date, args)
 

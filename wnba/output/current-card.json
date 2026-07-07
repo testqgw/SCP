@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-07T04:59:08Z",
+  "generatedAt": "2026-07-07T05:11:28Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -144,7 +144,8 @@
     "FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.",
     "Forced six-pick fill added lower-confidence playable rows to reach the daily target; treat those legs as coverage picks, not high-confidence edges.",
     "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.",
-    "Only 1 of 6 target legs selected."
+    "Only 1 of 6 target legs selected.",
+    "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
   ],
   "boardRows": [
     {
@@ -182,6 +183,7 @@
       "source_projection": 19.3,
       "source_odds": -112.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Pts + Ast",
       "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f",
       "source_event_id": "",
@@ -256,6 +258,7 @@
       "source_projection": 13.9,
       "source_odds": 102.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Points",
       "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f",
       "source_event_id": "",
@@ -329,6 +332,7 @@
       "source_projection": 14.0,
       "source_odds": -104.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Pts + Ast",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
       "source_event_id": "",
@@ -403,6 +407,7 @@
       "source_projection": 10.0,
       "source_odds": 100.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Points",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
       "source_event_id": "",
@@ -475,6 +480,7 @@
       "source_projection": 1.5,
       "source_odds": -188.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "3 Point FG Made",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
       "source_event_id": "",
@@ -547,6 +553,7 @@
       "source_projection": 1.1,
       "source_odds": 132.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "3 Point FG Made",
       "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f",
       "source_event_id": "",
@@ -624,6 +631,7 @@
       "source_projection": 14.0,
       "source_odds": -104.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Pts + Ast",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
       "source_event_id": "",
@@ -700,6 +708,7 @@
       "source_projection": 10.0,
       "source_odds": 100.0,
       "source_book": "FanDuel",
+      "source_board_book": "FanDuel",
       "source_market": "Points",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
       "source_event_id": "",
@@ -739,8 +748,8 @@
     }
   ],
   "sourceUrls": [
-    "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49",
-    "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f"
+    "https://www.sportsgrid.com/wnba/game/chicago-sky-phoenix-mercury-scores-odds-picks-props-july-07-2026/bc760f9c-c775-4913-8a46-d80fd80b5f0f",
+    "https://www.sportsgrid.com/wnba/game/dallas-wings-new-york-liberty-scores-odds-picks-props-july-07-2026/81a0ea38-25cf-423b-8346-0fd5f928eb49"
   ],
-  "sourceNote": "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."
+  "sourceNote": "Cached same-day SportsGrid FanDuel board rescored after live discovery failed; selected rows still require direct FanDuel source, playable side odds, current-source status, and unavailable-prop vetoes."
 }

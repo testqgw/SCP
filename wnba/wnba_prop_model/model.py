@@ -115,6 +115,13 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def _clean_text(value: Any) -> str:
+    text = "" if value is None else str(value).strip()
+    if text.lower() in {"nan", "none", "null"}:
+        return ""
+    return text
+
+
 def _rename_columns(df: pd.DataFrame) -> pd.DataFrame:
     mapping: dict[str, str] = {}
     for column in df.columns:
@@ -580,8 +587,9 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
     side = "OVER" if over_prob >= 0.5 else "UNDER"
     model_prob = over_prob if side == "OVER" else 1.0 - over_prob
     side_book_value = row.get("over_book") if side == "OVER" else row.get("under_book")
-    side_source_book = str(side_book_value or "").strip()
-    source_book = side_source_book or str(row.get("source_book") or "")
+    side_source_book = _clean_text(side_book_value)
+    source_board_book = _clean_text(row.get("source_book"))
+    source_book = side_source_book or source_board_book
     fair_prob = no_vig_probability(row.get("over_odds"), row.get("under_odds"), side)
     edge = model_prob - fair_prob if fair_prob is not None else None
     line_gap = projection - line
@@ -684,6 +692,7 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "source_projection": round_or_none(source_projection, 3),
         "source_odds": round_or_none(row.get("source_odds"), 0),
         "source_book": source_book,
+        "source_board_book": source_board_book,
         "source_market": str(row.get("source_market") or ""),
         "source_url": str(row.get("source_url") or ""),
         "source_event_id": str(row.get("source_event_id") or ""),
@@ -722,7 +731,7 @@ def _allows_pick_side_only_price(row: dict[str, Any], limits: dict[str, Any]) ->
     if not limits.get("allow_pick_side_only_prices"):
         return False
     required_book = str(limits.get("required_source_book") or "").strip().lower()
-    source_book = str(row.get("source_book") or "").lower()
+    source_book = _clean_text(row.get("source_book")).lower()
     if required_book and required_book not in source_book:
         return False
     source_pick = str(row.get("source_pick") or "").strip().upper()
@@ -734,9 +743,12 @@ def _allows_pick_side_only_price(row: dict[str, Any], limits: dict[str, Any]) ->
 def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     required_book = str(limits.get("required_source_book") or "").strip().lower()
     side_book = row.get("over_book") if row["side"] == "OVER" else row.get("under_book")
-    source_book = str(row.get("source_book") or "").lower()
-    pick_side_book = str(side_book or "").lower()
-    if required_book and limits.get("require_direct_source_book") and required_book not in source_book:
+    source_book = _clean_text(row.get("source_book")).lower()
+    direct_source_book = _clean_text(
+        row.get("source_board_book") or row.get("raw_source_book") or row.get("source_book")
+    ).lower()
+    pick_side_book = _clean_text(side_book).lower()
+    if required_book and limits.get("require_direct_source_book") and required_book not in direct_source_book:
         row["rejection_reason"] = f"not_{required_book}_sourced"
         return False
     if required_book and required_book not in source_book and required_book not in pick_side_book:

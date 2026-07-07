@@ -847,6 +847,59 @@ def test_score_board_preserves_pick_side_book_for_fanduel_gate(tmp_path) -> None
     assert card["selectedRows"][0]["over_book"] == "FanDuel"
 
 
+def test_score_board_direct_fanduel_gate_blocks_scoresandodds_best_available_rows(tmp_path) -> None:
+    logs_path = tmp_path / "logs.csv"
+    board_path = tmp_path / "board.csv"
+    logs_path.write_text(
+        "\n".join(
+            [
+                "game_date,game_id,player_id,player,team,opponent,minutes,points,rebounds,assists,threes,is_home,starter,position",
+            ]
+            + [
+                f"2026-06-{day:02d},g{day},1001,Best Available,NY,CON,31,22,4,4,2,1,1,G"
+                for day in range(1, 13)
+            ]
+            + [
+                f"2026-06-{day:02d},h{day},1002,Direct Model,LV,LA,31,18,5,5,2,1,1,G"
+                for day in range(1, 13)
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    board_path.write_text(
+        "\n".join(
+            [
+                "game_date,player,player_id,team,opponent,is_home,market,line,over_odds,under_odds,sportsbook_count,source_book,over_book,under_book,source_projection,source_pick,source_odds",
+                "2026-07-07,Best Available,1001,NY,CON,1,PTS,12.5,-110,-110,2,ScoresAndOdds Best Odds,FanDuel,DraftKings,23,OVER,-110",
+                "2026-07-07,Direct Model,1002,LV,LA,1,PA,15.5,-112,,1,FanDuel,,,18,OVER,-112",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    from wnba_prop_model.model import load_board, load_logs
+
+    card = score_board(
+        load_logs(logs_path, include_preseason=True),
+        load_board(board_path),
+        slate_date="2026-07-07",
+        limits={
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_direct_source_book": True,
+            "require_playable_side_odds": True,
+            "allow_pick_side_only_prices": True,
+        },
+    )
+
+    assert card["selectedRows"][0]["player"] == "Direct Model"
+    rejected = {row["player"]: row["rejection_reason"] for row in card["boardRows"]}
+    assert rejected["Best Available"] == "not_fanduel_sourced"
+
+
 def test_market_side_score_adjustment_can_promote_replay_learned_bucket() -> None:
     rows = [
         _row("pts", "Points Player", "pts", "PTS", 0.90),
