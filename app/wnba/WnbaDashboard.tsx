@@ -331,6 +331,10 @@ function actionTone(row: CurrentCardRow): string {
   return "border-white/10 bg-white/[0.03] text-zinc-300";
 }
 
+function isUnavailableLiveProp(row: CurrentCardRow): boolean {
+  return row.rejection_reason === "unavailable_live_prop";
+}
+
 function riskTone(flag: string): string {
   if (flag.includes("single_side") || flag.includes("thin")) {
     return "border-amber-300/25 bg-amber-300/10 text-amber-100";
@@ -659,6 +663,7 @@ export default function WnbaDashboard({
 
   const filteredRows = useMemo(() => {
     const baseRows = card.boardRows.filter((row) => {
+      if (isUnavailableLiveProp(row)) return false;
       if (mode === "top" && row.model_action !== "SELECTED") return false;
       if (mode === "candidates" && row.model_action !== "CANDIDATE") return false;
       if (mode === "coverage" && row.model_action !== "COVERAGE") return false;
