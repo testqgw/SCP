@@ -62,6 +62,16 @@ def test_fanduel_live_limits_preserve_same_game_correlation() -> None:
     assert limits["required_source_book"] == "FanDuel"
 
 
+def test_sportsgrid_fanduel_limits_allow_pick_side_only_prices() -> None:
+    args = Namespace(book="fanduel", max_picks=6, min_score=0.68, unavailable_props="missing.csv")
+
+    limits = build_score_limits(args, "2026-07-07", source="sportsgrid-fanduel")
+
+    assert limits["required_source_book"] == "FanDuel"
+    assert limits["allow_pick_side_only_prices"] is True
+    assert limits["exclude_single_side_prices"] is True
+
+
 def test_daily_refresh_defaults_to_fanduel_live_mode(monkeypatch) -> None:
     monkeypatch.setattr("sys.argv", ["daily_refresh.py"])
 

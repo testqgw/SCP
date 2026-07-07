@@ -256,7 +256,7 @@ def settle_existing_card(archived_slate: str | None) -> dict | None:
     return result
 
 
-def build_score_limits(args: argparse.Namespace, target_date: str) -> dict[str, object]:
+def build_score_limits(args: argparse.Namespace, target_date: str, source: str = "") -> dict[str, object]:
     limits: dict[str, object] = {"max_picks": args.max_picks, "min_score": args.min_score}
     blocked_candidate_ids = load_unavailable_candidate_ids(args.unavailable_props, target_date)
     if blocked_candidate_ids:
@@ -265,13 +265,17 @@ def build_score_limits(args: argparse.Namespace, target_date: str) -> dict[str, 
         limits["required_source_book"] = "FanDuel"
         limits["require_playable_side_odds"] = True
         limits["allow_source_consensus_leans"] = True
+        limits["min_consensus_price_edge"] = 0.0
         limits["allow_forced_six_pick_fill"] = True
         limits["forced_fill_min_probability"] = 0.52
+        limits["forced_fill_min_price_edge"] = 0.0
         limits["max_per_game"] = 6
         limits["sgp_tax_penalty_per_same_game_pair"] = 0.035
         limits["exclude_single_side_prices"] = True
         limits["exclude_rebound_unders"] = True
         limits["market_side_score_adjustments"] = {"THREES:UNDER": 0.55}
+        if source == "sportsgrid-fanduel":
+            limits["allow_pick_side_only_prices"] = True
     elif args.book == "expanded":
         limits.update(
             {
@@ -293,10 +297,10 @@ def build_score_limits(args: argparse.Namespace, target_date: str) -> dict[str, 
     return limits
 
 
-def score_current_board(logs_path: Path, board_path: Path, target_date: str, args: argparse.Namespace) -> dict:
+def score_current_board(logs_path: Path, board_path: Path, target_date: str, args: argparse.Namespace, source: str = "") -> dict:
     logs = load_logs(logs_path, include_preseason=True)
     board = load_board(board_path, default_date=target_date)
-    limits = build_score_limits(args, target_date)
+    limits = build_score_limits(args, target_date, source=source)
     return score_board(logs, board, slate_date=target_date, limits=limits)
 
 
@@ -312,7 +316,7 @@ def generate_from_sportsgrid(target_date: str, args: argparse.Namespace) -> tupl
     board_path = ROOT / f"data/current/sportsgrid_fanduel_board_{target_date}.csv"
     rows = merge_same_day_board_rows(board_path, target_date, rows)
     data_sportsgrid.write_board_csv(rows, board_path)
-    card = score_current_board(LOGS_PATH, board_path, target_date, args)
+    card = score_current_board(LOGS_PATH, board_path, target_date, args, source="sportsgrid-fanduel")
     card["mode"] = "CURRENT_FANDUEL_PREVIEW"
     card["sourceUrls"] = urls
     card["sourceNote"] = "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."

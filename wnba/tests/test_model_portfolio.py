@@ -112,6 +112,60 @@ def test_forced_fill_reaches_six_from_playable_current_rows_when_enabled() -> No
     assert all("forced_six_pick_fill" in row["risk_flags"] for row in selected)
 
 
+def test_forced_fill_blocks_negative_price_edge_when_fair_probability_exists() -> None:
+    bad_price = _row("bad-price", "Bad Price", "bad", "PTS", 0.90)
+    bad_price["fair_probability"] = 0.65
+    bad_price["price_edge"] = -0.05
+    good_price = _row("good-price", "Good Price", "good", "AST", 0.80)
+    good_price["fair_probability"] = 0.55
+    good_price["price_edge"] = 0.02
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.99,
+            "allow_expanded_fill": False,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_score": 0.0,
+            "forced_fill_min_probability": 0.0,
+            "forced_fill_min_price_edge": 0.0,
+        }
+    )
+
+    _select_portfolio([bad_price, good_price], limits)
+
+    selected = [row["candidate_id"] for row in [bad_price, good_price] if row["model_action"] == "SELECTED"]
+    assert selected == ["good-price"]
+    assert bad_price["rejection_reason"] == "below_forced_fill_price_edge"
+
+
+def test_selected_forced_fill_clears_prior_rejection_reason() -> None:
+    row = _row("forced", "Forced", "forced", "PTS", 0.40)
+    row["tier"] = "D"
+    row["model_probability"] = 0.56
+    row["source_pick"] = "OVER"
+    row["source_projection"] = 1.0
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.99,
+            "allow_source_consensus_leans": True,
+            "min_consensus_probability": 0.60,
+            "allow_expanded_fill": False,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.52,
+        }
+    )
+
+    _select_portfolio([row], limits)
+
+    assert row["model_action"] == "SELECTED"
+    assert row["rejection_reason"] is None
+
+
 def test_forced_fill_blocks_unresolved_or_unknown_context_rows() -> None:
     rows = [_row(str(index), f"Player {index}", str(index), "PTS", 0.50) for index in range(6)]
     for row in rows:
@@ -526,6 +580,30 @@ def test_portfolio_blocks_unavailable_player_market_wildcard_with_decimal_player
     assert rows[0]["rejection_reason"] == "unavailable_live_prop"
 
 
+def test_portfolio_blocks_unavailable_player_market_wildcard_by_name_when_row_has_player_id() -> None:
+    rows = [
+        _row("2026-07-07:5220150:REB:8.5", "Dominique Malonga", "5220150", "REB", 0.95),
+        _row("replacement", "Replacement Player", "replacement", "PTS", 0.80),
+    ]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "max_per_team": 2,
+            "max_per_game": 2,
+            "blocked_candidate_ids": {"2026-07-07:dominique malonga:REB:*"},
+        }
+    )
+
+    _select_portfolio(rows, limits)
+
+    selected = [row["candidate_id"] for row in rows if row["model_action"] == "SELECTED"]
+    assert selected == ["replacement"]
+    assert rows[0]["rejection_reason"] == "unavailable_live_prop"
+
+
 def test_portfolio_replaces_single_side_price_when_excluded() -> None:
     rows = [
         _row("thin", "Thin Price Player", "thin", "PTS", 0.99),
@@ -561,6 +639,71 @@ def test_portfolio_replaces_single_side_price_when_excluded() -> None:
     assert rows[0]["rejection_reason"] == "single_side_price_excluded"
 
 
+def test_portfolio_allows_pick_side_only_fanduel_price_when_enabled() -> None:
+    row = _row("sportsgrid-fd", "SportsGrid FanDuel", "fd", "PTS", 0.90)
+    row["source_book"] = "FanDuel"
+    row["source_pick"] = "UNDER"
+    row["source_odds"] = -112
+    row["under_odds"] = None
+    row["risk_flags"] = ["single_side_price", "thin_market_count"]
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "exclude_single_side_prices": True,
+            "allow_pick_side_only_prices": True,
+        }
+    )
+
+    _select_portfolio([row], limits)
+
+    assert row["model_action"] == "SELECTED"
+    assert row["rejection_reason"] is None
+
+
+def test_source_consensus_blocks_negative_price_edge_when_floor_is_set() -> None:
+    bad_price = _row("bad-consensus", "Bad Consensus", "bad-consensus", "THREES", 0.50)
+    bad_price["tier"] = "D"
+    bad_price["model_probability"] = 0.62
+    bad_price["source_book"] = "FanDuel"
+    bad_price["source_pick"] = "UNDER"
+    bad_price["source_projection"] = 1.5
+    bad_price["fair_probability"] = 0.67
+    bad_price["price_edge"] = -0.05
+    good_price = _row("good-consensus", "Good Consensus", "good-consensus", "PA", 0.42)
+    good_price["tier"] = "D"
+    good_price["model_probability"] = 0.61
+    good_price["source_book"] = "FanDuel"
+    good_price["source_pick"] = "UNDER"
+    good_price["source_projection"] = 14.0
+    good_price["fair_probability"] = 0.55
+    good_price["price_edge"] = 0.06
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.99,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "allow_source_consensus_leans": True,
+            "min_consensus_score": 0.25,
+            "min_consensus_probability": 0.60,
+            "min_consensus_price_edge": 0.0,
+        }
+    )
+
+    _select_portfolio([bad_price, good_price], limits)
+
+    selected = [row["candidate_id"] for row in [bad_price, good_price] if row["model_action"] == "SELECTED"]
+    assert selected == ["good-consensus"]
+    assert bad_price["rejection_reason"] == "below_consensus_price_edge"
+
+
 def test_portfolio_replaces_rebound_unders_when_excluded() -> None:
     rows = [
         _row("reb-under", "Rebound Under Player", "reb-under", "REB", 0.99),
@@ -593,6 +736,81 @@ def test_portfolio_replaces_rebound_unders_when_excluded() -> None:
     assert "replacement" in selected
     assert len(selected) == 6
     assert rows[0]["rejection_reason"] == "rebound_under_excluded"
+
+
+def test_fanduel_gate_accepts_scoresandodds_row_when_pick_side_book_is_fanduel() -> None:
+    fanduel_side = _row("fd-side", "FanDuel Side", "fd", "PTS", 0.90)
+    fanduel_side["source_book"] = "ScoresAndOdds Best Odds"
+    fanduel_side["side"] = "OVER"
+    fanduel_side["over_book"] = "FanDuel"
+    fanduel_side["under_book"] = "DraftKings"
+    other_book_side = _row("other-side", "Other Side", "other", "PTS", 0.89)
+    other_book_side["source_book"] = "ScoresAndOdds Best Odds"
+    other_book_side["side"] = "OVER"
+    other_book_side["over_book"] = "DraftKings"
+    other_book_side["under_book"] = "FanDuel"
+    limits = deepcopy(PORTFOLIO_LIMITS)
+    limits.update(
+        {
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+        }
+    )
+
+    _select_portfolio([fanduel_side, other_book_side], limits)
+
+    assert fanduel_side["model_action"] == "SELECTED"
+    assert other_book_side["model_action"] == "COVERAGE"
+    assert other_book_side["rejection_reason"] == "not_fanduel_sourced"
+
+
+def test_score_board_preserves_pick_side_book_for_fanduel_gate(tmp_path) -> None:
+    logs_path = tmp_path / "logs.csv"
+    board_path = tmp_path / "board.csv"
+    logs_path.write_text(
+        "\n".join(
+            ["game_date,game_id,player_id,player,team,opponent,minutes,points,rebounds,assists,threes,is_home,starter,position"]
+            + [
+                f"2026-06-{day:02d},g{day},1001,Test Player,NY,CON,31,20,4,3,2,1,1,G"
+                for day in range(1, 13)
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    board_path.write_text(
+        "\n".join(
+            [
+                "game_date,player,player_id,team,opponent,is_home,market,line,over_odds,under_odds,sportsbook_count,source_book,over_book,under_book",
+                "2026-07-03,Test Player,1001,NY,CON,1,PTS,12.5,-110,-110,1,ScoresAndOdds Best Odds,FanDuel,DraftKings",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    from wnba_prop_model.model import load_board, load_logs
+
+    card = score_board(
+        load_logs(logs_path, include_preseason=True),
+        load_board(board_path),
+        slate_date="2026-07-03",
+        limits={
+            "max_picks": 1,
+            "target_picks": 1,
+            "min_score": 0.0,
+            "required_source_book": "FanDuel",
+            "require_playable_side_odds": True,
+            "allow_forced_six_pick_fill": True,
+            "forced_fill_min_probability": 0.0,
+        },
+    )
+
+    assert card["selectedRows"][0]["player"] == "Test Player"
+    assert card["selectedRows"][0]["source_book"] == "FanDuel"
+    assert card["selectedRows"][0]["over_book"] == "FanDuel"
 
 
 def test_market_side_score_adjustment_can_promote_replay_learned_bucket() -> None:

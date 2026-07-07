@@ -53,6 +53,37 @@ def test_latest_context_blocks_stale_historical_team_match() -> None:
     assert status == "not_on_current_roster"
 
 
+def test_latest_context_uses_recent_slate_log_when_roster_endpoint_misses_player() -> None:
+    logs = pd.DataFrame(
+        [
+            {
+                "game_date": "2026-07-06",
+                "player_id": "recent-1",
+                "player": "Recent Slate Player",
+                "player_key": "recent slate player",
+                "team_abbr": "ATL",
+                "opponent_abbr": "CON",
+            }
+        ]
+    )
+    team_matchups = {"ATL": "DAL", "DAL": "ATL"}
+    active_rosters = {"ATL": {"different dream player"}, "DAL": {"different wings player"}}
+
+    player_id, team, opponent, player, status = _latest_context(
+        logs,
+        "Recent Slate Player",
+        team_matchups,
+        active_rosters,
+        target_date="2026-07-07",
+    )
+
+    assert player_id == "recent-1"
+    assert team == "ATL"
+    assert opponent == "DAL"
+    assert player == "Recent Slate Player"
+    assert status == "recent_slate_log_match"
+
+
 def test_props_to_board_rows_returns_empty_when_target_date_has_no_espn_slate(monkeypatch) -> None:
     monkeypatch.setattr(data_scoresandodds, "_current_team_context", lambda date: ({}, {}))
     prop = data_scoresandodds.ScoresAndOddsProp(

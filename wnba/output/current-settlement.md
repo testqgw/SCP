@@ -1,16 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-07T03:47:35Z
-Slate: 2026-07-06
-Settled: 4 / 6
+Generated: 2026-07-07T04:52:05Z
+Slate: 2026-07-07
+Settled: 0 / 2
 No action: 0
-Accuracy: 100.0
+Accuracy: pending
 
 ## Rows
 
-- PENDING: Jihyun Park UNDER THREES 1.5 (actual pending)
-- WIN: Kaila Charles OVER PR 8.5 (actual 13.0)
-- PENDING: Zia Cooke UNDER PTS 6.5 (actual pending)
-- WIN: Georgia Amoore UNDER THREES 1.5 (actual 1.0)
-- WIN: Maya Caldwell UNDER PR 10.5 (actual 4.0)
-- WIN: Tiffany Hayes OVER PTS 6.5 (actual 9.0)
+- PENDING: Skylar Diggins OVER PA 15.5 (actual pending)
+- PENDING: Sabrina Ionescu UNDER PA 19.5 (actual pending)

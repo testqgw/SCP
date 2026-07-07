@@ -664,6 +664,8 @@ def _score_row(history: pd.DataFrame, row: pd.Series) -> dict[str, Any]:
         "line": round(line, 3),
         "over_odds": round_or_none(row.get("over_odds"), 0),
         "under_odds": round_or_none(row.get("under_odds"), 0),
+        "over_book": str(row.get("over_book") or ""),
+        "under_book": str(row.get("under_book") or ""),
         "projected_value": round(projection, 3),
         "line_gap": round(line_gap, 3),
         "abs_line_gap": round(abs(line_gap), 3),
@@ -716,14 +718,33 @@ def _passes_price_gate(row: dict[str, Any]) -> bool:
     return (row["price_edge"] or 0.0) >= 0.005
 
 
+def _allows_pick_side_only_price(row: dict[str, Any], limits: dict[str, Any]) -> bool:
+    if not limits.get("allow_pick_side_only_prices"):
+        return False
+    required_book = str(limits.get("required_source_book") or "").strip().lower()
+    source_book = str(row.get("source_book") or "").lower()
+    if required_book and required_book not in source_book:
+        return False
+    source_pick = str(row.get("source_pick") or "").strip().upper()
+    if source_pick != str(row.get("side") or "").strip().upper():
+        return False
+    return row.get("source_odds") is not None
+
+
 def _passes_book_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
     required_book = str(limits.get("required_source_book") or "").strip().lower()
-    if required_book and required_book not in str(row.get("source_book") or "").lower():
+    side_book = row.get("over_book") if row["side"] == "OVER" else row.get("under_book")
+    source_book = str(row.get("source_book") or "").lower()
+    pick_side_book = str(side_book or "").lower()
+    if required_book and required_book not in source_book and required_book not in pick_side_book:
         row["rejection_reason"] = f"not_{required_book}_sourced"
         return False
     if limits.get("require_playable_side_odds"):
         side_odds = row.get("over_odds") if row["side"] == "OVER" else row.get("under_odds")
-        if side_odds is None and row.get("source_odds") is None:
+        if side_odds is None and not _allows_pick_side_only_price(row, limits):
+            if row.get("source_odds") is not None:
+                row["rejection_reason"] = "source_pick_disagreement"
+                return False
             row["rejection_reason"] = "missing_playable_side_odds"
             return False
     if required_book and "source_pick_disagreement" in row["risk_flags"]:
@@ -744,16 +765,23 @@ def _passes_context_gate(row: dict[str, Any], limits: dict[str, Any]) -> bool:
             candidate_wildcards.add(f"{candidate_date}:{player_alias}:{candidate_market}:*")
     game_date = str(row.get("game_date") or "").split(" ")[0]
     player_key = str(row.get("player_id") or "").strip() or canonical_name(str(row.get("player") or ""))
+    player_name_key = canonical_name(str(row.get("player") or ""))
     market = str(row.get("market") or "").strip().upper()
+    if len(candidate_parts) >= 4 and player_name_key:
+        candidate_date, _candidate_player, candidate_market, _candidate_line = candidate_parts[:4]
+        candidate_wildcards.add(f"{candidate_date}:{player_name_key}:{candidate_market}:*")
     if game_date and player_key and market:
         for player_alias in player_id_aliases(player_key) or {player_key}:
             candidate_wildcards.add(f"{game_date}:{player_alias}:{market}:*")
+    if game_date and player_name_key and market:
+        candidate_wildcards.add(f"{game_date}:{player_name_key}:{market}:*")
     if candidate_wildcards & blocked_ids:
         row["rejection_reason"] = "unavailable_live_prop"
         return False
     if limits.get("exclude_single_side_prices") and {"single_side_price", "thin_market_count"} & set(row.get("risk_flags") or []):
-        row["rejection_reason"] = "single_side_price_excluded"
-        return False
+        if not _allows_pick_side_only_price(row, limits):
+            row["rejection_reason"] = "single_side_price_excluded"
+            return False
     if limits.get("exclude_rebound_unders") and row.get("market") == "REB" and row.get("side") == "UNDER":
         row["rejection_reason"] = "rebound_under_excluded"
         return False
@@ -817,6 +845,11 @@ def _is_source_consensus_candidate(row: dict[str, Any], limits: dict[str, Any]) 
     if row["final_score"] < float(limits.get("min_consensus_score", 0.25)):
         row["rejection_reason"] = "below_consensus_score"
         return False
+    min_consensus_price_edge = limits.get("min_consensus_price_edge")
+    if min_consensus_price_edge is not None:
+        if row["fair_probability"] is not None and (row["price_edge"] or 0.0) < float(min_consensus_price_edge):
+            row["rejection_reason"] = "below_consensus_price_edge"
+            return False
     if not _passes_book_gate(row, limits):
         return False
     return True
@@ -867,6 +900,11 @@ def _is_forced_fill_candidate(row: dict[str, Any], limits: dict[str, Any]) -> bo
     if row["model_probability"] < float(limits.get("forced_fill_min_probability", 0.52)):
         row["rejection_reason"] = "below_forced_fill_probability"
         return False
+    forced_fill_min_price_edge = limits.get("forced_fill_min_price_edge")
+    if forced_fill_min_price_edge is not None:
+        if row["fair_probability"] is not None and (row["price_edge"] or 0.0) < float(forced_fill_min_price_edge):
+            row["rejection_reason"] = "below_forced_fill_price_edge"
+            return False
     hard_flags = {
         "injury_or_status_note",
         "unresolved_player",
@@ -1007,6 +1045,7 @@ def _try_select_row(
     selected += 1
     row["model_action"] = "SELECTED"
     row["selected_rank"] = selected
+    row["rejection_reason"] = None
     player_counts[player_key] += 1
     team_counts[row["team"]] += 1
     game_counts[row["matchup_key"]] += 1

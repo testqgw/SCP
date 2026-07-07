@@ -1,21 +1,30 @@
 {
-  "generatedAt": "2026-07-07T03:47:35Z",
-  "targetDate": "2026-07-06",
-  "source": "scoresandodds-existing-board",
-  "boardPath": "data\\current\\scoresandodds_board_2026-07-06.csv",
+  "generatedAt": "2026-07-07T04:52:05Z",
+  "targetDate": "2026-07-07",
+  "source": "sportsgrid-fanduel",
+  "boardPath": "data\\current\\sportsgrid_fanduel_board_2026-07-07.csv",
   "archivedSlate": null,
-  "selectedCount": 6,
-  "totalBoardRows": 146,
-  "priorSettlement": null,
-  "currentSettlement": {
-    "trackedPicks": 6,
-    "settledPicks": 4,
+  "selectedCount": 2,
+  "totalBoardRows": 6,
+  "priorSettlement": {
+    "trackedPicks": 2,
+    "settledPicks": 0,
     "pendingPicks": 2,
     "noActionPicks": 0,
-    "wins": 4,
+    "wins": 0,
     "losses": 0,
     "pushes": 0,
-    "accuracyPct": 100.0
+    "accuracyPct": null
+  },
+  "currentSettlement": {
+    "trackedPicks": 2,
+    "settledPicks": 0,
+    "pendingPicks": 2,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": null
   },
   "cardPaths": {
     "json": "output\\current-card.json",

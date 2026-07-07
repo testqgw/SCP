@@ -254,19 +254,33 @@ def _latest_context(
     player: str,
     team_matchups: dict[str, str],
     active_rosters: dict[str, Any] | None = None,
+    target_date: str | None = None,
 ) -> tuple[str, str, str, str, str]:
     roster_team, roster_player_id, roster_player = _roster_match(active_rosters, player)
-    if active_rosters and not roster_team:
-        return "", "", "", player, "not_on_current_roster"
     candidates = _player_candidates(logs, player)
+    current_teams = set(team_matchups)
+    in_slate = candidates[candidates["team_abbr"].astype(str).str.upper().map(normalize_team).isin(current_teams)]
+    if active_rosters and not roster_team:
+        if target_date and not in_slate.empty:
+            latest_date = pd.to_datetime(in_slate["game_date"], errors="coerce").max()
+            target_ts = pd.to_datetime(target_date, errors="coerce")
+            if pd.notna(latest_date) and pd.notna(target_ts) and 0 <= (target_ts - latest_date).days <= 45:
+                picked = in_slate.sort_values("game_date").iloc[-1]
+                team = normalize_team(picked.get("team_abbr"))
+                return (
+                    str(picked.get("player_id") or ""),
+                    team,
+                    team_matchups.get(team, ""),
+                    str(picked.get("player") or player),
+                    "recent_slate_log_match",
+                )
+        return "", "", "", player, "not_on_current_roster"
     if candidates.empty and roster_team:
         return roster_player_id, roster_team, team_matchups.get(roster_team, ""), roster_player, "current_roster_match"
     if candidates.empty:
         return "", "", "", player, "unresolved_player"
     if roster_team:
         return roster_player_id, roster_team, team_matchups.get(roster_team, ""), roster_player, "current_roster_match"
-    current_teams = set(team_matchups)
-    in_slate = candidates[candidates["team_abbr"].astype(str).str.upper().map(normalize_team).isin(current_teams)]
     if in_slate.empty and team_matchups:
         picked = candidates.sort_values("game_date").iloc[-1]
         return str(picked.get("player_id") or ""), "", "", str(picked.get("player") or player), "not_in_slate_matchup"
@@ -284,7 +298,13 @@ def props_to_board_rows(props: list[ScoresAndOddsProp], logs: pd.DataFrame | Non
         return []
     rows: list[dict[str, Any]] = []
     for prop in props:
-        player_id, team, opponent, model_player, resolution_status = _latest_context(logs, prop.player, team_matchups, active_rosters)
+        player_id, team, opponent, model_player, resolution_status = _latest_context(
+            logs,
+            prop.player,
+            team_matchups,
+            active_rosters,
+            target_date=prop.game_date,
+        )
         rows.append(
             {
                 "game_date": prop.game_date,
