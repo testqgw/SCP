@@ -1,12 +1,15 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-07T20:07:01Z
-Slate: 2026-07-07
-Settled: 0 / 2
+Generated: 2026-07-08T19:57:39Z
+Slate: 2026-07-08
+Settled: 0 / 5
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Kahleah Copper OVER REB 3.5 (actual pending)
-- PENDING: Skylar Diggins OVER PTS 10.5 (actual pending)
+- PENDING: Courtney Williams UNDER PTS 19.5 (actual pending)
+- PENDING: Rae Burrell UNDER PTS 14.5 (actual pending)
+- PENDING: Kennedy Burke OVER PTS 7.5 (actual pending)
+- PENDING: Marina Mabrey OVER PTS 20.5 (actual pending)
+- PENDING: Ariel Atkins UNDER PR 12.5 (actual pending)
