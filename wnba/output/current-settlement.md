@@ -1,11 +1,10 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-09T20:03:12Z
-Slate: 2026-07-09
-Settled: 0 / 1
+Generated: 2026-07-10T19:56:14Z
+Slate: 2026-07-10
+Settled: 0 / 0
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: A'ja Wilson OVER REB 7.5 (actual pending)
