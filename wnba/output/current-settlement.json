@@ -1,56 +1,19 @@
 {
-  "generatedAt": "2026-07-11T15:41:25Z",
+  "generatedAt": "2026-07-11T19:47:54Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-11T15:41:25Z",
+  "cardGeneratedAt": "2026-07-11T19:47:54Z",
   "slateDate": "2026-07-11",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 2,
+    "trackedPicks": 0,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 0,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
     "accuracyPct": null
   },
-  "rows": [
-    {
-      "slate_date": "2026-07-11",
-      "selected_rank": 1,
-      "player": "Sabrina Ionescu",
-      "team": "NY",
-      "team_name": "New York Liberty",
-      "opponent": "MIN",
-      "opponent_name": "Minnesota Lynx",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 2.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.63013,
-      "final_score": 0.55628,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-minnesota-lynx-scores-odds-picks-props-july-11-2026/2428b1cb-bf27-47bf-95d2-fbba065dd410"
-    },
-    {
-      "slate_date": "2026-07-11",
-      "selected_rank": 2,
-      "player": "Angel Reese",
-      "team": "ATL",
-      "team_name": "Atlanta Dream",
-      "opponent": "POR",
-      "opponent_name": "Portland Fire",
-      "market": "RA",
-      "side": "UNDER",
-      "line": 14.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.6001,
-      "final_score": 0.47617,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/portland-fire-atlanta-dream-scores-odds-picks-props-july-11-2026/8995fd51-58f0-4d34-aba9-eed0a2b1139b"
-    }
-  ]
+  "rows": []
 }
