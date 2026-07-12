@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-12T15:43:26Z",
+  "generatedAt": "2026-07-12T19:47:39Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-12T15:43:26Z",
+  "cardGeneratedAt": "2026-07-12T19:47:39Z",
   "slateDate": "2026-07-12",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 2,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -33,24 +33,6 @@
       "final_score": 0.60678,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/indiana-fever-las-vegas-aces-scores-odds-picks-props-july-12-2026/b5c6116d-1a3f-4055-9275-88787d5bf01d"
-    },
-    {
-      "slate_date": "2026-07-12",
-      "selected_rank": 2,
-      "player": "Natisha Hiedeman",
-      "team": "SEA",
-      "team_name": "Seattle Storm",
-      "opponent": "WSH",
-      "opponent_name": "Washington Mystics",
-      "market": "PTS",
-      "side": "OVER",
-      "line": 14.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.60094,
-      "final_score": 0.55684,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-washington-mystics-scores-odds-picks-props-july-12-2026/e8a8439b-3b15-478d-b43d-93e6042f1b6a"
     }
   ]
 }
