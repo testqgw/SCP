@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-13T16:14:58Z
+Generated: 2026-07-13T19:55:52Z
 Slate: 2026-07-13
 
 ## Selected
 
-1. Allisha Gray UNDER THREES 1.5 (Atlanta Dream vs Los Angeles Sparks): p=64.4%, proj=1.07, edge +14.9%, score=0.677, source=FanDuel
-2. Courtney Williams UNDER PTS 16.5 (Minnesota Lynx vs Phoenix Mercury): p=64.6%, proj=13.79, edge +8.1%, score=0.678, source=FanDuel
+1. Allisha Gray UNDER THREES 1.5 (Atlanta Dream vs Los Angeles Sparks): p=64.4%, proj=1.07, edge +15.4%, score=0.677, source=FanDuel
+2. Courtney Williams UNDER PA 20.5 (Minnesota Lynx vs Phoenix Mercury): p=64.6%, proj=18.00, edge +7.7%, score=0.638, source=FanDuel
 
 ## Execution Reality
 
