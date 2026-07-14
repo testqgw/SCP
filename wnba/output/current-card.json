@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-14T15:53:50Z",
+  "generatedAt": "2026-07-14T19:52:07Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -150,7 +150,7 @@
       "market": "PTS",
       "side": "UNDER",
       "line": 13.5,
-      "over_odds": -102.0,
+      "over_odds": 102.0,
       "under_odds": null,
       "over_book": "",
       "under_book": "",
@@ -170,7 +170,7 @@
       "sportsbook_count": 1.0,
       "source_pick": "OVER",
       "source_projection": 15.4,
-      "source_odds": -102.0,
+      "source_odds": 102.0,
       "source_book": "FanDuel",
       "source_board_book": "FanDuel",
       "source_market": "Points",
@@ -179,7 +179,7 @@
       "source_away": "WSH",
       "source_home": "TOR",
       "game_time_et": "7:00 PM",
-      "line_last_updated": "2026-07-14T15:53:49Z",
+      "line_last_updated": "2026-07-14T19:52:06Z",
       "source_status": "live_current",
       "team_resolution_status": "source_game_match",
       "market_quiescence_score": 0.0,
@@ -254,7 +254,7 @@
       "source_away": "WSH",
       "source_home": "TOR",
       "game_time_et": "7:00 PM",
-      "line_last_updated": "2026-07-14T15:53:49Z",
+      "line_last_updated": "2026-07-14T19:52:06Z",
       "source_status": "live_current",
       "team_resolution_status": "source_game_match",
       "market_quiescence_score": 0.0,
@@ -330,7 +330,7 @@
       "source_away": "WSH",
       "source_home": "TOR",
       "game_time_et": "7:00 PM",
-      "line_last_updated": "2026-07-14T15:53:49Z",
+      "line_last_updated": "2026-07-14T19:52:06Z",
       "source_status": "live_current",
       "team_resolution_status": "source_game_match",
       "market_quiescence_score": 0.0,
@@ -366,7 +366,8 @@
   "selectedRows": [],
   "candidateRows": [],
   "sourceUrls": [
-    "https://www.sportsgrid.com/wnba/game/washington-mystics-toronto-tempo-scores-odds-picks-props-july-14-2026/54afcf1c-c2b6-4c67-a8ba-c8081aacd284"
+    "https://www.sportsgrid.com/wnba/game/washington-mystics-toronto-tempo-scores-odds-picks-props-july-14-2026/54afcf1c-c2b6-4c67-a8ba-c8081aacd284",
+    "https://www.sportsgrid.com/wnba/game/portland-fire-connecticut-sun-scores-odds-picks-props-july-14-2026/713a93f6-52ba-45f5-a430-8b8907a8870e"
   ],
   "sourceNote": "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."
 }
