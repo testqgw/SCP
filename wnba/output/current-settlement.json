@@ -1,56 +1,19 @@
 {
-  "generatedAt": "2026-07-13T19:55:52Z",
+  "generatedAt": "2026-07-14T15:53:50Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-13T19:55:52Z",
-  "slateDate": "2026-07-13",
+  "cardGeneratedAt": "2026-07-14T15:53:50Z",
+  "slateDate": "2026-07-14",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 2,
+    "trackedPicks": 0,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 0,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
     "accuracyPct": null
   },
-  "rows": [
-    {
-      "slate_date": "2026-07-13",
-      "selected_rank": 1,
-      "player": "Allisha Gray",
-      "team": "ATL",
-      "team_name": "Atlanta Dream",
-      "opponent": "LA",
-      "opponent_name": "Los Angeles Sparks",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 1.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.6442,
-      "final_score": 0.67704,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/los-angeles-sparks-atlanta-dream-scores-odds-picks-props-july-13-2026/b3d7c1d2-eb98-4fc3-8183-1149edea4f30"
-    },
-    {
-      "slate_date": "2026-07-13",
-      "selected_rank": 2,
-      "player": "Courtney Williams",
-      "team": "MIN",
-      "team_name": "Minnesota Lynx",
-      "opponent": "PHX",
-      "opponent_name": "Phoenix Mercury",
-      "market": "PA",
-      "side": "UNDER",
-      "line": 20.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.64577,
-      "final_score": 0.6377,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/phoenix-mercury-minnesota-lynx-scores-odds-picks-props-july-13-2026/a1ced4a6-80d9-4a36-8cbd-5884b3ae2d57"
-    }
-  ]
+  "rows": []
 }
