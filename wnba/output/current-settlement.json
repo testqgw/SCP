@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-07-15T19:49:41Z",
+  "generatedAt": "2026-07-16T15:53:47Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-15T19:49:40Z",
-  "slateDate": "2026-07-15",
+  "cardGeneratedAt": "2026-07-16T15:53:47Z",
+  "slateDate": "2026-07-16",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
     "trackedPicks": 1,
@@ -17,22 +17,22 @@
   },
   "rows": [
     {
-      "slate_date": "2026-07-15",
+      "slate_date": "2026-07-16",
       "selected_rank": 1,
-      "player": "Kayla Thornton",
-      "team": "GS",
-      "team_name": "Golden State Valkyries",
-      "opponent": "IND",
-      "opponent_name": "Indiana Fever",
-      "market": "PTS",
+      "player": "Shakira Austin",
+      "team": "WSH",
+      "team_name": "Washington Mystics",
+      "opponent": "POR",
+      "opponent_name": "Portland Fire",
+      "market": "PA",
       "side": "UNDER",
-      "line": 8.5,
+      "line": 18.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.60736,
-      "final_score": 0.50553,
+      "model_probability": 0.62111,
+      "final_score": 0.56326,
       "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/golden-state-valkyries-indiana-fever-scores-odds-picks-props-july-15-2026/fae0d72a-77ee-4241-809a-e341b7c7cc3f"
+      "source_url": "https://www.sportsgrid.com/wnba/game/portland-fire-washington-mystics-scores-odds-picks-props-july-16-2026/6a7f7efe-5d36-4b13-b25b-e68a151592e8"
     }
   ]
 }

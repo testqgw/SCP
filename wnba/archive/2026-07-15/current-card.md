@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-16T15:53:47Z
-Slate: 2026-07-16
+Generated: 2026-07-15T19:49:40Z
+Slate: 2026-07-15
 
 ## Selected
 
-1. Shakira Austin UNDER PA 18.5 (Washington Mystics vs Portland Fire): p=62.1%, proj=16.50, edge +9.3%, score=0.563, source=FanDuel
+1. Kayla Thornton UNDER PTS 8.5 (Golden State Valkyries vs Indiana Fever): p=60.7%, proj=5.96, edge +3.3%, score=0.506, source=FanDuel
 
 ## Execution Reality
 
@@ -14,6 +14,7 @@ Selected legs: 1/6; independent probability: incomplete; estimated SGP-taxed pro
 
 ## Warnings
 
+Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
 Only 1 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.

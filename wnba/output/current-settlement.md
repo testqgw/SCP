@@ -1,11 +1,11 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-15T19:49:41Z
-Slate: 2026-07-15
+Generated: 2026-07-16T15:53:47Z
+Slate: 2026-07-16
 Settled: 0 / 1
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Kayla Thornton UNDER PTS 8.5 (actual pending)
+- PENDING: Shakira Austin UNDER PA 18.5 (actual pending)

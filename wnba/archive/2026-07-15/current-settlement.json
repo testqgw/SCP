@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-16T15:53:45Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-07-15T19:49:40Z",
+  "slateDate": "2026-07-15",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-07-15",
+      "selected_rank": 1,
+      "player": "Kayla Thornton",
+      "team": "GS",
+      "team_name": "Golden State Valkyries",
+      "opponent": "IND",
+      "opponent_name": "Indiana Fever",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 8.5,
+      "actual": 11.0,
+      "settlement": "LOSS",
+      "model_probability": 0.60736,
+      "final_score": 0.50553,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/golden-state-valkyries-indiana-fever-scores-odds-picks-props-july-15-2026/fae0d72a-77ee-4241-809a-e341b7c7cc3f"
+    }
+  ]
+}
