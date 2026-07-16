@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-16T15:53:47Z
+Generated: 2026-07-16T19:49:24Z
 Slate: 2026-07-16
 
 ## Selected
 
-1. Shakira Austin UNDER PA 18.5 (Washington Mystics vs Portland Fire): p=62.1%, proj=16.50, edge +9.3%, score=0.563, source=FanDuel
+1. Shakira Austin UNDER PA 18.5 (Washington Mystics vs Portland Fire): p=62.1%, proj=16.50, edge +9.7%, score=0.563, source=FanDuel
 
 ## Execution Reality
 

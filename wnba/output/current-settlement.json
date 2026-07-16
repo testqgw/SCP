@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-16T15:53:47Z",
+  "generatedAt": "2026-07-16T19:49:24Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-16T15:53:47Z",
+  "cardGeneratedAt": "2026-07-16T19:49:24Z",
   "slateDate": "2026-07-16",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
