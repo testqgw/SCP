@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-17T15:53:40Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-07-16T19:49:24Z",
+  "slateDate": "2026-07-16",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-07-16",
+      "selected_rank": 1,
+      "player": "Shakira Austin",
+      "team": "WSH",
+      "team_name": "Washington Mystics",
+      "opponent": "POR",
+      "opponent_name": "Portland Fire",
+      "market": "PA",
+      "side": "UNDER",
+      "line": 18.5,
+      "actual": 23.0,
+      "settlement": "LOSS",
+      "model_probability": 0.62111,
+      "final_score": 0.56326,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/portland-fire-washington-mystics-scores-odds-picks-props-july-16-2026/6a7f7efe-5d36-4b13-b25b-e68a151592e8"
+    }
+  ]
+}
