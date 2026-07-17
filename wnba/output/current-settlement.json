@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-17T15:53:45Z",
+  "generatedAt": "2026-07-17T19:47:32Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-17T15:53:44Z",
+  "cardGeneratedAt": "2026-07-17T19:47:32Z",
   "slateDate": "2026-07-17",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -37,18 +37,18 @@
     {
       "slate_date": "2026-07-17",
       "selected_rank": 2,
-      "player": "Kelsey Mitchell",
+      "player": "Monique Billings",
       "team": "IND",
       "team_name": "Indiana Fever",
       "opponent": "SEA",
       "opponent_name": "Seattle Storm",
-      "market": "THREES",
-      "side": "OVER",
-      "line": 2.5,
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 8.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.63251,
-      "final_score": 0.66084,
+      "model_probability": 0.62661,
+      "final_score": 0.63452,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-indiana-fever-scores-odds-picks-props-july-17-2026/58d45301-ba8e-40d0-a7ee-a7be56534604"
     }

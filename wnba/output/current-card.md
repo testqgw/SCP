@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-17T15:53:44Z
+Generated: 2026-07-17T19:47:32Z
 Slate: 2026-07-17
 
 ## Selected
 
 1. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Indiana Fever): p=74.4%, proj=1.30, edge +6.1%, score=0.938, source=FanDuel
-2. Kelsey Mitchell OVER THREES 2.5 (Indiana Fever vs Seattle Storm): p=63.3%, proj=3.01, edge +8.7%, score=0.661, source=FanDuel
+2. Monique Billings UNDER PTS 8.5 (Indiana Fever vs Seattle Storm): p=62.7%, proj=6.54, edge +5.8%, score=0.635, source=FanDuel
 
 ## Execution Reality
 
