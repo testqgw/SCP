@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-18T15:43:30Z
+Generated: 2026-07-18T19:48:03Z
 Slate: 2026-07-18
 
 ## Selected
 
-1. Caitlin Clark OVER PTS 17.5 (Indiana Fever vs New York Liberty): p=66.7%, proj=21.95, edge +11.2%, score=0.759, source=FanDuel
+1. Caitlin Clark OVER PTS 17.5 (Indiana Fever vs New York Liberty): p=66.7%, proj=21.95, edge +13.4%, score=0.759, source=FanDuel
 2. Veronica Burton UNDER PTS 11.5 (Golden State Valkyries vs Washington Mystics): p=62.9%, proj=8.95, edge +6.0%, score=0.650, source=FanDuel
 
 ## Execution Reality
