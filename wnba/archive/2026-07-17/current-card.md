@@ -1,17 +1,17 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-18T15:43:30Z
-Slate: 2026-07-18
+Generated: 2026-07-17T19:47:32Z
+Slate: 2026-07-17
 
 ## Selected
 
-1. Caitlin Clark OVER PTS 17.5 (Indiana Fever vs New York Liberty): p=66.7%, proj=21.95, edge +11.2%, score=0.759, source=FanDuel
-2. Veronica Burton UNDER PTS 11.5 (Golden State Valkyries vs Washington Mystics): p=62.9%, proj=8.95, edge +6.0%, score=0.650, source=FanDuel
+1. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Indiana Fever): p=74.4%, proj=1.30, edge +6.1%, score=0.938, source=FanDuel
+2. Monique Billings UNDER PTS 8.5 (Indiana Fever vs Seattle Storm): p=62.7%, proj=6.54, edge +5.8%, score=0.635, source=FanDuel
 
 ## Execution Reality
 
 FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
-Selected legs: 2/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
+Selected legs: 2/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: MEDIUM
 
 ## Warnings
 
@@ -21,3 +21,4 @@ Only 2 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
 Only 2 of 6 target legs selected.
+Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.

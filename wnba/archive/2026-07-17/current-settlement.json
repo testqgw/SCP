@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-18T15:43:28Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-07-17T19:47:32Z",
+  "slateDate": "2026-07-17",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 50.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-07-17",
+      "selected_rank": 1,
+      "player": "Natisha Hiedeman",
+      "team": "SEA",
+      "team_name": "Seattle Storm",
+      "opponent": "IND",
+      "opponent_name": "Indiana Fever",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 1.0,
+      "settlement": "WIN",
+      "model_probability": 0.74394,
+      "final_score": 0.93753,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-indiana-fever-scores-odds-picks-props-july-17-2026/58d45301-ba8e-40d0-a7ee-a7be56534604"
+    },
+    {
+      "slate_date": "2026-07-17",
+      "selected_rank": 2,
+      "player": "Monique Billings",
+      "team": "IND",
+      "team_name": "Indiana Fever",
+      "opponent": "SEA",
+      "opponent_name": "Seattle Storm",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 8.5,
+      "actual": 16.0,
+      "settlement": "LOSS",
+      "model_probability": 0.62661,
+      "final_score": 0.63452,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-indiana-fever-scores-odds-picks-props-july-17-2026/58d45301-ba8e-40d0-a7ee-a7be56534604"
+    }
+  ]
+}

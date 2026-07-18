@@ -1,12 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-17T19:47:32Z
-Slate: 2026-07-17
+Generated: 2026-07-18T15:43:30Z
+Slate: 2026-07-18
 Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Natisha Hiedeman UNDER THREES 2.5 (actual pending)
-- PENDING: Monique Billings UNDER PTS 8.5 (actual pending)
+- PENDING: Caitlin Clark OVER PTS 17.5 (actual pending)
+- PENDING: Veronica Burton UNDER PTS 11.5 (actual pending)
