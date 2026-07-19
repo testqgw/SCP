@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-07-19T15:42:01Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-07-18T19:48:03Z",
+  "slateDate": "2026-07-18",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 50.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-07-18",
+      "selected_rank": 1,
+      "player": "Caitlin Clark",
+      "team": "IND",
+      "team_name": "Indiana Fever",
+      "opponent": "NY",
+      "opponent_name": "New York Liberty",
+      "market": "PTS",
+      "side": "OVER",
+      "line": 17.5,
+      "actual": 17.0,
+      "settlement": "LOSS",
+      "model_probability": 0.66706,
+      "final_score": 0.75851,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-indiana-fever-scores-odds-picks-props-july-18-2026/68481f19-2e63-40fb-b743-7ec8d78e3f87"
+    },
+    {
+      "slate_date": "2026-07-18",
+      "selected_rank": 2,
+      "player": "Veronica Burton",
+      "team": "GS",
+      "team_name": "Golden State Valkyries",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 11.5,
+      "actual": 11.0,
+      "settlement": "WIN",
+      "model_probability": 0.62853,
+      "final_score": 0.65017,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/washington-mystics-golden-state-valkyries-scores-odds-picks-props-july-18-2026/8010b7c5-4c46-4656-962a-80c8625d925e"
+    }
+  ]
+}
