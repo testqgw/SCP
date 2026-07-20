@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-07-20T16:03:40Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-07-19T19:48:15Z",
+  "slateDate": "2026-07-19",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-07-19",
+      "selected_rank": 1,
+      "player": "Kahleah Copper",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "CON",
+      "opponent_name": "Connecticut Sun",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 0.0,
+      "settlement": "WIN",
+      "model_probability": 0.72651,
+      "final_score": 0.89468,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/connecticut-sun-phoenix-mercury-scores-odds-picks-props-july-19-2026/1edffbd0-33c5-4880-9226-de9315836d11"
+    }
+  ]
+}
