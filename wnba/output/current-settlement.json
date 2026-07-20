@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-20T16:03:44Z",
+  "generatedAt": "2026-07-20T19:58:21Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-20T16:03:44Z",
+  "cardGeneratedAt": "2026-07-20T19:58:21Z",
   "slateDate": "2026-07-20",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 2,
+    "trackedPicks": 3,
     "settledPicks": 0,
-    "pendingPicks": 2,
+    "pendingPicks": 3,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -51,6 +51,24 @@
       "final_score": 0.6891,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-toronto-tempo-scores-odds-picks-props-july-20-2026/335514d0-1800-49ce-bd02-4fd40fafb438"
+    },
+    {
+      "slate_date": "2026-07-20",
+      "selected_rank": 3,
+      "player": "Jade Melbourne",
+      "team": "SEA",
+      "team_name": "Seattle Storm",
+      "opponent": "MIN",
+      "opponent_name": "Minnesota Lynx",
+      "market": "PTS",
+      "side": "OVER",
+      "line": 7.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.63235,
+      "final_score": 0.67921,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-seattle-storm-scores-odds-picks-props-july-20-2026/92a5dd64-582b-48fb-9f01-859021344d56"
     }
   ]
 }
