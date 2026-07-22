@@ -1,24 +1,24 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-22T15:55:39Z
-Slate: 2026-07-22
+Generated: 2026-07-20T19:58:21Z
+Slate: 2026-07-20
 
 ## Selected
 
-1. Napheesa Collier OVER PTS 13.5 (Minnesota Lynx vs Seattle Storm): p=77.5%, proj=18.90, edge +25.1%, score=0.870, source=FanDuel
-2. Azura Stevens OVER REB 6.5 (Chicago Sky vs New York Liberty): p=64.2%, proj=8.10, edge +3.9%, score=0.655, source=FanDuel
-3. Rae Burrell UNDER PTS 14.5 (Los Angeles Sparks vs Phoenix Mercury): p=60.4%, proj=11.82, edge +9.0%, score=0.604, source=FanDuel
+1. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Minnesota Lynx): p=77.7%, proj=1.09, edge +12.4%, score=0.972, source=FanDuel
+2. A'ja Wilson UNDER PA 29.5 (Las Vegas Aces vs Toronto Tempo): p=64.9%, proj=25.04, edge +9.4%, score=0.689, source=FanDuel
+3. Jade Melbourne OVER PTS 7.5 (Seattle Storm vs Minnesota Lynx): p=63.2%, proj=10.10, edge +7.7%, score=0.679, source=FanDuel
 
 ## Execution Reality
 
 FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
-Selected legs: 3/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
+Selected legs: 3/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: MEDIUM
 
 ## Warnings
 
-Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
 Only 3 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
 Only 3 of 6 target legs selected.
+Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.
