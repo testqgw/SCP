@@ -1,24 +1,22 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-07-22T15:55:39Z
+Generated: 2026-07-22T19:53:37Z
 Slate: 2026-07-22
 
 ## Selected
 
-1. Napheesa Collier OVER PTS 13.5 (Minnesota Lynx vs Seattle Storm): p=77.5%, proj=18.90, edge +25.1%, score=0.870, source=FanDuel
-2. Azura Stevens OVER REB 6.5 (Chicago Sky vs New York Liberty): p=64.2%, proj=8.10, edge +3.9%, score=0.655, source=FanDuel
-3. Rae Burrell UNDER PTS 14.5 (Los Angeles Sparks vs Phoenix Mercury): p=60.4%, proj=11.82, edge +9.0%, score=0.604, source=FanDuel
+1. Azura Stevens OVER REB 6.5 (Chicago Sky vs New York Liberty): p=64.2%, proj=8.10, edge +3.9%, score=0.655, source=FanDuel
 
 ## Execution Reality
 
 FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
-Selected legs: 3/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
+Selected legs: 1/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
 
 ## Warnings
 
 Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Only 3 rows cleared the current gates for a 6-pick target.
+Only 1 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
-Only 3 of 6 target legs selected.
+Only 1 of 6 target legs selected.

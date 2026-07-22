@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-22T15:55:39Z",
+  "generatedAt": "2026-07-22T19:53:37Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-22T15:55:39Z",
+  "cardGeneratedAt": "2026-07-22T19:53:37Z",
   "slateDate": "2026-07-22",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 3,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 3,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -19,24 +19,6 @@
     {
       "slate_date": "2026-07-22",
       "selected_rank": 1,
-      "player": "Napheesa Collier",
-      "team": "MIN",
-      "team_name": "Minnesota Lynx",
-      "opponent": "SEA",
-      "opponent_name": "Seattle Storm",
-      "market": "PTS",
-      "side": "OVER",
-      "line": 13.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.77527,
-      "final_score": 0.87017,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-seattle-storm-scores-odds-picks-props-july-22-2026/6102e973-464c-4350-8482-69a45f7238c6"
-    },
-    {
-      "slate_date": "2026-07-22",
-      "selected_rank": 2,
       "player": "Azura Stevens",
       "team": "CHI",
       "team_name": "Chicago Sky",
@@ -51,24 +33,6 @@
       "final_score": 0.65516,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-new-york-liberty-scores-odds-picks-props-july-22-2026/c7da0932-1d82-4841-ab89-f21612108b2f"
-    },
-    {
-      "slate_date": "2026-07-22",
-      "selected_rank": 3,
-      "player": "Rae Burrell",
-      "team": "LA",
-      "team_name": "Los Angeles Sparks",
-      "opponent": "PHX",
-      "opponent_name": "Phoenix Mercury",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 14.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.6041,
-      "final_score": 0.60351,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/phoenix-mercury-los-angeles-sparks-scores-odds-picks-props-july-22-2026/198d5a86-b4c5-4442-980b-7257e81b7124"
     }
   ]
 }
