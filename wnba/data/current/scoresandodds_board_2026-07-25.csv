@@ -1,0 +1,6 @@
+game_date,player,player_id,team_abbr,opponent_abbr,market,line,over_odds,under_odds,over_book,under_book,sportsbook_count,source_projection,source_book,source_market,source_url,source_event_id,line_last_updated,source_status,team_resolution_status
+2026-07-25,Jessica Shepard,,,,REB,7.5,-120,-105,bet365,bet365,2,0.0,ScoresAndOdds Best Odds,REB,https://www.scoresandodds.com/wnba/props/rebounds,211660330,2026-07-25T15:46:25Z,live_current,not_on_current_roster
+2026-07-25,Aliyah Boston,,,,REB,7.5,105,-135,bet365,bet365,2,0.0,ScoresAndOdds Best Odds,REB,https://www.scoresandodds.com/wnba/props/rebounds,211660330,2026-07-25T15:46:25Z,live_current,not_on_current_roster
+2026-07-25,Breanna Stewart,,,,REB,7.5,102,-130,bet365,bet365,2,0.0,ScoresAndOdds Best Odds,REB,https://www.scoresandodds.com/wnba/props/rebounds,211660330,2026-07-25T15:46:25Z,live_current,not_on_current_roster
+2026-07-25,A'ja Wilson,,,,REB,8.5,-115,-110,bet365,bet365,2,0.0,ScoresAndOdds Best Odds,REB,https://www.scoresandodds.com/wnba/props/rebounds,211660330,2026-07-25T15:46:25Z,live_current,not_on_current_roster
+2026-07-25,Angel Reese,,,,REB,9.5,-115,-110,bet365,bet365,2,0.0,ScoresAndOdds Best Odds,REB,https://www.scoresandodds.com/wnba/props/rebounds,211660330,2026-07-25T15:46:25Z,live_current,not_on_current_roster
