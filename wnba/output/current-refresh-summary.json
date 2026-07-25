@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-07-25T15:46:25Z",
+  "generatedAt": "2026-07-25T19:48:47Z",
   "targetDate": "2026-07-25",
   "source": "scoresandodds",
   "boardPath": "data/current/scoresandodds_board_2026-07-25.csv",
-  "archivedSlate": "2026-07-22",
+  "archivedSlate": null,
   "selectedCount": 0,
   "totalBoardRows": 5,
   "priorSettlement": {
-    "trackedPicks": 1,
-    "settledPicks": 1,
+    "trackedPicks": 0,
+    "settledPicks": 0,
     "pendingPicks": 0,
     "noActionPicks": 0,
-    "wins": 1,
+    "wins": 0,
     "losses": 0,
     "pushes": 0,
-    "accuracyPct": 100.0
+    "accuracyPct": null
   },
   "currentSettlement": {
     "trackedPicks": 0,
