@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-07-30T16:03:56Z",
+  "generatedAt": "2026-07-30T19:56:44Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-30T16:03:56Z",
+  "cardGeneratedAt": "2026-07-30T19:56:44Z",
   "slateDate": "2026-07-30",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 1,
+    "trackedPicks": 2,
     "settledPicks": 0,
-    "pendingPicks": 1,
+    "pendingPicks": 2,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -29,10 +29,28 @@
       "line": 15.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.66185,
-      "final_score": 0.74523,
+      "model_probability": 0.66587,
+      "final_score": 0.75805,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/connecticut-sun-chicago-sky-scores-odds-picks-props-july-30-2026/167ea267-f9e5-45a4-912f-322c8cb3da26"
+    },
+    {
+      "slate_date": "2026-07-30",
+      "selected_rank": 2,
+      "player": "Kayla McBride",
+      "team": "MIN",
+      "team_name": "Minnesota Lynx",
+      "opponent": "TOR",
+      "opponent_name": "Toronto Tempo",
+      "market": "PR",
+      "side": "OVER",
+      "line": 19.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.65205,
+      "final_score": 0.67635,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-toronto-tempo-scores-odds-picks-props-july-30-2026/cfb046a9-6b04-4178-bc70-7c4f77bece2e"
     }
   ]
 }
