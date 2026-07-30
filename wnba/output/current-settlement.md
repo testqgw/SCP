@@ -1,13 +1,11 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-29T19:54:26Z
-Slate: 2026-07-29
-Settled: 0 / 3
+Generated: 2026-07-30T16:03:56Z
+Slate: 2026-07-30
+Settled: 0 / 1
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Angel Reese UNDER PR 27.5 (actual pending)
-- PENDING: DeWanna Bonner OVER REB 5.5 (actual pending)
-- PENDING: Kayla Thornton OVER THREES 1.5 (actual pending)
+- PENDING: Kamilla Cardoso UNDER PTS 15.5 (actual pending)
