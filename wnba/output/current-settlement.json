@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-31T16:04:56Z",
+  "generatedAt": "2026-07-31T19:59:01Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-07-31T16:04:56Z",
+  "cardGeneratedAt": "2026-07-31T19:59:01Z",
   "slateDate": "2026-07-31",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -37,24 +37,6 @@
     {
       "slate_date": "2026-07-31",
       "selected_rank": 2,
-      "player": "Aliyah Boston",
-      "team": "IND",
-      "team_name": "Indiana Fever",
-      "opponent": "POR",
-      "opponent_name": "Portland Fire",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 17.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.68131,
-      "final_score": 0.81839,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/indiana-fever-portland-fire-scores-odds-picks-props-july-31-2026/173a0c12-e44b-47f9-9d14-cccdc07ff542"
-    },
-    {
-      "slate_date": "2026-07-31",
-      "selected_rank": 3,
       "player": "Kelsey Mitchell",
       "team": "IND",
       "team_name": "Indiana Fever",
@@ -72,7 +54,7 @@
     },
     {
       "slate_date": "2026-07-31",
-      "selected_rank": 4,
+      "selected_rank": 3,
       "player": "Angel Reese",
       "team": "ATL",
       "team_name": "Atlanta Dream",
@@ -80,13 +62,31 @@
       "opponent_name": "Seattle Storm",
       "market": "PR",
       "side": "UNDER",
-      "line": 27.5,
+      "line": 28.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.64038,
-      "final_score": 0.6438,
+      "model_probability": 0.66591,
+      "final_score": 0.72768,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-atlanta-dream-scores-odds-picks-props-july-31-2026/6f82c9ef-f249-46e3-bf8a-48280d9e05f5"
+    },
+    {
+      "slate_date": "2026-07-31",
+      "selected_rank": 4,
+      "player": "Aliyah Boston",
+      "team": "IND",
+      "team_name": "Indiana Fever",
+      "opponent": "POR",
+      "opponent_name": "Portland Fire",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 16.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.64225,
+      "final_score": 0.69961,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/indiana-fever-portland-fire-scores-odds-picks-props-july-31-2026/173a0c12-e44b-47f9-9d14-cccdc07ff542"
     }
   ]
 }
