@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-01T15:44:41Z",
+  "generatedAt": "2026-08-01T19:49:59Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -130,14 +130,15 @@
     "sameGamePairs": 0,
     "maxSameGameLegs": 1,
     "executionStatus": "EXPERIMENTAL",
-    "warningCount": 5
+    "warningCount": 6
   },
   "warnings": [
     "Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.",
     "Only 2 rows cleared the current gates for a 6-pick target.",
     "FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.",
     "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.",
-    "Only 2 of 6 target legs selected."
+    "Only 2 of 6 target legs selected.",
+    "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
   ],
   "boardRows": [
     {
@@ -739,5 +740,5 @@
     "https://www.sportsgrid.com/wnba/game/las-vegas-aces-chicago-sky-scores-odds-picks-props-august-01-2026/eca4afd9-8f4f-43a8-8c07-3795f9596209",
     "https://www.sportsgrid.com/wnba/game/new-york-liberty-phoenix-mercury-scores-odds-picks-props-august-01-2026/7fa99787-6dd3-4c72-a988-5d879a80a064"
   ],
-  "sourceNote": "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."
+  "sourceNote": "Cached same-day SportsGrid FanDuel board rescored after live discovery failed; selected rows still require direct FanDuel source, playable side odds, current-source status, and unavailable-prop vetoes."
 }

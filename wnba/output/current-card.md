@@ -1,6 +1,6 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-01T15:44:41Z
+Generated: 2026-08-01T19:49:59Z
 Slate: 2026-08-01
 
 ## Selected
@@ -20,3 +20,4 @@ Only 2 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
 Only 2 of 6 target legs selected.
+SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed.
