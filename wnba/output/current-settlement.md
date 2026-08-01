@@ -1,14 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-07-31T19:59:01Z
-Slate: 2026-07-31
-Settled: 0 / 4
+Generated: 2026-08-01T15:44:41Z
+Slate: 2026-08-01
+Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Arike Ogunbowale OVER REB 2.5 (actual pending)
-- PENDING: Kelsey Mitchell OVER PTS 22.5 (actual pending)
-- PENDING: Angel Reese UNDER PR 28.5 (actual pending)
-- PENDING: Aliyah Boston UNDER PTS 16.5 (actual pending)
+- PENDING: Jackie Young UNDER THREES 2.5 (actual pending)
+- PENDING: Kahleah Copper UNDER PTS 21.5 (actual pending)
