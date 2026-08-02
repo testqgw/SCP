@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-02T15:47:43Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-01T19:49:59Z",
+  "slateDate": "2026-08-01",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 2,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-01",
+      "selected_rank": 1,
+      "player": "Jackie Young",
+      "team": "LV",
+      "team_name": "Las Vegas Aces",
+      "opponent": "CHI",
+      "opponent_name": "Chicago Sky",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 3.0,
+      "settlement": "LOSS",
+      "model_probability": 0.66416,
+      "final_score": 0.65915,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-chicago-sky-scores-odds-picks-props-august-01-2026/eca4afd9-8f4f-43a8-8c07-3795f9596209"
+    },
+    {
+      "slate_date": "2026-08-01",
+      "selected_rank": 2,
+      "player": "Kahleah Copper",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "NY",
+      "opponent_name": "New York Liberty",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 21.5,
+      "actual": 25.0,
+      "settlement": "LOSS",
+      "model_probability": 0.62022,
+      "final_score": 0.61895,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-phoenix-mercury-scores-odds-picks-props-august-01-2026/7fa99787-6dd3-4c72-a988-5d879a80a064"
+    }
+  ]
+}
