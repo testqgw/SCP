@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-02T15:47:47Z",
+  "generatedAt": "2026-08-02T19:48:15Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-02T15:47:47Z",
+  "cardGeneratedAt": "2026-08-02T19:48:14Z",
   "slateDate": "2026-08-02",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 3,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 3,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -19,24 +19,6 @@
     {
       "slate_date": "2026-08-02",
       "selected_rank": 1,
-      "player": "Cameron Brink",
-      "team": "LA",
-      "team_name": "Los Angeles Sparks",
-      "opponent": "POR",
-      "opponent_name": "Portland Fire",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 11.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.71459,
-      "final_score": 0.85479,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/los-angeles-sparks-portland-fire-scores-odds-picks-props-august-02-2026/2bf35afe-60a1-4032-8eb1-73a501c9aa49"
-    },
-    {
-      "slate_date": "2026-08-02",
-      "selected_rank": 2,
       "player": "Arike Ogunbowale",
       "team": "DAL",
       "team_name": "Dallas Wings",
@@ -51,24 +33,6 @@
       "final_score": 0.65953,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/connecticut-sun-dallas-wings-scores-odds-picks-props-august-02-2026/24c0b476-4750-474c-bb5e-6add93deb0e0"
-    },
-    {
-      "slate_date": "2026-08-02",
-      "selected_rank": 3,
-      "player": "Monique Billings",
-      "team": "IND",
-      "team_name": "Indiana Fever",
-      "opponent": "MIN",
-      "opponent_name": "Minnesota Lynx",
-      "market": "REB",
-      "side": "OVER",
-      "line": 5.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.60069,
-      "final_score": 0.48311,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/indiana-fever-minnesota-lynx-scores-odds-picks-props-august-02-2026/62ce4f07-0b80-47e0-a34f-db221f8a242f"
     }
   ]
 }
