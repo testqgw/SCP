@@ -1,38 +1,19 @@
 {
-  "generatedAt": "2026-08-02T19:48:15Z",
+  "generatedAt": "2026-08-03T16:11:28Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-02T19:48:14Z",
-  "slateDate": "2026-08-02",
+  "cardGeneratedAt": "2026-08-03T16:11:28Z",
+  "slateDate": "2026-08-03",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 1,
+    "trackedPicks": 0,
     "settledPicks": 0,
-    "pendingPicks": 1,
+    "pendingPicks": 0,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
     "pushes": 0,
     "accuracyPct": null
   },
-  "rows": [
-    {
-      "slate_date": "2026-08-02",
-      "selected_rank": 1,
-      "player": "Arike Ogunbowale",
-      "team": "DAL",
-      "team_name": "Dallas Wings",
-      "opponent": "CON",
-      "opponent_name": "Connecticut Sun",
-      "market": "PTS",
-      "side": "OVER",
-      "line": 15.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.63662,
-      "final_score": 0.65953,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/connecticut-sun-dallas-wings-scores-odds-picks-props-august-02-2026/24c0b476-4750-474c-bb5e-6add93deb0e0"
-    }
-  ]
+  "rows": []
 }
