@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-05T16:05:42Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-04T19:58:57Z",
+  "slateDate": "2026-08-04",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 1,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-04",
+      "selected_rank": 1,
+      "player": "Marina Mabrey",
+      "team": "TOR",
+      "team_name": "Toronto Tempo",
+      "opponent": "GS",
+      "opponent_name": "Golden State Valkyries",
+      "market": "PTS",
+      "side": "OVER",
+      "line": 16.5,
+      "actual": 12.0,
+      "settlement": "LOSS",
+      "model_probability": 0.62775,
+      "final_score": 0.62337,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-golden-state-valkyries-scores-odds-picks-props-august-04-2026/f2a45887-3e0e-4658-aec1-9361fa5ee3d4"
+    }
+  ]
+}
