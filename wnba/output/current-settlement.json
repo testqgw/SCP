@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-07T16:15:12Z",
+  "generatedAt": "2026-08-07T20:05:20Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-07T16:15:11Z",
+  "cardGeneratedAt": "2026-08-07T20:05:20Z",
   "slateDate": "2026-08-07",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 1,
+    "trackedPicks": 2,
     "settledPicks": 0,
-    "pendingPicks": 1,
+    "pendingPicks": 2,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -30,9 +30,27 @@
       "actual": null,
       "settlement": "PENDING",
       "model_probability": 0.69381,
-      "final_score": 0.70614,
+      "final_score": 0.71917,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/phoenix-mercury-connecticut-sun-scores-odds-picks-props-august-07-2026/c3d29a91-8c5c-40fa-9788-d7122386a032"
+    },
+    {
+      "slate_date": "2026-08-07",
+      "selected_rank": 2,
+      "player": "Angel Reese",
+      "team": "ATL",
+      "team_name": "Atlanta Dream",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "PA",
+      "side": "OVER",
+      "line": 17.5,
+      "actual": null,
+      "settlement": "PENDING",
+      "model_probability": 0.61627,
+      "final_score": 0.56513,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/atlanta-dream-washington-mystics-scores-odds-picks-props-august-07-2026/9b694d7f-dbdf-46b9-9203-36b6600fc823"
     }
   ]
 }
