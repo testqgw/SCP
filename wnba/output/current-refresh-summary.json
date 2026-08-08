@@ -1,20 +1,20 @@
 {
-  "generatedAt": "2026-08-08T15:53:05Z",
+  "generatedAt": "2026-08-08T19:52:29Z",
   "targetDate": "2026-08-08",
   "source": "sportsgrid-fanduel",
   "boardPath": "data/current/sportsgrid_fanduel_board_2026-08-08.csv",
-  "archivedSlate": "2026-08-07",
+  "archivedSlate": null,
   "selectedCount": 1,
   "totalBoardRows": 9,
   "priorSettlement": {
-    "trackedPicks": 2,
-    "settledPicks": 2,
-    "pendingPicks": 0,
+    "trackedPicks": 1,
+    "settledPicks": 0,
+    "pendingPicks": 1,
     "noActionPicks": 0,
-    "wins": 1,
-    "losses": 1,
+    "wins": 0,
+    "losses": 0,
     "pushes": 0,
-    "accuracyPct": 50.0
+    "accuracyPct": null
   },
   "currentSettlement": {
     "trackedPicks": 1,

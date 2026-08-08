@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-08T15:53:05Z
+Generated: 2026-08-08T19:52:29Z
 Slate: 2026-08-08
 
 ## Selected
 
-1. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Portland Fire): p=76.0%, proj=1.24, edge +14.4%, score=0.943, source=FanDuel
+1. Natisha Hiedeman UNDER THREES 2.5 (Seattle Storm vs Portland Fire): p=76.0%, proj=1.24, edge +13.6%, score=0.943, source=FanDuel
 
 ## Execution Reality
 
