@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-09T15:54:01Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-08T19:52:29Z",
+  "slateDate": "2026-08-08",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-08",
+      "selected_rank": 1,
+      "player": "Natisha Hiedeman",
+      "team": "SEA",
+      "team_name": "Seattle Storm",
+      "opponent": "POR",
+      "opponent_name": "Portland Fire",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 0.0,
+      "settlement": "WIN",
+      "model_probability": 0.75973,
+      "final_score": 0.94258,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/seattle-storm-portland-fire-scores-odds-picks-props-august-08-2026/5873e2ce-592e-464d-b40f-9acc92d7c247"
+    }
+  ]
+}
