@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-08-09T15:54:06Z",
+  "generatedAt": "2026-08-09T19:55:06Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-09T15:54:06Z",
+  "cardGeneratedAt": "2026-08-09T19:55:06Z",
   "slateDate": "2026-08-09",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
-    "trackedPicks": 3,
+    "trackedPicks": 1,
     "settledPicks": 0,
-    "pendingPicks": 3,
+    "pendingPicks": 1,
     "noActionPicks": 0,
     "wins": 0,
     "losses": 0,
@@ -19,24 +19,6 @@
     {
       "slate_date": "2026-08-09",
       "selected_rank": 1,
-      "player": "Jewell Loyd",
-      "team": "LV",
-      "team_name": "Las Vegas Aces",
-      "opponent": "NY",
-      "opponent_name": "New York Liberty",
-      "market": "THREES",
-      "side": "UNDER",
-      "line": 2.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.74456,
-      "final_score": 0.83037,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/las-vegas-aces-new-york-liberty-scores-odds-picks-props-august-09-2026/6698ecff-9770-4ee9-b41a-b7cddf21b960"
-    },
-    {
-      "slate_date": "2026-08-09",
-      "selected_rank": 2,
       "player": "Erica Wheeler",
       "team": "LA",
       "team_name": "Los Angeles Sparks",
@@ -51,24 +33,6 @@
       "final_score": 0.73381,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/golden-state-valkyries-los-angeles-sparks-scores-odds-picks-props-august-09-2026/4fcdb616-ff9d-4279-8bbd-d02fc1c15f72"
-    },
-    {
-      "slate_date": "2026-08-09",
-      "selected_rank": 3,
-      "player": "Kayla McBride",
-      "team": "MIN",
-      "team_name": "Minnesota Lynx",
-      "opponent": "DAL",
-      "opponent_name": "Dallas Wings",
-      "market": "THREES",
-      "side": "OVER",
-      "line": 2.5,
-      "actual": null,
-      "settlement": "PENDING",
-      "model_probability": 0.66231,
-      "final_score": 0.72142,
-      "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-minnesota-lynx-scores-odds-picks-props-august-09-2026/867e38b6-fc53-4b8c-9857-14e3ba33bc17"
     }
   ]
 }
