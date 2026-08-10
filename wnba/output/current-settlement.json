@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-09T19:55:06Z",
+  "generatedAt": "2026-08-10T16:15:58Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-09T19:55:06Z",
-  "slateDate": "2026-08-09",
+  "cardGeneratedAt": "2026-08-10T16:15:58Z",
+  "slateDate": "2026-08-10",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
     "trackedPicks": 1,
@@ -17,22 +17,22 @@
   },
   "rows": [
     {
-      "slate_date": "2026-08-09",
+      "slate_date": "2026-08-10",
       "selected_rank": 1,
-      "player": "Erica Wheeler",
-      "team": "LA",
-      "team_name": "Los Angeles Sparks",
-      "opponent": "GS",
-      "opponent_name": "Golden State Valkyries",
-      "market": "PA",
-      "side": "OVER",
-      "line": 13.5,
+      "player": "Natisha Hiedeman",
+      "team": "SEA",
+      "team_name": "Seattle Storm",
+      "opponent": "CHI",
+      "opponent_name": "Chicago Sky",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 1.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.66233,
-      "final_score": 0.73381,
+      "model_probability": 0.61752,
+      "final_score": 0.64125,
       "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/golden-state-valkyries-los-angeles-sparks-scores-odds-picks-props-august-09-2026/4fcdb616-ff9d-4279-8bbd-d02fc1c15f72"
+      "source_url": "https://www.sportsgrid.com/wnba/game/chicago-sky-seattle-storm-scores-odds-picks-props-august-10-2026/865bb2ee-49f4-42e1-9292-cb7d1897bfca"
     }
   ]
 }
