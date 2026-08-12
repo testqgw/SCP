@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-12T20:12:00Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-11T20:08:50Z",
+  "slateDate": "2026-08-11",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 2,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-11",
+      "selected_rank": 1,
+      "player": "Erica Wheeler",
+      "team": "LA",
+      "team_name": "Los Angeles Sparks",
+      "opponent": "PHX",
+      "opponent_name": "Phoenix Mercury",
+      "market": "PTS",
+      "side": "OVER",
+      "line": 8.5,
+      "actual": 7.0,
+      "settlement": "LOSS",
+      "model_probability": 0.68859,
+      "final_score": 0.83042,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/phoenix-mercury-los-angeles-sparks-scores-odds-picks-props-august-11-2026/30547ee5-35a8-4720-bb04-be92df45203a"
+    },
+    {
+      "slate_date": "2026-08-11",
+      "selected_rank": 2,
+      "player": "Sabrina Ionescu",
+      "team": "NY",
+      "team_name": "New York Liberty",
+      "opponent": "IND",
+      "opponent_name": "Indiana Fever",
+      "market": "PA",
+      "side": "UNDER",
+      "line": 23.5,
+      "actual": 24.0,
+      "settlement": "LOSS",
+      "model_probability": 0.66379,
+      "final_score": 0.73115,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/new-york-liberty-indiana-fever-scores-odds-picks-props-august-11-2026/d674adef-486c-486b-ad7f-b6ee841b35ab"
+    }
+  ]
+}
