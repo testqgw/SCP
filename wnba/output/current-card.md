@@ -1,6 +1,6 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-13T16:16:20Z
+Generated: 2026-08-13T20:03:45Z
 Slate: 2026-08-13
 
 ## Selected
