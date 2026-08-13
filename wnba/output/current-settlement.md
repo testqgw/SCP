@@ -1,13 +1,11 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-12T20:12:03Z
-Slate: 2026-08-12
-Settled: 0 / 3
+Generated: 2026-08-13T16:16:20Z
+Slate: 2026-08-13
+Settled: 0 / 1
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Isabelle Harrison UNDER PR 17.5 (actual pending)
-- PENDING: Veronica Burton UNDER PTS 13.5 (actual pending)
-- PENDING: Nyara Sabally UNDER PTS 14.5 (actual pending)
+- PENDING: Sabrina Ionescu UNDER THREES 2.5 (actual pending)
