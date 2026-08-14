@@ -1,13 +1,13 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-14T16:11:30Z
+Generated: 2026-08-14T20:01:41Z
 Slate: 2026-08-14
 
 ## Selected
 
-1. Natisha Hiedeman UNDER THREES 1.5 (Seattle Storm vs Portland Fire): p=65.2%, proj=0.81, edge +20.6%, score=0.743, source=FanDuel
-2. Odyssey Sims UNDER PA 16.5 (Dallas Wings vs Indiana Fever): p=74.8%, proj=10.49, edge +21.9%, score=0.821, source=FanDuel
-3. Jade Melbourne UNDER PA 15.5 (Seattle Storm vs Portland Fire): p=61.2%, proj=13.72, edge +7.9%, score=0.567, source=FanDuel
+1. Natisha Hiedeman UNDER THREES 1.5 (Seattle Storm vs Portland Fire): p=65.2%, proj=0.81, edge +25.9%, score=0.743, source=FanDuel
+2. Odyssey Sims UNDER PTS 11.5 (Dallas Wings vs Indiana Fever): p=71.5%, proj=7.53, edge +22.5%, score=0.816, source=FanDuel
+3. Jade Melbourne UNDER PA 15.5 (Seattle Storm vs Portland Fire): p=61.2%, proj=13.72, edge +7.0%, score=0.567, source=FanDuel
 
 ## Execution Reality
 

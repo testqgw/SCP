@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-14T16:11:30Z",
+  "generatedAt": "2026-08-14T20:01:41Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-14T16:11:30Z",
+  "cardGeneratedAt": "2026-08-14T20:01:41Z",
   "slateDate": "2026-08-14",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
@@ -42,13 +42,13 @@
       "team_name": "Dallas Wings",
       "opponent": "IND",
       "opponent_name": "Indiana Fever",
-      "market": "PA",
+      "market": "PTS",
       "side": "UNDER",
-      "line": 16.5,
+      "line": 11.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.74772,
-      "final_score": 0.82101,
+      "model_probability": 0.71488,
+      "final_score": 0.81553,
       "source_book": "FanDuel",
       "source_url": "https://www.sportsgrid.com/wnba/game/dallas-wings-indiana-fever-scores-odds-picks-props-august-14-2026/6f1a724f-478e-4cb1-bb6d-d79050976fca"
     },
