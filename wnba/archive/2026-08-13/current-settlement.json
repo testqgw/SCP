@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-14T16:11:28Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-13T20:03:45Z",
+  "slateDate": "2026-08-13",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-13",
+      "selected_rank": 1,
+      "player": "Sabrina Ionescu",
+      "team": "NY",
+      "team_name": "New York Liberty",
+      "opponent": "LA",
+      "opponent_name": "Los Angeles Sparks",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 1.0,
+      "settlement": "WIN",
+      "model_probability": 0.65524,
+      "final_score": 0.74539,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/los-angeles-sparks-new-york-liberty-scores-odds-picks-props-august-13-2026/4d1c83a5-8050-4b11-a149-d52ba4a0144e"
+    }
+  ]
+}
