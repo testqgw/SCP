@@ -1,24 +1,23 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-16T19:42:18Z
-Slate: 2026-08-16
+Generated: 2026-08-17T15:48:49Z
+Slate: 2026-08-17
 
 ## Selected
 
-1. Jade Melbourne UNDER PA 16.5 (Seattle Storm vs Chicago Sky): p=67.6%, proj=13.52, edge +10.7%, score=0.751, source=FanDuel
-2. Kahleah Copper UNDER PR 25.5 (Phoenix Mercury vs Portland Fire): p=65.9%, proj=20.43, edge +11.0%, score=0.711, source=FanDuel
-3. Jordin Canada UNDER AST 7.5 (Atlanta Dream vs Indiana Fever): p=60.3%, proj=6.27, edge +13.1%, score=0.613, source=FanDuel
+1. Veronica Burton UNDER PA 19.5 (Golden State Valkyries vs Dallas Wings): p=61.0%, proj=16.98, edge +9.5%, score=0.569, source=FanDuel
+2. Odyssey Sims UNDER PTS 9.5 (Dallas Wings vs Golden State Valkyries): p=61.4%, proj=8.17, edge +7.9%, score=0.548, source=FanDuel
 
 ## Execution Reality
 
 FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
-Selected legs: 3/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
+Selected legs: 2/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: MEDIUM
 
 ## Warnings
 
-Some rows are missing both over_odds and under_odds, so those rows are ranked without true price edge.
 Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.
-Only 3 rows cleared the current gates for a 6-pick target.
+Only 2 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
-Only 3 of 6 target legs selected.
+Only 2 of 6 target legs selected.
+Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.

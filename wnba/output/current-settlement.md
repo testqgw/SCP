@@ -1,13 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-16T19:42:18Z
-Slate: 2026-08-16
-Settled: 0 / 3
+Generated: 2026-08-17T15:48:49Z
+Slate: 2026-08-17
+Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Jade Melbourne UNDER PA 16.5 (actual pending)
-- PENDING: Kahleah Copper UNDER PR 25.5 (actual pending)
-- PENDING: Jordin Canada UNDER AST 7.5 (actual pending)
+- PENDING: Veronica Burton UNDER PA 19.5 (actual pending)
+- PENDING: Odyssey Sims UNDER PTS 9.5 (actual pending)
