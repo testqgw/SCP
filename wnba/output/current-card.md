@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-20T15:56:13Z
+Generated: 2026-08-20T19:52:33Z
 Slate: 2026-08-20
 
 ## Selected
 
-1. Jordin Canada UNDER AST 7.5 (Atlanta Dream vs Los Angeles Sparks): p=64.0%, proj=5.94, edge +17.3%, score=0.726, source=FanDuel
-2. Jackie Young OVER THREES 2.5 (Las Vegas Aces vs Connecticut Sun): p=61.1%, proj=3.00, edge +16.4%, score=0.587, source=FanDuel
+1. Rae Burrell UNDER THREES 2.5 (Los Angeles Sparks vs Atlanta Dream): p=67.2%, proj=1.83, edge +1.9%, score=0.689, source=FanDuel
+2. Brittney Griner OVER REB 5.5 (Connecticut Sun vs Las Vegas Aces): p=63.2%, proj=7.05, edge +11.8%, score=0.665, source=FanDuel
 
 ## Execution Reality
 
