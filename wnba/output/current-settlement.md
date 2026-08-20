@@ -1,11 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-19T19:46:42Z
-Slate: 2026-08-19
-Settled: 0 / 1
+Generated: 2026-08-20T15:56:13Z
+Slate: 2026-08-20
+Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Natasha Howard OVER PTS 10.5 (actual pending)
+- PENDING: Jordin Canada UNDER AST 7.5 (actual pending)
+- PENDING: Jackie Young OVER THREES 2.5 (actual pending)
