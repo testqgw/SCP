@@ -1,12 +1,12 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-21T15:56:15Z
+Generated: 2026-08-21T19:45:37Z
 Slate: 2026-08-21
 
 ## Selected
 
 1. Natasha Cloud OVER PTS 10.5 (Chicago Sky vs Golden State Valkyries): p=74.0%, proj=16.98, edge +23.5%, score=0.936, source=FanDuel
-2. Courtney Williams UNDER PR 19.5 (Minnesota Lynx vs Washington Mystics): p=71.0%, proj=13.92, edge +16.4%, score=0.868, source=FanDuel
+2. Courtney Williams UNDER PR 19.5 (Minnesota Lynx vs Washington Mystics): p=71.0%, proj=13.92, edge +17.7%, score=0.868, source=FanDuel
 
 ## Execution Reality
 
