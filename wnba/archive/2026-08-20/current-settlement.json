@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-21T15:56:10Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-20T19:52:33Z",
+  "slateDate": "2026-08-20",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 1,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-20",
+      "selected_rank": 1,
+      "player": "Rae Burrell",
+      "team": "LA",
+      "team_name": "Los Angeles Sparks",
+      "opponent": "ATL",
+      "opponent_name": "Atlanta Dream",
+      "market": "THREES",
+      "side": "UNDER",
+      "line": 2.5,
+      "actual": 1.0,
+      "settlement": "WIN",
+      "model_probability": 0.67228,
+      "final_score": 0.68866,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/atlanta-dream-los-angeles-sparks-scores-odds-picks-props-august-20-2026/ad783d7b-81e0-4195-a5d2-e57b25d63406"
+    },
+    {
+      "slate_date": "2026-08-20",
+      "selected_rank": 2,
+      "player": "Brittney Griner",
+      "team": "CON",
+      "team_name": "Connecticut Sun",
+      "opponent": "LV",
+      "opponent_name": "Las Vegas Aces",
+      "market": "REB",
+      "side": "OVER",
+      "line": 5.5,
+      "actual": null,
+      "settlement": "NO_ACTION",
+      "model_probability": 0.63221,
+      "final_score": 0.66536,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/connecticut-sun-las-vegas-aces-scores-odds-picks-props-august-20-2026/2532e672-10d8-4319-9b2e-e1cd8b14c755"
+    }
+  ]
+}

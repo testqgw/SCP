@@ -1,12 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-20T19:52:33Z
-Slate: 2026-08-20
+Generated: 2026-08-21T15:56:15Z
+Slate: 2026-08-21
 Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Rae Burrell UNDER THREES 2.5 (actual pending)
-- PENDING: Brittney Griner OVER REB 5.5 (actual pending)
+- PENDING: Natasha Cloud OVER PTS 10.5 (actual pending)
+- PENDING: Courtney Williams UNDER PR 19.5 (actual pending)
