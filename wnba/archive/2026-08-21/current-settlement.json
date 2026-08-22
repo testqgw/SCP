@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-22T15:42:07Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-21T19:45:37Z",
+  "slateDate": "2026-08-21",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 2,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-21",
+      "selected_rank": 1,
+      "player": "Natasha Cloud",
+      "team": "CHI",
+      "team_name": "Chicago Sky",
+      "opponent": "GS",
+      "opponent_name": "Golden State Valkyries",
+      "market": "PTS",
+      "side": "OVER",
+      "line": 10.5,
+      "actual": 17.0,
+      "settlement": "WIN",
+      "model_probability": 0.7399,
+      "final_score": 0.93589,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/golden-state-valkyries-chicago-sky-scores-odds-picks-props-august-21-2026/70b56889-dded-4caa-b55d-481b35915bd3"
+    },
+    {
+      "slate_date": "2026-08-21",
+      "selected_rank": 2,
+      "player": "Courtney Williams",
+      "team": "MIN",
+      "team_name": "Minnesota Lynx",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "PR",
+      "side": "UNDER",
+      "line": 19.5,
+      "actual": 19.0,
+      "settlement": "WIN",
+      "model_probability": 0.70986,
+      "final_score": 0.86835,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/minnesota-lynx-washington-mystics-scores-odds-picks-props-august-21-2026/ae27b607-101a-4f90-8621-d38684626434"
+    }
+  ]
+}
