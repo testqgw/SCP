@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-24T16:03:51Z
+Generated: 2026-08-24T19:50:48Z
 Slate: 2026-08-24
 
 ## Selected
 
-1. Napheesa Collier UNDER PA 22.5 (Minnesota Lynx vs Golden State Valkyries): p=63.3%, proj=19.31, edge +6.4%, score=0.645, source=FanDuel
+1. Napheesa Collier UNDER PA 22.5 (Minnesota Lynx vs Golden State Valkyries): p=63.3%, proj=19.31, edge +6.7%, score=0.645, source=FanDuel
 
 ## Execution Reality
 
