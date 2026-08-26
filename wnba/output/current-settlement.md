@@ -1,13 +1,11 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-25T19:54:56Z
-Slate: 2026-08-25
-Settled: 0 / 3
+Generated: 2026-08-26T16:38:05Z
+Slate: 2026-08-26
+Settled: 0 / 1
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Natasha Mack UNDER PR 14.5 (actual pending)
-- PENDING: Natasha Cloud OVER PR 16.5 (actual pending)
-- PENDING: Alanna Smith UNDER PTS 9.5 (actual pending)
+- PENDING: Isabelle Harrison UNDER PTS 15.5 (actual pending)
