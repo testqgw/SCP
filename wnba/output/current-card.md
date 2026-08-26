@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-26T16:38:05Z
+Generated: 2026-08-26T22:24:50Z
 Slate: 2026-08-26
 
 ## Selected
 
-1. Isabelle Harrison UNDER PTS 15.5 (Toronto Tempo vs Seattle Storm): p=74.5%, proj=10.35, edge +18.4%, score=0.875, source=FanDuel
+1. Isabelle Harrison UNDER PTS 14.5 (Toronto Tempo vs Seattle Storm): p=70.5%, proj=10.49, edge +18.6%, score=0.840, source=FanDuel
 
 ## Execution Reality
 
