@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-26T22:24:51Z",
+  "generatedAt": "2026-08-28T00:30:13Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
-  "cardGeneratedAt": "2026-08-26T22:24:50Z",
-  "slateDate": "2026-08-26",
+  "cardGeneratedAt": "2026-08-28T00:30:13Z",
+  "slateDate": "2026-08-27",
   "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
   "summary": {
     "trackedPicks": 1,
@@ -17,22 +17,22 @@
   },
   "rows": [
     {
-      "slate_date": "2026-08-26",
+      "slate_date": "2026-08-27",
       "selected_rank": 1,
-      "player": "Isabelle Harrison",
-      "team": "TOR",
-      "team_name": "Toronto Tempo",
-      "opponent": "SEA",
-      "opponent_name": "Seattle Storm",
-      "market": "PTS",
-      "side": "UNDER",
-      "line": 14.5,
+      "player": "Alyssa Thomas",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "REB",
+      "side": "OVER",
+      "line": 7.5,
       "actual": null,
       "settlement": "PENDING",
-      "model_probability": 0.70489,
-      "final_score": 0.84002,
+      "model_probability": 0.64472,
+      "final_score": 0.67863,
       "source_book": "FanDuel",
-      "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-seattle-storm-scores-odds-picks-props-august-26-2026/a321c334-d147-4fca-a7d2-1f70f8bb6d3d"
+      "source_url": "https://www.sportsgrid.com/wnba/game/washington-mystics-phoenix-mercury-scores-odds-picks-props-august-27-2026/bb9ef83c-749f-4894-b835-1bad050cb7bc"
     }
   ]
 }

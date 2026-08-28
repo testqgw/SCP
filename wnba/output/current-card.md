@@ -1,11 +1,11 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-26T22:24:50Z
-Slate: 2026-08-26
+Generated: 2026-08-28T00:30:13Z
+Slate: 2026-08-27
 
 ## Selected
 
-1. Isabelle Harrison UNDER PTS 14.5 (Toronto Tempo vs Seattle Storm): p=70.5%, proj=10.49, edge +18.6%, score=0.840, source=FanDuel
+1. Alyssa Thomas OVER REB 7.5 (Phoenix Mercury vs Washington Mystics): p=64.5%, proj=9.38, edge +3.8%, score=0.679, source=FanDuel
 
 ## Execution Reality
 
