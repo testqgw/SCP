@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-08-29T00:04:58Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-28T03:41:23Z",
+  "slateDate": "2026-08-27",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 1,
+    "settledPicks": 1,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 1,
+    "losses": 0,
+    "pushes": 0,
+    "accuracyPct": 100.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-27",
+      "selected_rank": 1,
+      "player": "Alyssa Thomas",
+      "team": "PHX",
+      "team_name": "Phoenix Mercury",
+      "opponent": "WSH",
+      "opponent_name": "Washington Mystics",
+      "market": "REB",
+      "side": "OVER",
+      "line": 7.5,
+      "actual": 10.0,
+      "settlement": "WIN",
+      "model_probability": 0.64472,
+      "final_score": 0.67863,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/washington-mystics-phoenix-mercury-scores-odds-picks-props-august-27-2026/bb9ef83c-749f-4894-b835-1bad050cb7bc"
+    }
+  ]
+}
