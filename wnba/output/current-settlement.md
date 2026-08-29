@@ -1,12 +1,12 @@
 # WNBA Prop Settlement
 
-Generated: 2026-08-29T02:20:54Z
-Slate: 2026-08-28
+Generated: 2026-08-29T18:41:40Z
+Slate: 2026-08-29
 Settled: 0 / 2
 No action: 0
 Accuracy: pending
 
 ## Rows
 
-- PENDING: Shakira Austin UNDER RA 12.5 (actual pending)
-- PENDING: Isabelle Harrison UNDER PTS 14.5 (actual pending)
+- PENDING: Natasha Mack UNDER PTS 10.5 (actual pending)
+- PENDING: Isabelle Harrison UNDER PR 22.5 (actual pending)

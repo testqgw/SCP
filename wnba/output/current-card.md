@@ -1,17 +1,17 @@
 # WNBA Correlation-Aware Player Prop Model V1
 
-Generated: 2026-08-29T02:20:54Z
-Slate: 2026-08-28
+Generated: 2026-08-29T18:41:40Z
+Slate: 2026-08-29
 
 ## Selected
 
-1. Shakira Austin UNDER RA 12.5 (Washington Mystics vs Los Angeles Sparks): p=68.4%, proj=9.45, edge +10.4%, score=0.802, source=FanDuel
-2. Isabelle Harrison UNDER PTS 14.5 (Toronto Tempo vs Las Vegas Aces): p=65.2%, proj=11.61, edge +11.1%, score=0.670, source=FanDuel
+1. Natasha Mack UNDER PTS 10.5 (Phoenix Mercury vs Toronto Tempo): p=68.0%, proj=8.31, edge +12.5%, score=0.780, source=FanDuel
+2. Isabelle Harrison UNDER PR 22.5 (Toronto Tempo vs Phoenix Mercury): p=66.0%, proj=18.79, edge +11.8%, score=0.685, source=FanDuel
 
 ## Execution Reality
 
 FanDuel Live Mode: EXPERIMENTAL. Small FanDuel-only replay after availability gates; too few settled six-pick dates to replace archive proof.
-Selected legs: 2/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: LOW
+Selected legs: 2/6; independent probability: incomplete; estimated SGP-taxed probability: n/a; SGP risk: MEDIUM
 
 ## Warnings
 
@@ -20,4 +20,4 @@ Only 2 rows cleared the current gates for a 6-pick target.
 FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.
 Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.
 Only 2 of 6 target legs selected.
-SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed.
+Selected card has same-game overlap; check FanDuel SGP/SGP-plus pricing before betting.

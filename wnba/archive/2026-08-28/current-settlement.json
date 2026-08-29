@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-29T18:41:37Z",
+  "modelId": "wnba-player-prop-model-v1",
+  "modelVersion": "2026-07-06-fanduel-live-model-v13",
+  "cardGeneratedAt": "2026-08-29T02:20:54Z",
+  "slateDate": "2026-08-28",
+  "claimBoundary": "WNBA V1 uses historical boxscore logs plus supplied prop lines. It is a ranking and calibration model, not a guarantee. Live betting claims require current lines, player availability, and settled forward audit.",
+  "summary": {
+    "trackedPicks": 2,
+    "settledPicks": 2,
+    "pendingPicks": 0,
+    "noActionPicks": 0,
+    "wins": 0,
+    "losses": 2,
+    "pushes": 0,
+    "accuracyPct": 0.0
+  },
+  "rows": [
+    {
+      "slate_date": "2026-08-28",
+      "selected_rank": 1,
+      "player": "Shakira Austin",
+      "team": "WSH",
+      "team_name": "Washington Mystics",
+      "opponent": "LA",
+      "opponent_name": "Los Angeles Sparks",
+      "market": "RA",
+      "side": "UNDER",
+      "line": 12.5,
+      "actual": 13.0,
+      "settlement": "LOSS",
+      "model_probability": 0.68412,
+      "final_score": 0.80236,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/washington-mystics-los-angeles-sparks-scores-odds-picks-props-august-28-2026/4b75fc2c-60cd-4262-8400-51aa54535ad9"
+    },
+    {
+      "slate_date": "2026-08-28",
+      "selected_rank": 2,
+      "player": "Isabelle Harrison",
+      "team": "TOR",
+      "team_name": "Toronto Tempo",
+      "opponent": "LV",
+      "opponent_name": "Las Vegas Aces",
+      "market": "PTS",
+      "side": "UNDER",
+      "line": 14.5,
+      "actual": 15.0,
+      "settlement": "LOSS",
+      "model_probability": 0.65183,
+      "final_score": 0.67034,
+      "source_book": "FanDuel",
+      "source_url": "https://www.sportsgrid.com/wnba/game/toronto-tempo-las-vegas-aces-scores-odds-picks-props-august-28-2026/c779b6f0-2b2d-453a-b80d-47a384bf8537"
+    }
+  ]
+}
