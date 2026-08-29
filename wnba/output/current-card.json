@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T00:05:00Z",
+  "generatedAt": "2026-08-29T02:20:54Z",
   "modelId": "wnba-player-prop-model-v1",
   "modelName": "WNBA Correlation-Aware Player Prop Model V1",
   "modelVersion": "2026-07-06-fanduel-live-model-v13",
@@ -134,14 +134,15 @@
     "sameGamePairs": 0,
     "maxSameGameLegs": 1,
     "executionStatus": "EXPERIMENTAL",
-    "warningCount": 5
+    "warningCount": 6
   },
   "warnings": [
     "Some sourced rows have only the pick-side book price, so price edge is approximate rather than full no-vig.",
     "Only 2 rows cleared the current gates for a 6-pick target.",
     "FanDuel-live card is experimental: the 51.85% archive proof does not transfer to strict FanDuel execution.",
     "Independent parlay probability assumes leg independence; same-game and same-team correlation can change realized results.",
-    "Only 2 of 6 target legs selected."
+    "Only 2 of 6 target legs selected.",
+    "SportsGrid live discovery failed, so the card was rebuilt from cached same-day FanDuel rows; preserved/stale rows remain vetoed."
   ],
   "boardRows": [
     {
@@ -900,8 +901,8 @@
     }
   ],
   "sourceUrls": [
-    "https://www.sportsgrid.com/wnba/game/washington-mystics-los-angeles-sparks-scores-odds-picks-props-august-28-2026/4b75fc2c-60cd-4262-8400-51aa54535ad9",
-    "https://www.sportsgrid.com/wnba/game/toronto-tempo-las-vegas-aces-scores-odds-picks-props-august-28-2026/c779b6f0-2b2d-453a-b80d-47a384bf8537"
+    "https://www.sportsgrid.com/wnba/game/toronto-tempo-las-vegas-aces-scores-odds-picks-props-august-28-2026/c779b6f0-2b2d-453a-b80d-47a384bf8537",
+    "https://www.sportsgrid.com/wnba/game/washington-mystics-los-angeles-sparks-scores-odds-picks-props-august-28-2026/4b75fc2c-60cd-4262-8400-51aa54535ad9"
   ],
-  "sourceNote": "SportsGrid public WNBA game pages showing FanDuel player props; selected rows require FanDuel source and playable side odds."
+  "sourceNote": "Cached same-day SportsGrid FanDuel board rescored after live discovery failed; selected rows still require direct FanDuel source, playable side odds, current-source status, and unavailable-prop vetoes."
 }
