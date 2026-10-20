@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { RefreshCw, Search } from 'lucide-react';
 import { Fragment, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   SnapshotBoardFeedItem,
@@ -275,33 +276,33 @@ const TOP_NAV: TopNavItem[] = [
 
 const KIND_CLASS: Record<Kind, string> = {
   LIVE: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]',
-  DERIVED: 'border-[color:rgba(183,129,44,0.24)] bg-[color:rgba(183,129,44,0.10)] text-[var(--warning)]',
-  PLACEHOLDER: 'border-[var(--border)] bg-[color:rgba(240,232,220,0.55)] text-[var(--muted)]',
-  MODEL: 'border-[color:rgba(109,74,255,0.22)] bg-[var(--accent-soft)] text-[var(--accent)]',
+  DERIVED: 'border-[var(--gold-border)] bg-[var(--gold-soft)] text-[var(--warning)]',
+  PLACEHOLDER: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)]',
+  MODEL: 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]',
 };
 
 const PILL_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
   default: 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-2)]',
-  cyan: 'border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)] text-[var(--accent)]',
-  amber: 'border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] text-[var(--warning)]',
+  cyan: 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)]',
+  amber: 'border-[var(--gold-border)] bg-[var(--gold-soft)] text-[var(--warning)]',
 };
 
 const SURFACE_TONE_CLASS: Record<'default' | 'cyan' | 'amber', string> = {
   default: 'border-[var(--border)] bg-[var(--surface-2)]',
-  cyan: 'border-[color:rgba(109,74,255,0.18)] bg-[var(--accent-soft)]',
-  amber: 'border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)]',
+  cyan: 'border-[var(--accent-border)] bg-[var(--accent-soft)]',
+  amber: 'border-[var(--gold-border)] bg-[var(--gold-soft)]',
 };
 
 const SIDE_CLASS: Record<SnapshotModelSide, string> = {
-  OVER: 'border-[color:rgba(47,125,90,0.20)] bg-[color:rgba(47,125,90,0.10)] text-[var(--positive)]',
-  UNDER: 'border-[color:rgba(180,74,74,0.20)] bg-[color:rgba(180,74,74,0.10)] text-[var(--negative)]',
+  OVER: 'border-[var(--positive-border)] bg-[var(--positive-soft)] text-[var(--positive)]',
+  UNDER: 'border-[var(--negative-border)] bg-[var(--negative-soft)] text-[var(--negative)]',
   NEUTRAL: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)]',
 };
 
 const ACTION_CLASS =
-  'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:rgba(109,74,255,0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]';
+  'transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-border)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]';
 
-const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-[color:rgba(109,74,255,0.24)] hover:shadow-[0_10px_24px_rgba(29,26,34,0.06)]`;
+const CARD_BUTTON_CLASS = `${ACTION_CLASS} hover:-translate-y-0.5 hover:border-[var(--accent-border)] hover:shadow-[0_14px_32px_-14px_rgba(34,211,238,0.35)]`;
 function n(v: number | null | undefined, d = 1) {
   if (v == null || Number.isNaN(v)) return '-';
   const s = v.toFixed(d);
@@ -484,7 +485,7 @@ function EmptyState({
         <button
           type="button"
           onClick={onAction}
-          className={`${ACTION_CLASS} mt-4 inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+          className={`${ACTION_CLASS} mt-4 inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]`}
         >
           {actionLabel}
         </button>
@@ -1619,12 +1620,12 @@ function BoardPulseCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5 ${className}`}>
+    <div className={`rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5 ${className}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board pulse</div>
           <h2 className="mt-2 text-lg font-semibold text-[var(--text)] sm:text-xl">What changed on the board</h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-[var(--text-2)]">
+          <p className="mt-2 hidden max-w-md text-sm leading-6 text-[var(--text-2)] sm:block">
             Freshness, live depth, and the active game context without the extra board theory up top.
           </p>
         </div>
@@ -1636,24 +1637,19 @@ function BoardPulseCard({
         <CompactMetric label="Live lines" value={liveLines} />
         <CompactMetric label="Feed items" value={feedItems} />
       </div>
-      <div className="mt-4 divide-y divide-[var(--border)]">
-        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="text-[var(--text-2)]">Strongest market</span>
-          <span className="font-semibold text-[var(--text)] sm:text-right">{strongestMarket}</span>
-        </div>
-        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="text-[var(--text-2)]">Best alternative</span>
-          <span className="font-semibold text-[var(--text)] sm:text-right">{bestAlternative}</span>
-        </div>
-        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="text-[var(--text-2)]">Most active game</span>
-          <span className="font-semibold text-[var(--text)] sm:text-right">{mostActiveGame}</span>
-        </div>
-        <div className="flex flex-col gap-1 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="text-[var(--text-2)]">Avg books live</span>
-          <span className="font-semibold text-[var(--text)] sm:text-right">{booksLive}</span>
-        </div>
-      </div>
+      <dl className="mt-4 divide-y divide-[var(--border)]">
+        {[
+          { label: 'Strongest market', value: strongestMarket },
+          { label: 'Best alternative', value: bestAlternative },
+          { label: 'Most active game', value: mostActiveGame },
+          { label: 'Avg books live', value: booksLive },
+        ].map((item) => (
+          <div key={item.label} className="flex items-baseline justify-between gap-3 py-2.5 text-sm sm:py-3">
+            <dt className="shrink-0 text-[var(--text-2)]">{item.label}</dt>
+            <dd className="m-0 min-w-0 text-right font-semibold text-[var(--text)]">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
       <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 text-sm leading-6 text-[var(--text-2)]">
         {note}
       </div>
@@ -2218,6 +2214,7 @@ export default function NewDashboard({
   const [showResearchContext, setShowResearchContext] = useState(false);
   const [filter60, setFilter60] = useState(false);
   const [showVetoed, setShowVetoed] = useState(false);
+  const [modelStatusOpen, setModelStatusOpen] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
   const overviewRef = useRef<HTMLElement | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
@@ -3570,7 +3567,8 @@ export default function NewDashboard({
     [finalModelPicks],
   );
   const nextBestNumbers = useMemo(() => {
-    const seen = new Set<string>();
+    // The featured pick already anchors the hero, so it never repeats here.
+    const seen = new Set<string>(featured ? [`${featured.row.playerId}:${featured.market}`] : []);
     const candidates = [...scoutViews, ...selectedMatchupViews, ...allViews].filter((view) => {
       if (view.live == null) return false;
       const key = `${view.row.playerId}:${view.market}`;
@@ -3579,7 +3577,7 @@ export default function NewDashboard({
       return true;
     });
     return rankViews(candidates).slice(0, 6);
-  }, [allViews, finalModelPickKeys, scoutViews, selectedMatchupViews]);
+  }, [allViews, featured, finalModelPickKeys, scoutViews, selectedMatchupViews]);
   const promotedPrecisionLiveCount = useMemo(
     () => precision.filter(({ view }) => view.live != null).length,
     [precision],
@@ -3953,13 +3951,13 @@ export default function NewDashboard({
     <div className="relative min-h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_35%),radial-gradient(circle_at_top_right,rgba(251,191,36,0.06),transparent_30%),linear-gradient(180deg,rgba(9,9,11,0.85)_0%,rgba(17,17,21,0.95)_100%)]" />
       <div className="relative">
-        <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)] bg-zinc-950/80 backdrop-blur-md">
+        <header ref={headerRef} className="sticky top-0 z-50 border-b border-[var(--border)] bg-zinc-950/85 backdrop-blur-xl">
           <div className="mx-auto max-w-[1440px] px-3 py-2 sm:px-6 xl:px-8">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between md:gap-4">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 sm:flex-nowrap sm:gap-6">
                 {/* Brand Logo */}
-                <div className="flex items-center gap-2 sm:gap-2.5">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[10px] font-bold tracking-wider text-[var(--accent)] sm:h-8 sm:w-8 sm:rounded-xl sm:text-xs">
+                <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#22d3ee_0%,#0891b2_55%,#f59e0b_140%)] text-[11px] font-extrabold text-zinc-950 shadow-[0_0_18px_rgba(34,211,238,0.25)] sm:h-8 sm:w-8 sm:rounded-xl sm:text-xs">
                     U
                   </div>
                   <div>
@@ -3970,7 +3968,7 @@ export default function NewDashboard({
                 </div>
 
                 {/* Main Navigation Links */}
-                <nav className="flex items-center gap-0.5 sm:gap-1.5">
+                <nav aria-label="Primary" className="no-scrollbar -mx-3 flex w-[calc(100%+1.5rem)] items-center gap-0.5 overflow-x-auto whitespace-nowrap px-3 sm:mx-0 sm:w-auto sm:gap-1.5 sm:px-0">
                   {TOP_NAV.map((item) => {
                     const isActive =
                       ('tab' in item && headerView === TAB_TO_VIEW[item.tab]) ||
@@ -4005,11 +4003,12 @@ export default function NewDashboard({
               </div>
 
               {/* Search, Action, and Live Pill */}
-              <div className="flex items-center justify-between gap-3 md:justify-end">
-                {/* Terminal style command input for search */}
-                <div className="relative flex-1 md:flex-initial">
-                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] text-[var(--accent)] font-mono font-bold select-none">$</span>
+              <div className="flex items-center justify-between gap-2 sm:gap-3 md:justify-end">
+                {/* Player / matchup search */}
+                <div className="relative min-w-0 flex-1 md:flex-initial">
+                  <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
                   <input
+                    aria-label="Search players or matchups"
                     type="search"
                     value={searchQuery}
                     onFocus={() => setHeaderSearchOpen(true)}
@@ -4027,8 +4026,8 @@ export default function NewDashboard({
                         setHeaderSearchOpen(false);
                       }
                     }}
-                    placeholder="search player/matchup..."
-                    className="w-full rounded-md border border-[var(--border)] bg-zinc-950 pl-5 pr-2.5 py-1 text-[11px] text-[var(--text)] outline-none placeholder:text-[var(--text-soft)] placeholder:italic focus:border-[var(--accent)]/30 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all font-mono md:w-[170px]"
+                    placeholder="Search player or game"
+                    className="h-8 w-full rounded-lg border border-[var(--border)] bg-zinc-900/70 pl-8 pr-2.5 text-xs text-[var(--text)] outline-none transition-all placeholder:text-[var(--muted)] hover:border-zinc-700 focus:border-[var(--accent-border)] focus:bg-zinc-950 focus:ring-2 focus:ring-[var(--accent-glow)] md:w-[220px]"
                   />
                   {headerSearchOpen && deferredSearchQuery ? (
                     <div className="absolute right-0 top-full z-50 mt-1.5 w-[300px] overflow-hidden rounded-xl border border-[var(--border)] bg-zinc-950 shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
@@ -4090,25 +4089,19 @@ export default function NewDashboard({
                   type="button"
                   onClick={refreshSlate}
                   disabled={isRefreshing}
-                  className={`${ACTION_CLASS} inline-flex h-7 items-center rounded-md border border-[var(--border)] bg-zinc-900 px-2.5 text-[11px] font-medium text-[var(--text)] hover:bg-[var(--surface-2)] hover:border-zinc-700/80 disabled:opacity-50 disabled:cursor-wait`}
+                  className={`${ACTION_CLASS} inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-zinc-900/70 px-2.5 text-xs font-medium text-[var(--text)] hover:border-zinc-700 hover:bg-[var(--surface-2)] disabled:cursor-wait disabled:opacity-60`}
                 >
-                  {isRefreshing ? (
-                    <span className="flex items-center gap-1.5 text-[var(--warning)]">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--warning)]"></span>
-                      Syncing
-                    </span>
-                  ) : (
-                    <span>Sync slate</span>
-                  )}
+                  <RefreshCw aria-hidden="true" className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-[var(--warning)]' : 'text-[var(--muted)]'}`} />
+                  <span className={isRefreshing ? 'text-[var(--warning)]' : undefined}>{isRefreshing ? 'Syncing' : <>Sync<span className="hidden sm:inline"> slate</span></>}</span>
                 </button>
 
                 {/* Live Pill Indicator */}
-                <div className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--success)]/20 bg-[var(--success)]/5 px-2.5 text-[10px] font-semibold text-[var(--success)] tracking-wider">
+                <div className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--positive-border)] bg-[var(--positive-soft)] px-2.5 text-[11px] font-semibold text-[var(--success)]">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--success)] opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[var(--success)]"></span>
                   </span>
-                  <span className="font-mono">LIVE • {data.dateEt}</span>
+                  <span className="tracking-wide">LIVE<span className="hidden sm:inline"> · {data.dateEt}</span></span>
                 </div>
               </div>
             </div>
@@ -4117,54 +4110,48 @@ export default function NewDashboard({
 
         <main className="mx-auto max-w-[1440px] px-3 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-6 xl:px-8">
           <section className="grid grid-cols-3 gap-2 md:hidden">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.34)]">
               <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Refresh</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">{boardRefreshRelative}</div>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.34)]">
               <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Games</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(data.matchups.length, 0)}</div>
             </div>
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(20,16,35,0.04)]">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.34)]">
               <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--muted)]">Books avg</div>
               <div className="mt-1 text-sm font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</div>
             </div>
           </section>
 
-          <section className="mt-4 hidden grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] md:mt-0 md:grid md:grid-cols-3 xl:grid-cols-6">
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Slate date</div>
-              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{data.dateEt}</div>
-            </div>
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Last refresh</div>
-              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{ts(data.lastUpdatedAt)}</div>
-              <div className="mt-1 text-xs text-[var(--text-2)]">{boardRefreshRelative}</div>
-            </div>
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Avg books live</div>
-              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{liveBookDepth == null ? '-' : n(liveBookDepth)}</div>
-              <div className="mt-1 text-xs text-[var(--text-2)]">Average consensus depth</div>
-            </div>
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Games</div>
-              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(data.matchups.length, 0)}</div>
-              <div className="mt-1 text-xs text-[var(--text-2)]">Live slate windows</div>
-            </div>
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Players</div>
-              <div className="mt-1 text-sm font-semibold text-[var(--text)]">{n(slatePlayers.length, 0)}</div>
-              <div className="mt-1 text-xs text-[var(--text-2)]">Active slate pool</div>
-            </div>
-            <div className="flex flex-col rounded-xl bg-[var(--surface-2)] px-4 py-3">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Top signal</div>
-              <div className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{featured ? `${featured.row.playerName} ${featured.label}` : '-'}</div>
-              <div className="mt-1 truncate text-xs text-[var(--text-2)]">{featured ? recommendationHeadline(featured) : 'Waiting for board read'}</div>
+          <section
+            aria-label="Slate summary"
+            className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[linear-gradient(180deg,rgba(39,39,42,0.55),rgba(24,24,27,0.55))] md:block"
+          >
+            <div className="-ml-px -mt-px grid grid-cols-3 xl:grid-cols-6">
+            {[
+              { label: 'Slate date', value: data.dateEt, note: null },
+              { label: 'Last refresh', value: ts(data.lastUpdatedAt), note: boardRefreshRelative },
+              { label: 'Avg books live', value: liveBookDepth == null ? '-' : n(liveBookDepth), note: 'Average consensus depth' },
+              { label: 'Games', value: n(data.matchups.length, 0), note: 'Live slate windows' },
+              { label: 'Players', value: n(slatePlayers.length, 0), note: 'Active slate pool' },
+              {
+                label: 'Top signal',
+                value: featured ? `${featured.row.playerName} ${featured.label}` : '-',
+                note: featured ? recommendationHeadline(featured) : 'Waiting for board read',
+              },
+            ].map((item) => (
+              <div key={item.label} className="min-w-0 border-l border-t border-[var(--border)] px-4 py-3">
+                <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">{item.label}</div>
+                <div className="mt-1 truncate text-sm font-semibold text-[var(--text)]">{item.value}</div>
+                {item.note ? <div className="mt-0.5 truncate text-xs text-[var(--text-2)]">{item.note}</div> : null}
+              </div>
+            ))}
             </div>
           </section>
 
           {activeRefreshNotice ? (
-            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+            <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge label={activeRefreshNotice.kind} kind={activeRefreshNotice.kind} />
                 <div className="text-sm font-semibold text-[var(--text)]">{activeRefreshNotice.title}</div>
@@ -4173,99 +4160,11 @@ export default function NewDashboard({
             </div>
           ) : null}
 
-          <section className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Model status</div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <div className="text-sm font-semibold text-[var(--text)]">{boardModeLabel}</div>
-                  <Pill label={finalModelArtifactLoaded ? 'Current artifact loaded' : 'Live fallback'} tone={finalModelArtifactLoaded ? 'cyan' : 'amber'} />
-                </div>
-                <div className="mt-2 text-sm leading-6 text-[var(--text-2)]">{boardModeStatusDetail}</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {boardModeProofItems.map((item) => (
-                    <div key={item.label} className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2">
-                      <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</div>
-                      <div className="mt-1 text-sm font-semibold text-[var(--text)]">{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 text-xs text-[var(--muted)]">{boardModeCountLabel}</div>
-              </div>
-              <div className="grid w-full gap-2 sm:grid-cols-2 md:w-auto">
-                <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
-                  filter60 
-                    ? 'border-cyan-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(6,182,212,0.15)] animate-pulse-subtle' 
-                    : 'border-[var(--border)] bg-[var(--surface-2)]/60'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-2 w-2">
-                      {filter60 && (
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                      )}
-                      <span className={`relative inline-flex h-2 w-2 rounded-full ${filter60 ? 'bg-emerald-500' : 'bg-zinc-600'}`}></span>
-                    </div>
-                    <div>
-                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Research gate</span>
-                      <span className="block text-[10px] text-[var(--text-2)]">Score and meta filter</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFilter60(!filter60)}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-cyan-500/50 ${filter60 ? 'bg-cyan-500' : 'bg-zinc-700'}`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${filter60 ? 'translate-x-4' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </div>
-
-                <div className={`flex items-center gap-3 rounded-xl border px-4 py-2.5 shadow-sm transition-all duration-300 ${
-                  showVetoed 
-                    ? 'border-red-500/30 bg-zinc-900/60 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-pulse-subtle' 
-                    : 'border-[var(--border)] bg-[var(--surface-2)]/60'
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-2 w-2">
-                      {showVetoed && (
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                      )}
-                      <span className={`relative inline-flex h-2 w-2 rounded-full ${showVetoed ? 'bg-red-500' : 'bg-zinc-600'}`}></span>
-                    </div>
-                    <div>
-                      <span className="block text-xs font-mono font-bold text-[var(--text)]">Show risk watch</span>
-                      <span className="block text-[10px] text-[var(--text-2)]">Team-stability flags</span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowVetoed(!showVetoed)}
-                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-red-500/50 ${showVetoed ? 'bg-red-500' : 'bg-zinc-700'}`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${showVetoed ? 'translate-x-4' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </div>
-
-                {filter60 && (
-                  <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/10 px-4 py-2 text-xs font-mono animate-fade-in sm:col-span-2">
-                    <div className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">Walk-Forward Audit</div>
-                    <div className="mt-0.5 text-[var(--text)]">
-                      <span className="font-bold text-cyan-400">61.11% Win Rate</span> (1,172W - 746L)
-                    </div>
-                    <div className="text-[10px] text-[var(--text-2)]">1,918 qualified plays</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
           <section ref={overviewRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="xl:col-span-7">
               {featured ? (
-                <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_34px_rgba(20,16,35,0.07)] sm:p-5 md:p-6">
+                <div className="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-[radial-gradient(110%_70%_at_0%_0%,rgba(34,211,238,0.11),transparent_60%),radial-gradient(70%_60%_at_100%_0%,rgba(251,191,36,0.06),transparent_60%),linear-gradient(180deg,#1c1c20_0%,#18181b_100%)] p-4 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.8)] sm:p-5 md:p-6">
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(34,211,238,0.6),rgba(251,191,36,0.35),transparent)]" />
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-5">
                     <div className="min-w-0">
                       <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -4320,10 +4219,10 @@ export default function NewDashboard({
                       note={gapNote(featured)}
                       valueClass={
                         featured.edge == null || Math.abs(featured.edge) < 0.05
-                          ? 'text-zinc-400 font-mono'
+                          ? 'text-zinc-400'
                           : featured.edge > 0
-                            ? 'text-[var(--success)] font-mono'
-                            : 'text-[var(--danger)] font-mono'
+                            ? 'text-[var(--success)]'
+                            : 'text-[var(--danger)]'
                       }
                     />
                     <Stat
@@ -4372,10 +4271,10 @@ export default function NewDashboard({
                       note={gapNote(featured)}
                       valueClass={
                         featured.edge == null || Math.abs(featured.edge) < 0.05
-                          ? 'text-zinc-400 font-mono'
+                          ? 'text-zinc-400'
                           : featured.edge > 0
-                            ? 'text-[var(--success)] font-mono'
-                            : 'text-[var(--danger)] font-mono'
+                            ? 'text-[var(--success)]'
+                            : 'text-[var(--danger)]'
                       }
                     />
                     <Stat
@@ -4448,14 +4347,14 @@ export default function NewDashboard({
                     <button
                       type="button"
                       onClick={() => setResearch(featured.row.playerId)}
-                      className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] sm:w-auto`}
+                      className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_8px_24px_-8px_rgba(34,211,238,0.55)] hover:bg-cyan-300 sm:w-auto`}
                     >
                       Open player
                     </button>
                     <button
                       type="button"
                       onClick={() => activateTab('tracking')}
-                      className={`${ACTION_CLASS} hidden min-h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:inline-flex`}
+                      className={`${ACTION_CLASS} hidden min-h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)] sm:inline-flex`}
                     >
                       Open tracker
                     </button>
@@ -4505,33 +4404,103 @@ export default function NewDashboard({
             />
           </div>
 
+          <section aria-label="Model status" className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 px-4 py-3.5 md:mt-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                  <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Model status</span>
+                  <span className="text-sm font-semibold text-[var(--text)]">{boardModeLabel}</span>
+                  <Pill label={finalModelArtifactLoaded ? 'Current artifact loaded' : 'Live fallback'} tone={finalModelArtifactLoaded ? 'cyan' : 'amber'} />
+                  <button
+                    type="button"
+                    onClick={() => setModelStatusOpen((open) => !open)}
+                    aria-expanded={modelStatusOpen}
+                    className={`${ACTION_CLASS} ml-auto rounded-md px-1.5 py-0.5 text-xs font-medium text-[var(--accent)] hover:text-[var(--text)] md:hidden`}
+                  >
+                    {modelStatusOpen ? 'Hide stats' : 'Show stats'}
+                  </button>
+                </div>
+                <div className="mt-1.5 text-sm leading-6 text-[var(--text-2)]">{boardModeStatusDetail}</div>
+                <div className={`${modelStatusOpen ? 'flex' : 'hidden'} mt-2.5 flex-wrap gap-1.5 md:flex`}>
+                  {boardModeProofItems.map((item) => (
+                    <div key={item.label} className="flex items-baseline gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/70 px-2.5 py-1.5">
+                      <span className="text-[9px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</span>
+                      <span className="text-[13px] font-semibold text-[var(--text)]">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className={`${modelStatusOpen ? 'block' : 'hidden'} mt-2 text-xs text-[var(--muted)] md:block`}>{boardModeCountLabel}</div>
+              </div>
+              <div className="grid w-full gap-2 sm:grid-cols-2 lg:w-auto">
+                {[
+                  { label: 'Research gate', note: 'Score and meta filter', on: filter60, toggle: () => setFilter60(!filter60), onClass: 'border-[var(--accent-border)] bg-[var(--accent-soft)]', trackOn: 'bg-cyan-500', dotOn: 'bg-cyan-400' },
+                  { label: 'Show risk watch', note: 'Team-stability flags', on: showVetoed, toggle: () => setShowVetoed(!showVetoed), onClass: 'border-[var(--negative-border)] bg-[var(--negative-soft)]', trackOn: 'bg-red-500', dotOn: 'bg-red-400' },
+                ].map((control) => (
+                  <div
+                    key={control.label}
+                    className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 transition-colors duration-200 ${control.on ? control.onClass : 'border-[var(--border)] bg-[var(--surface-2)]/60'}`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${control.on ? control.dotOn : 'bg-zinc-600'}`} aria-hidden="true" />
+                      <div>
+                        <span className="block text-xs font-semibold text-[var(--text)]">{control.label}</span>
+                        <span className="block text-[10px] text-[var(--text-2)]">{control.note}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={control.on}
+                      aria-label={control.label}
+                      onClick={control.toggle}
+                      className={`${ACTION_CLASS} relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent ${control.on ? control.trackOn : 'bg-zinc-700'}`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${control.on ? 'translate-x-4' : 'translate-x-0'}`}
+                      />
+                    </button>
+                  </div>
+                ))}
+
+                {filter60 && (
+                  <div className="animate-fade-in rounded-xl border border-[var(--accent-border)] bg-[var(--accent-soft)] px-3.5 py-2 text-xs sm:col-span-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">Walk-Forward Audit</div>
+                    <div className="mt-0.5 text-[var(--text)]">
+                      <span className="font-bold text-cyan-400">61.11% Win Rate</span> (1,172W - 746L)
+                    </div>
+                    <div className="text-[10px] text-[var(--text-2)]">1,918 qualified plays</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Glassmorphic Sub-Tab Navigation Bar */}
-          <div className="mt-4 md:mt-6 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-1.5 backdrop-blur-md shadow-md">
-            <div className="flex flex-wrap items-center justify-between gap-2.5 px-1.5 py-0.5">
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-zinc-900/60 p-1 backdrop-blur-md md:mt-6">
+            <div className="flex items-center justify-between gap-3">
+              <div className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap">
                 {TABS.map((item) => {
                   const isActive = tab === item.id;
                   return (
                     <button
                       key={`subtab:${item.id}`}
                       type="button"
+                      title={item.hint}
+                      aria-pressed={isActive}
                       onClick={() => activateTab(item.id)}
-                      className={`${ACTION_CLASS} flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                      className={`${ACTION_CLASS} shrink-0 rounded-xl border px-3.5 py-2 text-xs font-semibold tracking-wide sm:px-4 sm:text-[13px] ${
                         isActive
-                          ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/30 shadow-[0_0_15px_rgba(34,211,238,0.12)]'
-                          : 'text-[var(--text-2)] border border-transparent hover:text-[var(--text)] hover:bg-zinc-800/30'
+                          ? 'border-[var(--accent-border)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_0_18px_-6px_rgba(34,211,238,0.45)]'
+                          : 'border-transparent text-[var(--text-2)] hover:bg-zinc-800/50 hover:text-[var(--text)]'
                       }`}
                     >
-                      <span>{item.label}</span>
-                      <span className={`hidden ml-1.5 text-[9px] opacity-60 font-mono sm:inline-block ${isActive ? 'text-[var(--accent)]' : 'text-zinc-500'}`}>
-                        [{item.hint}]
-                      </span>
+                      {item.label}
                     </button>
                   );
                 })}
               </div>
-              <div className="hidden text-[10px] font-mono text-[var(--text-2)] md:block uppercase tracking-wider">
-                workspace / {tab}
+              <div className="hidden shrink-0 pr-3 text-xs text-[var(--muted)] lg:block">
+                {TABS.find((item) => item.id === tab)?.hint}
               </div>
             </div>
           </div>
@@ -4563,7 +4532,6 @@ export default function NewDashboard({
                       <div className="min-w-0">
                         <div className="flex flex-wrap gap-2">
                           <Badge label={`#${index + 1}`} kind="DERIVED" />
-                          <Pill label="Board context" tone="default" />
                           <Pill label={view.label} tone="amber" />
                         </div>
                         <div className="mt-1.5 text-lg font-semibold leading-tight text-[var(--text)] md:text-[1.02rem]">{view.row.playerName}</div>
@@ -4600,7 +4568,7 @@ export default function NewDashboard({
 
           <section ref={matchupExplorerRef} tabIndex={-1} className="mt-4 grid grid-cols-1 gap-4 scroll-mt-28 outline-none md:mt-6 md:gap-6 md:scroll-mt-32 xl:grid-cols-12">
             <div className="order-2 xl:order-1 xl:col-span-5">
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Matchup explorer</div>
@@ -4609,7 +4577,7 @@ export default function NewDashboard({
                   <button
                     type="button"
                     onClick={() => activateTab('scout')}
-                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
+                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open feed
                   </button>
@@ -4624,9 +4592,9 @@ export default function NewDashboard({
                           onClick={() => setMatchupSelection(m.key, { highlight: true })}
                           className={`${ACTION_CLASS} shrink-0 rounded-2xl border px-4 py-3 text-left ${
                             selectedMatchupKey === m.key
-                              ? 'border-[color:rgba(109,74,255,0.32)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_10px_24px_rgba(109,74,255,0.10)]'
-                              : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
-                          } ${isMatchupHighlighted(m.key) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : ''}`}
+                              ? 'border-[color:rgba(34,211,238,0.32)] bg-[var(--accent-soft)] text-[var(--accent)] shadow-[0_10px_24px_rgba(34,211,238,0.10)]'
+                              : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)] hover:text-[var(--text)]'
+                          } ${isMatchupHighlighted(m.key) ? 'shadow-[0_0_0_3px_rgba(34,211,238,0.14)]' : ''}`}
                         >
                           <div className="text-sm font-semibold">{m.label}</div>
                           <div className="mt-1 text-xs opacity-80">{m.gameTimeEt}</div>
@@ -4638,7 +4606,7 @@ export default function NewDashboard({
                       <>
                         <div
                           className={`mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 transition-shadow ${
-                            selectedMatchup ? (isMatchupHighlighted(selectedMatchup.key) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.14)]' : '') : ''
+                            selectedMatchup ? (isMatchupHighlighted(selectedMatchup.key) ? 'shadow-[0_0_0_3px_rgba(34,211,238,0.14)]' : '') : ''
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -4741,7 +4709,7 @@ export default function NewDashboard({
             </div>
 
             <div className="order-1 xl:order-2 xl:col-span-7">
-              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+              <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Board feed</div>
@@ -4751,7 +4719,7 @@ export default function NewDashboard({
                   <button
                     type="button"
                     onClick={() => activateTab('scout')}
-                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
+                    className={`${ACTION_CLASS} inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)] sm:w-auto`}
                   >
                     Open full feed
                   </button>
@@ -4761,7 +4729,7 @@ export default function NewDashboard({
                     {liveFeedBuckets.map((bucket) => (
                       <div key={bucket.label}>
                         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--muted)]">{bucket.label}</div>
-                        <div className="relative ml-1 border-l-2 border-[color:rgba(109,74,255,0.18)] pl-5">
+                        <div className="relative ml-1 border-l-2 border-[color:rgba(34,211,238,0.18)] pl-5">
                           {bucket.events.map((event, index) => (
                             <button
                               key={event.id}
@@ -4822,7 +4790,7 @@ export default function NewDashboard({
           ) : null}
 
           {tab !== 'overview' ? (
-          <section ref={workspaceRef} tabIndex={-1} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:p-6 md:scroll-mt-32">
+          <section ref={workspaceRef} tabIndex={-1} className="mt-6 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] scroll-mt-28 outline-none md:p-6 md:scroll-mt-32">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -4838,7 +4806,7 @@ export default function NewDashboard({
             </div>
           {tab === 'final' ? (
             <section className="mt-5 space-y-5">
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Final V1</div>
@@ -4859,7 +4827,7 @@ export default function NewDashboard({
                     : finalModel?.warnings[0] ?? 'No Final V1 artifact is available for this slate yet.'}
                 </div>
                 {finalModel?.warnings.length ? (
-                  <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.22)] bg-[color:rgba(183,129,44,0.10)] px-4 py-3 text-sm leading-6 text-[var(--warning)]">
+                  <div className="mt-3 rounded-2xl border border-[color:rgba(251,191,36,0.22)] bg-[color:rgba(251,191,36,0.10)] px-4 py-3 text-sm leading-6 text-[var(--warning)]">
                     {finalModel.warnings[0]}
                   </div>
                 ) : null}
@@ -4893,7 +4861,7 @@ export default function NewDashboard({
                 <Stat dense label="Warnings" value={n(finalModel?.summary.warningCount ?? finalModel?.warnings.length ?? 0, 0)} kind={finalModel?.warnings.length ? 'DERIVED' : 'LIVE'} note="Artifact warnings" />
               </div>
 
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player-tab card audit</div>
@@ -4945,7 +4913,7 @@ export default function NewDashboard({
                     </div>
                   ))}
                 </div>
-                <div className="mt-3 rounded-2xl border border-[color:rgba(183,129,44,0.20)] bg-[color:rgba(183,129,44,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
+                <div className="mt-3 rounded-2xl border border-[color:rgba(251,191,36,0.20)] bg-[color:rgba(251,191,36,0.08)] px-4 py-3 text-xs leading-5 text-[var(--warning)]">
                   Important audit note: the required daily 2-leg lane fires on every replay date: {FINAL_V1_DAILY_QUALIFIED_PAIR_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_QUALIFIED_PAIR_NO_CARD_DAYS, 0)} no-card days; premium pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FIRED_RECORD}, fallback pairs are {FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_RECORD} ({pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FALLBACK_ACCURACY_PCT, 2)}), and fire rate is {pct(FINAL_V1_DAILY_QUALIFIED_PAIR_FIRE_RATE_PCT, 2)}. The required daily 3-leg lane is {FINAL_V1_DAILY_REQUIRED_TRIPLET_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_CARD_ACCURACY_PCT, 2)}) with {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_NO_CARD_DAYS, 0)} no-card days, {pct(FINAL_V1_DAILY_REQUIRED_TRIPLET_FIRE_RATE_PCT, 2)} fire rate, and {n(FINAL_V1_DAILY_REQUIRED_TRIPLET_SAME_GAME_CARDS, 0)} same-game-overlap replay cards. The 4-leg lane shown is the strict 80% gate: {FINAL_V1_DAILY_REQUIRED_QUAD_RECORD} ({pct(FINAL_V1_DAILY_REQUIRED_QUAD_CARD_ACCURACY_PCT, 2)}) across {FINAL_V1_DAILY_REQUIRED_QUAD_DAYS} fired replay days, with {n(FINAL_V1_DAILY_REQUIRED_QUAD_NO_CARD_DAYS, 0)} no-card days and {pct(FINAL_V1_DAILY_REQUIRED_QUAD_FIRE_RATE_PCT, 2)} fire rate. The all-116 broad 4-leg rule stayed at 82-34 (70.69%), so it is not presented as an 80% lane. Live daily parlay cards are additionally gated to standard DraftKings/FanDuel-style player-prop markets and {n(FINAL_V1_PARLAY_MIN_LIVE_BOOKS, 0)}+ live books, but exact DK/FD book names are not stored in SnapshotBoardData yet. The strict 4-leg replay includes {n(FINAL_V1_DAILY_REQUIRED_QUAD_SAME_GAME_CARDS, 0)} cards with more than one leg from the same game. Live forward proof is still pending.
                 </div>
                 <div className="mt-4 space-y-3">
@@ -5003,7 +4971,7 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Selectable picks</div>
@@ -5094,7 +5062,7 @@ export default function NewDashboard({
             </section>
           ) : tab === 'precision' ? (
             <section className="mt-5 space-y-5">
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Precision Picks</div>
@@ -5136,7 +5104,7 @@ export default function NewDashboard({
                 <Stat dense label="Avg books live" value={precisionDashboard?.averageBooksLive == null ? '-' : n(precisionDashboard.averageBooksLive)} kind={precisionDashboard?.averageBooksLive == null ? 'PLACEHOLDER' : 'LIVE'} note="Average book depth across promoted picks" />
               </div>
 
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-6">
                 <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Active precision picks</div>
@@ -5219,7 +5187,7 @@ export default function NewDashboard({
             </section>
           ) : tab === 'rubbing' ? (
             <section className="mt-5 space-y-5">
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.05)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface-2)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.35)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Rubbing Hands</div>
@@ -5258,7 +5226,7 @@ export default function NewDashboard({
                 <Stat dense label="Avg confidence" value={rubbingAverageConfidence == null ? '-' : pct(rubbingAverageConfidence, 1)} kind={rubbingAverageConfidence == null ? 'PLACEHOLDER' : 'MODEL'} note="Current filtered board" />
               </div>
 
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                 <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(3,minmax(0,0.8fr))]">
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Search player</span>
@@ -5266,7 +5234,7 @@ export default function NewDashboard({
                       value={rubbingSearchQuery}
                       onChange={(event) => setRubbingSearchQuery(event.target.value)}
                       placeholder="Search player, team, matchup, or market"
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     />
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
@@ -5274,7 +5242,7 @@ export default function NewDashboard({
                     <select
                       value={rubbingPickFilter}
                       onChange={(event) => setRubbingPickFilter(event.target.value as RubbingPickFilter)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="sample200Coverage">{n(TOP_PLAYER_200_SAMPLE_COVERAGE_FRONTIER_ACCURACY_PCT, 2)}% expanded lane</option>
                       <option value="sample200Premium">{n(TOP_PLAYER_200_SAMPLE_PREMIUM_90_ACCURACY_PCT, 2)}% premium lane</option>
@@ -5293,7 +5261,7 @@ export default function NewDashboard({
                     <select
                       value={rubbingSort}
                       onChange={(event) => setRubbingSort(event.target.value as RubbingSort)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="confidence">Highest confidence</option>
                       <option value="edge">Biggest model gap</option>
@@ -5305,7 +5273,7 @@ export default function NewDashboard({
                     <select
                       value={rubbingMarketFilter}
                       onChange={(event) => setRubbingMarketFilter(event.target.value as 'ALL' | SnapshotMarket)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="ALL">All markets</option>
                       {MARKETS.map((market) => (
@@ -5318,7 +5286,7 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div className="text-sm text-[var(--text-2)]">
                     {rubbingFilteredViews.length === 0
@@ -5333,7 +5301,7 @@ export default function NewDashboard({
                       className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
                         rubbingPage === 0 || rubbingFilteredViews.length === 0
                           ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]'
                       }`}
                     >
                       Previous 24
@@ -5348,7 +5316,7 @@ export default function NewDashboard({
                       className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
                         rubbingPage >= rubbingPageCount - 1 || rubbingFilteredViews.length === 0
                           ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]'
                       }`}
                     >
                       Next 24
@@ -5452,7 +5420,7 @@ export default function NewDashboard({
                                 <button
                                   type="button"
                                   onClick={() => setResearch(v.row.playerId)}
-                                  className={`${ACTION_CLASS} rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                                  className={`${ACTION_CLASS} rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]`}
                                 >
                                   Dossier
                                 </button>
@@ -5469,7 +5437,7 @@ export default function NewDashboard({
           ) : tab === 'research' ? (
             <section className="mt-5 grid gap-6 xl:items-start xl:grid-cols-[0.92fr_1.58fr]">
               <div className="space-y-4">
-                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Player lookup</div>
@@ -5491,13 +5459,13 @@ export default function NewDashboard({
                       value={searchQuery}
                       onChange={(event) => setSearchQuery(event.target.value)}
                       placeholder="Search player, team, opponent, or matchup"
-                      className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text)] outline-none placeholder:text-[var(--muted)] focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     />
                     {searchQuery ? (
                       <button
                         type="button"
                         onClick={() => setSearchQuery('')}
-                        className={`${ACTION_CLASS} rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                        className={`${ACTION_CLASS} rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]`}
                       >
                         Clear
                       </button>
@@ -5512,7 +5480,7 @@ export default function NewDashboard({
                   </div>
                 </div>
 
-                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-3">
+                <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-3">
                   {researchListCards.length ? (
                     <div className="max-h-[68vh] space-y-2 overflow-auto pr-1 xl:max-h-[calc(100vh-16rem)]">
                       {researchListCards.map(({ row, leadView }) => {
@@ -5524,9 +5492,9 @@ export default function NewDashboard({
                             onClick={() => setResearch(row.playerId)}
                             className={`w-full rounded-[22px] border px-4 py-3.5 text-left ${CARD_BUTTON_CLASS} ${
                               picked
-                                ? 'border-[color:rgba(109,74,255,0.30)] bg-[var(--accent-soft)] shadow-[0_12px_28px_rgba(109,74,255,0.10)]'
+                                ? 'border-[color:rgba(34,211,238,0.30)] bg-[var(--accent-soft)] shadow-[0_12px_28px_rgba(34,211,238,0.10)]'
                                 : 'border-[var(--border)] bg-[var(--surface-2)]'
-                            } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(109,74,255,0.16)]' : ''}`}
+                            } ${isPlayerHighlighted(row.playerId) ? 'shadow-[0_0_0_3px_rgba(34,211,238,0.16)]' : ''}`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0 flex-1">
@@ -5581,7 +5549,7 @@ export default function NewDashboard({
                       tabIndex={-1}
                       className={`rounded-[28px] border bg-[var(--surface)] p-5 outline-none transition-shadow ${
                         isPlayerHighlighted(researchRow.playerId)
-                          ? 'border-[color:rgba(109,74,255,0.30)] shadow-[0_0_0_3px_rgba(109,74,255,0.16)]'
+                          ? 'border-[color:rgba(34,211,238,0.30)] shadow-[0_0_0_3px_rgba(34,211,238,0.16)]'
                           : 'border-[var(--border)]'
                       }`}
                     >
@@ -5716,7 +5684,7 @@ export default function NewDashboard({
                       </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                       <div>
                         <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">All markets</div>
                         <div className="mt-1 text-lg font-semibold text-[var(--text)]">Every live player market stays open by default</div>
@@ -5744,7 +5712,7 @@ export default function NewDashboard({
                                 <tr
                                   key={`${v.row.playerId}:${v.market}`}
                                   className={`border-t border-[var(--border)] ${
-                                    researchLeadView?.market === v.market ? 'bg-[color:rgba(109,74,255,0.06)]' : 'bg-[var(--surface)]'
+                                    researchLeadView?.market === v.market ? 'bg-[color:rgba(34,211,238,0.06)]' : 'bg-[var(--surface)]'
                                   }`}
                                 >
                                   <td className="px-4 py-3">
@@ -5774,7 +5742,7 @@ export default function NewDashboard({
                       )}
                     </div>
 
-                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+                    <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">More context</div>
@@ -5783,7 +5751,7 @@ export default function NewDashboard({
                         <button
                           type="button"
                           onClick={() => setShowResearchContext((value) => !value)}
-                          className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]`}
+                          className={`${ACTION_CLASS} inline-flex items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm font-medium text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]`}
                         >
                           {showResearchContext ? 'Hide context' : 'Show context'}
                         </button>
@@ -5799,7 +5767,7 @@ export default function NewDashboard({
                                 <div className="mt-3 space-y-2">
                                   {researchSupportDrivers.length ? (
                                     researchSupportDrivers.map((driver) => (
-                                      <div key={driver} className="rounded-2xl border border-[color:rgba(47,125,90,0.16)] bg-[color:rgba(47,125,90,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
+                                      <div key={driver} className="rounded-2xl border border-[color:rgba(16,185,129,0.16)] bg-[color:rgba(16,185,129,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
                                         {driver}
                                       </div>
                                     ))
@@ -5815,12 +5783,12 @@ export default function NewDashboard({
                                 <div className="mt-3 space-y-2">
                                   {researchCautionDrivers.length ? (
                                     researchCautionDrivers.map((driver) => (
-                                      <div key={driver} className="rounded-2xl border border-[color:rgba(180,74,74,0.16)] bg-[color:rgba(180,74,74,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
+                                      <div key={driver} className="rounded-2xl border border-[color:rgba(239,68,68,0.16)] bg-[color:rgba(239,68,68,0.08)] px-3.5 py-3 text-sm leading-5 text-[var(--text)]">
                                         {driver}
                                       </div>
                                     ))
                                   ) : (
-                                    <div className="rounded-2xl border border-[color:rgba(47,125,90,0.16)] bg-[color:rgba(47,125,90,0.08)] px-3.5 py-3 text-sm text-[var(--text)]">
+                                    <div className="rounded-2xl border border-[color:rgba(16,185,129,0.16)] bg-[color:rgba(16,185,129,0.08)] px-3.5 py-3 text-sm text-[var(--text)]">
                                       No major caution flags are surfacing beyond normal slate variance in the current payload.
                                     </div>
                                   )}
@@ -5932,7 +5900,7 @@ export default function NewDashboard({
           ) : null}
           {tab === 'scout' ? (
             <section className="mt-5 space-y-5">
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Board feed</div>
@@ -5954,7 +5922,7 @@ export default function NewDashboard({
                 <Stat dense label="Locked" value={n(boardFeedSummary.locked, 0)} kind={boardFeedSummary.locked ? 'LIVE' : 'PLACEHOLDER'} note="Frozen at tipoff" />
               </div>
 
-              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
                 <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -5978,7 +5946,7 @@ export default function NewDashboard({
                   </div>
                 ) : (
                   <div className="relative max-h-[920px] overflow-auto px-4 py-2 sm:px-6">
-                    <div className="absolute bottom-0 left-[72px] top-0 hidden w-px bg-[color:rgba(109,74,255,0.18)] sm:block" />
+                    <div className="absolute bottom-0 left-[72px] top-0 hidden w-px bg-[color:rgba(34,211,238,0.18)] sm:block" />
                     {boardFeedEvents.map((event) => (
                       <button
                         key={event.id}
@@ -6027,7 +5995,7 @@ export default function NewDashboard({
           ) : null}
           {tab === 'tracking' ? (
             <section className="mt-5 space-y-5">
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-6">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="max-w-3xl">
                     <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Market tracker</div>
@@ -6042,7 +6010,7 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(20,16,35,0.06)] sm:p-5">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_8px_30px_rgba(0,0,0,0.36)] sm:p-5">
                 <div className="grid gap-3 lg:grid-cols-[minmax(220px,1.2fr)_repeat(4,minmax(0,0.8fr))]">
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
                     <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--muted)]">Search player</span>
@@ -6050,7 +6018,7 @@ export default function NewDashboard({
                       value={trackerSearchQuery}
                       onChange={(event) => setTrackerSearchQuery(event.target.value)}
                       placeholder="Search player, team, or matchup"
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     />
                   </label>
                   <label className="flex flex-col gap-2 text-sm text-[var(--text-2)]">
@@ -6058,7 +6026,7 @@ export default function NewDashboard({
                     <select
                       value={trackerSort}
                       onChange={(event) => setTrackerSort(event.target.value as TrackerSort)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="gap">Biggest gap</option>
                       <option value="confidence">Highest confidence</option>
@@ -6070,7 +6038,7 @@ export default function NewDashboard({
                     <select
                       value={trackerMarketFilter}
                       onChange={(event) => setTrackerMarketFilter(event.target.value as 'ALL' | SnapshotMarket)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="ALL">All markets</option>
                       {MARKETS.map((market) => (
@@ -6085,7 +6053,7 @@ export default function NewDashboard({
                     <select
                       value={trackerStatusFilter}
                       onChange={(event) => setTrackerStatusFilter(event.target.value as TrackerStatusFilter)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="all">All statuses</option>
                       <option value="pregame">Pregame</option>
@@ -6098,7 +6066,7 @@ export default function NewDashboard({
                     <select
                       value={trackerBooksFilter}
                       onChange={(event) => setTrackerBooksFilter(event.target.value as TrackerBooksFilter)}
-                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(109,74,255,0.28)] focus:bg-[var(--surface)]"
+                      className="min-h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[color:rgba(34,211,238,0.28)] focus:bg-[var(--surface)]"
                     >
                       <option value="all">All books</option>
                       <option value="3plus">3+ books</option>
@@ -6126,7 +6094,7 @@ export default function NewDashboard({
                 <Stat dense label="Avg books live" value={liveBookDepth == null ? '-' : n(liveBookDepth)} kind={liveBookDepth == null ? 'PLACEHOLDER' : 'LIVE'} note="Across currently priced board views" />
               </div>
 
-              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--surface)] shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-4 py-3 sm:px-5">
                   <div className="text-sm text-[var(--text-2)]">
                     {trackerFilteredViews.length === 0
@@ -6141,7 +6109,7 @@ export default function NewDashboard({
                       className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
                         trackerPage === 0 || trackerFilteredViews.length === 0
                           ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]'
                       }`}
                     >
                       Previous 18
@@ -6156,7 +6124,7 @@ export default function NewDashboard({
                       className={`${ACTION_CLASS} inline-flex min-h-10 items-center rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-medium ${
                         trackerPage >= trackerPageCount - 1 || trackerFilteredViews.length === 0
                           ? 'cursor-not-allowed bg-[var(--surface-2)] text-[var(--muted)]'
-                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(109,74,255,0.24)] hover:bg-[var(--surface)]'
+                          : 'bg-[var(--surface-2)] text-[var(--text)] hover:border-[color:rgba(34,211,238,0.24)] hover:bg-[var(--surface)]'
                       }`}
                     >
                       Next 18
@@ -6324,7 +6292,7 @@ export default function NewDashboard({
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(20,16,35,0.06)]">
+              <div className="rounded-[28px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[0_8px_30px_rgba(0,0,0,0.36)]">
                 <div className="text-[11px] uppercase tracking-[0.22em] text-[var(--muted)]">Current limitation</div>
                 <p className="mt-3 text-sm leading-6 text-[var(--text-2)]">
                   SnapshotBoardData does not include full sportsbook tape or book-by-book history. The tracker is intentionally limited to the current live line, fair fallback, projection, gap, confidence, and stored pregame feed state.
@@ -6335,7 +6303,7 @@ export default function NewDashboard({
           </section>
           ) : null}
 
-          <section ref={helpRef} id="methodology" tabIndex={-1} className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(20,16,35,0.06)] scroll-mt-28 outline-none md:scroll-mt-32">
+          <section ref={helpRef} id="methodology" tabIndex={-1} className="mt-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.36)] scroll-mt-28 outline-none md:scroll-mt-32">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Method</div>

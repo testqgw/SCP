@@ -30,9 +30,68 @@
   --purple: #a855f7;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   --radius: 16px;
+  --accent-border: rgba(34, 211, 238, 0.28);
+  --accent-glow: rgba(34, 211, 238, 0.16);
+  --gold-soft: rgba(251, 191, 36, 0.10);
+  --gold-border: rgba(251, 191, 36, 0.26);
+  --positive-soft: rgba(16, 185, 129, 0.10);
+  --positive-border: rgba(16, 185, 129, 0.28);
+  --negative-soft: rgba(239, 68, 68, 0.10);
+  --negative-border: rgba(239, 68, 68, 0.28);
+}
+
+@theme {
+  --animate-fade-in: fade-in 220ms ease-out both;
+  --animate-pulse-subtle: pulse-subtle 2.4s ease-in-out infinite;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.86; }
 }
 
 * { box-sizing: border-box; }
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2 {
+    font-family: var(--font-display), var(--font-body), Inter, sans-serif;
+  }
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.28);
+  color: #fff;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 html, body {
   margin: 0;
