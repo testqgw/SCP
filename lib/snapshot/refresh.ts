@@ -672,6 +672,11 @@ type FetchDataResult = {
   players: NormalizedPlayerSeason[];
   logs: NormalizedPlayerGameStat[];
   warnings: string[];
+  /**
+   * Expected feed switches (NBA_DATA_SOURCE=auto falling back to ESPN). Recorded in run notes but not
+   * counted as warnings, so a healthy fallback refresh is not reported as partial data.
+   */
+  sourceNotes: string[];
   source: NbaDataSourceName;
   /** Null when the schedule fell back to stored DB games. */
   provider: NbaScheduleProvider | null;
@@ -679,6 +684,7 @@ type FetchDataResult = {
 
 async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataResult> {
   const warnings: string[] = [];
+  const sourceNotes: string[] = [];
   const scheduleWindow = mode === "FAST" ? { from: dateEt, to: dateEt } : collectDateWindow(mode, dateEt);
   const sourceMode = getNbaDataSourceMode();
   let schedule;
@@ -687,7 +693,10 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     const opened = await openNbaSchedule(scheduleWindow.from, scheduleWindow.to, sourceMode);
     schedule = opened.schedule;
     provider = opened.provider;
-    warnings.push(...opened.warnings);
+    if (opened.warnings.length > 0) {
+      sourceNotes.push(...opened.warnings);
+      logger.warn("NBA schedule source fell back", { dateEt, refreshMode: mode, sourceMode, notes: opened.warnings });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown NBA schedule error";
     const fallbackGames = await loadScheduleGamesFromDb(scheduleWindow.from, scheduleWindow.to);
@@ -706,6 +715,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       players: [],
       logs: [],
       warnings,
+      sourceNotes,
       source: sourceMode === "espn" ? "espn" : "nba_official",
       provider: null,
     };
@@ -731,6 +741,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       players: [],
       logs: [],
       warnings,
+      sourceNotes,
       source: provider.source,
       provider,
     };
@@ -906,6 +917,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     players: mergedPlayers,
     logs,
     warnings,
+    sourceNotes,
     source: provider.source,
     provider,
   };
@@ -1130,6 +1142,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
         notes: {
           dateEt,
           warnings,
+          sourceNotes: fetched.sourceNotes,
           source: dataSource,
           qualityGateEnabled: QUALITY_GATE_ENABLED,
           lineupMeta,
