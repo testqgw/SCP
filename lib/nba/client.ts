@@ -364,6 +364,39 @@ function playerFromBoxScore(
   };
 }
 
+/** Parses a cdn.nba.com `scheduleLeagueV2*.json` payload (also used by the schedule seed script). */
+export function parseNbaSchedulePayload(payload: unknown): NormalizedNbaScheduleGame[] {
+  const root = asRecord(payload);
+  const leagueSchedule = asRecord(root?.leagueSchedule);
+  const gameDates = asArray(leagueSchedule?.gameDates);
+  const results: NormalizedNbaScheduleGame[] = [];
+
+  gameDates.forEach((dateEntry) => {
+    const dateRecord = asRecord(dateEntry);
+    if (!dateRecord) {
+      return;
+    }
+    const dateEt = parseScheduleDateToEt(toStringOrNull(dateRecord.gameDate));
+    if (!dateEt) {
+      return;
+    }
+
+    const games = asArray(dateRecord.games);
+    games.forEach((gameEntry) => {
+      const game = asRecord(gameEntry);
+      if (!game) {
+        return;
+      }
+      const normalizedGame = normalizeScheduleGame(game, dateEt);
+      if (normalizedGame) {
+        results.push(normalizedGame);
+      }
+    });
+  });
+
+  return results;
+}
+
 export class NbaDataClient {
   private async fetchJson(url: string): Promise<unknown> {
     const retryDelaysMs = [0, 400, 1200];
@@ -411,34 +444,7 @@ export class NbaDataClient {
     }
 
     const task = (async (): Promise<NormalizedNbaScheduleGame[]> => {
-      const payload = await this.fetchScheduleJson();
-      const root = asRecord(payload);
-      const leagueSchedule = asRecord(root?.leagueSchedule);
-      const gameDates = asArray(leagueSchedule?.gameDates);
-      const results: NormalizedNbaScheduleGame[] = [];
-
-      gameDates.forEach((dateEntry) => {
-        const dateRecord = asRecord(dateEntry);
-        if (!dateRecord) {
-          return;
-        }
-        const dateEt = parseScheduleDateToEt(toStringOrNull(dateRecord.gameDate));
-        if (!dateEt) {
-          return;
-        }
-
-        const games = asArray(dateRecord.games);
-        games.forEach((gameEntry) => {
-          const game = asRecord(gameEntry);
-          if (!game) {
-            return;
-          }
-          const normalizedGame = normalizeScheduleGame(game, dateEt);
-          if (normalizedGame) {
-            results.push(normalizedGame);
-          }
-        });
-      });
+      const results = parseNbaSchedulePayload(await this.fetchScheduleJson());
 
       if (NBA_SCHEDULE_CACHE_TTL_MS > 0) {
         cachedSchedule = {

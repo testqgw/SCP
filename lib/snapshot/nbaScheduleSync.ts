@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { NbaDataClient } from "@/lib/nba/client";
+import type { NormalizedNbaScheduleGame } from "@/lib/nba/client";
+import { openNbaSchedule } from "@/lib/nba/source";
 
 export type NbaScheduleDateSyncResult = {
   dateEt: string;
@@ -38,9 +39,9 @@ export async function ensureNbaScheduleGamesForDate(dateEt: string): Promise<Nba
     };
   }
 
-  let schedule;
+  let opened;
   try {
-    schedule = await new NbaDataClient().fetchSchedule();
+    opened = await openNbaSchedule(dateEt, dateEt);
   } catch (error) {
     return {
       dateEt,
@@ -51,7 +52,7 @@ export async function ensureNbaScheduleGamesForDate(dateEt: string): Promise<Nba
       warning: `NBA schedule sync skipped: ${error instanceof Error ? error.message : "unknown schedule error"}`,
     };
   }
-  const games = schedule.filter((game) => game.gameDateEt === dateEt);
+  const games = opened.schedule.filter((game) => game.gameDateEt === dateEt);
   if (games.length === 0) {
     return {
       dateEt,
@@ -59,9 +60,27 @@ export async function ensureNbaScheduleGamesForDate(dateEt: string): Promise<Nba
       scheduleGames: 0,
       upsertedGames: 0,
       skippedGames: 0,
+      warning: opened.warnings[0],
     };
   }
 
+  const { upsertedGames, skippedGames } = await upsertScheduledGames(games);
+  const linked = await opened.provider.persistIdLinks().catch(() => null);
+
+  return {
+    dateEt,
+    existingGames,
+    scheduleGames: games.length,
+    upsertedGames,
+    skippedGames,
+    warning: opened.warnings[0] ?? linked?.warnings[0],
+  };
+}
+
+/** Upserts teams and games for already-normalized schedule rows (shared with the schedule seed script). */
+export async function upsertScheduledGames(
+  games: NormalizedNbaScheduleGame[],
+): Promise<{ upsertedGames: number; skippedGames: number }> {
   const teams = new Map<string, ScheduledTeam>();
   games.forEach((game) => {
     rememberTeam(teams, game.homeTeamAbbr, game.homeTeamName);
@@ -118,11 +137,5 @@ export async function ensureNbaScheduleGamesForDate(dateEt: string): Promise<Nba
     upsertedGames += 1;
   }
 
-  return {
-    dateEt,
-    existingGames,
-    scheduleGames: games.length,
-    upsertedGames,
-    skippedGames,
-  };
+  return { upsertedGames, skippedGames };
 }

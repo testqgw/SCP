@@ -43,6 +43,7 @@ model Team {
 model Player {
   id          String   @id @default(cuid())
   externalId  String?  @unique
+  espnId      String?  @unique
   fullName    String
   firstName   String?
   lastName    String?
@@ -63,6 +64,7 @@ model Player {
 model Game {
   id             String   @id @default(cuid())
   externalId     String   @unique
+  espnId         String?  @unique
   gameDateEt     String
   season         String?
   status         String?

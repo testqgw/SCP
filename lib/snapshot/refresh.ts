@@ -3,7 +3,8 @@ import { isCronAuthorized } from "@/lib/auth/guard";
 import { fetchRotowireLineups, parseStoredRotowireLineupSnapshot } from "@/lib/lineups/rotowire";
 import { etDateShift, getSnapshotBoardDateString } from "@/lib/snapshot/time";
 import { logger } from "@/lib/snapshot/log";
-import { NbaDataClient } from "@/lib/nba/client";
+import { getNbaDataSourceMode, openNbaSchedule, type NbaScheduleProvider } from "@/lib/nba/source";
+import type { NbaDataSourceName } from "@/lib/nba/sourceSelect";
 import type { NormalizedGame, NormalizedPlayerGameStat, NormalizedPlayerSeason } from "@/lib/sportsdata/types";
 
 type RefreshMode = "FULL" | "DELTA" | "FAST";
@@ -671,15 +672,22 @@ type FetchDataResult = {
   players: NormalizedPlayerSeason[];
   logs: NormalizedPlayerGameStat[];
   warnings: string[];
+  source: NbaDataSourceName;
+  /** Null when the schedule fell back to stored DB games. */
+  provider: NbaScheduleProvider | null;
 };
 
 async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataResult> {
-  const client = new NbaDataClient();
   const warnings: string[] = [];
   const scheduleWindow = mode === "FAST" ? { from: dateEt, to: dateEt } : collectDateWindow(mode, dateEt);
+  const sourceMode = getNbaDataSourceMode();
   let schedule;
+  let provider: NbaScheduleProvider;
   try {
-    schedule = await client.fetchSchedule();
+    const opened = await openNbaSchedule(scheduleWindow.from, scheduleWindow.to, sourceMode);
+    schedule = opened.schedule;
+    provider = opened.provider;
+    warnings.push(...opened.warnings);
   } catch (error) {
     const message = error instanceof Error ? error.message : "unknown NBA schedule error";
     const fallbackGames = await loadScheduleGamesFromDb(scheduleWindow.from, scheduleWindow.to);
@@ -687,6 +695,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     logger.warn("NBA schedule fetch failed; using database fallback", {
       dateEt,
       refreshMode: mode,
+      sourceMode,
       windowFrom: scheduleWindow.from,
       windowTo: scheduleWindow.to,
       fallbackGames: fallbackGames.length,
@@ -697,6 +706,8 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       players: [],
       logs: [],
       warnings,
+      source: sourceMode === "espn" ? "espn" : "nba_official",
+      provider: null,
     };
   }
   const todaysGames = schedule.filter((game) => game.gameDateEt === dateEt);
@@ -706,6 +717,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     logger.info("NBA payload summary", {
       dateEt,
       refreshMode: mode,
+      source: provider.source,
       scheduleGames: schedule.length,
       todaysGames: todaysGames.length,
       windowGames: todaysGames.length,
@@ -719,6 +731,8 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
       players: [],
       logs: [],
       warnings,
+      source: provider.source,
+      provider,
     };
   }
 
@@ -846,7 +860,7 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
 
   const boxScores = await mapWithConcurrency(boxScoreGames, BOX_SCORE_CONCURRENCY, async (game) => {
     try {
-      const payload = await client.fetchGameBoxScore(game);
+      const payload = await provider.fetchGameBoxScore(game);
       return { game, payload, error: null as string | null };
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown";
@@ -863,12 +877,18 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     logs.push(...payload.logs);
   });
 
+  const unresolvedIds = provider.unresolvedSummary();
+  if (unresolvedIds) {
+    warnings.push(unresolvedIds);
+  }
+
   const mergedPlayers = mergePlayersFromLogs(players, logs);
   const games = dedupeGames([...todaysGames, ...windowGames]);
 
   logger.info("NBA payload summary", {
     dateEt,
     refreshMode: mode,
+    source: provider.source,
     windowFrom: from,
     windowTo: to,
     scheduleGames: schedule.length,
@@ -886,6 +906,8 @@ async function fetchData(mode: RefreshMode, dateEt: string): Promise<FetchDataRe
     players: mergedPlayers,
     logs,
     warnings,
+    source: provider.source,
+    provider,
   };
 }
 
@@ -1019,13 +1041,15 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
     },
   });
 
+  // Updated to the feed that actually answered once fetchData resolves (auto mode can fall back to ESPN).
+  let dataSource: NbaDataSourceName = getNbaDataSourceMode() === "espn" ? "espn" : "nba_official";
   const run = await prisma.refreshRun.create({
     data: {
       type: runType,
       status: "RUNNING",
       notes: {
         dateEt,
-        source: "nba_official",
+        source: dataSource,
         qualityGateEnabled: QUALITY_GATE_ENABLED,
         requestedMode: mode,
         requestedBy: source,
@@ -1046,6 +1070,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
       throw fetchedResult.reason;
     }
     const fetched = fetchedResult.value;
+    dataSource = fetched.source;
     warnings.push(...fetched.warnings);
 
     if (lineupResult.status === "fulfilled") {
@@ -1063,6 +1088,16 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
     ]);
     if (fetched.logs.length > 0) {
       await upsertPlayerLogs(fetched.logs, playerMap, teamMap);
+    }
+    if (fetched.provider) {
+      try {
+        const linked = await fetched.provider.persistIdLinks();
+        if (linked && linked.warnings.length > 0) {
+          warnings.push(...linked.warnings.slice(0, 5));
+        }
+      } catch (linkError) {
+        warnings.push(`ESPN id linking skipped: ${linkError instanceof Error ? linkError.message : "unknown error"}`);
+      }
     }
 
     const qualityIssues = isLightweightRefresh
@@ -1095,7 +1130,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
         notes: {
           dateEt,
           warnings,
-          source: "nba_official",
+          source: dataSource,
           qualityGateEnabled: QUALITY_GATE_ENABLED,
           lineupMeta,
           requestedMode: mode,
@@ -1114,7 +1149,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
           status,
           isPublishable,
           qualityIssues,
-          source: "nba_official",
+          source: dataSource,
           lineupMeta,
           requestedMode: mode,
           requestedBy: source,
@@ -1129,7 +1164,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
           status,
           isPublishable,
           qualityIssues,
-          source: "nba_official",
+          source: dataSource,
           lineupMeta,
           requestedMode: mode,
           requestedBy: source,
@@ -1147,7 +1182,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
             completedAt: new Date().toISOString(),
             status,
             qualityIssues,
-            source: "nba_official",
+            source: dataSource,
             lineupMeta,
             requestedMode: mode,
             requestedBy: source,
@@ -1161,7 +1196,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
             completedAt: new Date().toISOString(),
             status,
             qualityIssues,
-            source: "nba_official",
+            source: dataSource,
             lineupMeta,
             requestedMode: mode,
             requestedBy: source,
@@ -1211,7 +1246,7 @@ export async function runRefresh(mode: RefreshMode, options?: RunRefreshOptions)
         notes: {
           dateEt,
           warnings,
-          source: "nba_official",
+          source: dataSource,
           qualityGateEnabled: QUALITY_GATE_ENABLED,
           requestedMode: mode,
           requestedBy: source,
