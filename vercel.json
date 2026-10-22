@@ -13,6 +13,18 @@
       "schedule": "10 14 * * *"
     },
     {
+      "path": "/api/internal/board/rebuild",
+      "schedule": "30 13 * * *"
+    },
+    {
+      "path": "/api/internal/board/rebuild",
+      "schedule": "30 15 * * *"
+    },
+    {
+      "path": "/api/internal/board/rebuild",
+      "schedule": "30 20 * * *"
+    },
+    {
       "path": "/api/internal/precision-lock",
       "schedule": "45 22 * * *"
     }

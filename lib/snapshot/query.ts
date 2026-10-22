@@ -4146,7 +4146,7 @@ export async function getSnapshotPlayerLookupData(input: {
 export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<SnapshotBoardViewData> {
   try {
     const isTodayEt = dateEt === getSnapshotBoardDateString();
-    const [persistedBoardSetting, lineupSetting] = await Promise.all([
+    const [persistedBoardSetting, lineupSetting, scheduledGameCount] = await Promise.all([
       prisma.systemSetting.findUnique({
         where: { key: getSnapshotBoardSettingKey(dateEt) },
         select: { value: true },
@@ -4157,9 +4157,20 @@ export async function getInitialSnapshotBoardViewData(dateEt: string): Promise<S
             select: { value: true, updatedAt: true },
           })
         : Promise.resolve(null),
+      prisma.game.count({ where: { gameDateEt: dateEt } }),
     ]);
     const lineupMap = buildLineupSignalMap(parseLineupSnapshot(lineupSetting?.value ?? null, dateEt));
     const persistedBoard = readPersistedSnapshotBoardSetting(persistedBoardSetting?.value ?? null);
+    // The persisted board is served without a freshness check to keep page loads fast, so a board saved
+    // before the slate's games existed would otherwise stay empty until a manual rebuild.
+    const persistedBoardMissesGames =
+      persistedBoard != null && persistedBoard.data.matchups.length === 0 && scheduledGameCount > 0;
+    if (persistedBoardMissesGames) {
+      return preferBundledSnapshotBoardViewFallbackWhenBroken(
+        dateEt,
+        toSnapshotBoardViewData(await withSnapshotPrecisionDashboard(await getSnapshotBoardData(dateEt, true), { dateEt })),
+      );
+    }
     if (persistedBoard && hasPersistedBoardFeedData(persistedBoard.data)) {
       const finalModel = await loadFinalPlayerPropModelV1(dateEt);
       const dataWithPrecision = await withSnapshotPrecisionDashboard(
