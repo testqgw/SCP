@@ -35,6 +35,7 @@ import {
   fetchDailyPtsLineMap,
   fetchSeasonVolumeLogs,
   resolveOpponentShotVolumeMetrics,
+  type DailyPlayerPropLine,
 } from "@/lib/snapshot/pointsContext";
 import {
   buildAdaptivePrecisionFloorPick,
@@ -1041,9 +1042,22 @@ function toDashboardSignal(signal: SnapshotPtsSignal | null | undefined): Snapsh
   return {
     marketLine: signal.marketLine,
     sportsbookCount: signal.sportsbookCount,
+    overPrice: signal.overPrice ?? null,
+    underPrice: signal.underPrice ?? null,
     side: signal.side,
     confidence: signal.confidence,
     passReasons: signal.passReasons.slice(0, 2),
+  };
+}
+
+function withLinePrices(signal: SnapshotPtsSignal | null, marketLine: DailyPlayerPropLine | null): SnapshotPtsSignal | null {
+  if (!signal) return null;
+  // Prices only describe the signal's line when the signal is graded against that same line.
+  const samePriceLine = marketLine != null && signal.marketLine === marketLine.line;
+  return {
+    ...signal,
+    overPrice: samePriceLine ? marketLine.overPrice : null,
+    underPrice: samePriceLine ? marketLine.underPrice : null,
   };
 }
 
@@ -6311,14 +6325,14 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       opponentAllowanceDelta,
       projectedTonight,
       modelLines,
-      ptsSignal,
-      rebSignal,
-      astSignal,
-      threesSignal,
-      praSignal,
-      paSignal,
-      prSignal,
-      raSignal,
+      ptsSignal: withLinePrices(ptsSignal, ptsMarketLine),
+      rebSignal: withLinePrices(rebSignal, rebMarketLine),
+      astSignal: withLinePrices(astSignal, astMarketLine),
+      threesSignal: withLinePrices(threesSignal, threesMarketLine),
+      praSignal: withLinePrices(praSignal, praMarketLine),
+      paSignal: withLinePrices(paSignal, paMarketLine),
+      prSignal: withLinePrices(prSignal, prMarketLine),
+      raSignal: withLinePrices(raSignal, raMarketLine),
       marketRuntime,
       precisionSignals,
       recentLogs: last10Logs,

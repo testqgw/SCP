@@ -46,6 +46,9 @@ export type SnapshotPtsQualifiedRule = {
 export type SnapshotPtsSignal = {
   marketLine: number | null;
   sportsbookCount: number;
+  // American prices for the consensus line; scored live by the Final V1 EV gate.
+  overPrice?: number | null;
+  underPrice?: number | null;
   side: SnapshotModelSide;
   baselineSide: SnapshotModelSide;
   confidence: number | null;
@@ -507,7 +510,7 @@ export type SnapshotBoardFeed = {
 
 export type SnapshotDashboardSignal = Pick<
   SnapshotPtsSignal,
-  "marketLine" | "sportsbookCount" | "side" | "confidence" | "passReasons"
+  "marketLine" | "sportsbookCount" | "overPrice" | "underPrice" | "side" | "confidence" | "passReasons"
 >;
 
 export type SnapshotDashboardPrecisionSignal = {
