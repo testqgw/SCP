@@ -37,6 +37,8 @@ import {
   resolveOpponentShotVolumeMetrics,
   type DailyPlayerPropLine,
 } from "@/lib/snapshot/pointsContext";
+import { correctMetricRecord } from "@/lib/snapshot/residualCorrection";
+import { loadProjectionResidualBins } from "@/lib/snapshot/residualLedger";
 import {
   buildAdaptivePrecisionFloorPick,
   buildShortfallPrecisionRescuePick,
@@ -4857,6 +4859,11 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
+  // A failed or slow ledger load falls back to uncorrected projections.
+  const residualBins = await withTimeoutFallback(
+    loadProjectionResidualBins({ dateEt, seasonStartDateEt: getSeasonStartDateEt(dateEt), persist: isTodayEt }),
+    new Map<string, number[]>(),
+  );
 
   for (const player of players) {
     if (!player.teamId) {
@@ -5233,6 +5240,9 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       projectedTonight.PR = round(projectedTonight.PTS + projectedTonight.REB, 2);
       projectedTonight.RA = round(projectedTonight.REB + projectedTonight.AST, 2);
     }
+    // The side models were trained on residual-corrected projections; correct before any signal uses them.
+    const rawProjectedTonight = { ...projectedTonight };
+    Object.assign(projectedTonight, correctMetricRecord(residualBins, rawProjectedTonight));
     const dataCompleteness = computeDataCompleteness({
       last10Logs,
       statusLast10,
@@ -6324,6 +6334,7 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       opponentAllowance,
       opponentAllowanceDelta,
       projectedTonight,
+      rawProjectedTonight,
       modelLines,
       ptsSignal: withLinePrices(ptsSignal, ptsMarketLine),
       rebSignal: withLinePrices(rebSignal, rebMarketLine),

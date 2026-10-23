@@ -404,6 +404,8 @@ export type SnapshotRow = {
   opponentAllowance: SnapshotMetricRecord;
   opponentAllowanceDelta: SnapshotMetricRecord;
   projectedTonight: SnapshotMetricRecord;
+  // Projection before the residual correction; stored boards keep it so later corrections replay exactly.
+  rawProjectedTonight?: SnapshotMetricRecord;
   modelLines: SnapshotModelLineRecord;
   ptsSignal: SnapshotPtsSignal | null;
   rebSignal: SnapshotPtsSignal | null;
