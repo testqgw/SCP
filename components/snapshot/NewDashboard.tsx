@@ -268,6 +268,7 @@ type TopNavItem =
 
 const TOP_NAV: TopNavItem[] = [
   { label: 'Board', tab: 'overview' },
+  { label: 'Props', href: '/props' },
   { label: 'Research', tab: 'research' },
   { label: 'Scout Feed', tab: 'scout' },
   { label: 'WNBA', href: '/wnba' },
@@ -4316,7 +4317,7 @@ export default function NewDashboard({
                       <div className="mt-4 rounded-xl bg-[var(--surface)] px-3 py-3">
                         <div className="flex items-center justify-between gap-3">
                           <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--muted)]">Recent 5</div>
-                          <div className="text-[11px] text-[var(--muted)]">Oldest to newest</div>
+                          <div className="text-[11px] text-[var(--muted)]">Newest first</div>
                         </div>
                         {featuredRecentValues.length ? (
                           <>
