@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const propsModule = (await import(new URL("./propsBoard.ts", import.meta.url).href)) as typeof import("./propsBoard");
-const { buildPropsBoardData, gameStartMs, lineHitSummary, noVigOverProbability, seasonStartDate, validAmericanPrice } = propsModule;
+const {
+  buildPropsBoardData,
+  comparePropsBoardEntries,
+  gameStartMs,
+  lineHitSummary,
+  noVigOverProbability,
+  seasonStartDate,
+  validAmericanPrice,
+} = propsModule;
 
 function signal(marketLine: number | null, extra: Record<string, unknown> = {}) {
   return { marketLine, sportsbookCount: marketLine == null ? 0 : 6, side: "NEUTRAL", confidence: null, passReasons: [], ...extra };
@@ -59,6 +67,7 @@ test("only markets with a live sportsbook line become props", () => {
   const pts = data.props[0];
   assert.equal(pts.edge, 1.9);
   assert.equal(pts.last5Over, 3);
+  assert.equal(pts.last5Under, 2);
   assert.equal(pts.isHome, false);
   assert.equal(data.games[0].propCount, 2);
   // -13.5 is an average of a plus and a minus price, not a quote.
@@ -89,4 +98,45 @@ test("line hit summary counts pushes separately", () => {
 test("season starts in the fall of the board's season", () => {
   assert.equal(seasonStartDate("2026-10-23"), "2026-08-01");
   assert.equal(seasonStartDate("2027-03-02"), "2026-08-01");
+});
+
+type Entry = ReturnType<typeof buildPropsBoardData>["props"][number];
+
+function entry(key: string, fields: Partial<Entry>): Entry {
+  const last5 = fields.last5 ?? [];
+  const line = fields.line ?? 10;
+  return {
+    key,
+    playerName: key,
+    matchupKey: "NOP@UTA",
+    market: "PTS",
+    line,
+    edge: 0,
+    books: 6,
+    projectedMinutes: 30,
+    last5,
+    last5Over: last5.filter((value) => value > line).length,
+    last5Under: last5.filter((value) => value < line).length,
+    ...fields,
+  } as Entry;
+}
+
+function sortedKeys(sort: Parameters<typeof comparePropsBoardEntries>[0], entries: Entry[]) {
+  return entries.sort(comparePropsBoardEntries(sort, new Map([["NOP@UTA", 0]]))).map((item) => item.key);
+}
+
+test("projection gap sort keeps props without a projection last", () => {
+  const entries = [entry("none", { edge: null }), entry("small", { edge: -0.5 }), entry("big", { edge: 4 })];
+  assert.deepEqual(sortedKeys("edge", entries), ["big", "small", "none"]);
+});
+
+test("unders sort counts real unders, not pushes or missing games", () => {
+  const entries = [
+    entry("pushes", { line: 10, last5: [10, 10, 10, 10, 10] }),
+    entry("no-games", { last5: [] }),
+    entry("two-unders", { line: 10, last5: [8, 12, 9, 11, 13] }),
+    entry("four-unders", { line: 10, last5: [8, 7, 9, 6, 13] }),
+  ];
+  assert.deepEqual(sortedKeys("cold", entries), ["four-unders", "two-unders", "pushes", "no-games"]);
+  assert.deepEqual(sortedKeys("hot", entries), ["two-unders", "four-unders", "pushes", "no-games"]);
 });

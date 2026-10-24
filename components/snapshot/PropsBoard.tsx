@@ -7,15 +7,17 @@ import type { SnapshotMarket, SnapshotStatLog } from '@/lib/types/snapshot';
 import {
   PROPS_BOARD_MARKETS,
   PROPS_BOARD_MARKET_LABELS,
+  comparePropsBoardEntries,
   lineHitSummary,
   seasonStartDate,
   statForMarket,
   type PropsBoardData,
   type PropsBoardEntry,
   type PropsBoardGame,
+  type PropsBoardSort,
 } from '@/lib/snapshot/propsBoard';
 
-type SortKey = 'game' | 'edge' | 'hot' | 'cold' | 'books';
+type SortKey = PropsBoardSort;
 type LogsState = { status: 'loading' } | { status: 'ready'; logs: SnapshotStatLog[] } | { status: 'error'; error: string };
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -42,8 +44,6 @@ const CHIP_OFF = 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-2)
 
 const SELECT_CLASS =
   'h-8 rounded-lg border border-[var(--border)] bg-zinc-900/70 px-2.5 text-xs text-[var(--text)] outline-none hover:border-zinc-700 focus:border-[var(--accent-border)]';
-
-const MARKET_ORDER = new Map(PROPS_BOARD_MARKETS.map((market, index) => [market, index]));
 
 function n(value: number | null | undefined, digits = 1) {
   if (value == null || !Number.isFinite(value)) return '—';
@@ -149,35 +149,6 @@ function leanPill(entry: PropsBoardEntry) {
       {over ? 'Lean O' : 'Lean U'}
     </span>
   );
-}
-
-function compareEntries(sort: SortKey, gameStart: Map<string, number>) {
-  const byGameThenPlayer = (a: PropsBoardEntry, b: PropsBoardEntry) =>
-    (gameStart.get(a.matchupKey) ?? Infinity) - (gameStart.get(b.matchupKey) ?? Infinity) ||
-    a.matchupKey.localeCompare(b.matchupKey) ||
-    (b.projectedMinutes ?? -1) - (a.projectedMinutes ?? -1) ||
-    a.playerName.localeCompare(b.playerName) ||
-    (MARKET_ORDER.get(a.market) ?? 0) - (MARKET_ORDER.get(b.market) ?? 0);
-
-  switch (sort) {
-    case 'edge':
-      return (a: PropsBoardEntry, b: PropsBoardEntry) =>
-        Math.abs(b.edge ?? -Infinity) - Math.abs(a.edge ?? -Infinity) || byGameThenPlayer(a, b);
-    case 'hot':
-      return (a: PropsBoardEntry, b: PropsBoardEntry) =>
-        b.last5Over / Math.max(b.last5.length, 1) - a.last5Over / Math.max(a.last5.length, 1) ||
-        b.last5.length - a.last5.length ||
-        byGameThenPlayer(a, b);
-    case 'cold':
-      return (a: PropsBoardEntry, b: PropsBoardEntry) =>
-        a.last5Over / Math.max(a.last5.length, 1) - b.last5Over / Math.max(b.last5.length, 1) ||
-        b.last5.length - a.last5.length ||
-        byGameThenPlayer(a, b);
-    case 'books':
-      return (a: PropsBoardEntry, b: PropsBoardEntry) => b.books - a.books || byGameThenPlayer(a, b);
-    default:
-      return byGameThenPlayer;
-  }
 }
 
 function LastFive({ entry }: { entry: PropsBoardEntry }) {
@@ -544,7 +515,7 @@ export default function PropsBoard({ data, renderedAt }: { data: PropsBoardData;
   }, [scoped]);
 
   const visible = useMemo(
-    () => scoped.filter((entry) => market === 'ALL' || entry.market === market).sort(compareEntries(sort, gameStart)),
+    () => scoped.filter((entry) => market === 'ALL' || entry.market === market).sort(comparePropsBoardEntries(sort, gameStart)),
     [gameStart, market, scoped, sort],
   );
 

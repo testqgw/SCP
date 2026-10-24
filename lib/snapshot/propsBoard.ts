@@ -65,6 +65,7 @@ export type PropsBoardEntry = {
   // Newest game first.
   last5: number[];
   last5Over: number;
+  last5Under: number;
   last10Average: number | null;
   // The board's "seasonAverage" covers every game it loaded for the player (several seasons).
   allGamesAverage: number | null;
@@ -186,6 +187,7 @@ function toEntry(row: SnapshotDashboardRow, market: SnapshotMarket): PropsBoardE
     lean: signal.side ?? "NEUTRAL",
     last5,
     last5Over: last5.filter((value) => value > line).length,
+    last5Under: last5.filter((value) => value < line).length,
     last10Average: round(finite(row.last10Average?.[market]), 1),
     allGamesAverage: round(finite(row.seasonAverage?.[market]), 1),
     opponentDelta: round(finite(row.opponentAllowanceDelta?.[market]), 1),
@@ -226,6 +228,45 @@ export function buildPropsBoardData(data: SnapshotBoardViewData): PropsBoardData
     .sort((a, b) => (a.startMs ?? Infinity) - (b.startMs ?? Infinity) || a.key.localeCompare(b.key));
 
   return { dateEt: data.dateEt, lastUpdatedAt: data.lastUpdatedAt ?? null, games, props };
+}
+
+export type PropsBoardSort = "game" | "edge" | "hot" | "cold" | "books";
+
+const MARKET_ORDER = new Map(PROPS_BOARD_MARKETS.map((market, index) => [market, index]));
+
+// Share of the last five games strictly over (or under) the line, so pushes count for neither side.
+// Props with no recent games, like those with no projection, sort after every measured prop.
+function lastFiveRate(entry: PropsBoardEntry, side: "over" | "under"): number {
+  if (!entry.last5.length) return -1;
+  return (side === "over" ? entry.last5Over : entry.last5Under) / entry.last5.length;
+}
+
+function absoluteEdge(entry: PropsBoardEntry): number {
+  return entry.edge == null ? -1 : Math.abs(entry.edge);
+}
+
+export function comparePropsBoardEntries(sort: PropsBoardSort, gameStart: Map<string, number>) {
+  const byGameThenPlayer = (a: PropsBoardEntry, b: PropsBoardEntry) =>
+    (gameStart.get(a.matchupKey) ?? Infinity) - (gameStart.get(b.matchupKey) ?? Infinity) ||
+    a.matchupKey.localeCompare(b.matchupKey) ||
+    (b.projectedMinutes ?? -1) - (a.projectedMinutes ?? -1) ||
+    a.playerName.localeCompare(b.playerName) ||
+    (MARKET_ORDER.get(a.market) ?? 0) - (MARKET_ORDER.get(b.market) ?? 0);
+
+  switch (sort) {
+    case "edge":
+      return (a: PropsBoardEntry, b: PropsBoardEntry) => absoluteEdge(b) - absoluteEdge(a) || byGameThenPlayer(a, b);
+    case "hot":
+    case "cold": {
+      const side = sort === "hot" ? "over" : "under";
+      return (a: PropsBoardEntry, b: PropsBoardEntry) =>
+        lastFiveRate(b, side) - lastFiveRate(a, side) || b.last5.length - a.last5.length || byGameThenPlayer(a, b);
+    }
+    case "books":
+      return (a: PropsBoardEntry, b: PropsBoardEntry) => b.books - a.books || byGameThenPlayer(a, b);
+    default:
+      return byGameThenPlayer;
+  }
 }
 
 export function statForMarket(log: SnapshotStatLog, market: SnapshotMarket): number {
