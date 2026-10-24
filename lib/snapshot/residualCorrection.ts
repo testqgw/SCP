@@ -99,21 +99,24 @@ export function correctMetricRecord(bins: ResidualBins, raw: SnapshotMetricRecor
   return corrected;
 }
 
+/** Adds one settled day; its entries are corrected from the bins as they stood before that day. */
+export function addResidualDay(bins: ResidualBins, day: ResidualLedgerDay): void {
+  const pending = day.entries.map((entry) => ({
+    key: binKey(entry.market, entry.rawProjection),
+    residual: entry.actual - (correctProjection(bins, entry.market, entry.rawProjection) ?? entry.rawProjection),
+  }));
+  for (const { key, residual } of pending) {
+    const series = bins.get(key) ?? [];
+    series.push(residual);
+    if (series.length > MAX_RESIDUALS_PER_BIN) series.shift();
+    bins.set(key, series);
+  }
+}
+
 /** Replays settled days in date order; each day is corrected only from earlier days. */
 export function buildResidualBins(days: ResidualLedgerDay[]): ResidualBins {
   const bins: ResidualBins = new Map();
   const ordered = [...days].sort((left, right) => left.dateEt.localeCompare(right.dateEt));
-  for (const day of ordered) {
-    const pending = day.entries.map((entry) => ({
-      key: binKey(entry.market, entry.rawProjection),
-      residual: entry.actual - (correctProjection(bins, entry.market, entry.rawProjection) ?? entry.rawProjection),
-    }));
-    for (const { key, residual } of pending) {
-      const series = bins.get(key) ?? [];
-      series.push(residual);
-      if (series.length > MAX_RESIDUALS_PER_BIN) series.shift();
-      bins.set(key, series);
-    }
-  }
+  for (const day of ordered) addResidualDay(bins, day);
   return bins;
 }

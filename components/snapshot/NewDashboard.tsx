@@ -505,6 +505,8 @@ type View = {
   conf: number | null;
   books: number | null;
   side: SnapshotModelSide;
+  // Calibrated probability of `side` when it is the board side; null for other side sources.
+  sideProbability: number | null;
   liveKind: Kind;
   liveLineKind: Kind;
   fairKind: Kind;
@@ -1724,17 +1726,25 @@ function viewFor(
   const live = liveSignal?.marketLine ?? null;
   const proj = row.projectedTonight[market];
   const basis = live ?? fair;
-  const usesComputedSide = !(precision?.qualified && precision.side !== 'NEUTRAL') && basis != null && proj != null;
+  const precisionSide = precision?.qualified && precision.side !== 'NEUTRAL' ? precision.side : null;
+  // The calibrated board side replaces the bare projection sign whenever a live line has one.
+  const boardSide =
+    live != null && (liveSignal?.boardSide === 'OVER' || liveSignal?.boardSide === 'UNDER') ? liveSignal.boardSide : null;
+  const usesBoardSide = precisionSide == null && boardSide != null;
+  const usesComputedSide = precisionSide == null && !usesBoardSide && basis != null && proj != null;
   const side: SnapshotModelSide =
-    precision?.qualified && precision.side !== 'NEUTRAL'
-      ? precision.side
-      : usesComputedSide
-        ? proj > basis
-          ? 'OVER'
-          : proj < basis
-            ? 'UNDER'
-            : 'NEUTRAL'
-        : liveSignal?.side ?? row.modelLines[market].modelSide;
+    precisionSide ??
+    boardSide ??
+    (usesComputedSide
+      ? proj > basis
+        ? 'OVER'
+        : proj < basis
+          ? 'UNDER'
+          : 'NEUTRAL'
+      : liveSignal?.side ?? row.modelLines[market].modelSide);
+  const boardOverProbability = usesBoardSide ? (liveSignal?.boardOverProbability ?? null) : null;
+  const sideProbability =
+    boardOverProbability == null ? null : side === 'OVER' ? boardOverProbability : 1 - boardOverProbability;
   const usesDerivedConfidence = precision != null;
   const conf = resolveViewConfidence(precision, liveSignal);
   const usesDerivedEdge = proj != null && basis != null;
@@ -1761,6 +1771,7 @@ function viewFor(
     conf,
     books: liveBooks,
     side,
+    sideProbability,
     liveKind: live != null ? 'LIVE' : 'MODEL',
     liveLineKind: live != null ? 'LIVE' : 'PLACEHOLDER',
     fairKind: fair != null ? 'MODEL' : 'PLACEHOLDER',
@@ -1768,7 +1779,7 @@ function viewFor(
     edgeKind: edge != null ? (usesDerivedEdge ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
     confKind: conf != null ? (usesDerivedConfidence ? 'DERIVED' : 'LIVE') : 'PLACEHOLDER',
     booksKind: liveBooks != null ? 'LIVE' : 'PLACEHOLDER',
-    sideKind: usesComputedSide ? 'DERIVED' : 'LIVE',
+    sideKind: usesBoardSide ? 'MODEL' : usesComputedSide ? 'DERIVED' : 'LIVE',
     rank: entry ? `#${entry.rank}` : null,
     source: entry
       ? `Precision rank #${entry.rank}`
@@ -2039,6 +2050,7 @@ function viewForFinalModelRow(row: SnapshotDashboardRow, modelRow: SnapshotFinal
     conf: confidence,
     books: modelRow.sportsbookCount ?? base.books,
     side: modelRow.side,
+    sideProbability: null,
     liveKind: live != null ? 'LIVE' : base.liveKind,
     liveLineKind: live != null ? 'LIVE' : base.liveLineKind,
     projKind: proj != null ? 'MODEL' : base.projKind,
@@ -2074,6 +2086,10 @@ function availabilityRead(playerContext: SnapshotDashboardRow['playerContext']) 
 }
 
 function marketRead(view: View) {
+  if (view.live != null && view.edge != null && view.sideProbability != null) {
+    // The board side can disagree with the projection gap when the price leans the other way.
+    return `${view.side} ${pct(view.sideProbability * 100, 0)} · proj ${signed(view.edge)} vs live`;
+  }
   if (view.live != null && view.edge != null) {
     return `${view.side} ${signed(view.edge)} vs live`;
   }
@@ -3293,6 +3309,9 @@ export default function NewDashboard({
     const reasonSet = new Set<string>();
     if (focusView.edge != null) {
       reasonSet.add(`Gap is ${gapRead(focusView.edge)} the ${basisLabel}.`);
+    }
+    if (focusView.sideProbability != null) {
+      reasonSet.add(`Board side ${focusView.side} at ${pct(focusView.sideProbability * 100, 0)} from the projection gap and market price.`);
     }
     if (focusView.books != null && focusView.books > 0) {
       reasonSet.add(`${booksCountLabel(focusView.books)} are contributing to the current number.`);

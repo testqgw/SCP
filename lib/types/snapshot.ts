@@ -50,6 +50,9 @@ export type SnapshotPtsSignal = {
   overPrice?: number | null;
   underPrice?: number | null;
   side: SnapshotModelSide;
+  // Displayed board side from lib/snapshot/boardSideCalibration.ts, with its calibrated P(over).
+  boardSide?: SnapshotModelSide | null;
+  boardOverProbability?: number | null;
   baselineSide: SnapshotModelSide;
   confidence: number | null;
   confidenceTier: SnapshotPtsConfidenceTier | null;
@@ -512,7 +515,15 @@ export type SnapshotBoardFeed = {
 
 export type SnapshotDashboardSignal = Pick<
   SnapshotPtsSignal,
-  "marketLine" | "sportsbookCount" | "overPrice" | "underPrice" | "side" | "confidence" | "passReasons"
+  | "marketLine"
+  | "sportsbookCount"
+  | "overPrice"
+  | "underPrice"
+  | "side"
+  | "boardSide"
+  | "boardOverProbability"
+  | "confidence"
+  | "passReasons"
 >;
 
 export type SnapshotDashboardPrecisionSignal = {

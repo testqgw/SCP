@@ -11,6 +11,7 @@
     "test:time": "node --test lib/snapshot/time.test.mts",
     "test:espn": "node --test lib/espn/parse.test.mts lib/espn/idMatch.test.mts lib/nba/sourceSelect.test.mts",
     "test:residual": "node --test lib/snapshot/residualCorrection.test.mts",
+    "test:board-side": "node --test lib/snapshot/boardSideCalibration.test.mts",
     "refresh:full": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts full",
     "refresh:delta": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts delta",
     "seed:nba-schedule": "tsx --env-file=.env.local --env-file=.env scripts/seed-nba-schedule.ts",
