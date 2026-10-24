@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:time": "node --test lib/snapshot/time.test.mts",
+    "test:odds": "node --test lib/snapshot/americanOdds.test.mts",
     "test:espn": "node --test lib/espn/parse.test.mts lib/espn/idMatch.test.mts lib/nba/sourceSelect.test.mts",
     "refresh:full": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts full",
     "refresh:delta": "tsx --env-file=.env.local --env-file=.env scripts/run-refresh.ts delta",

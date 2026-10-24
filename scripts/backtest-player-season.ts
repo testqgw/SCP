@@ -9,6 +9,7 @@ import {
   projectMinutesProfile,
   projectTonightMetrics,
 } from "../lib/snapshot/projection";
+import { medianAmericanPrice } from "../lib/snapshot/americanOdds";
 import { buildModelLineRecord } from "../lib/snapshot/modelLines";
 import type { SnapshotDataCompleteness, SnapshotMarket, SnapshotMetricRecord, SnapshotStatLog } from "../lib/types/snapshot";
 import { round } from "../lib/utils";
@@ -1248,8 +1249,8 @@ async function resolveHistoricalPlayerPropLine(input: {
       ),
     ),
     capturedAt: latestAt,
-    overPrice: medianNumber(overPrices),
-    underPrice: medianNumber(underPrices),
+    overPrice: medianAmericanPrice(overPrices),
+    underPrice: medianAmericanPrice(underPrices),
   };
 }
 
