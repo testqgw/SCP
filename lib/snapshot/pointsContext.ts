@@ -6,6 +6,7 @@ import {
   type LineupStatus,
   type RotowireAvailabilityStatus,
 } from "@/lib/lineups/rotowire";
+import { medianAmericanPrice } from "@/lib/snapshot/americanOdds";
 import { predictLivePlayerModelSide } from "@/lib/snapshot/livePlayerSideModels";
 import { predictLiveUniversalModelSide } from "@/lib/snapshot/liveUniversalSideModels";
 import { SportsDataClient } from "@/lib/sportsdata/client";
@@ -576,8 +577,8 @@ function parseAllCoversMarketPage(html: string): CoversMarketRow[] {
     rows.push({
       playerName,
       line: medianNumber([...overEntries, ...underEntries].map((entry) => entry.value)),
-      overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
-      underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+      overPrice: medianAmericanPrice(overEntries.map((entry) => entry.price)),
+      underPrice: medianAmericanPrice(underEntries.map((entry) => entry.price)),
       sportsbookCount: Math.max(overEntries.length, underEntries.length),
     });
   });
@@ -725,8 +726,8 @@ function parseScoresAndOddsMarketRow(market: ScoresAndOddsMarket): {
   return {
     playerName,
     line: deriveLine(overLine, underLine) ?? medianNumber(comparisonEntries.map((entry) => entry.value)),
-    overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
-    underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+    overPrice: medianAmericanPrice(overEntries.map((entry) => entry.price)),
+    underPrice: medianAmericanPrice(underEntries.map((entry) => entry.price)),
     sportsbookCount: sportsbookCount > 0 ? sportsbookCount : Math.max(overEntries.length, underEntries.length, 1),
   };
 }
@@ -956,8 +957,8 @@ function parseScoresAndOddsGamePageRows(
       parsedRows.set(playerName, {
         playerName,
         line: deriveLine(medianNumber(overEntries.map((entry) => entry.value)), medianNumber(underEntries.map((entry) => entry.value))),
-        overPrice: medianNumber(overEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
-        underPrice: medianNumber(underEntries.map((entry) => entry.price).filter((value): value is number => value != null)),
+        overPrice: medianAmericanPrice(overEntries.map((entry) => entry.price)),
+        underPrice: medianAmericanPrice(underEntries.map((entry) => entry.price)),
         sportsbookCount: sportsbookCount > 0 ? sportsbookCount : Math.max(overEntries.length, underEntries.length, 1),
       });
     }
@@ -1271,8 +1272,8 @@ async function fetchDailyPropLineMap(
         if (selected.length === 0) return;
         const line = medianNumber(selected.map((entry) => entry.line));
         if (line == null) return;
-        const overPrice = medianNumber(selected.map((entry) => Number(entry.over?.PayoutAmerican)).filter(Number.isFinite));
-        const underPrice = medianNumber(selected.map((entry) => Number(entry.under?.PayoutAmerican)).filter(Number.isFinite));
+        const overPrice = medianAmericanPrice(selected.map((entry) => Number(entry.over?.PayoutAmerican)));
+        const underPrice = medianAmericanPrice(selected.map((entry) => Number(entry.under?.PayoutAmerican)));
         const key = `${event.matchupKey}|${playerName}`;
         mergeDailyPropLine(result, key, {
           line,

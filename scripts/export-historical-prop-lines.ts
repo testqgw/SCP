@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { load } from "cheerio";
 import { prisma } from "../lib/prisma";
+import { medianAmericanPrice } from "../lib/snapshot/americanOdds";
 import type { SnapshotMarket } from "../lib/types/snapshot";
 
 type Args = {
@@ -688,8 +689,8 @@ function parseScoresAndOddsGamePageMarket(
         matchup: null,
         overLine: medianNumber(overEntries.map((entry) => entry.value)),
         underLine: medianNumber(underEntries.map((entry) => entry.value)),
-        overPrice: medianNumber(overPrices),
-        underPrice: medianNumber(underPrices),
+        overPrice: medianAmericanPrice(overPrices),
+        underPrice: medianAmericanPrice(underPrices),
         sportsbookOver: bestOver.book,
         sportsbookUnder: bestUnder.book,
       };
@@ -744,8 +745,8 @@ function parseCoversMarketPage(html: string, playerFilter: string): PageRow | nu
       matchup: null,
       overLine: medianNumber(overEntries.map((entry) => entry.value)),
       underLine: medianNumber(underEntries.map((entry) => entry.value)),
-      overPrice: medianNumber(overPrices),
-      underPrice: medianNumber(underPrices),
+      overPrice: medianAmericanPrice(overPrices),
+      underPrice: medianAmericanPrice(underPrices),
       sportsbookOver: bestOver.book,
       sportsbookUnder: bestUnder.book,
     };
