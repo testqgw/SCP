@@ -12,6 +12,7 @@
 // npx tsx scripts/replay-board-side-season.ts --logs logs-by-player.json --lines historical-lines.csv \
 //   --out board-side-replay.csv [--positions positions.json]
 import { readFileSync, writeFileSync } from "node:fs";
+import { computeCurrentLineRecencyMetrics } from "@/lib/snapshot/currentLineRecency";
 import { buildPlayerPersonalModels, projectTonightMetrics } from "@/lib/snapshot/projection";
 import {
   addResidualDay,
@@ -133,6 +134,32 @@ function projectRaw(history: Log[], game: Log, position: string | null): Snapsho
   return projected;
 }
 
+// Pregame context the board already has for each row: current-line recency over the last 15 played
+// games (as query.ts computes it), minutes role, rest, and games played this season.
+function rowContext(history: Log[], market: SnapshotMarket, line: number, dateEt: string): Array<number | null> {
+  const last15 = history.slice(0, 15).reverse();
+  const last10 = history.slice(0, 10);
+  const recency = computeCurrentLineRecencyMetrics({
+    recentActualValues: last15.map((log) => stat(log, market)),
+    recentMinutes: last15.map((log) => log.minutes),
+    currentLine: line,
+  });
+  const seasonStart = `${Number(dateEt.slice(0, 4)) - (dateEt.slice(5) < "08-01" ? 1 : 0)}-08-01`;
+  return [
+    recency.l5CurrentLineDeltaAvg, recency.l10CurrentLineOverRate, recency.l15CurrentLineOverRate,
+    recency.weightedCurrentLineOverRate, recency.emaCurrentLineDelta, recency.l15ValueMedian, recency.l15ValueStdDev,
+    recency.l15ValueSkew, recency.l5MinutesAvg, average(last10.map((log) => log.minutes)),
+    standardDeviation(last10.map((log) => log.minutes)),
+    last10.length ? last10.filter((log) => log.starter === true).length / last10.length : null,
+    daysBetween(history[0].gameDateEt, dateEt), history.filter((log) => log.gameDateEt >= seasonStart).length,
+    average(last10.map((log) => stat(log, market))),
+  ];
+}
+
+const CONTEXT_COLUMNS =
+  "l5LineDelta,l10LineOverRate,l15LineOverRate,weightedLineOverRate,emaLineDelta,l15Median,l15StdDev,l15Skew," +
+  "l5Minutes,expectedMinutes,minutesVolatility,starterRateLast10,restDays,seasonGames,last10Avg";
+
 function main() {
   const logsByPlayer = JSON.parse(readFileSync(arg("logs")!, "utf8")) as Record<string, Log[]>;
   const positionsPath = arg("positions", false);
@@ -172,7 +199,9 @@ function main() {
   const dates = [...linesByDate.keys()].sort();
   const bins: ResidualBins = new Map();
   const fmt = (value: number | null) => (value == null || !Number.isFinite(value) ? "" : String(Math.round(value * 1000) / 1000));
-  const out = ["dateEt,playerId,market,line,overLine,underLine,overPrice,underPrice,rawProjection,projection,actual,actualMinutes"];
+  const out = [
+    `dateEt,playerId,market,line,overLine,underLine,overPrice,underPrice,rawProjection,projection,actual,actualMinutes,${CONTEXT_COLUMNS}`,
+  ];
   let projectedGames = 0;
   for (const dateEt of dates) {
     const entries: ResidualLedgerEntry[] = [];
@@ -190,7 +219,7 @@ function main() {
         if (!prices) continue;
         out.push([
           dateEt, playerId, market, ...prices, fmt(rawValue), fmt(correctProjection(bins, market, rawValue)),
-          fmt(stat(game, market)), fmt(game.minutes),
+          fmt(stat(game, market)), fmt(game.minutes), ...rowContext(history, market, Number(prices[0]), dateEt).map(fmt),
         ].join(","));
       }
     }

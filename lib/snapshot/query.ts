@@ -37,9 +37,9 @@ import {
   resolveOpponentShotVolumeMetrics,
   type DailyPlayerPropLine,
 } from "@/lib/snapshot/pointsContext";
-import { calibrateBoardSide } from "@/lib/snapshot/boardSideCalibration";
+import { calibrateBoardSide, type BoardSideMarkets } from "@/lib/snapshot/boardSideCalibration";
 import { correctMetricRecord } from "@/lib/snapshot/residualCorrection";
-import { loadProjectionResidualBins } from "@/lib/snapshot/residualLedger";
+import { loadProjectionCalibration, UNCORRECTED_PROJECTION_CALIBRATION } from "@/lib/snapshot/residualLedger";
 import {
   buildAdaptivePrecisionFloorPick,
   buildShortfallPrecisionRescuePick,
@@ -1071,15 +1071,19 @@ function withBoardSide(
   signal: SnapshotPtsSignal | null,
   market: SnapshotMarket,
   projection: number | null,
+  boardSideMarkets: BoardSideMarkets,
 ): SnapshotPtsSignal | null {
   if (!signal) return null;
-  const call = calibrateBoardSide({
-    market,
-    projection,
-    line: signal.marketLine,
-    overPrice: signal.overPrice,
-    underPrice: signal.underPrice,
-  });
+  const call = calibrateBoardSide(
+    {
+      market,
+      projection,
+      line: signal.marketLine,
+      overPrice: signal.overPrice,
+      underPrice: signal.underPrice,
+    },
+    boardSideMarkets,
+  );
   return { ...signal, boardSide: call?.side ?? null, boardOverProbability: call?.overProbability ?? null };
 }
 
@@ -4879,10 +4883,10 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
   const rowsWithSortKeys: Array<{ sortTime: number; row: SnapshotRow }> = [];
   const precisionCardCandidates: PrecisionCardCandidateRecord[] = [];
   const builtRowKeys = new Set<string>();
-  // A failed or slow ledger load falls back to uncorrected projections.
-  const residualBins = await withTimeoutFallback(
-    loadProjectionResidualBins({ dateEt, seasonStartDateEt: getSeasonStartDateEt(dateEt), persist: isTodayEt }),
-    new Map<string, number[]>(),
+  // A failed or slow ledger load falls back to uncorrected projections and the shipped board-side fit.
+  const { residualBins, boardSideMarkets } = await withTimeoutFallback(
+    loadProjectionCalibration({ dateEt, seasonStartDateEt: getSeasonStartDateEt(dateEt), persist: isTodayEt }),
+    UNCORRECTED_PROJECTION_CALIBRATION,
   );
 
   for (const player of players) {
@@ -6356,14 +6360,19 @@ export async function getSnapshotBoardData(dateEt: string, bustCache = false): P
       projectedTonight,
       rawProjectedTonight,
       modelLines,
-      ptsSignal: withBoardSide(withLinePrices(ptsSignal, ptsMarketLine), "PTS", projectedTonight.PTS),
-      rebSignal: withBoardSide(withLinePrices(rebSignal, rebMarketLine), "REB", projectedTonight.REB),
-      astSignal: withBoardSide(withLinePrices(astSignal, astMarketLine), "AST", projectedTonight.AST),
-      threesSignal: withBoardSide(withLinePrices(threesSignal, threesMarketLine), "THREES", projectedTonight.THREES),
-      praSignal: withBoardSide(withLinePrices(praSignal, praMarketLine), "PRA", projectedTonight.PRA),
-      paSignal: withBoardSide(withLinePrices(paSignal, paMarketLine), "PA", projectedTonight.PA),
-      prSignal: withBoardSide(withLinePrices(prSignal, prMarketLine), "PR", projectedTonight.PR),
-      raSignal: withBoardSide(withLinePrices(raSignal, raMarketLine), "RA", projectedTonight.RA),
+      ptsSignal: withBoardSide(withLinePrices(ptsSignal, ptsMarketLine), "PTS", projectedTonight.PTS, boardSideMarkets),
+      rebSignal: withBoardSide(withLinePrices(rebSignal, rebMarketLine), "REB", projectedTonight.REB, boardSideMarkets),
+      astSignal: withBoardSide(withLinePrices(astSignal, astMarketLine), "AST", projectedTonight.AST, boardSideMarkets),
+      threesSignal: withBoardSide(
+        withLinePrices(threesSignal, threesMarketLine),
+        "THREES",
+        projectedTonight.THREES,
+        boardSideMarkets,
+      ),
+      praSignal: withBoardSide(withLinePrices(praSignal, praMarketLine), "PRA", projectedTonight.PRA, boardSideMarkets),
+      paSignal: withBoardSide(withLinePrices(paSignal, paMarketLine), "PA", projectedTonight.PA, boardSideMarkets),
+      prSignal: withBoardSide(withLinePrices(prSignal, prMarketLine), "PR", projectedTonight.PR, boardSideMarkets),
+      raSignal: withBoardSide(withLinePrices(raSignal, raMarketLine), "RA", projectedTonight.RA, boardSideMarkets),
       marketRuntime,
       precisionSignals,
       recentLogs: last10Logs,
